@@ -19,13 +19,13 @@
 -- A local pause stops fire and drops queued edges. On resume, every FIRE2 frame whose source
 -- time is not newer than the resume cutoff (NAV2 source clock) is adopted without playing.
 local cfg = X4LAN_CONFIG
-local A = X4LAN_BUBBLE_API
-if not cfg or not cfg.coop or not A or not A.state.active then
+local bubbleApi = X4LAN_BUBBLE_API
+if not cfg or not cfg.coop or not bubbleApi or not bubbleApi.state.active then
     return
 end
 local ffi = require('ffi')
-local C = ffi.C
-local s = A.state
+local engineApi = ffi.C
+local bubbleState = bubbleApi.state
 pcall(
     ffi.cdef,
     [[uint32_t GetDefensibleActiveWeaponGroup(UniverseID,bool);
@@ -33,7 +33,7 @@ void SetDefensibleActiveWeaponGroup(UniverseID,bool,uint32_t);]]
 )
 local function api(name)
     local ok, f = pcall(function()
-        return C[name]
+        return engineApi[name]
     end)
     return ok and f or nil
 end
@@ -46,12 +46,12 @@ if fire2Mode and not fire2Ready then
         '[X4LAN] FIRE2_UNAVAILABLE: weapon-group API missing; remote fire disabled (no NAV fallback in fire2 mode)'
     )
 end
-local M = assert(X4LAN_MOTION, 'motion buffer missing')
--- One shared ship per client (A.roster): 1/2 in a two-player session, 1..N-1 (at
+local motionBuffer = assert(X4LAN_MOTION, 'motion buffer missing')
+-- One shared ship per client (bubbleApi.roster): 1/2 in a two-player session, 1..N-1 (at
 -- least 2) in a dedicated N-player session. Every remote ship has its own motion
 -- track, FIRE2 queue and velocity fence; dock attachment stays on ships 1/2.
-local R = A.roster or { players = 2, ships = 2, fixture = 2 }
-local c = {
+local shipRoster = bubbleApi.roster or { players = 2, ships = 2, fixture = 2 }
+local coopState = {
     ships = {},
     sectors = {},
     resolving = {},
@@ -73,13 +73,13 @@ local c = {
     velocityGeneration = 0,
     modes = {},
     fences = {},
-    count = R.ships,
+    count = shipRoster.ships,
 }
-for i = 1, c.count do
-    c.seq[i], c.shots[i], c.docks[i], c.fire2Seq[i], c.triggerShots[i], c.fences[i] =
+for i = 1, coopState.count do
+    coopState.seq[i], coopState.shots[i], coopState.docks[i], coopState.fire2Seq[i], coopState.triggerShots[i], coopState.fences[i] =
         0, 0, 0, 0, { 0, 0 }, 0
 end
-A.coop = c
+bubbleApi.coop = coopState
 -- Correction blend time constant (s) and the velocity hold over refresh gaps (s).
 local BLEND, VELOCITY_HOLD = 0.1, 0.25
 -- Frame slip: at the next frame the engine pose differs from the last written sector pose
@@ -96,19 +96,19 @@ local BLEND, VELOCITY_HOLD = 0.1, 0.25
 -- moved with the MD warp, at most once per second.
 local SLIP_MIN, SLIP_SPEED, SLIP_WARP = 5000, 2, 1
 local function admittedSlot(slot)
-    local n = tonumber(tostring(slot):match('^p([1-8])$'))
-    return n and n <= R.players
+    local slotNumber = tonumber(tostring(slot):match('^p([1-8])$'))
+    return slotNumber and slotNumber <= shipRoster.players
 end
-local function log(v)
-    DebugError('[X4LAN] ' .. v)
+local function log(text)
+    DebugError('[X4LAN] ' .. text)
 end
 -- Rate-limited drop diagnostics for remote weapon visuals: one REMOTE_FIRE_DROP row per
 -- (kind, reason) at most every 5 s, with the number of drops since the last row.
-c.drops = {}
-function c.dropped(kind, entity, reason, now)
+coopState.drops = {}
+function coopState.dropped(kind, entity, reason, now)
     local key = kind .. '|' .. reason
-    local d = c.drops[key] or { n = 0, next = 0 }
-    c.drops[key] = d
+    local d = coopState.drops[key] or { n = 0, next = 0 }
+    coopState.drops[key] = d
     d.n = d.n + 1
     now = now or GetCurRealTime()
     if now >= d.next then
@@ -125,23 +125,29 @@ function c.dropped(kind, entity, reason, now)
         d.next = now + 5
     end
 end
-local function integer(v, limit)
-    local n = tonumber(v)
-    if not n or n ~= n or n < 0 or n % 1 ~= 0 or n > (limit or 2147483647) then
+local function integer(value, limit)
+    local number = tonumber(value)
+    if
+        not number
+        or number ~= number
+        or number < 0
+        or number % 1 ~= 0
+        or number > (limit or 2147483647)
+    then
         return nil
     end
-    return n
+    return number
 end
-local function numeric(v, bound)
-    local n = tonumber(v)
-    if not n or n ~= n or math.abs(n) > bound then
+local function numeric(value, bound)
+    local number = tonumber(value)
+    if not number or number ~= number or math.abs(number) > bound then
         return nil
     end
-    return n
+    return number
 end
-local function send(p)
-    if s.client and s.client.lease then
-        s.transport:send(p)
+local function send(packet)
+    if bubbleState.client and bubbleState.client.lease then
+        bubbleState.transport:send(packet)
     end
 end
 -- Rate-limited: one COOP_FRAME_SLIP row at most every 5 s, with the repairs since the last.
@@ -163,25 +169,27 @@ local function logSlip(i, slip, action, now)
     end
 end
 local function clearVelocity(i)
-    local v = c.velocity[i]
+    local v = coopState.velocity[i]
     if not v then
         return
     end
-    c.velocityGeneration = c.velocityGeneration + 1
-    c.fences[i] = c.fences[i] + 1
-    AddUITriggeredEvent(
-        'X4LAN_Coop',
-        'VelocityFence',
-        { ship = i, generation = c.velocityGeneration, session = v.session, epoch = v.epoch, enabled = false }
-    )
-    c.velocity[i] = nil
+    coopState.velocityGeneration = coopState.velocityGeneration + 1
+    coopState.fences[i] = coopState.fences[i] + 1
+    AddUITriggeredEvent('X4LAN_Coop', 'VelocityFence', {
+        ship = i,
+        generation = coopState.velocityGeneration,
+        session = v.session,
+        epoch = v.epoch,
+        enabled = false,
+    })
+    coopState.velocity[i] = nil
 end
-function c.stopVelocity(discardTracks)
-    for i = 1, c.count do
+function coopState.stopVelocity(discardTracks)
+    for i = 1, coopState.count do
         clearVelocity(i)
     end
     if discardTracks then
-        c.remote = {}
+        coopState.remote = {}
     end
 end
 local function applyVelocity(i, sector, linear, now)
@@ -195,14 +203,14 @@ local function applyVelocity(i, sector, linear, now)
             return
         end
     end
-    local parent = C.GetContextByClass(c.ships[i], 'zone', false)
+    local parent = engineApi.GetContextByClass(coopState.ships[i], 'zone', false)
     if parent == 0 then
         clearVelocity(i)
         return
     end
-    local v = c.velocity[i]
-    local session = s.client.lease
-    if v and (v.session ~= session or v.epoch ~= c.epochs[i] or v.sector ~= sector) then
+    local v = coopState.velocity[i]
+    local session = bubbleState.client.lease
+    if v and (v.session ~= session or v.epoch ~= coopState.epochs[i] or v.sector ~= sector) then
         clearVelocity(i)
         v = nil
     end
@@ -214,22 +222,24 @@ local function applyVelocity(i, sector, linear, now)
         v.parent = parent
     end
     if not v then
-        c.velocityGeneration = c.velocityGeneration + 1
+        coopState.velocityGeneration = coopState.velocityGeneration + 1
         v = {
-            generation = c.velocityGeneration,
+            generation = coopState.velocityGeneration,
             session = session,
-            epoch = c.epochs[i],
+            epoch = coopState.epochs[i],
             sector = sector,
             parent = parent,
             sequence = 0,
         }
-        c.velocity[i] = v
-        c.fences[i] = c.fences[i] + 1
-        AddUITriggeredEvent(
-            'X4LAN_Coop',
-            'VelocityFence',
-            { ship = i, generation = v.generation, session = session, epoch = v.epoch, enabled = true }
-        )
+        coopState.velocity[i] = v
+        coopState.fences[i] = coopState.fences[i] + 1
+        AddUITriggeredEvent('X4LAN_Coop', 'VelocityFence', {
+            ship = i,
+            generation = v.generation,
+            session = session,
+            epoch = v.epoch,
+            enabled = true,
+        })
     end
     local changed = not v.linear
     if v.linear then
@@ -246,30 +256,28 @@ local function applyVelocity(i, sector, linear, now)
         v.linear = { linear[1], linear[2], linear[3] }
         local dockStamp, dockAge
         local attached = cfg.coop_docks and i <= 2
-        if attached and c.attachmentWindow then
-            dockStamp, dockAge = c.attachmentWindow(i, now)
+        if attached and coopState.attachmentWindow then
+            dockStamp, dockAge = coopState.attachmentWindow(i, now)
         end
-        AddUITriggeredEvent(
-            'X4LAN_Coop',
-            'Velocity',
-            {
-                ship = i,
-                generation = v.generation,
-                session = v.session,
-                epoch = v.epoch,
-                sequence = v.sequence,
-                sector = A.id(sector),
-                parent = A.id(parent),
-                x = linear[1],
-                y = linear[2],
-                z = linear[3],
-                expires = GetCurTime() + 0.3,
-                dockGeneration = attached and c.attachmentGeneration and c.attachmentGeneration(i)
-                    or nil,
-                dockStamp = dockStamp,
-                dockAge = dockAge,
-            }
-        )
+        AddUITriggeredEvent('X4LAN_Coop', 'Velocity', {
+            ship = i,
+            generation = v.generation,
+            session = v.session,
+            epoch = v.epoch,
+            sequence = v.sequence,
+            sector = bubbleApi.id(sector),
+            parent = bubbleApi.id(parent),
+            x = linear[1],
+            y = linear[2],
+            z = linear[3],
+            expires = GetCurTime() + 0.3,
+            dockGeneration = attached
+                    and coopState.attachmentGeneration
+                    and coopState.attachmentGeneration(i)
+                or nil,
+            dockStamp = dockStamp,
+            dockAge = dockAge,
+        })
     end
 end
 -- A replica the engine has attached to a highway (its highway context differs from its
@@ -277,17 +285,17 @@ end
 -- it then: the mod never puts a replica on a highway, so this only guards an engine capture
 -- (for example a pose written into a highway entry) and leaves the ship to the engine.
 local function replicaOnHighway(ship)
-    local highway = C.GetContextByClass(ship, 'highway', false)
-    return highway ~= 0 and highway ~= C.GetContextByClass(ship, 'sector', false)
+    local highway = engineApi.GetContextByClass(ship, 'highway', false)
+    return highway ~= 0 and highway ~= engineApi.GetContextByClass(ship, 'sector', false)
 end
 -- Local motion mode of an owned ship. Only the piloted ship exposes boost/travel state.
 -- A highway context equal to the sector is not a highway (engine doubles return one id).
 local function localMode(ship, sector)
-    local highway = C.GetContextByClass(ship, 'highway', false)
+    local highway = engineApi.GetContextByClass(ship, 'highway', false)
     if highway ~= 0 and highway ~= sector then
         return 'highway'
     end
-    if C.GetPlayerControlledShipID() ~= ship then
+    if engineApi.GetPlayerControlledShipID() ~= ship then
         return 'normal'
     end
     local boosting, travel
@@ -307,24 +315,20 @@ local function localMode(ship, sector)
     end
     return 'normal'
 end
-c.localMode = localMode
+coopState.localMode = localMode
 local function stopFire2(i)
-    local q = c.fire2[i]
+    local q = coopState.fire2[i]
     if q and (q.on[1] or q.on[2]) then
-        AddUITriggeredEvent(
-            'X4LAN_Coop',
-            'Fire2',
-            {
-                ship = i,
-                epoch = q.epoch,
-                primary = false,
-                secondary = false,
-                primaryShots = 0,
-                secondaryShots = 0,
-                primaryGroup = q.groups[1],
-                secondaryGroup = q.groups[2],
-            }
-        )
+        AddUITriggeredEvent('X4LAN_Coop', 'Fire2', {
+            ship = i,
+            epoch = q.epoch,
+            primary = false,
+            secondary = false,
+            primaryShots = 0,
+            secondaryShots = 0,
+            primaryGroup = q.groups[1],
+            secondaryGroup = q.groups[2],
+        })
     end
     if q then
         q.on = { false, false }
@@ -336,21 +340,21 @@ end
 -- Freeze source-clock boundaries before NAV2 can reset its motion offset. They
 -- belong to an authority epoch, independently of FIRE2 baselines and motion tracks.
 local function pauseBoundary(now)
-    if A.paused() then
-        c.wasPaused = true
+    if bubbleApi.paused() then
+        coopState.wasPaused = true
         return true
     end
-    if c.wasPaused then
-        c.wasPaused = false
-        c.resumeAt = now
-        c.resumeCutoffs = c.resumeCutoffs or {}
-        for i = 1, c.count do
-            local r = c.remote[i]
-            local old = c.resumeCutoffs[i]
-            local floor = old and old.epoch == c.epochs[i] and old.cutoff or nil
+    if coopState.wasPaused then
+        coopState.wasPaused = false
+        coopState.resumeAt = now
+        coopState.resumeCutoffs = coopState.resumeCutoffs or {}
+        for i = 1, coopState.count do
+            local r = coopState.remote[i]
+            local old = coopState.resumeCutoffs[i]
+            local floor = old and old.epoch == coopState.epochs[i] and old.cutoff or nil
             local cutoff = r and r.track and r.track.offset and now - r.track.offset or nil
-            c.resumeCutoffs[i] = {
-                epoch = c.epochs[i],
+            coopState.resumeCutoffs[i] = {
+                epoch = coopState.epochs[i],
                 floor = floor,
                 cutoff = cutoff and math.max(cutoff, floor or -math.huge) or nil,
             }
@@ -359,103 +363,104 @@ local function pauseBoundary(now)
     return false
 end
 local function resumeCutoff(i)
-    if not c.resumeAt then
+    if not coopState.resumeAt then
         return nil
     end
-    local b = c.resumeCutoffs[i]
-    if not b or b.epoch ~= c.epochs[i] then
-        b = { epoch = c.epochs[i] }
-        c.resumeCutoffs[i] = b
+    local b = coopState.resumeCutoffs[i]
+    if not b or b.epoch ~= coopState.epochs[i] then
+        b = { epoch = coopState.epochs[i] }
+        coopState.resumeCutoffs[i] = b
     end
     if not b.cutoff then
         -- Until a source mapping exists, consume counters without playback. The
         -- first mapped NAV2 sample is also a baseline, never a historical fire edge.
-        local r = c.remote[i]
+        local r = coopState.remote[i]
         local track = r and r.track
         local last = track and track.samples[#track.samples]
         if track and track.offset and last then
-            b.cutoff = math.max(b.floor or -math.huge, c.resumeAt - track.offset, last.time)
+            b.cutoff = math.max(b.floor or -math.huge, coopState.resumeAt - track.offset, last.time)
         end
     end
     return b.cutoff or math.huge
 end
-function c.stopFire()
-    for i, r in pairs(c.remote) do
+function coopState.stopFire()
+    for i, r in pairs(coopState.remote) do
         if r.firing then
             AddUITriggeredEvent('X4LAN_Coop', 'Fire', { ship = i, on = false })
         end
         r.firing = false
         r.fireDeadline = 0
     end
-    for i in pairs(c.fire2) do
+    for i in pairs(coopState.fire2) do
         stopFire2(i)
     end
 end
-function c.entity(object)
-    for i = 1, c.count do
-        if c.ships[i] and object == c.ships[i] then
+function coopState.entity(object)
+    for i = 1, coopState.count do
+        if coopState.ships[i] and object == coopState.ships[i] then
             return i
         end
     end
     return 0
 end
-function c.sectorId(name)
-    if c.sectors[name] then
-        return c.sectors[name]
+function coopState.sectorId(name)
+    if coopState.sectors[name] then
+        return coopState.sectors[name]
     end
-    if not c.resolving[name] then
-        c.resolving[name] = true
+    if not coopState.resolving[name] then
+        coopState.resolving[name] = true
         RegisterEvent('X4LAN_Coop.Sector.' .. name, function(_, object)
-            c.sectors[name] = ConvertIDTo64Bit(object)
+            coopState.sectors[name] = ConvertIDTo64Bit(object)
             log('sector mapping ready: ' .. name)
         end)
         AddUITriggeredEvent('X4LAN_Coop', 'ResolveSector', name)
     end
     return nil
 end
-function c.prepare(now)
-    if not c.setup then
-        if s.ships then
-            for i = 1, c.count do
-                c.ships[i] = s.ships[i]
+function coopState.prepare(now)
+    if not coopState.setup then
+        if bubbleState.ships then
+            for i = 1, coopState.count do
+                coopState.ships[i] = bubbleState.ships[i]
             end
         else
-            local own = R.own or (cfg.slot == 'p1' and 1 or 2)
-            assert(c.count == 2 and (own == 1 or own == 2), 'invalid local ship mapping')
-            c.ships[own] = s.ship
-            c.ships[3 - own] = s.proxy
+            local own = shipRoster.own or (cfg.slot == 'p1' and 1 or 2)
+            assert(coopState.count == 2 and (own == 1 or own == 2), 'invalid local ship mapping')
+            coopState.ships[own] = bubbleState.ship
+            coopState.ships[3 - own] = bubbleState.proxy
         end
-        for i = 1, c.count do
-            assert(c.ships[i], 'shared ship ' .. i .. ' missing')
+        for i = 1, coopState.count do
+            assert(coopState.ships[i], 'shared ship ' .. i .. ' missing')
         end
-        c.setup = true
+        coopState.setup = true
         AddUITriggeredEvent('X4LAN_Coop', 'Setup')
     end
-    local m = c.metrics
-    if c.lastFrame then
-        local delta = now - c.lastFrame
+    local m = coopState.metrics
+    if coopState.lastFrame then
+        local delta = now - coopState.lastFrame
         if delta > 0 then
             m.n = m.n + 1
             m.sum = m.sum + delta
             m.max = math.max(m.max, delta)
         end
     end
-    c.lastFrame = now
+    coopState.lastFrame = now
 end
-function c.receive(f, now)
+function coopState.receive(fields, now)
     pauseBoundary(now) -- Client packets arrive before coop.frame, including NAV2.
-    if f[1] == 'AUTH' then
-        if #f ~= 4 + 3 * c.count then
+    if fields[1] == 'AUTH' then
+        if #fields ~= 4 + 3 * coopState.count then
             return true
         end
-        local revision = integer(f[4])
-        if not revision or revision < c.revision then
+        local revision = integer(fields[4])
+        if not revision or revision < coopState.revision then
             return true
         end
         local owners, epochs, pilots = {}, {}, {}
-        for i = 1, c.count do
+        for i = 1, coopState.count do
             local index = 2 + i * 3
-            owners[i], epochs[i], pilots[i] = f[index], integer(f[index + 1]), f[index + 2]
+            owners[i], epochs[i], pilots[i] =
+                fields[index], integer(fields[index + 1]), fields[index + 2]
             if
                 not admittedSlot(owners[i])
                 or not epochs[i]
@@ -465,33 +470,35 @@ function c.receive(f, now)
                 return true
             end
         end
-        for i = 1, c.count do
-            if c.epochs[i] ~= epochs[i] or c.owners[i] ~= owners[i] then
+        for i = 1, coopState.count do
+            if coopState.epochs[i] ~= epochs[i] or coopState.owners[i] ~= owners[i] then
                 clearVelocity(i)
-                if c.remote[i] and c.remote[i].firing then
+                if coopState.remote[i] and coopState.remote[i].firing then
                     AddUITriggeredEvent('X4LAN_Coop', 'Fire', { ship = i, on = false })
                 end
                 stopFire2(i)
-                c.fire2[i] = nil
-                c.fire2Seq[i] = 0
-                c.triggerShots[i] = { 0, 0 }
-                c.remote[i] = nil
-                c.seq[i] = 0
-                c.shots[i] = 0
-                c.motion = c.motion or {}
-                c.motion[i] = nil
+                coopState.fire2[i] = nil
+                coopState.fire2Seq[i] = 0
+                coopState.triggerShots[i] = { 0, 0 }
+                coopState.remote[i] = nil
+                coopState.seq[i] = 0
+                coopState.shots[i] = 0
+                coopState.motion = coopState.motion or {}
+                coopState.motion[i] = nil
                 log('ship ' .. i .. ' movement authority=' .. owners[i] .. '; epoch=' .. epochs[i])
             end
         end
-        c.owners, c.epochs, c.pilots, c.revision = owners, epochs, pilots, revision
+        coopState.owners, coopState.epochs, coopState.pilots, coopState.revision =
+            owners, epochs, pilots, revision
         return true
-    elseif f[1] == 'NAV' or f[1] == 'NAV2' then
-        local modern = f[1] == 'NAV2'
-        if #f ~= (modern and 23 or 16) then
+    elseif fields[1] == 'NAV' or fields[1] == 'NAV2' then
+        local modern = fields[1] == 'NAV2'
+        if #fields ~= (modern and 23 or 16) then
             return true
         end
-        local entity, epoch, seq = integer(f[5], c.count), integer(f[6]), integer(f[7])
-        local name = f[8]
+        local entity, epoch, seq =
+            integer(fields[5], coopState.count), integer(fields[6]), integer(fields[7])
+        local name = fields[8]
         if
             not entity
             or entity < 1
@@ -502,81 +509,90 @@ function c.receive(f, now)
         then
             return true
         end
-        if c.owners[entity] == cfg.slot or c.epochs[entity] ~= epoch then
+        if coopState.owners[entity] == cfg.slot or coopState.epochs[entity] ~= epoch then
             return true
         end
-        local p = {}
+        local pose = {}
         for i = 1, 6 do
-            p[i] = numeric(f[i + 8], i <= 3 and 50000000 or 2 * math.pi)
-            if not p[i] then
+            pose[i] = numeric(fields[i + 8], i <= 3 and 50000000 or 2 * math.pi)
+            if not pose[i] then
                 return true
             end
         end
-        local dock, fire = integer(f[15], 2), integer(f[16])
+        local dock, fire = integer(fields[15], 2), integer(fields[16])
         if not dock or not fire then
             return true
         end
-        local r = c.remote[entity]
-        if r and seq <= r.seq then
+        local remote = coopState.remote[entity]
+        if remote and seq <= remote.seq then
             return true
         end
-        if not r or r.sector ~= name then
+        if not remote or remote.sector ~= name then
             clearVelocity(entity)
             -- Same source process, same real-time clock: a sector change keeps its offset.
-            local clock = r and r.track and r.sourceLease == f[4] and r.track.offset or nil
-            r = {
+            local clock = remote
+                    and remote.track
+                    and remote.sourceLease == fields[4]
+                    and remote.track.offset
+                or nil
+            remote = {
                 samples = {},
                 fire = fire,
                 sector = name,
                 clock = clock,
-                motion = r and r.sourceLease == f[4] and r.motion or {},
+                motion = remote and remote.sourceLease == fields[4] and remote.motion or {},
             }
-            c.remote[entity] = r
+            coopState.remote[entity] = remote
         end
         if modern then
             local velocity = {}
             for i = 1, 6 do
-                velocity[i] = tonumber(f[17 + i])
+                velocity[i] = tonumber(fields[17 + i])
             end
-            local track = r.track or {
+            local track = remote.track
+                or {
                     retainClock = true,
-                    leak = M.leak,
-                    offset = r.clock,
+                    leak = motionBuffer.leak,
+                    offset = remote.clock,
                     adaptive = true,
                 }
-            local declared = c.modes[entity]
+            local declared = coopState.modes[entity]
             declared = declared
                     and declared.epoch == epoch
-                    and declared.lease == f[4]
-                    and now - declared.at <= M.stale
+                    and declared.lease == fields[4]
+                    and now - declared.at <= motionBuffer.stale
                     and declared.mode
                 or nil
             track.mode = declared
-            if not M.push(track, tonumber(f[17]), p, velocity, now) then
+            if not motionBuffer.push(track, tonumber(fields[17]), pose, velocity, now) then
                 return true
             end
-            r.track = track
+            remote.track = track
             resumeCutoff(entity) -- Latch an unknown mapping at its first valid NAV2 baseline.
         else
-            r.track = nil
+            remote.track = nil
         end
-        r.seq, r.at, r.dock, r.sourceLease = seq, now, dock, f[4]
+        remote.seq, remote.at, remote.dock, remote.sourceLease = seq, now, dock, fields[4]
         -- In fire2 mode the NAV counter never triggers fire; there is no protocol transition.
-        if fire > r.fire and not fire2Mode then
-            r.fireDeadline = now + 0.35
+        if fire > remote.fire and not fire2Mode then
+            remote.fireDeadline = now + 0.35
         end
-        r.fire = fire
-        r.samples[#r.samples + 1] = { time = now, pose = p }
-        while #r.samples > 5 do
-            table.remove(r.samples, 1)
+        remote.fire = fire
+        remote.samples[#remote.samples + 1] = { time = now, pose = pose }
+        while #remote.samples > 5 do
+            table.remove(remote.samples, 1)
         end
         return true
-    elseif f[1] == 'NMODE' then
-        if #f ~= 9 then
+    elseif fields[1] == 'NMODE' then
+        if #fields ~= 9 then
             return true
         end
         local entity, epoch, seq, time, mode =
-            integer(f[5], c.count), integer(f[6]), integer(f[7]), numeric(f[8], 1e12), f[9]
+            integer(fields[5], coopState.count),
+            integer(fields[6]),
+            integer(fields[7]),
+            numeric(fields[8], 1e12),
+            fields[9]
         if
             not entity
             or entity < 1
@@ -584,30 +600,31 @@ function c.receive(f, now)
             or not seq
             or not time
             or time < 0
-            or not M.modes[mode]
+            or not motionBuffer.modes[mode]
         then
             return true
         end
-        if c.owners[entity] == cfg.slot or c.epochs[entity] ~= epoch then
+        if coopState.owners[entity] == cfg.slot or coopState.epochs[entity] ~= epoch then
             return true
         end
-        local old = c.modes[entity]
-        if old and old.epoch == epoch and old.lease == f[4] and seq <= old.seq then
+        local old = coopState.modes[entity]
+        if old and old.epoch == epoch and old.lease == fields[4] and seq <= old.seq then
             return true
         end
-        c.modes[entity] =
-            { epoch = epoch, lease = f[4], seq = seq, time = time, mode = mode, at = now }
+        coopState.modes[entity] =
+            { epoch = epoch, lease = fields[4], seq = seq, time = time, mode = mode, at = now }
         return true
-    elseif f[1] == 'FIRE2' then
-        if #f ~= 12 then
+    elseif fields[1] == 'FIRE2' then
+        if #fields ~= 12 then
             return true
         end
-        local entity, epoch, seq = integer(f[5], c.count), integer(f[6]), integer(f[7])
-        local time = numeric(f[8], 1e12)
-        local groups = { integer(f[9], 4), integer(f[10], 4) }
-        local shots = { integer(f[11]), integer(f[12]) }
+        local entity, epoch, seq =
+            integer(fields[5], coopState.count), integer(fields[6]), integer(fields[7])
+        local time = numeric(fields[8], 1e12)
+        local groups = { integer(fields[9], 4), integer(fields[10], 4) }
+        local shots = { integer(fields[11]), integer(fields[12]) }
         if not entity or entity < 1 or not epoch or not seq or not time or time < 0 then
-            c.dropped('FIRE2', f[5], 'malformed', now)
+            coopState.dropped('FIRE2', fields[5], 'malformed', now)
             return true
         end
         if
@@ -618,25 +635,30 @@ function c.receive(f, now)
             or not shots[1]
             or not shots[2]
         then
-            c.dropped('FIRE2', entity, 'malformed', now)
+            coopState.dropped('FIRE2', entity, 'malformed', now)
             return true
         end
         if not fire2Ready then
-            c.dropped('FIRE2', entity, 'weapon-group-api-missing', now)
+            coopState.dropped('FIRE2', entity, 'weapon-group-api-missing', now)
             return true
         end
-        if c.owners[entity] == cfg.slot then
-            c.dropped('FIRE2', entity, 'own-ship', now)
+        if coopState.owners[entity] == cfg.slot then
+            coopState.dropped('FIRE2', entity, 'own-ship', now)
             return true
         end
-        if c.epochs[entity] ~= epoch then
-            c.dropped('FIRE2', entity, 'epoch ' .. tostring(c.epochs[entity]) .. '~=' .. epoch, now)
+        if coopState.epochs[entity] ~= epoch then
+            coopState.dropped(
+                'FIRE2',
+                entity,
+                'epoch ' .. tostring(coopState.epochs[entity]) .. '~=' .. epoch,
+                now
+            )
             return true
         end
-        local q = c.fire2[entity]
-        if not q or q.epoch ~= epoch then
+        local fireQueue = coopState.fire2[entity]
+        if not fireQueue or fireQueue.epoch ~= epoch then
             -- Baseline: adopt the counters without replaying them.
-            c.fire2[entity] = {
+            coopState.fire2[entity] = {
                 epoch = epoch,
                 seq = seq,
                 time = time,
@@ -651,7 +673,12 @@ function c.receive(f, now)
             }
             return true
         end
-        if seq <= q.seq or time <= q.time or shots[1] < q.shots[1] or shots[2] < q.shots[2] then
+        if
+            seq <= fireQueue.seq
+            or time <= fireQueue.time
+            or shots[1] < fireQueue.shots[1]
+            or shots[2] < fireQueue.shots[2]
+        then
             return true
         end
         -- Paused or pre-resume history (source time at or before the cutoff) is adopted, never played.
@@ -659,112 +686,124 @@ function c.receive(f, now)
         local cutoff = resumeCutoff(entity)
         if not paused and not (cutoff and time <= cutoff) then
             for k = 1, 2 do
-                if shots[k] > q.shots[k] or groups[k] ~= q.groups[k] then
-                    q.events[#q.events + 1] = {
+                if shots[k] > fireQueue.shots[k] or groups[k] ~= fireQueue.groups[k] then
+                    fireQueue.events[#fireQueue.events + 1] = {
                         time = time,
                         trigger = k,
                         group = groups[k],
-                        count = math.min(256, shots[k] - q.shots[k]),
+                        count = math.min(256, shots[k] - fireQueue.shots[k]),
                     }
                 end
             end
         end
-        while #q.events > 32 do
-            table.remove(q.events, 1)
+        while #fireQueue.events > 32 do
+            table.remove(fireQueue.events, 1)
         end
-        q.seq, q.time, q.shots, q.groups, q.at = seq, time, shots, groups, now
+        fireQueue.seq, fireQueue.time, fireQueue.shots, fireQueue.groups, fireQueue.at =
+            seq, time, shots, groups, now
         return true
-    elseif f[1] == 'PILOT_DENIED' then
-        local seq = #f == 5 and integer(f[4]) or nil
-        if seq and seq <= (c.crewSeq or 0) and seq > (c.deniedSeq or -1) then
-            c.deniedSeq = seq
-            local entity = integer(f[5], c.count)
+    elseif fields[1] == 'PILOT_DENIED' then
+        local seq = #fields == 5 and integer(fields[4]) or nil
+        if seq and seq <= (coopState.crewSeq or 0) and seq > (coopState.deniedSeq or -1) then
+            coopState.deniedSeq = seq
+            local entity = integer(fields[5], coopState.count)
             if
                 entity
                 and entity > 0
-                and c.entity(C.GetPlayerControlledShipID()) == entity
-                and c.pilots[entity] ~= cfg.slot
+                and coopState.entity(engineApi.GetPlayerControlledShipID()) == entity
+                and coopState.pilots[entity] ~= cfg.slot
             then
                 AddUITriggeredEvent('X4LAN_Coop', 'LeaveControls', entity)
                 log('pilot request denied: the ship is occupied, trading or destroyed')
             end
         end
         return true
-    elseif f[1] == 'COOP_EXEC' then
-        if #f ~= 7 or not integer(f[5], 2) or tonumber(f[5]) < 1 then
+    elseif fields[1] == 'COOP_EXEC' then
+        if #fields ~= 7 or not integer(fields[5], 2) or tonumber(fields[5]) < 1 then
             return true
         end
-        f[1] = 'ORDER_EXEC'
-        f[5] = 'p' .. f[5]
-        if A.trade then
-            return A.trade.receive(s.client, f, now)
+        fields[1] = 'ORDER_EXEC'
+        fields[5] = 'p' .. fields[5]
+        if bubbleApi.trade then
+            return bubbleApi.trade.receive(bubbleState.client, fields, now)
         end
         return true
     end
     return false
 end
-local function declaredMode(i, r)
-    local m = c.modes[i]
+local function declaredMode(i, remote)
+    local modeState = coopState.modes[i]
     if
-        m
-        and m.epoch == c.epochs[i]
-        and m.lease == r.sourceLease
-        and r.at
-        and math.abs(r.at - m.at) <= M.stale
+        modeState
+        and modeState.epoch == coopState.epochs[i]
+        and modeState.lease == remote.sourceLease
+        and remote.at
+        and math.abs(remote.at - modeState.at) <= motionBuffer.stale
     then
-        return m.mode
+        return modeState.mode
     end
     return nil
 end
-local function render(r, now, i)
-    if not r or #r.samples == 0 then
+local function render(remote, now, i)
+    if not remote or #remote.samples == 0 then
         return nil
     end
-    if r.track then
-        local track = r.track
+    if remote.track then
+        local track = remote.track
         local last = track.samples and track.samples[#track.samples]
-        local mode, profile =
-            M.classify(r.motion, declaredMode(i, r), last and M.speed(last.velocity) or 0, now)
+        local mode, profile = motionBuffer.classify(
+            remote.motion,
+            declaredMode(i, remote),
+            last and motionBuffer.speed(last.velocity) or 0,
+            now
+        )
         track.adaptive = true
-        r.mode = mode
-        r.delay = M.delayFor(track, profile.delay)
-        r.target = M.clock(track, now, r.delay)
+        remote.mode = mode
+        remote.delay = motionBuffer.delayFor(track, profile.delay)
+        remote.target = motionBuffer.clock(track, now, remote.delay)
         -- A widened delay also widens the prediction horizon (bounded at 1 s).
-        return M.renderAt(track, r.target, math.max(profile.horizon, math.min(1, r.delay)))
+        return motionBuffer.renderAt(
+            track,
+            remote.target,
+            math.max(profile.horizon, math.min(1, remote.delay))
+        )
     end
-    if now - r.at > 0.75 then
+    if now - remote.at > 0.75 then
         return nil
     end
     local target = now - 0.1
-    local a, b = r.samples[1], r.samples[#r.samples]
-    for i = 2, #r.samples do
-        if r.samples[i].time >= target then
-            b = r.samples[i]
+    local earlier, later = remote.samples[1], remote.samples[#remote.samples]
+    for i = 2, #remote.samples do
+        if remote.samples[i].time >= target then
+            later = remote.samples[i]
             break
         end
-        a = r.samples[i]
+        earlier = remote.samples[i]
     end
-    local t = b.time > a.time and math.max(0, math.min(1, (target - a.time) / (b.time - a.time)))
+    local fraction = later.time > earlier.time
+            and math.max(0, math.min(1, (target - earlier.time) / (later.time - earlier.time)))
         or 0
-    local p = {}
+    local pose = {}
     for i = 1, 6 do
         if i <= 3 then
-            p[i] = a.pose[i] + (b.pose[i] - a.pose[i]) * t
+            pose[i] = earlier.pose[i] + (later.pose[i] - earlier.pose[i]) * fraction
         else
-            p[i] = a.pose[i] + ((b.pose[i] - a.pose[i] + math.pi) % (2 * math.pi) - math.pi) * t
+            pose[i] = earlier.pose[i]
+                + ((later.pose[i] - earlier.pose[i] + math.pi) % (2 * math.pi) - math.pi)
+                    * fraction
         end
     end
-    return p
+    return pose
 end
 -- Play FIRE2 trigger evidence back at the same source time as the rendered NAV2 pose.
-local function fire2Frame(i, r, ship, now)
+local function fire2Frame(i, remote, ship, now)
     -- Observed-projectile mode never aims/fires a native replay gun.
     if cfg.projectile_visuals or (cfg.shot_visual and i > 2) then
         -- Projectile and harmless-shot visuals exist for ships 1/2 only: remote fire of ships
         -- 3.. is not drawn in those modes (fail closed, logged once per ship).
-        if i > 2 and c.fire2[i] and not (c.fireLimitLogged or {})[i] then
-            c.fireLimitLogged = c.fireLimitLogged or {}
-            c.fireLimitLogged[i] = true
+        if i > 2 and coopState.fire2[i] and not (coopState.fireLimitLogged or {})[i] then
+            coopState.fireLimitLogged = coopState.fireLimitLogged or {}
+            coopState.fireLimitLogged[i] = true
             log(
                 'FIRE_VISUAL_LIMIT ship='
                     .. i
@@ -774,106 +813,110 @@ local function fire2Frame(i, r, ship, now)
         stopFire2(i)
         return
     end
-    local q = c.fire2[i]
-    if not q then
+    local fireQueue = coopState.fire2[i]
+    if not fireQueue then
         return
     end
-    local visualGen = A.health and A.health.valid[i]
+    local visualGen = bubbleApi.health and bubbleApi.health.valid[i]
     local visualReady = not cfg.shot_visual
-        or A.shotVisual and A.shotVisual.readyReplay(i, visualGen, now)
+        or bubbleApi.shotVisual and bubbleApi.shotVisual.readyReplay(i, visualGen, now)
     if
         not visualReady
-        or now - q.at > 0.35
-        or c.owners[i] == cfg.slot
-        or not C.IsComponentOperational(ship)
+        or now - fireQueue.at > 0.35
+        or coopState.owners[i] == cfg.slot
+        or not engineApi.IsComponentOperational(ship)
     then
         -- Freshness: stop even if motion keeps rendering a frozen prediction.
         stopFire2(i)
         return
     end
-    local target = (r and r.track and r.track.offset) and (r.target or now - r.track.offset - M.delay)
+    local target = (remote and remote.track and remote.track.offset)
+            and (remote.target or now - remote.track.offset - motionBuffer.delay)
         or math.huge
     local cutoff = resumeCutoff(i)
     local keep = {}
     local grant = { 0, 0 }
     local reset = { false, false }
     local changed = false
-    q.budgetUntil = q.budgetUntil or { 0, 0 }
-    q.group = q.group or { q.groups[1], q.groups[2] }
-    for k = 1, 2 do
-        if q.budgetUntil[k] > 0 and now >= q.budgetUntil[k] then
-            reset[k] = true
-            q.budgetUntil[k] = 0
-            q.deadline[k] = 0
+    fireQueue.budgetUntil = fireQueue.budgetUntil or { 0, 0 }
+    fireQueue.group = fireQueue.group or { fireQueue.groups[1], fireQueue.groups[2] }
+    for trigger = 1, 2 do
+        if fireQueue.budgetUntil[trigger] > 0 and now >= fireQueue.budgetUntil[trigger] then
+            reset[trigger] = true
+            fireQueue.budgetUntil[trigger] = 0
+            fireQueue.deadline[trigger] = 0
             changed = true
         end
     end
-    for _, e in ipairs(q.events) do
-        if cutoff and e.time <= cutoff then
+    for _, event in ipairs(fireQueue.events) do
+        if cutoff and event.time <= cutoff then
         -- Pre-resume history is never played, even if it was queued before the cutoff existed.
-        elseif e.time <= target then
-            if target - e.time <= M.stale then
-                local k = e.trigger
-                if q.group[k] ~= e.group then
+        elseif event.time <= target then
+            if target - event.time <= motionBuffer.stale then
+                local trigger = event.trigger
+                if fireQueue.group[trigger] ~= event.group then
                     -- Never spend earlier-group credit on a later group, even within one frame.
-                    grant[k] = 0
-                    reset[k] = true
-                    q.deadline[k] = 0
-                    q.budgetUntil[k] = 0
-                    q.group[k] = e.group
+                    grant[trigger] = 0
+                    reset[trigger] = true
+                    fireQueue.deadline[trigger] = 0
+                    fireQueue.budgetUntil[trigger] = 0
+                    fireQueue.group[trigger] = event.group
                     changed = true
                 end
-                if e.count > 0 then
-                    if q.budgetUntil[k] == 0 then
-                        q.budgetUntil[k] = now + 0.35
+                if event.count > 0 then
+                    if fireQueue.budgetUntil[trigger] == 0 then
+                        fireQueue.budgetUntil[trigger] = now + 0.35
                     end
-                    q.deadline[k] = q.budgetUntil[k]
-                    grant[k] = math.min(256, grant[k] + e.count)
+                    fireQueue.deadline[trigger] = fireQueue.budgetUntil[trigger]
+                    grant[trigger] = math.min(256, grant[trigger] + event.count)
                 end
             end
         else
-            keep[#keep + 1] = e
+            keep[#keep + 1] = event
         end
     end
-    q.events = keep
-    local on = { q.deadline[1] > now, q.deadline[2] > now }
-    if changed or on[1] ~= q.on[1] or on[2] ~= q.on[2] or grant[1] > 0 or grant[2] > 0 then
+    fireQueue.events = keep
+    local on = { fireQueue.deadline[1] > now, fireQueue.deadline[2] > now }
+    if
+        changed
+        or on[1] ~= fireQueue.on[1]
+        or on[2] ~= fireQueue.on[2]
+        or grant[1] > 0
+        or grant[2] > 0
+    then
         -- MD stops the old group before activating a new one, in the same action block.
-        q.on = on
-        AddUITriggeredEvent(
-            'X4LAN_Coop',
-            'Fire2',
-            {
-                ship = i,
-                epoch = q.epoch,
-                primary = on[1],
-                secondary = on[2],
-                primaryShots = grant[1],
-                secondaryShots = grant[2],
-                primaryGroup = q.group[1],
-                secondaryGroup = q.group[2],
-                resetPrimary = reset[1],
-                resetSecondary = reset[2],
-                visual = cfg.shot_visual == true,
-                visualGen = visualGen or 0,
-            }
-        )
+        fireQueue.on = on
+        AddUITriggeredEvent('X4LAN_Coop', 'Fire2', {
+            ship = i,
+            epoch = fireQueue.epoch,
+            primary = on[1],
+            secondary = on[2],
+            primaryShots = grant[1],
+            secondaryShots = grant[2],
+            primaryGroup = fireQueue.group[1],
+            secondaryGroup = fireQueue.group[2],
+            resetPrimary = reset[1],
+            resetSecondary = reset[2],
+            visual = cfg.shot_visual == true,
+            visualGen = visualGen or 0,
+        })
     end
 end
 local function publishMetrics(now)
-    if now >= (c.nextMetric or 0) then
-        c.nextMetric = now + 1
-        c.metricSeq = c.metricSeq + 1
-        local m = c.metrics
-        local object = C.GetPlayerContainerID()
-        local sector = object ~= 0 and C.GetContextByClass(object, 'sector', false) or 0
-        local name = sector ~= 0 and GetComponentData(A.id(sector), 'macro') or 'unknown'
-        local mode = A.paused() and 'paused' or (A.life and A.life.mode or 'waiting')
+    if now >= (coopState.nextMetric or 0) then
+        coopState.nextMetric = now + 1
+        coopState.metricSeq = coopState.metricSeq + 1
+        local m = coopState.metrics
+        local object = engineApi.GetPlayerContainerID()
+        local sector = object ~= 0 and engineApi.GetContextByClass(object, 'sector', false) or 0
+        local name = sector ~= 0 and GetComponentData(bubbleApi.id(sector), 'macro') or 'unknown'
+        local mode = bubbleApi.paused() and 'paused'
+            or (bubbleApi.life and bubbleApi.life.mode or 'waiting')
         send(
             string.format(
                 'PERF|1|%s|%d|%.2f|%.2f|%.2f|%s|%s',
-                s.client.lease,
-                c.metricSeq,
+                bubbleState.client.lease,
+                coopState.metricSeq,
                 m.sum > 0 and m.n / m.sum or 0,
                 m.n > 0 and 1000 * m.sum / m.n or 0,
                 m.max * 1000,
@@ -881,7 +924,7 @@ local function publishMetrics(now)
                 name
             )
         )
-        c.metrics = { n = 0, sum = 0, max = 0 }
+        coopState.metrics = { n = 0, sum = 0, max = 0 }
     end
 end
 -- Opt-in (cfg.motion_diagnostics = seconds between rows, or true for 0.5 s): requested
@@ -894,7 +937,7 @@ if cfg.motion_diagnostics then
         return math.sqrt((a[1] - b[1]) ^ 2 + (a[2] - b[2]) ^ 2 + (a[3] - b[3]) ^ 2)
     end
     diagnose = function(i, r, ship, p, linear, changed, now)
-        local a = C.GetObjectPositionInSector(ship)
+        local a = engineApi.GetObjectPositionInSector(ship)
         local actual = { a.x, a.y, a.z }
         local q = d[i] or {}
         d[i] = q
@@ -908,17 +951,17 @@ if cfg.motion_diagnostics then
             return
         end
         q.next = now + interval
-        local own = C.GetPlayerContainerID()
+        local own = engineApi.GetPlayerContainerID()
         local range = -1
         if
             own ~= 0
-            and C.GetContextByClass(own, 'sector', false)
-                == C.GetContextByClass(ship, 'sector', false)
+            and engineApi.GetContextByClass(own, 'sector', false)
+                == engineApi.GetContextByClass(ship, 'sector', false)
         then
-            local o = C.GetObjectPositionInSector(own)
+            local o = engineApi.GetObjectPositionInSector(own)
             range = dist({ o.x, o.y, o.z }, actual)
         end
-        local m = c.modes[i]
+        local m = coopState.modes[i]
         local track = r.track or {}
         -- request/drift are per-frame travel (speed * frame time) when native velocity runs;
         -- error is the real target error before this frame's write.
@@ -928,7 +971,7 @@ if cfg.motion_diagnostics then
                 i,
                 r.mode or 'legacy',
                 m and m.mode or 'none',
-                linear and M.speed(linear) or 0,
+                linear and motionBuffer.speed(linear) or 0,
                 r.applied and dist(p, r.applied) or 0,
                 drift,
                 q.maxDrift,
@@ -937,142 +980,152 @@ if cfg.motion_diagnostics then
                 range,
                 q.writes,
                 q.frames,
-                c.fences[i],
+                coopState.fences[i],
                 track.resets or 0,
                 (track.lag or 0) - (track.offset or 0),
                 r.delay or 0,
                 track.excess or 0,
-                s.client and s.client.drainedMax or 0,
-                c.velocity[i] and 'native' or 'off'
+                bubbleState.client and bubbleState.client.drainedMax or 0,
+                coopState.velocity[i] and 'native' or 'off'
             )
         )
         q.maxDrift, q.frames, q.writes, q.maxError = 0, 0, 0, 0
-        if s.client then
-            s.client.drainedMax = 0
+        if bubbleState.client then
+            bubbleState.client.drainedMax = 0
         end
     end
 end
 -- MD warp of a remote replica into the received sector pose, at most once per second.
-local function warp(i, r, sector, value, now)
-    if now < (r.nextWarp or 0) then
+local function warp(i, remote, sector, value, now)
+    if now < (remote.nextWarp or 0) then
         return false
     end
-    r.nextWarp = now + 1
+    remote.nextWarp = now + 1
     value.ship = i
-    value.sector = A.id(sector)
+    value.sector = bubbleApi.id(sector)
     if cfg.coop_docks and i <= 2 then
-        value.dockGeneration = c.attachmentGeneration and c.attachmentGeneration(i)
-        if c.attachmentWindow then
-            value.dockStamp, value.dockAge = c.attachmentWindow(i, now)
+        value.dockGeneration = coopState.attachmentGeneration and coopState.attachmentGeneration(i)
+        if coopState.attachmentWindow then
+            value.dockStamp, value.dockAge = coopState.attachmentWindow(i, now)
         end
     end
     AddUITriggeredEvent('X4LAN_Coop', 'SectorMove', value)
     return true
 end
 local function zoneOf(ship)
-    return C.GetContextByClass(ship, 'zone', false)
+    return engineApi.GetContextByClass(ship, 'zone', false)
 end
 -- One pose write. slip/dx,dy,dz: slip found before this frame's write (0 if none).
-local function writePose(i, r, ship, sector, value, written, slip, dx, dy, dz, now)
-    if slip > 0 and r.wFrom and r.wFrom ~= r.wTo then
+local function writePose(i, remote, ship, sector, value, written, slip, dx, dy, dz, now)
+    if slip > 0 and remote.wFrom and remote.wFrom ~= remote.wTo then
         -- The last frame's first write re-parented the ship: its slip is that zone offset
         -- (plus the error of the compensation it already used).
-        local k = r.wK
-        r.zoneFix = r.zoneFix or {}
-        r.zoneFixes = (r.zoneFixes or 0) + 1
-        if r.zoneFixes > 16 then
-            r.zoneFix = {}
-            r.zoneFixes = 1
+        local k = remote.wK
+        remote.zoneFix = remote.zoneFix or {}
+        remote.zoneFixes = (remote.zoneFixes or 0) + 1
+        if remote.zoneFixes > 16 then
+            remote.zoneFix = {}
+            remote.zoneFixes = 1
         end
-        r.zoneFix[tostring(r.wFrom)] = { to = r.wTo, k = { k[1] + dx, k[2] + dy, k[3] + dz } }
+        remote.zoneFix[tostring(remote.wFrom)] =
+            { to = remote.wTo, k = { k[1] + dx, k[2] + dy, k[3] + dz } }
     end
     local from = zoneOf(ship)
-    local fix = r.zoneFix and r.zoneFix[tostring(from)]
+    local fix = remote.zoneFix and remote.zoneFix[tostring(from)]
     local k = fix and fix.k
     local x, y, z = value.x, value.y, value.z
     if k then
         value.x, value.y, value.z = x - k[1], y - k[2], z - k[3]
     end
-    C.SetObjectSectorPos(ship, sector, ffi.new('UIPosRot', value))
-    r.applied = written
+    engineApi.SetObjectSectorPos(ship, sector, ffi.new('UIPosRot', value))
+    remote.applied = written
     local to = zoneOf(ship)
-    r.wFrom, r.wTo, r.wK = from, to, k or { 0, 0, 0 }
+    remote.wFrom, remote.wTo, remote.wK = from, to, k or { 0, 0, 0 }
     value.x, value.y, value.z = x, y, z
     local action
     if k and to ~= fix.to then
         -- Predicted target zone missed: drop the offset and write uncompensated.
-        r.zoneFix[tostring(from)] = nil
-        C.SetObjectSectorPos(ship, sector, ffi.new('UIPosRot', value))
+        remote.zoneFix[tostring(from)] = nil
+        engineApi.SetObjectSectorPos(ship, sector, ffi.new('UIPosRot', value))
         action = 'rewrite'
     elseif slip > 0 then
         action = k and 'zone' or 'rewrite'
     end
     if slip > 0 then
-        if now - r.slipSince >= SLIP_WARP and warp(i, r, sector, value, now) then
-            r.slipSince = nil
+        if now - remote.slipSince >= SLIP_WARP and warp(i, remote, sector, value, now) then
+            remote.slipSince = nil
             action = 'warp'
         elseif action == 'rewrite' and not k then
-            C.SetObjectSectorPos(ship, sector, ffi.new('UIPosRot', value))
+            engineApi.SetObjectSectorPos(ship, sector, ffi.new('UIPosRot', value))
         end
     end
     if action then
         logSlip(i, slip, action, now)
     end
 end
-function c.frame(now)
-    if not c.ready or not s.client or not s.client.lease then
-        c.stopVelocity(false)
+function coopState.frame(now)
+    if not coopState.ready or not bubbleState.client or not bubbleState.client.lease then
+        coopState.stopVelocity(false)
         return
     end
-    local controlled = c.entity(C.GetPlayerControlledShipID())
-    local aboard = c.entity(C.GetPlayerContainerID())
-    c.controlled = controlled
-    if now >= (c.nextCrew or 0) then
-        c.nextCrew = now + 0.1
-        c.crewSeq = c.crewSeq + 1
-        send('CREW|1|' .. s.client.lease .. '|' .. c.crewSeq .. '|' .. controlled .. '|' .. aboard)
+    local controlled = coopState.entity(engineApi.GetPlayerControlledShipID())
+    local aboard = coopState.entity(engineApi.GetPlayerContainerID())
+    coopState.controlled = controlled
+    if now >= (coopState.nextCrew or 0) then
+        coopState.nextCrew = now + 0.1
+        coopState.crewSeq = coopState.crewSeq + 1
+        send(
+            'CREW|1|'
+                .. bubbleState.client.lease
+                .. '|'
+                .. coopState.crewSeq
+                .. '|'
+                .. controlled
+                .. '|'
+                .. aboard
+        )
     end
     publishMetrics(now)
     if pauseBoundary(now) then
-        c.stopVelocity(false)
+        coopState.stopVelocity(false)
         -- FIRE2 never resumes from pre-pause history: stop active fire and drop queued edges.
-        for i in pairs(c.fire2) do
+        for i in pairs(coopState.fire2) do
             stopFire2(i)
         end
         return
     end
-    if now >= (c.nextNav or 0) then
-        c.nextNav = now + 0.05
-        for i = 1, c.count do
-            local ship = c.ships[i]
-            if c.owners[i] == cfg.slot and C.IsComponentOperational(ship) then
-                local sector = C.GetContextByClass(ship, 'sector', false)
+    if now >= (coopState.nextNav or 0) then
+        coopState.nextNav = now + 0.05
+        for i = 1, coopState.count do
+            local ship = coopState.ships[i]
+            if coopState.owners[i] == cfg.slot and engineApi.IsComponentOperational(ship) then
+                local sector = engineApi.GetContextByClass(ship, 'sector', false)
                 if sector ~= 0 then
-                    local name = GetComponentData(A.id(sector), 'macro')
-                    c.sectors[name] = sector
-                    local p = C.GetObjectPositionInSector(ship)
-                    c.seq[i] = c.seq[i] + 1
-                    if cfg.coop_docks and i <= 2 and c.publishDock then
-                        c.publishDock(i, c.seq[i], now)
+                    local name = GetComponentData(bubbleApi.id(sector), 'macro')
+                    coopState.sectors[name] = sector
+                    local p = engineApi.GetObjectPositionInSector(ship)
+                    coopState.seq[i] = coopState.seq[i] + 1
+                    if cfg.coop_docks and i <= 2 and coopState.publishDock then
+                        coopState.publishDock(i, coopState.seq[i], now)
                     end
                     local fields = {
                         'NAV2',
                         '1',
-                        s.client.lease,
+                        bubbleState.client.lease,
                         tostring(i),
-                        tostring(c.epochs[i]),
-                        tostring(c.seq[i]),
+                        tostring(coopState.epochs[i]),
+                        tostring(coopState.seq[i]),
                         name,
                     }
                     for _, value in ipairs({ p.x, p.y, p.z, p.yaw, p.pitch, p.roll }) do
                         fields[#fields + 1] = string.format('%.9g', value)
                     end
-                    fields[#fields + 1] = tostring(c.docks[i])
-                    fields[#fields + 1] = tostring(c.shots[i])
+                    fields[#fields + 1] = tostring(coopState.docks[i])
+                    fields[#fields + 1] = tostring(coopState.shots[i])
                     local values = { p.x, p.y, p.z, p.yaw, p.pitch, p.roll }
-                    c.motion = c.motion or {}
-                    local velocity = M.velocity(c.motion[i], values, now)
-                    c.motion[i] = { time = now, pose = values }
+                    coopState.motion = coopState.motion or {}
+                    local velocity = motionBuffer.velocity(coopState.motion[i], values, now)
+                    coopState.motion[i] = { time = now, pose = values }
                     fields[#fields + 1] = string.format('%.6f', now)
                     for _, v in ipairs(velocity) do
                         fields[#fields + 1] = string.format('%.9g', v)
@@ -1081,10 +1134,10 @@ function c.frame(now)
                     send(
                         string.format(
                             'NMODE|1|%s|%d|%d|%d|%.6f|%s',
-                            s.client.lease,
+                            bubbleState.client.lease,
                             i,
-                            c.epochs[i],
-                            c.seq[i],
+                            coopState.epochs[i],
+                            coopState.seq[i],
                             now,
                             localMode(ship, sector)
                         )
@@ -1100,15 +1153,15 @@ function c.frame(now)
                         and secondary >= 1
                         and secondary <= 4
                     then
-                        c.fire2Seq[i] = c.fire2Seq[i] + 1
-                        local shots = c.triggerShots[i]
+                        coopState.fire2Seq[i] = coopState.fire2Seq[i] + 1
+                        local shots = coopState.triggerShots[i]
                         send(
                             string.format(
                                 'FIRE2|1|%s|%d|%d|%d|%.6f|%d|%d|%d|%d',
-                                s.client.lease,
+                                bubbleState.client.lease,
                                 i,
-                                c.epochs[i],
-                                c.fire2Seq[i],
+                                coopState.epochs[i],
+                                coopState.fire2Seq[i],
                                 now,
                                 primary,
                                 secondary,
@@ -1121,9 +1174,9 @@ function c.frame(now)
             end
         end
     end
-    for i = 1, c.count do
-        local r = c.remote[i]
-        local ship = c.ships[i]
+    for i = 1, coopState.count do
+        local r = coopState.remote[i]
+        local ship = coopState.ships[i]
         local p, linear = render(r, now, i)
         local velocityApplied = false
         if r and r.firing and (not p or now > (r.fireDeadline or 0)) then
@@ -1132,37 +1185,33 @@ function c.frame(now)
         end
         if
             p
-            and c.owners[i] ~= cfg.slot
-            and C.IsComponentOperational(ship)
-            and C.GetPlayerControlledShipID() ~= ship
+            and coopState.owners[i] ~= cfg.slot
+            and engineApi.IsComponentOperational(ship)
+            and engineApi.GetPlayerControlledShipID() ~= ship
         then
             if (r.fireDeadline or 0) > now and not r.firing then
                 r.firing = true
                 AddUITriggeredEvent('X4LAN_Coop', 'Fire', { ship = i, on = true })
             end
-            local sector = c.sectorId(r.sector)
+            local sector = coopState.sectorId(r.sector)
             if
                 not cfg.coop_docks
-                and c.docks[i] ~= r.dock
+                and coopState.docks[i] ~= r.dock
                 and sector
                 and now >= (r.nextDock or 0)
             then
                 r.nextDock = now + 1
-                AddUITriggeredEvent(
-                    'X4LAN_Coop',
-                    'Dock',
-                    {
-                        ship = i,
-                        market = r.dock,
-                        sector = A.id(sector),
-                        x = p[1],
-                        y = p[2],
-                        z = p[3],
-                        yaw = p[4] * 180 / math.pi,
-                        pitch = p[5] * 180 / math.pi,
-                        roll = p[6] * 180 / math.pi,
-                    }
-                )
+                AddUITriggeredEvent('X4LAN_Coop', 'Dock', {
+                    ship = i,
+                    market = r.dock,
+                    sector = bubbleApi.id(sector),
+                    x = p[1],
+                    y = p[2],
+                    z = p[3],
+                    yaw = p[4] * 180 / math.pi,
+                    pitch = p[5] * 180 / math.pi,
+                    roll = p[6] * 180 / math.pi,
+                })
             end
             -- The legacy market index is zero at ordinary stations too. Recheck the
             -- actual native attachment before a synchronous pose write; a stale/free
@@ -1170,7 +1219,7 @@ function c.frame(now)
             -- Dock attachment covers ships 1/2; ships 3.. follow the received pose only.
             local dockAllowed = not cfg.coop_docks
                 or i > 2
-                or (c.dockPoseAllowed and c.dockPoseAllowed(i, r, now))
+                or (coopState.dockPoseAllowed and coopState.dockPoseAllowed(i, r, now))
             local attached = replicaOnHighway(ship)
             if attached ~= (r.highwayAttached == true) then
                 r.highwayAttached = attached or nil
@@ -1193,8 +1242,8 @@ function c.frame(now)
                 dockAllowed
                 and sector
                 and r.dock == 0
-                and c.docks[i] == 0
-                and GetComponentData(A.id(ship), 'isdocked') ~= true
+                and coopState.docks[i] == 0
+                and GetComponentData(bubbleApi.id(ship), 'isdocked') ~= true
             then
                 local value = {
                     x = p[1],
@@ -1204,7 +1253,7 @@ function c.frame(now)
                     pitch = p[5] * 180 / math.pi,
                     roll = p[6] * 180 / math.pi,
                 }
-                if C.GetContextByClass(ship, 'sector', false) ~= sector then
+                if engineApi.GetContextByClass(ship, 'sector', false) ~= sector then
                     -- The last written pose belongs to the old sector frame; it is no slip reference.
                     if warp(i, r, sector, value, now) then
                         r.applied = nil
@@ -1226,12 +1275,16 @@ function c.frame(now)
                     end
                     local slip, dx, dy, dz = 0, 0, 0, 0
                     if r.applied then
-                        local a = C.GetObjectPositionInSector(ship)
+                        local a = engineApi.GetObjectPositionInSector(ship)
                         dx, dy, dz = a.x - r.applied[1], a.y - r.applied[2], a.z - r.applied[3]
                         slip = math.sqrt(dx * dx + dy * dy + dz * dz)
                     end
                     if
-                        slip > math.max(SLIP_MIN, SLIP_SPEED * (linear and M.speed(linear) or 0))
+                        slip
+                        > math.max(
+                            SLIP_MIN,
+                            SLIP_SPEED * (linear and motionBuffer.speed(linear) or 0)
+                        )
                     then
                         changed = true
                         r.slipSince = r.slipSince or now
@@ -1243,13 +1296,13 @@ function c.frame(now)
                         -- The native controller/physics can move or turn a ship even when its
                         -- received pose stays constant. Compare the actual engine pose before
                         -- skipping a correction; the cached requested pose is not a readback.
-                        local actual = C.GetObjectPositionInSector(ship)
+                        local actual = engineApi.GetObjectPositionInSector(ship)
                         local current =
                             { actual.x, actual.y, actual.z, actual.yaw, actual.pitch, actual.roll }
                         for n = 1, 6 do
                             local delta = current[n] - p[n]
                             if
-                                math.abs(n <= 3 and delta or M.angle(delta))
+                                math.abs(n <= 3 and delta or motionBuffer.angle(delta))
                                 > (n <= 3 and 0.01 or 0.0001)
                             then
                                 changed = true
@@ -1265,15 +1318,15 @@ function c.frame(now)
                     local dt = math.max(0, now - (r.frameAt or now))
                     local steady = linear
                         and r.lastLinear
-                        and M.speed(linear) > 1
+                        and motionBuffer.speed(linear) > 1
                         and math.sqrt(
                                 (linear[1] - r.lastLinear[1]) ^ 2
                                     + (linear[2] - r.lastLinear[2]) ^ 2
                                     + (linear[3] - r.lastLinear[3]) ^ 2
                             )
-                            <= 0.1 * M.speed(linear)
+                            <= 0.1 * motionBuffer.speed(linear)
                     if
-                        c.velocity[i]
+                        coopState.velocity[i]
                         and (r.mode or 'normal') == 'normal'
                         and r.lastTarget
                         and steady
@@ -1285,7 +1338,7 @@ function c.frame(now)
                             hop[n] = p[n] - (r.lastTarget[n] + r.lastLinear[n] * dt)
                         end
                         local size = math.sqrt(hop[1] ^ 2 + hop[2] ^ 2 + hop[3] ^ 2)
-                        local speed = linear and M.speed(linear) or 0
+                        local speed = linear and motionBuffer.speed(linear) or 0
                         local off = r.blend or { 0, 0, 0 }
                         local decay = math.exp(-dt / BLEND)
                         if size > math.max(25, speed * 0.1) then
@@ -1321,7 +1374,7 @@ function c.frame(now)
                     -- (pathing SetOffsetOrder, see reports/PROXY-MOTION-20261025.txt); the vector is
                     -- what GetComponentDetails().speed, the HUD speed and target lead report. Without
                     -- it a replica in boost, travel or a highway read 0 m/s while it moved at km/s.
-                    if C.GetPlayerControlledShipID() ~= ship and linear then
+                    if engineApi.GetPlayerControlledShipID() ~= ship and linear then
                         applyVelocity(i, sector, linear, now)
                         velocityApplied = true
                         r.velocityAt = now
@@ -1339,11 +1392,11 @@ function c.frame(now)
                 and now - r.velocityAt <= VELOCITY_HOLD
                 and not r.highwayAttached
                 and r.dock == 0
-                and c.docks[i] == 0
-                and c.owners[i] ~= cfg.slot
-                and C.GetPlayerControlledShipID() ~= ship
-                and C.IsComponentOperational(ship)
-                and not A.paused()
+                and coopState.docks[i] == 0
+                and coopState.owners[i] ~= cfg.slot
+                and engineApi.GetPlayerControlledShipID() ~= ship
+                and engineApi.IsComponentOperational(ship)
+                and not bubbleApi.paused()
             if not hold then
                 clearVelocity(i)
             end
@@ -1353,15 +1406,15 @@ function c.frame(now)
     end
 end
 RegisterEvent('X4LAN_Coop.Ready', function()
-    c.ready = true
+    coopState.ready = true
     log('cooperative navigation ready')
 end)
 RegisterEvent('X4LAN_Coop.Docks', function(_, payload)
     local a, b = payload:match('^(%d)|(%d)$')
     if a and tonumber(a) <= 2 and tonumber(b) <= 2 then
-        c.docks[1], c.docks[2] = tonumber(a), tonumber(b)
+        coopState.docks[1], coopState.docks[2] = tonumber(a), tonumber(b)
         for i = 1, 2 do
-            if c.docks[i] ~= 0 then
+            if coopState.docks[i] ~= 0 then
                 clearVelocity(i)
             end
         end -- market docks: ships 1/2
@@ -1371,9 +1424,9 @@ RegisterEvent('X4LAN_Coop.Shot', function(_, payload)
     -- Payload 'n' (legacy) or 'n|p' / 'n|s': the shot came from the active primary or secondary group.
     local entity, trigger = tostring(payload):match('^(%d)|?([ps]?)$')
     local i = tonumber(entity)
-    if i and i >= 1 and i <= c.count and c.owners[i] == cfg.slot then
-        c.shots[i] = c.shots[i] + 1
+    if i and i >= 1 and i <= coopState.count and coopState.owners[i] == cfg.slot then
+        coopState.shots[i] = coopState.shots[i] + 1
         local k = trigger == 's' and 2 or 1
-        c.triggerShots[i][k] = c.triggerShots[i][k] + 1
+        coopState.triggerShots[i][k] = coopState.triggerShots[i][k] + 1
     end
 end)

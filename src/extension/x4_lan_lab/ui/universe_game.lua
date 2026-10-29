@@ -1,15 +1,15 @@
 -- Original INTERNAL W01 NPC replication adapter. No third-party framework.
 -- Native cargo uses a separate authority adapter; NPC combat remains separate work.
 local cfg = X4LAN_CONFIG
-local A = X4LAN_BUBBLE_API
-local P = X4LAN_UNIVERSE_PROTOCOL
-if not cfg or not cfg.world_sync or not A or not A.state.active then
+local bubbleApi = X4LAN_BUBBLE_API
+local worldProtocol = X4LAN_UNIVERSE_PROTOCOL
+if not cfg or not cfg.world_sync or not bubbleApi or not bubbleApi.state.active then
     return
 end
 local ffi = require('ffi')
-local C = ffi.C
-local s = A.state
-local M = assert(X4LAN_MOTION, 'motion buffer missing')
+local engineApi = ffi.C
+local bubbleState = bubbleApi.state
+local motionBuffer = assert(X4LAN_MOTION, 'motion buffer missing')
 assert(
     type(cfg.test_profile) == 'string'
         and cfg.test_profile:match('^4584[1-8]$')
@@ -31,13 +31,13 @@ void RemoveComponent(UniverseID);
 pcall(ffi.cdef, 'UniverseID GetPlayerTargetID(void);')
 local function api(name)
     local ok, f = pcall(function()
-        return C[name]
+        return engineApi[name]
     end)
     return ok and f or nil
 end
 local getTarget = api('GetPlayerTargetID')
-local u = {
-    receiver = P.receiver(),
+local universeState = {
+    receiver = worldProtocol.receiver(),
     excluded = {},
     identities = {},
     nextId = 0,
@@ -52,14 +52,14 @@ local u = {
     wanted = {},
     motionCursor = 1,
     frameNo = 0,
-    clock = M.drClock(),
+    clock = motionBuffer.drClock(),
     focus = {},
     focusSeq = 0,
     gaps = {},
 }
-A.universe = u
-local function log(v)
-    DebugError('[X4LAN] UNIVERSE ' .. v)
+bubbleApi.universe = universeState
+local function log(text)
+    DebugError('[X4LAN] UNIVERSE ' .. text)
 end
 -- NPC replica motion. Replicas are pose-only (AI off): the engine holds a replica still
 -- between two SetObjectSectorPos calls, so moving replicas are written every frame.
@@ -69,8 +69,8 @@ end
 -- keepalive. Thresholds and rates depend on relevance: hot (within hotRange of a player
 -- ship, or a client's target via UFOCUS), warm (within warmRange), cold. At most `budget`
 -- samples per tick, most diverged first.
--- Client (dead reckoning, motion.lua M.dr*): the latest sample is extrapolated on the
--- server's estimated clock (rate and offset), errors blend out over M.dr.tau, and only an
+-- Client (dead reckoning, motion.lua motionBuffer.dr*): the latest sample is extrapolated on the
+-- server's estimated clock (rate and offset), errors blend out over motionBuffer.dr.tau, and only an
 -- error above the snap limit snaps (logged, at most once per second per replica).
 -- A baseline pose replaces a live track only after `hold` s without motion.
 local NPC = {
@@ -105,7 +105,7 @@ NPC.tiers = {
     warm = { name = 'warm', pos = 25, ang = 0.06, look = 0.5, min = 0.2, keep = 2, weight = 2 },
     cold = { name = 'cold', pos = 150, ang = 0.2, look = 1, min = 0.5, keep = 4, weight = 1 },
 }
-u.npcMotion = NPC
+universeState.npcMotion = NPC
 -- Diagnostic (config npc_motion_diagnostics: seconds, or true = 1 s; on in internal packages,
 -- false in the inert source config). Counts only; nothing is computed when off.
 local diagEvery = cfg.npc_motion_diagnostics == true and 1 or tonumber(cfg.npc_motion_diagnostics)
@@ -119,19 +119,19 @@ if not diagEvery and cfg.npc_motion_diagnostics then
     feature('npc_motion_diagnostics', 'invalid_value')
 end
 local diag, errors, delays = {}, {}, {}
-local function count(name, n)
+local function count(name, amount)
     if diagEvery then
-        diag[name] = (diag[name] or 0) + (n or 1)
+        diag[name] = (diag[name] or 0) + (amount or 1)
     end
 end
-local function peak(name, v)
-    if diagEvery and v > (diag[name] or 0) then
-        diag[name] = v
+local function peak(name, value)
+    if diagEvery and value > (diag[name] or 0) then
+        diag[name] = value
     end
 end
-local function sample(list, v)
+local function sample(list, value)
     if diagEvery and #list < 4096 then
-        list[#list + 1] = v
+        list[#list + 1] = value
     end
 end
 local DIAG_FIELDS = {
@@ -184,17 +184,17 @@ local function diagFlush(now, role, extra)
     if not diagEvery then
         return
     end
-    if not u.diagAt then
-        u.diagAt = now
+    if not universeState.diagAt then
+        universeState.diagAt = now
         diag = {}
         errors = {}
         delays = {}
         return
     end
-    if now - u.diagAt < diagEvery then
+    if now - universeState.diagAt < diagEvery then
         return
     end
-    local dt = now - u.diagAt
+    local dt = now - universeState.diagAt
     local out = { 'NPC_DIAG role=' .. role, string.format('dt=%.2f', dt), extra }
     for _, name in ipairs(DIAG_FIELDS) do
         local v = diag[name]
@@ -209,7 +209,8 @@ local function diagFlush(now, role, extra)
         end
         out[#out + 1] = string.format('snaps_s=%.2f', (diag.snaps or 0) / dt)
         local hot, cold =
-            u.tierCount and u.tierCount.hot or 0, u.tierCount and u.tierCount.cold or 0
+            universeState.tierCount and universeState.tierCount.hot or 0,
+            universeState.tierCount and universeState.tierCount.cold or 0
         if hot > 0 then
             out[#out + 1] = string.format('hz_hot=%.1f', (diag.samples_hot or 0) / (hot * dt))
         end
@@ -220,14 +221,14 @@ local function diagFlush(now, role, extra)
         if late then
             out[#out + 1] = string.format('late_p95=%.3f', late)
         end
-        if u.clock.base then
-            out[#out + 1] = string.format('clock_rate=%.3f', u.clock.rate)
+        if universeState.clock.base then
+            out[#out + 1] = string.format('clock_rate=%.3f', universeState.clock.rate)
         end
         -- gap_err=<bucket>:<samples>:<largest correction m>; buckets by source seconds since the
         -- replica's previous sample (base: first sample after a baseline pose).
         local parts = {}
         for _, b in ipairs({ 'lt0.5', 'lt2', 'lt5', 'ge5', 'base' }) do
-            local g = u.gaps[b]
+            local g = universeState.gaps[b]
             if g then
                 parts[#parts + 1] = string.format('%s:%d:%.0f', b, g.n, g.max)
             end
@@ -237,11 +238,11 @@ local function diagFlush(now, role, extra)
         end
         -- Engine write budget: configured ms per frame, mean and peak ms used by budgeted visits,
         -- mean ms of the unbudgeted near writes; clock=estimated when no timed clock exists.
-        local stats = u.writeStats
+        local stats = universeState.writeStats
         if stats and stats.frames > 0 then
             out[#out + 1] = string.format(
                 'budget_ms=%.1f used_ms=%.2f used_ms_max=%.2f near_ms=%.2f budget_clock=%s',
-                u.replicaWrite.budgetMs,
+                universeState.replicaWrite.budgetMs,
                 stats.usedMs / stats.frames,
                 stats.usedMaxMs,
                 stats.nearMs / stats.frames,
@@ -262,11 +263,11 @@ local function diagFlush(now, role, extra)
         )
     end
     log(table.concat(out, ' '))
-    u.diagAt = now
+    universeState.diagAt = now
     diag = {}
     errors = {}
     delays = {}
-    u.gaps = {}
+    universeState.gaps = {}
 end
 -- One NPC_SNAP row at most every 2 s, with the snaps since the last row.
 local snapLog = { n = 0, next = 0 }
@@ -289,37 +290,37 @@ end
 local function key(object)
     return tostring(object):gsub('ULL$', '')
 end
-local function send(p)
-    s.transport:send(p)
+local function send(packet)
+    bubbleState.transport:send(packet)
 end
 local function protected(object)
-    local k = key(object)
-    return u.excluded[k]
-        or u.replicaKeys[k]
-        or A.coop.entity(object) > 0
-        or object == C.GetPlayerControlledShipID()
-        or object == C.GetPlayerOccupiedShipID()
-        or object == C.GetPlayerContainerID()
+    local objectKey = key(object)
+    return universeState.excluded[objectKey]
+        or universeState.replicaKeys[objectKey]
+        or bubbleApi.coop.entity(object) > 0
+        or object == engineApi.GetPlayerControlledShipID()
+        or object == engineApi.GetPlayerOccupiedShipID()
+        or object == engineApi.GetPlayerContainerID()
 end
 local function currentSector()
-    local object = C.GetPlayerContainerID()
+    local object = engineApi.GetPlayerContainerID()
     if object == 0 then
         return nil
     end
-    local sector = C.GetContextByClass(object, 'sector', false)
+    local sector = engineApi.GetContextByClass(object, 'sector', false)
     if sector == 0 then
         return nil
     end
-    local name = GetComponentData(A.id(sector), 'macro')
-    if not P.atom(name, true) then
+    local name = GetComponentData(bubbleApi.id(sector), 'macro')
+    if not worldProtocol.atom(name, true) then
         return nil
     end
-    A.coop.sectors[name] = sector
+    bubbleApi.coop.sectors[name] = sector
     return name, sector
 end
 local function beginScan(name, sector)
     local factions = ffi.new('const char*[256]')
-    local count = tonumber(C.GetAllFactions(factions, 256, true))
+    local count = tonumber(engineApi.GetAllFactions(factions, 256, true))
     assert(
         count > 0 and count < 256,
         'faction enumeration unavailable or exceeded limit; refusing an incomplete baseline'
@@ -328,12 +329,21 @@ local function beginScan(name, sector)
     for i = 0, count - 1 do
         names[#names + 1] = ffi.string(factions[i])
     end
-    return { name = name, sector = sector, factions = names, faction = 1, index = 0, seen = {}, objects = {}, total = 0 }
+    return {
+        name = name,
+        sector = sector,
+        factions = names,
+        faction = 1,
+        index = 0,
+        seen = {},
+        objects = {},
+        total = 0,
+    }
 end
 -- Capture filter, shared by the faction enumeration and the sector sweep: an operational
 -- ship in the scanned sector that is not protected (replica, shared co-op ship, player
 -- occupant, excluded fixture) and not owned by the player faction. There is no class,
--- size, purpose or docking filter; a baseline holds at most P.limit (4096) objects.
+-- size, purpose or docking filter; a baseline holds at most worldProtocol.limit (4096) objects.
 local MAX_SCANNED_OBJECTS = 250000
 local function considerObject(scan, object)
     local objectKey = key(object)
@@ -344,30 +354,33 @@ local function considerObject(scan, object)
     scan.total = scan.total + 1
     assert(scan.total <= MAX_SCANNED_OBJECTS, 'universe fleet exceeds internal scan limit')
     if
-        not C.IsComponentOperational(object)
+        not engineApi.IsComponentOperational(object)
         or protected(object)
-        or not C.IsComponentClass(object, 'ship')
+        or not engineApi.IsComponentClass(object, 'ship')
     then
         return
     end
-    if C.GetContextByClass(object, 'sector', false) ~= scan.sector then
+    if engineApi.GetContextByClass(object, 'sector', false) ~= scan.sector then
         return
     end
-    local macro, owner = GetComponentData(A.id(object), 'macro', 'owner')
+    local macro, owner = GetComponentData(bubbleApi.id(object), 'macro', 'owner')
     assert(
-        P.atom(macro, true) and P.atom(owner),
+        worldProtocol.atom(macro, true) and worldProtocol.atom(owner),
         'NPC descriptor unavailable; refusing incomplete baseline'
     )
     -- player_factions: a host ship owned only by the host's human replicates as its pool faction.
-    if owner == 'player' and cfg.slot == 'p1' and A.players then
-        owner = A.players.personalOwner(object) or owner
+    if owner == 'player' and cfg.slot == 'p1' and bubbleApi.players then
+        owner = bubbleApi.players.personalOwner(object) or owner
     end
     if owner == 'player' then
         return
     end
     scan.objects[#scan.objects + 1] =
         { object = object, key = objectKey, macro = macro, owner = owner }
-    assert(#scan.objects <= P.limit, 'sector object limit exceeded; refusing a truncated baseline')
+    assert(
+        #scan.objects <= worldProtocol.limit,
+        'sector object limit exceeded; refusing a truncated baseline'
+    )
 end
 -- Per-frame enumeration budget (objects; a faction fleet read costs 16). The live server
 -- enumerated 512 objects and at most one faction per 20 Hz frame: a capture took 25-30 s
@@ -385,16 +398,16 @@ local function scanStep(scan)
                 return true
             end
             scan.faction = scan.faction + 1
-            local count = tonumber(C.GetNumAllFactionShips(faction))
+            local count = tonumber(engineApi.GetNumAllFactionShips(faction))
             assert(count <= MAX_SCANNED_OBJECTS, 'faction fleet exceeds internal scan limit')
             -- Headroom plus post-read count catches growth/truncation during enumeration.
             local capacity = count + 64
             scan.buffer = ffi.new('UniverseID[?]', capacity)
-            scan.count = tonumber(C.GetAllFactionShips(scan.buffer, capacity, faction))
+            scan.count = tonumber(engineApi.GetAllFactionShips(scan.buffer, capacity, faction))
             scan.index = 0
             if
                 scan.count >= capacity
-                or tonumber(C.GetNumAllFactionShips(faction)) > scan.count
+                or tonumber(engineApi.GetNumAllFactionShips(faction)) > scan.count
             then
                 -- A changing fleet invalidates this capture, not the entire world adapter.
                 scan.retry = true
@@ -420,7 +433,11 @@ local function beginSweep(name, sectorId, now)
     sweep.token = sweep.token + 1
     sweep.objects = {}
     sweep.done = false
-    AddUITriggeredEvent('X4LAN_Universe', 'Sweep', { sector = A.id(sectorId), token = sweep.token })
+    AddUITriggeredEvent(
+        'X4LAN_Universe',
+        'Sweep',
+        { sector = bubbleApi.id(sectorId), token = sweep.token }
+    )
     return {
         name = name,
         sector = sectorId,
@@ -441,7 +458,7 @@ local function sweepStep(scan, now)
         if now - scan.startedAt < NPC.sweepTimeout then
             return false
         end
-        u.sweepUnavailable = true
+        universeState.sweepUnavailable = true
         feature('npc_sweep', 'no_reply')
         scan.retry = true
         return true
@@ -469,7 +486,7 @@ local function captureStep(scan, now)
             return false
         end
         scan.walked = true
-        if scan.retry or u.sweepUnavailable then
+        if scan.retry or universeState.sweepUnavailable then
             return true
         end
         local request = beginSweep(scan.name, scan.sector, now)
@@ -484,13 +501,13 @@ local function captureStep(scan, now)
     return true
 end
 local function pose(object)
-    local p = C.GetObjectPositionInSector(object)
-    return { p.x, p.y, p.z, p.yaw, p.pitch, p.roll }
+    local position = engineApi.GetObjectPositionInSector(object)
+    return { position.x, position.y, position.z, position.yaw, position.pitch, position.roll }
 end
-local function poseFields(p)
+local function poseFields(pose)
     local out = {}
-    for _, v in ipairs(p) do
-        out[#out + 1] = string.format('%.9g', v)
+    for _, value in ipairs(pose) do
+        out[#out + 1] = string.format('%.9g', value)
     end
     return table.concat(out, ',')
 end
@@ -499,28 +516,28 @@ local function captured(scan)
     local objects = {}
     for _, entry in ipairs(scan.objects) do
         if
-            C.IsComponentOperational(entry.object)
-            and C.GetContextByClass(entry.object, 'sector', false) == scan.sector
+            engineApi.IsComponentOperational(entry.object)
+            and engineApi.GetContextByClass(entry.object, 'sector', false) == scan.sector
         then
-            local identity = u.identities[entry.key]
-            local code = A.npcCombat and A.npcCombat.code(entry.object)
+            local identity = universeState.identities[entry.key]
+            local code = bubbleApi.npcCombat and bubbleApi.npcCombat.code(entry.object)
             if
                 not identity
                 or identity.retired
                 or identity.macro ~= entry.macro
-                or A.npcCombat
+                or bubbleApi.npcCombat
                     and (identity.code ~= code or identity.owner ~= entry.owner or identity.sector ~= scan.name)
             then
-                u.nextId = u.nextId + 1
-                assert(u.nextId <= 2147483647, 'world ID space exhausted')
+                universeState.nextId = universeState.nextId + 1
+                assert(universeState.nextId <= 2147483647, 'world ID space exhausted')
                 identity = {
-                    id = u.nextId,
+                    id = universeState.nextId,
                     macro = entry.macro,
                     code = code,
                     owner = entry.owner,
                     sector = scan.name,
                 }
-                u.identities[entry.key] = identity
+                universeState.identities[entry.key] = identity
             end
             local row = identity.id
                 .. ',ship,'
@@ -530,21 +547,21 @@ local function captured(scan)
                 .. ','
                 .. poseFields(pose(entry.object))
                 .. ',none,0'
-            assert(P.record(row), 'invalid captured NPC state')
+            assert(worldProtocol.record(row), 'invalid captured NPC state')
             objects[#objects + 1] =
                 { id = identity.id, object = entry.object, sector = scan.name, identity = identity }
             rows[#rows + 1] = { id = identity.id, row = row }
         end
     end
-    if A.cargo then
-        for _, row in ipairs(A.cargo.rows(scan.sector)) do
+    if bubbleApi.cargo then
+        for _, row in ipairs(bubbleApi.cargo.rows(scan.sector)) do
             rows[#rows + 1] = row
         end
     end
-    assert(#rows <= P.limit, 'combined sector object limit exceeded')
-    u.lastScan = scan
-    u.lastScans[scan.name] = scan
-    u.cargoDirty = false
+    assert(#rows <= worldProtocol.limit, 'combined sector object limit exceeded')
+    universeState.lastScan = scan
+    universeState.lastScans[scan.name] = scan
+    universeState.cargoDirty = false
     table.sort(rows, function(a, b)
         return a.id < b.id
     end)
@@ -552,37 +569,46 @@ local function captured(scan)
     for i, r in ipairs(rows) do
         ordered[i] = r.row
     end
-    u.revision = u.revision + 1
-    u.publishes[scan.name] = objects
-    u.publish = {}
-    u.motionCursor = 1
-    for _, entries in pairs(u.publishes) do
+    universeState.revision = universeState.revision + 1
+    universeState.publishes[scan.name] = objects
+    universeState.publish = {}
+    universeState.motionCursor = 1
+    for _, entries in pairs(universeState.publishes) do
         for _, entry in ipairs(entries) do
-            u.publish[#u.publish + 1] = entry
+            universeState.publish[#universeState.publish + 1] = entry
         end
     end
-    u.sender = P.sender(P.baseline(s.client.lease, u.revision, scan.name, ordered))
-    log('CAPTURE revision=' .. u.revision .. ' sector=' .. scan.name .. ' objects=' .. #ordered)
+    universeState.sender = worldProtocol.sender(
+        worldProtocol.baseline(bubbleState.client.lease, universeState.revision, scan.name, ordered)
+    )
+    log(
+        'CAPTURE revision='
+            .. universeState.revision
+            .. ' sector='
+            .. scan.name
+            .. ' objects='
+            .. #ordered
+    )
 end
-local function removeReplica(r)
-    local object = r.object
+local function removeReplica(replica)
+    local object = replica.object
     if object then
         count('removes')
     end
-    if object and C.IsComponentOperational(object) then
+    if object and engineApi.IsComponentOperational(object) then
         -- Recheck live player IDs; a player may have boarded since creation.
         if
-            A.coop.entity(object) > 0
-            or object == C.GetPlayerControlledShipID()
-            or object == C.GetPlayerOccupiedShipID()
-            or object == C.GetPlayerContainerID()
+            bubbleApi.coop.entity(object) > 0
+            or object == engineApi.GetPlayerControlledShipID()
+            or object == engineApi.GetPlayerOccupiedShipID()
+            or object == engineApi.GetPlayerContainerID()
         then
             error('player entered an NPC replica; end this internal scene test')
         end
-        C.RemoveComponent(object)
+        engineApi.RemoveComponent(object)
     end
     if object then
-        u.replicaKeys[key(object)] = nil
+        universeState.replicaKeys[key(object)] = nil
     end
 end
 local function accept(b, now)
@@ -590,22 +616,22 @@ local function accept(b, now)
     if b.sector ~= name then
         return
     end
-    u.acceptedAt = now
-    u.latest = b
+    universeState.acceptedAt = now
+    universeState.latest = b
     if cfg.world_mode == 'observe' then
         log('OBSERVED revision=' .. b.revision .. ' sector=' .. b.sector .. ' objects=' .. #b.rows)
         return
     end
     local wanted = {}
-    u.renderIds = {}
-    u.renderCursor = 1
+    universeState.renderIds = {}
+    universeState.renderCursor = 1
     for _, row in ipairs(b.rows) do
-        local entity = assert(P.record(row))
-        assert(entity.kind == 'ship' or A.cargo, 'cargo adapter missing')
+        local entity = assert(worldProtocol.record(row))
+        assert(entity.kind == 'ship' or bubbleApi.cargo, 'cargo adapter missing')
         wanted[entity.id] = entity
-        u.renderIds[#u.renderIds + 1] = entity.id
+        universeState.renderIds[#universeState.renderIds + 1] = entity.id
     end
-    for id, r in pairs(u.replicas) do
+    for id, r in pairs(universeState.replicas) do
         local next = wanted[id]
         if
             not next
@@ -617,20 +643,20 @@ local function accept(b, now)
             or b.sector ~= r.sector
         then
             removeReplica(r)
-            u.replicas[id] = nil
+            universeState.replicas[id] = nil
         end
     end
     for id, entity in pairs(wanted) do
-        local r = u.replicas[id]
+        local r = universeState.replicas[id]
         if not r then
             r = { entity = entity, sector = b.sector, seq = -1 }
-            u.replicas[id] = r
+            universeState.replicas[id] = r
         else
             r.entity = entity
             -- A baseline pose is older than its capture plus transfer time. It replaces live motion
             -- only after the motion feed has been silent for NPC.hold seconds (packet loss/recovery);
             -- otherwise a moving replica would jump back to the capture position on every baseline.
-            if not r.at or now - r.at >= (r.modern and NPC.hold or M.stale) then
+            if not r.at or now - r.at >= (r.modern and NPC.hold or motionBuffer.stale) then
                 if r.track then
                     count('baseline_snap')
                 end
@@ -643,32 +669,37 @@ local function accept(b, now)
     count('commits')
     log('COMMITTED revision=' .. b.revision .. ' sector=' .. b.sector .. ' objects=' .. #b.rows)
 end
-function u.receive(f, now)
-    if f[1] == 'UINTEREST' then
-        if cfg.slot == 'p1' and (#f == 5 or #f == 6) and P.integer(f[4]) and P.atom(f[5], true) then
-            u.wanted[f[5]] = now
-        end
-        return true
-    elseif f[1] == 'UACK' then
-        local rev = P.integer(f[5])
-        local index = f[6] == '-1' and -1 or P.integer(f[6])
-        if cfg.slot == 'p1' and #f == 6 and rev and index and u.sender then
-            u.sender:ack(f[4], rev, index)
-        end
-        return true
-    elseif f[1] == 'UPOS' or f[1] == 'UMOVE' then
-        local modern = f[1] == 'UMOVE'
+function universeState.receive(fields, now)
+    if fields[1] == 'UINTEREST' then
         if
             cfg.slot == 'p1'
-            or #f ~= (modern and 20 or 13)
-            or not u.latest
-            or f[4] ~= u.latest.epoch
+            and (#fields == 5 or #fields == 6)
+            and worldProtocol.integer(fields[4])
+            and worldProtocol.atom(fields[5], true)
+        then
+            universeState.wanted[fields[5]] = now
+        end
+        return true
+    elseif fields[1] == 'UACK' then
+        local rev = worldProtocol.integer(fields[5])
+        local index = fields[6] == '-1' and -1 or worldProtocol.integer(fields[6])
+        if cfg.slot == 'p1' and #fields == 6 and rev and index and universeState.sender then
+            universeState.sender:ack(fields[4], rev, index)
+        end
+        return true
+    elseif fields[1] == 'UPOS' or fields[1] == 'UMOVE' then
+        local modern = fields[1] == 'UMOVE'
+        if
+            cfg.slot == 'p1'
+            or #fields ~= (modern and 20 or 13)
+            or not universeState.latest
+            or fields[4] ~= universeState.latest.epoch
         then
             return true
         end
-        local id, seq = P.integer(f[5]), P.integer(f[6])
-        local r = id and u.replicas[id]
-        if not r or not seq or seq <= r.seq or f[7] ~= r.sector then
+        local id, seq = worldProtocol.integer(fields[5]), worldProtocol.integer(fields[6])
+        local r = id and universeState.replicas[id]
+        if not r or not seq or seq <= r.seq or fields[7] ~= r.sector then
             return true
         end
         local start = modern and 9 or 8
@@ -678,25 +709,25 @@ function u.receive(f, now)
             .. ','
             .. r.entity.owner
             .. ','
-            .. table.concat(f, ',', start, start + 5)
+            .. table.concat(fields, ',', start, start + 5)
             .. ',none,0'
-        local parsed = P.record(row)
+        local parsed = worldProtocol.record(row)
         if not parsed then
             return true
         end
         local velocity = { 0, 0, 0, 0, 0, 0 }
         if modern then
             -- Dead reckoning on the server's clock (source time in the sample, rate estimated).
-            local time = tonumber(f[8])
+            local time = tonumber(fields[8])
             for i = 1, 6 do
-                velocity[i] = tonumber(f[14 + i])
+                velocity[i] = tonumber(fields[14 + i])
             end
             local track = r.modern and r.track or {}
             local last = track.time
             -- A replica without a live track shows its baseline pose: the first sample blends from it.
-            local ok, err, snapped = M.drPush(
+            local ok, err, snapped = motionBuffer.drPush(
                 track,
-                u.clock,
+                universeState.clock,
                 time,
                 parsed.pose,
                 velocity,
@@ -708,8 +739,8 @@ function u.receive(f, now)
             end
             count('samples')
             count(r.tier == 'hot' and 'samples_hot' or 'samples_cold')
-            u.motionAt = now
-            sample(delays, M.drExcess(u.clock, time, now))
+            universeState.motionAt = now
+            sample(delays, motionBuffer.drExcess(universeState.clock, time, now))
             if last or r.applied then
                 sample(errors, err)
                 -- Gap (source seconds since the previous sample) versus correction size.
@@ -721,8 +752,8 @@ function u.receive(f, now)
                         or gap < 2 and 'lt2'
                         or gap < 5 and 'lt5'
                         or 'ge5'
-                    local g = u.gaps[b] or { n = 0, max = 0 }
-                    u.gaps[b] = g
+                    local g = universeState.gaps[b] or { n = 0, max = 0 }
+                    universeState.gaps[b] = g
                     g.n = g.n + 1
                     g.max = math.max(g.max, err)
                 end
@@ -743,10 +774,10 @@ function u.receive(f, now)
         local track = (not r.modern) and r.track or nil
         if not track then
             track = {}
-            M.push(track, now - 0.1, r.entity.pose, velocity, now - 0.1)
+            motionBuffer.push(track, now - 0.1, r.entity.pose, velocity, now - 0.1)
         end
         local resets = track.resets or 0
-        if not M.push(track, now, parsed.pose, velocity, now) then
+        if not motionBuffer.push(track, now, parsed.pose, velocity, now) then
             return true
         end
         count('samples')
@@ -760,28 +791,37 @@ function u.receive(f, now)
         r.modern = false
         r.nextWrite = nil
         return true
-    elseif f[1] == 'UFOCUS' then
+    elseif fields[1] == 'UFOCUS' then
         -- A client's selected target (network ID, 0 = none); hot on the server for focusHold s.
         -- The dedicated relay appends the client's lease; the two-player relay does not.
-        if cfg.slot == 'p1' and (#f == 5 or #f == 6) then
-            local seq, id = P.integer(f[4]), P.integer(f[5])
-            local who = f[6] or 'guest'
-            local old = u.focus[who]
+        if cfg.slot == 'p1' and (#fields == 5 or #fields == 6) then
+            local seq, id = worldProtocol.integer(fields[4]), worldProtocol.integer(fields[5])
+            local who = fields[6] or 'guest'
+            local old = universeState.focus[who]
             if seq and id and (not old or seq > old.seq) then
-                u.focus[who] = { seq = seq, id = id, at = now }
+                universeState.focus[who] = { seq = seq, id = id, at = now }
             end
         end
         return true
-    elseif f[1] == 'UBEGIN' or f[1] == 'UOBJECT' or f[1] == 'UCOMMIT' then
-        if cfg.slot == 'p1' or u.failed then
+    elseif fields[1] == 'UBEGIN' or fields[1] == 'UOBJECT' or fields[1] == 'UCOMMIT' then
+        if cfg.slot == 'p1' or universeState.failed then
             return true
         end
-        local ack, b = u.receiver:receive(f, now)
+        local ack, b = universeState.receiver:receive(fields, now)
         if b then
-            u.incoming = b
+            universeState.incoming = b
         end -- Engine changes belong to an unpaused frame.
         if ack then
-            send('UACK|1|' .. s.client.lease .. '|' .. f[4] .. '|' .. f[5] .. '|' .. ack)
+            send(
+                'UACK|1|'
+                    .. bubbleState.client.lease
+                    .. '|'
+                    .. fields[4]
+                    .. '|'
+                    .. fields[5]
+                    .. '|'
+                    .. ack
+            )
         end
         return true
     end
@@ -790,7 +830,7 @@ end
 -- Engine pose writes. SetObjectSectorPos runs on the client's main thread and is the
 -- expensive part of a replica: live clients drew about 1,700 replica writes per second and
 -- fell from about 40 fps (before the replicas loaded) to 13-16 fps, about 0.3-0.4 ms per
--- write. The prediction (motion.lua M.drRender) is continuous and costs microseconds; only
+-- write. The prediction (motion.lua motionBuffer.drRender) is continuous and costs microseconds; only
 -- the write rate depends on the replica's distance from the local player:
 --  near  (within nearRange and moving):  every frame
 --  view  (within viewRange):             every viewInterval s, fastViewInterval s when fast
@@ -819,7 +859,7 @@ local REPLICA_WRITE = {
     minMove = 0.01,
     minTurn = 0.01 * math.pi / 180,
 }
-u.replicaWrite = REPLICA_WRITE
+universeState.replicaWrite = REPLICA_WRITE
 local MAX_WRITE_BUDGET_MS = 50
 -- A configured number in milliseconds within (0, MAX_WRITE_BUDGET_MS], else the default.
 local function configuredMs(value, default)
@@ -841,7 +881,7 @@ local function writeClock()
 end
 -- Budget use per diagnostic window (NPC_DIAG budget_ms, used_ms, used_ms_max, near_ms).
 local writeStats = { frames = 0, usedMs = 0, usedMaxMs = 0, nearMs = 0 }
-u.writeStats = writeStats
+universeState.writeStats = writeStats
 local RADIANS_TO_DEGREES = 180 / math.pi
 local ZONE_FIX_LIMIT = 16 -- learned zone offsets kept per replica
 local RESPAWN_INTERVAL = 2 -- seconds between two slip respawns of one replica
@@ -859,7 +899,7 @@ local SLIP_LOG_INTERVAL = 5 -- seconds between two NPC_FRAME_SLIP rows
 -- RESPAWN_INTERVAL s. NPC_FRAME_SLIP rows count each action, one row per SLIP_LOG_INTERVAL s.
 local slipLog = { rows = 0, next = 0, zone = 0, rewrite = 0, respawn = 0 }
 local function zoneOf(object)
-    return C.GetContextByClass(object, 'zone', false)
+    return engineApi.GetContextByClass(object, 'zone', false)
 end
 local function logSlipAction(replica, slip, action, now)
     count('slips')
@@ -916,19 +956,16 @@ local function writePose(replica, sectorId, enginePose, pose, slip, slipOffset, 
     local offset = fix and fix.offset
     local written = enginePose
     if offset then
-        written = ffi.new(
-            'UIPosRot',
-            {
-                x = enginePose.x - offset[1],
-                y = enginePose.y - offset[2],
-                z = enginePose.z - offset[3],
-                yaw = enginePose.yaw,
-                pitch = enginePose.pitch,
-                roll = enginePose.roll,
-            }
-        )
+        written = ffi.new('UIPosRot', {
+            x = enginePose.x - offset[1],
+            y = enginePose.y - offset[2],
+            z = enginePose.z - offset[3],
+            yaw = enginePose.yaw,
+            pitch = enginePose.pitch,
+            roll = enginePose.roll,
+        })
     end
-    C.SetObjectSectorPos(object, sectorId, written)
+    engineApi.SetObjectSectorPos(object, sectorId, written)
     replica.applied = pose
     if trackZones then
         replica.lastWriteFrom = fromZone
@@ -941,12 +978,12 @@ local function writePose(replica, sectorId, enginePose, pose, slip, slipOffset, 
     if offset and replica.lastWriteTo ~= fix.to then
         -- The predicted target zone was missed: drop the offset and write uncompensated.
         replica.zoneFix[tostring(fromZone)] = nil
-        C.SetObjectSectorPos(object, sectorId, enginePose)
+        engineApi.SetObjectSectorPos(object, sectorId, enginePose)
         action = 'rewrite'
     elseif slip > 0 and offset then
         action = 'zone'
     elseif slip > 0 then
-        C.SetObjectSectorPos(object, sectorId, enginePose)
+        engineApi.SetObjectSectorPos(object, sectorId, enginePose)
         action = 'rewrite'
     end
     local slipLasted = replica.slipSince and now - replica.slipSince >= NPC.slipRespawn
@@ -972,13 +1009,18 @@ local function predictedPose(replica, now)
     local pose = replica.entity.pose
     local speed = 0
     if replica.track and replica.modern then
-        local predicted, velocity = M.drRender(replica.track, u.renderT, now, u.clock.rate)
+        local predicted, velocity = motionBuffer.drRender(
+            replica.track,
+            universeState.renderT,
+            now,
+            universeState.clock.rate
+        )
         if predicted then
             pose = predicted
-            speed = M.speed(velocity)
+            speed = motionBuffer.speed(velocity)
         end
     elseif replica.track then
-        pose = M.render(replica.track, now, 0.1) or pose
+        pose = motionBuffer.render(replica.track, now, 0.1) or pose
     end
     return pose, speed
 end
@@ -987,8 +1029,9 @@ local function writeClass(replica, pose, speed)
     if replica.track and not replica.modern then
         return 'near', 0 -- legacy UPOS replicas have no velocity to classify by
     end
-    local distance2 = u.playerPos and distanceSquared(pose, u.playerPos) or math.huge
-    local focused = u.focusId == replica.entity.id
+    local distance2 = universeState.playerPos and distanceSquared(pose, universeState.playerPos)
+        or math.huge
+    local focused = universeState.focusId == replica.entity.id
     if
         (distance2 <= REPLICA_WRITE.nearRange ^ 2 or focused)
         and speed >= REPLICA_WRITE.nearMinSpeed
@@ -1010,7 +1053,7 @@ local function poseChanged(pose, applied)
         end
     end
     for i = 4, 6 do
-        if math.abs(M.angle(pose[i] - applied[i])) > REPLICA_WRITE.minTurn then
+        if math.abs(motionBuffer.angle(pose[i] - applied[i])) > REPLICA_WRITE.minTurn then
             return true
         end
     end
@@ -1037,7 +1080,7 @@ local function measureSlip(replica, speed, now)
     if not replica.applied then
         return 0, { 0, 0, 0 }
     end
-    local engine = C.GetObjectPositionInSector(replica.object)
+    local engine = engineApi.GetObjectPositionInSector(replica.object)
     local offset = {
         engine.x - replica.applied[1],
         engine.y - replica.applied[2],
@@ -1064,30 +1107,34 @@ local function countJump(replica, pose, speed, now)
     end
 end
 local function ensureObject(replica, sectorId, enginePose)
-    if replica.object and C.IsComponentOperational(replica.object) then
+    if replica.object and engineApi.IsComponentOperational(replica.object) then
         return
     end
     count(replica.object and 'respawns' or 'creates')
-    replica.object =
-        C.SpawnObjectAtPos2(replica.entity.macro, sectorId, enginePose, replica.entity.owner)
+    replica.object = engineApi.SpawnObjectAtPos2(
+        replica.entity.macro,
+        sectorId,
+        enginePose,
+        replica.entity.owner
+    )
     assert(replica.object ~= 0, 'NPC replica spawn failed')
-    u.replicaKeys[key(replica.object)] = replica.entity.id
-    C.ActivateObject(replica.object, false)
+    universeState.replicaKeys[key(replica.object)] = replica.entity.id
+    engineApi.ActivateObject(replica.object, false)
     replica.applied = nil
 end
 -- One visit: predict, classify, and write the engine pose when the class asks for it.
-function u.writeReplica(replica, now, sectorId)
+function universeState.writeReplica(replica, now, sectorId)
     if replica.entity.kind == 'drop' then
-        A.cargo.ensure(replica, sectorId)
+        bubbleApi.cargo.ensure(replica, sectorId)
         replica.nextWrite = now + REPLICA_WRITE.viewInterval
         return
     end
-    if A.npcCombat and A.npcCombat.hidden(replica) then
+    if bubbleApi.npcCombat and bubbleApi.npcCombat.hidden(replica) then
         if not replica.hidden then
             replica.hidden = true
             count('hides')
         end
-        A.npcCombat.hide(replica, now)
+        bubbleApi.npcCombat.hide(replica, now)
         replica.nextWrite = now + REPLICA_WRITE.viewInterval
         return
     end
@@ -1096,26 +1143,24 @@ function u.writeReplica(replica, now, sectorId)
         count('shows')
     end
     local pose, speed = predictedPose(replica, now)
-    local enginePose = ffi.new(
-        'UIPosRot',
-        {
-            x = pose[1],
-            y = pose[2],
-            z = pose[3],
-            yaw = pose[4] * RADIANS_TO_DEGREES,
-            pitch = pose[5] * RADIANS_TO_DEGREES,
-            roll = pose[6] * RADIANS_TO_DEGREES,
-        }
-    )
+    local enginePose = ffi.new('UIPosRot', {
+        x = pose[1],
+        y = pose[2],
+        z = pose[3],
+        yaw = pose[4] * RADIANS_TO_DEGREES,
+        pitch = pose[5] * RADIANS_TO_DEGREES,
+        roll = pose[6] * RADIANS_TO_DEGREES,
+    })
     ensureObject(replica, sectorId, enginePose)
     assert(
-        replica.object ~= C.GetPlayerContainerID()
-            and replica.object ~= C.GetPlayerControlledShipID(),
+        replica.object ~= engineApi.GetPlayerContainerID()
+            and replica.object ~= engineApi.GetPlayerControlledShipID(),
         'player in NPC replica'
     )
     local class, interval = writeClass(replica, pose, speed)
     replica.writeClass = class
-    replica.tier = (class == 'near' or u.focusId == replica.entity.id) and 'hot' or 'cold'
+    replica.tier = (class == 'near' or universeState.focusId == replica.entity.id) and 'hot'
+        or 'cold'
     replica.nextWrite = now + interval
     replica.speed = speed
     local slip, slipOffset = measureSlip(replica, speed, now)
@@ -1146,33 +1191,35 @@ local function visitBefore(a, b)
     return a.entity.id < b.entity.id
 end
 local function playerPosition(sectorId)
-    local own = C.GetPlayerContainerID()
-    if own == 0 or C.GetContextByClass(own, 'sector', false) ~= sectorId then
+    local own = engineApi.GetPlayerContainerID()
+    if own == 0 or engineApi.GetContextByClass(own, 'sector', false) ~= sectorId then
         return nil
     end
-    local position = C.GetObjectPositionInSector(own)
+    local position = engineApi.GetObjectPositionInSector(own)
     return { position.x, position.y, position.z }
 end
 local function isNear(replica)
-    return replica.object and (replica.writeClass == 'near' or u.focusId == replica.entity.id)
+    return replica.object
+        and (replica.writeClass == 'near' or universeState.focusId == replica.entity.id)
 end
 local SECONDS_TO_MS = 1000
 local BUDGET_EPSILON_MS = 1e-6 -- summed clock and estimate steps must not overshoot by rounding
 -- Per frame: every due near replica, then the other due visits within the time budget.
-function u.renderReplicas(now, sectorId)
-    local ids = u.renderIds or {}
+function universeState.renderReplicas(now, sectorId)
+    local ids = universeState.renderIds or {}
     if #ids == 0 then
         return
     end
-    u.frameNo = u.frameNo + 1
-    u.renderT = u.clock.base and M.drTime(u.clock, now)
-    u.playerPos = playerPosition(sectorId)
+    universeState.frameNo = universeState.frameNo + 1
+    universeState.renderT = universeState.clock.base
+        and motionBuffer.drTime(universeState.clock, now)
+    universeState.playerPos = playerPosition(sectorId)
     local near = {}
     local others = {}
     local nearCount = 0
     for _, id in ipairs(ids) do
-        local replica = u.replicas[id]
-        if replica and replica.sector == u.interest then
+        local replica = universeState.replicas[id]
+        if replica and replica.sector == universeState.interest then
             if isNear(replica) then
                 nearCount = nearCount + 1
             end
@@ -1185,11 +1232,11 @@ function u.renderReplicas(now, sectorId)
             end
         end
     end
-    u.nearCount = nearCount
+    universeState.nearCount = nearCount
     local clock = writeClock()
     local nearStart = clock and clock()
     for _, replica in ipairs(near) do
-        u.writeReplica(replica, now, sectorId)
+        universeState.writeReplica(replica, now, sectorId)
     end
     if clock then
         writeStats.nearMs = writeStats.nearMs + (clock() - nearStart) * SECONDS_TO_MS
@@ -1202,7 +1249,7 @@ function u.renderReplicas(now, sectorId)
         if usedMs >= REPLICA_WRITE.budgetMs - BUDGET_EPSILON_MS then
             break
         end
-        local wrote = u.writeReplica(replica, now, sectorId)
+        local wrote = universeState.writeReplica(replica, now, sectorId)
         visited = visited + 1
         if clock then
             usedMs = (clock() - start) * SECONDS_TO_MS
@@ -1228,10 +1275,10 @@ end
 local function playerShips()
     local out, n = {}, 0
     local function add(object)
-        if object and object ~= 0 and C.IsComponentOperational(object) then
-            local sector = C.GetContextByClass(object, 'sector', false)
+        if object and object ~= 0 and engineApi.IsComponentOperational(object) then
+            local sector = engineApi.GetContextByClass(object, 'sector', false)
             if sector ~= 0 then
-                local p = C.GetObjectPositionInSector(object)
+                local p = engineApi.GetObjectPositionInSector(object)
                 local k = key(sector)
                 local list = out[k] or {}
                 out[k] = list
@@ -1240,14 +1287,14 @@ local function playerShips()
             end
         end
     end
-    local owners = A.coop.owners or {}
-    for i = 1, A.coop.count or 0 do
+    local owners = bubbleApi.coop.owners or {}
+    for i = 1, bubbleApi.coop.count or 0 do
         if cfg.dedicated ~= true or (owners[i] and owners[i] ~= cfg.slot) then
-            add(A.coop.ships[i])
+            add(bubbleApi.coop.ships[i])
         end
     end
     if cfg.dedicated ~= true then
-        add(C.GetPlayerContainerID())
+        add(engineApi.GetPlayerContainerID())
     end
     return out, n
 end
@@ -1278,109 +1325,118 @@ end
 -- velocity heading matches the yaw. The sent yaw rate is then the measured rate of the
 -- velocity heading (in the matched convention), so a yaw that is not the course cannot
 -- bend the predicted path; turns above maxTurn rad/s are clamped.
-local function headingBranch(pose, v)
-    if math.sqrt(v[1] ^ 2 + v[3] ^ 2) < 1 then
+local function headingBranch(pose, velocity)
+    if math.sqrt(velocity[1] ^ 2 + velocity[3] ^ 2) < 1 then
         return 0
     end
-    local heading = math.atan2(v[1], v[3])
-    local a, b = math.abs(M.angle(heading - pose[4])), math.abs(M.angle(heading + pose[4]))
-    if a < M.dr.headingMatch and a <= b + 0.05 then
+    local heading = math.atan2(velocity[1], velocity[3])
+    local forwardError, oppositeError =
+        math.abs(motionBuffer.angle(heading - pose[4])),
+        math.abs(motionBuffer.angle(heading + pose[4]))
+    if forwardError < motionBuffer.dr.headingMatch and forwardError <= oppositeError + 0.05 then
         return 1
-    elseif b < M.dr.headingMatch then
+    elseif oppositeError < motionBuffer.dr.headingMatch then
         return -1
     end
     return 0
 end
-local function velocityOf(identity, p, now)
-    local h = identity.hist or {}
-    identity.hist = h
-    local last = h[#h]
+local function velocityOf(identity, pose, now)
+    local history = identity.hist or {}
+    identity.hist = history
+    local last = history[#history]
     if last and (now - last.time > 1 or now <= last.time) then
-        h = {}
-        identity.hist = h
+        history = {}
+        identity.hist = history
         last = nil
     end
     if last then
         local d2 = 0
         for i = 1, 3 do
-            d2 = d2 + (p[i] - last.pose[i]) ^ 2
+            d2 = d2 + (pose[i] - last.pose[i]) ^ 2
         end
         if math.sqrt(d2) / (now - last.time) > 100000 then
-            identity.hist = { { time = now, pose = p } }
+            identity.hist = { { time = now, pose = pose } }
             return { 0, 0, 0, 0, 0, 0 }
         end
     end
-    h[#h + 1] = { time = now, pose = p }
-    while #h > 2 and now - h[2].time >= NPC.velWindow do
-        table.remove(h, 1)
+    history[#history + 1] = { time = now, pose = pose }
+    while #history > 2 and now - history[2].time >= NPC.velWindow do
+        table.remove(history, 1)
     end
-    local o = h[1]
-    local dt = now - o.time
-    if #h < 2 or dt <= 0.001 then
+    local oldest = history[1]
+    local elapsed = now - oldest.time
+    if #history < 2 or elapsed <= 0.001 then
         return nil
     end
-    local v = {}
+    local velocity = {}
     for i = 1, 6 do
-        local d = p[i] - o.pose[i]
+        local delta = pose[i] - oldest.pose[i]
         if i > 3 then
-            d = M.angle(d)
+            delta = motionBuffer.angle(delta)
         end
-        v[i] = d / dt
-        if i > 3 and math.abs(v[i]) > NPC.maxRate then
-            v[i] = 0
+        velocity[i] = delta / elapsed
+        if i > 3 and math.abs(velocity[i]) > NPC.maxRate then
+            velocity[i] = 0
         end
     end
     -- Heading rate of the velocity: the course over the older and the newer half of the window.
-    local m = h[math.max(1, math.floor((#h + 1) / 2))]
+    local midpoint = history[math.max(1, math.floor((#history + 1) / 2))]
     local turn = 0
-    if m ~= o and m ~= h[#h] then
-        local h1 = math.atan2(m.pose[1] - o.pose[1], m.pose[3] - o.pose[3])
-        local h2 = math.atan2(p[1] - m.pose[1], p[3] - m.pose[3])
+    if midpoint ~= oldest and midpoint ~= history[#history] then
+        local h1 = math.atan2(midpoint.pose[1] - oldest.pose[1], midpoint.pose[3] - oldest.pose[3])
+        local h2 = math.atan2(pose[1] - midpoint.pose[1], pose[3] - midpoint.pose[3])
         local d1, d2 =
-            (m.pose[1] - o.pose[1]) ^ 2 + (m.pose[3] - o.pose[3]) ^ 2,
-            (p[1] - m.pose[1]) ^ 2 + (p[3] - m.pose[3]) ^ 2
+            (midpoint.pose[1] - oldest.pose[1]) ^ 2 + (midpoint.pose[3] - oldest.pose[3]) ^ 2,
+            (pose[1] - midpoint.pose[1]) ^ 2 + (pose[3] - midpoint.pose[3]) ^ 2
         if d1 > 1 and d2 > 1 then
-            turn = M.angle(h2 - h1) / ((now - o.time) / 2)
+            turn = motionBuffer.angle(h2 - h1) / ((now - oldest.time) / 2)
         end
     end
     turn = math.max(-NPC.maxTurn, math.min(NPC.maxTurn, turn))
     -- The window's chord lags a turning course by half the window: rotate it to the present.
     if turn ~= 0 then
-        local a = turn * dt / 2
-        local c, s = math.cos(a), math.sin(a)
-        v[1], v[3] = v[1] * c + v[3] * s, v[3] * c - v[1] * s
+        local angle = turn * elapsed / 2
+        local cosine, sine = math.cos(angle), math.sin(angle)
+        velocity[1], velocity[3] =
+            velocity[1] * cosine + velocity[3] * sine, velocity[3] * cosine - velocity[1] * sine
     end
-    local branch = headingBranch(p, v)
+    local branch = headingBranch(pose, velocity)
     if branch ~= 0 then
-        v[4] = branch * turn
+        velocity[4] = branch * turn
     end
-    return v
+    return velocity
 end
 -- Why and how urgently an NPC is due: never sent, diverged from the shared prediction of its
 -- last sent sample (position, heading or velocity beyond the tier threshold), or keepalive.
-local function due(identity, p, v, tier, now)
-    local s = identity.sent
-    if not s then
+local function due(identity, pose, velocity, tier, now)
+    local sent = identity.sent
+    if not sent then
         return 'first', 1e9, 0
     end
-    local age = now - s.time
-    local q, qv = M.drPredict(s.pose, s.vel, math.min(age, M.dr.coast))
-    if age >= M.dr.coast then
-        qv = { 0, 0, 0 }
+    local age = now - sent.time
+    local predictedPose, predictedVelocity =
+        motionBuffer.drPredict(sent.pose, sent.vel, math.min(age, motionBuffer.dr.coast))
+    if age >= motionBuffer.dr.coast then
+        predictedVelocity = { 0, 0, 0 }
     end
-    local d2, turn, dv = 0, 0, 0
+    local distanceSquared, turn, velocityDifferenceSquared = 0, 0, 0
     for i = 1, 3 do
-        d2 = d2 + (p[i] - q[i]) ^ 2
-        dv = dv + (v[i] - qv[i]) ^ 2
+        distanceSquared = distanceSquared + (pose[i] - predictedPose[i]) ^ 2
+        velocityDifferenceSquared = velocityDifferenceSquared
+            + (velocity[i] - predictedVelocity[i]) ^ 2
     end
     for i = 4, 6 do
-        turn = math.max(turn, math.abs(M.angle(p[i] - q[i])))
+        turn = math.max(turn, math.abs(motionBuffer.angle(pose[i] - predictedPose[i])))
     end
-    local err = math.sqrt(d2)
-    local score = math.max(err / tier.pos, turn / tier.ang, math.sqrt(dv) * tier.look / tier.pos)
+    local err = math.sqrt(distanceSquared)
+    local score = math.max(
+        err / tier.pos,
+        turn / tier.ang,
+        math.sqrt(velocityDifferenceSquared) * tier.look / tier.pos
+    )
     -- Any tier: an error above max(urgentMin m, urgentTime s of speed) is sent at once, so a
     -- fast ship's error stays below the client's snap limit (min intervals only pace small ones).
-    if err > math.max(NPC.urgentMin, NPC.urgentTime * M.speed(v)) then
+    if err > math.max(NPC.urgentMin, NPC.urgentTime * motionBuffer.speed(velocity)) then
         return 'urgent', err / tier.pos * tier.weight + 1e6, err
     end
     if score >= 1 and age >= tier.min then
@@ -1391,28 +1447,28 @@ local function due(identity, p, v, tier, now)
     end
     return nil
 end
-function u.publishMotion(now)
+function universeState.publishMotion(now)
     local players, shipCount = playerShips()
     local focus = {}
     peak('players', shipCount)
-    for who, f in pairs(u.focus) do
+    for who, f in pairs(universeState.focus) do
         if now - f.at > NPC.focusHold then
-            u.focus[who] = nil
+            universeState.focus[who] = nil
         elseif f.id > 0 then
             focus[f.id] = true
         end
     end
-    local total = #u.publish
+    local total = #universeState.publish
     local list = {}
     for _ = 1, math.min(total, NPC.evalBudget) do
-        local entry = u.publish[u.motionCursor]
-        u.motionCursor = u.motionCursor % total + 1
+        local entry = universeState.publish[universeState.motionCursor]
+        universeState.motionCursor = universeState.motionCursor % total + 1
         local identity = entry.identity
-        local target = A.coop.sectors[entry.sector]
+        local target = bubbleApi.coop.sectors[entry.sector]
         if
             target
-            and C.IsComponentOperational(entry.object)
-            and C.GetContextByClass(entry.object, 'sector', false) == target
+            and engineApi.IsComponentOperational(entry.object)
+            and engineApi.GetContextByClass(entry.object, 'sector', false) == target
         then
             local p = pose(entry.object)
             local v = velocityOf(identity, p, now)
@@ -1420,8 +1476,15 @@ function u.publishMotion(now)
                 local tier = relevance(entry.id, p, players[key(target)], focus)
                 local why, score, err = due(identity, p, v, tier, now)
                 if why then
-                    list[#list + 1] =
-                        { entry = entry, p = p, v = v, tier = tier, why = why, score = score, err = err }
+                    list[#list + 1] = {
+                        entry = entry,
+                        p = p,
+                        v = v,
+                        tier = tier,
+                        why = why,
+                        score = score,
+                        err = err,
+                    }
                 end
             end
         else
@@ -1437,7 +1500,7 @@ function u.publishMotion(now)
     for i = 1, math.min(NPC.budget, #list) do
         local c = list[i]
         local entry = c.entry
-        u.motionSeq = u.motionSeq + 1
+        universeState.motionSeq = universeState.motionSeq + 1
         entry.identity.sent = { time = now, pose = c.p, vel = c.v }
         count('sent')
         count('sent_' .. c.tier.name)
@@ -1447,13 +1510,13 @@ function u.publishMotion(now)
         end
         send(
             'UMOVE|1|'
-                .. s.client.lease
+                .. bubbleState.client.lease
                 .. '|'
-                .. s.client.lease
+                .. bubbleState.client.lease
                 .. '|'
                 .. entry.id
                 .. '|'
-                .. u.motionSeq
+                .. universeState.motionSeq
                 .. '|'
                 .. entry.sector
                 .. '|'
@@ -1478,46 +1541,46 @@ end
 -- enumeration fallback every suppressEvery s.
 local SUPPRESS_LOG_INTERVAL = 30
 local function suppressLocalNpcs(name, sectorId, now)
-    if not u.scan and now >= (u.nextScan or 0) then
-        if u.sweepUnavailable then
-            u.scan = beginScan(name, sectorId)
+    if not universeState.scan and now >= (universeState.nextScan or 0) then
+        if universeState.sweepUnavailable then
+            universeState.scan = beginScan(name, sectorId)
         else
-            u.scan = beginSweep(name, sectorId, now)
+            universeState.scan = beginSweep(name, sectorId, now)
         end
     end
-    if not u.scan then
+    if not universeState.scan then
         return
     end
     local finished
-    if u.scan.sweep then
-        finished = sweepStep(u.scan, now)
+    if universeState.scan.sweep then
+        finished = sweepStep(universeState.scan, now)
     else
-        finished = scanStep(u.scan)
+        finished = scanStep(universeState.scan)
     end
     if not finished then
         return
     end
-    local scan = u.scan
-    u.scan = nil
+    local scan = universeState.scan
+    universeState.scan = nil
     if scan.retry then
-        u.nextScan = now + 1
+        universeState.nextScan = now + 1
         return
     end
     local removed = 0
     for _, entry in ipairs(scan.objects) do
         local object = entry.object
         if
-            C.IsComponentOperational(object)
+            engineApi.IsComponentOperational(object)
             and not protected(object)
-            and C.GetContextByClass(object, 'sector', false) == sectorId
+            and engineApi.GetContextByClass(object, 'sector', false) == sectorId
         then
-            C.RemoveComponent(object)
+            engineApi.RemoveComponent(object)
             removed = removed + 1
         end
     end
     count('suppressed', removed)
-    if removed > 0 or now >= (u.nextSuppressLog or 0) then
-        u.nextSuppressLog = now + SUPPRESS_LOG_INTERVAL
+    if removed > 0 or now >= (universeState.nextSuppressLog or 0) then
+        universeState.nextSuppressLog = now + SUPPRESS_LOG_INTERVAL
         log(
             'LOCAL_NPC_SUPPRESSED count='
                 .. removed
@@ -1527,18 +1590,23 @@ local function suppressLocalNpcs(name, sectorId, now)
                 .. (scan.sweep and 'sweep' or 'factions')
         )
     end
-    u.nextScan = now + (scan.sweep and NPC.sweepEvery or NPC.suppressEvery)
+    universeState.nextScan = now + (scan.sweep and NPC.sweepEvery or NPC.suppressEvery)
 end
 local function frame(now)
-    if u.failed or not s.client or not s.client.lease or not A.coop.ready then
+    if
+        universeState.failed
+        or not bubbleState.client
+        or not bubbleState.client.lease
+        or not bubbleApi.coop.ready
+    then
         return
     end
-    if not u.setup then
-        u.setup = true
+    if not universeState.setup then
+        universeState.setup = true
         AddUITriggeredEvent('X4LAN_Universe', 'Setup')
         return
     end
-    if not u.ready or A.paused() then
+    if not universeState.ready or bubbleApi.paused() then
         return
     end
     local name, sector = currentSector()
@@ -1546,73 +1614,90 @@ local function frame(now)
         return
     end
     if cfg.slot ~= 'p1' then
-        if u.interest ~= name then
-            u.interest = name
-            u.scan = nil
-            u.receiver.pending = nil
-            u.latest = nil
-            u.nextScan = 0
-            for _, r in pairs(u.replicas) do
+        if universeState.interest ~= name then
+            universeState.interest = name
+            universeState.scan = nil
+            universeState.receiver.pending = nil
+            universeState.latest = nil
+            universeState.nextScan = 0
+            for _, r in pairs(universeState.replicas) do
                 removeReplica(r)
             end
-            u.replicas = {}
+            universeState.replicas = {}
         end
-        if now >= (u.nextInterest or 0) then
-            u.nextInterest = now + 1
-            u.interestSeq = u.interestSeq + 1
-            send('UINTEREST|1|' .. s.client.lease .. '|' .. u.interestSeq .. '|' .. name)
+        if now >= (universeState.nextInterest or 0) then
+            universeState.nextInterest = now + 1
+            universeState.interestSeq = universeState.interestSeq + 1
+            send(
+                'UINTEREST|1|'
+                    .. bubbleState.client.lease
+                    .. '|'
+                    .. universeState.interestSeq
+                    .. '|'
+                    .. name
+            )
         end
-        if u.incoming then
-            local incoming = u.incoming
-            u.incoming = nil
+        if universeState.incoming then
+            local incoming = universeState.incoming
+            universeState.incoming = nil
             accept(incoming, now)
         end
         -- Replicas pause only when the server is silent: a stale baseline (membership) alone no
         -- longer freezes replicas that live motion still drives. Live captures took 35-40 s,
         -- so the former 15 s baseline pause froze every replica for about 20 s per cycle.
-        local stale = u.latest
-            and now - u.acceptedAt >= 15
-            and (not u.motionAt or now - u.motionAt >= NPC.motionLive)
+        local stale = universeState.latest
+            and now - universeState.acceptedAt >= 15
+            and (not universeState.motionAt or now - universeState.motionAt >= NPC.motionLive)
         if cfg.world_mode == 'replica' and stale then
             count('paused')
-            if not u.renderPaused then
-                u.renderPaused = true
+            if not universeState.renderPaused then
+                universeState.renderPaused = true
                 feature(
                     'npc_replicas',
-                    'baseline_stale age=' .. string.format('%.1f', now - u.acceptedAt)
+                    'baseline_stale age=' .. string.format('%.1f', now - universeState.acceptedAt)
                 )
             end
-        elseif u.renderPaused and u.latest then
-            u.renderPaused = nil
+        elseif universeState.renderPaused and universeState.latest then
+            universeState.renderPaused = nil
             log('FEATURE_RESUMED npc_replicas')
         end
-        if cfg.world_mode == 'replica' and u.latest and not stale then
+        if cfg.world_mode == 'replica' and universeState.latest and not stale then
             -- UFOCUS: the replica the local player targets, refreshed every focusEvery s; 0 once
             -- when the target is cleared or is not a replica.
-            if getTarget and now >= (u.focusCheck or 0) then
-                u.focusCheck = now + 0.25
+            if getTarget and now >= (universeState.focusCheck or 0) then
+                universeState.focusCheck = now + 0.25
                 local ok, target = pcall(getTarget)
-                local id = ok and target and target ~= 0 and u.replicaKeys[key(target)] or nil
+                local id = ok and target and target ~= 0 and universeState.replicaKeys[key(target)]
+                    or nil
                 if type(id) ~= 'number' then
                     id = nil
                 end
-                if id ~= u.focusId or (id and now >= (u.focusNext or 0)) then
-                    u.focusSeq = u.focusSeq + 1
-                    u.focusId = id
-                    u.focusNext = now + NPC.focusEvery
-                    send('UFOCUS|1|' .. s.client.lease .. '|' .. u.focusSeq .. '|' .. (id or 0))
+                if
+                    id ~= universeState.focusId or (id and now >= (universeState.focusNext or 0))
+                then
+                    universeState.focusSeq = universeState.focusSeq + 1
+                    universeState.focusId = id
+                    universeState.focusNext = now + NPC.focusEvery
+                    send(
+                        'UFOCUS|1|'
+                            .. bubbleState.client.lease
+                            .. '|'
+                            .. universeState.focusSeq
+                            .. '|'
+                            .. (id or 0)
+                    )
                 end
             end
-            u.renderReplicas(now, sector)
+            universeState.renderReplicas(now, sector)
             suppressLocalNpcs(name, sector, now)
         end
         if diagEvery then
             local live = 0
-            u.tierCount = { hot = 0, cold = 0 }
-            for _, r in pairs(u.replicas) do
+            universeState.tierCount = { hot = 0, cold = 0 }
+            for _, r in pairs(universeState.replicas) do
                 live = live + 1
                 local t = r.tier == 'hot' and 'hot' or 'cold'
-                u.tierCount[t] = u.tierCount[t] + 1
+                universeState.tierCount[t] = universeState.tierCount[t] + 1
             end
             diagFlush(
                 now,
@@ -1622,58 +1707,62 @@ local function frame(now)
                     .. ' replicas='
                     .. live
                     .. ' hot='
-                    .. (u.nearCount or 0)
+                    .. (universeState.nearCount or 0)
                     .. ' baseline_age='
-                    .. (u.acceptedAt and string.format('%.1f', now - u.acceptedAt) or '-')
+                    .. (
+                        universeState.acceptedAt
+                            and string.format('%.1f', now - universeState.acceptedAt)
+                        or '-'
+                    )
             )
         end
         return
     end
-    for name, at in pairs(u.wanted) do
+    for name, at in pairs(universeState.wanted) do
         if now - at > 5 then
-            u.wanted[name] = nil
+            universeState.wanted[name] = nil
         end
     end
-    if u.cargoDirty and (not u.sender or u.sender.done) then
-        for name, scan in pairs(u.lastScans) do
-            if u.wanted[name] then
+    if universeState.cargoDirty and (not universeState.sender or universeState.sender.done) then
+        for name, scan in pairs(universeState.lastScans) do
+            if universeState.wanted[name] then
                 captured(scan)
                 break
             end
         end
     end
-    if u.sender and not u.sender.done then
-        for _, p in ipairs(u.sender:packets(s.client.lease, now)) do
+    if universeState.sender and not universeState.sender.done then
+        for _, p in ipairs(universeState.sender:packets(bubbleState.client.lease, now)) do
             send(p)
         end
-    elseif not u.scan and now >= (u.nextScan or 0) then
+    elseif not universeState.scan and now >= (universeState.nextScan or 0) then
         local names = {}
-        for name in pairs(u.wanted) do
+        for name in pairs(universeState.wanted) do
             names[#names + 1] = name
         end
         table.sort(names)
         if #names > 0 then
-            u.scanChoice = (u.scanChoice or 0) % #names + 1
-            local name = names[u.scanChoice]
-            local target = A.coop.sectorId(name)
+            universeState.scanChoice = (universeState.scanChoice or 0) % #names + 1
+            local name = names[universeState.scanChoice]
+            local target = bubbleApi.coop.sectorId(name)
             if target then
-                u.scan = beginScan(name, target)
+                universeState.scan = beginScan(name, target)
             end
         end
     end
-    if u.scan and captureStep(u.scan, now) then
-        if not u.scan.retry then
-            captured(u.scan)
+    if universeState.scan and captureStep(universeState.scan, now) then
+        if not universeState.scan.retry then
+            captured(universeState.scan)
         end
-        u.scan = nil
-        u.nextScan = now + 2
+        universeState.scan = nil
+        universeState.nextScan = now + 2
     end
-    if #u.publish > 0 and now >= (u.nextMotion or 0) then
-        u.nextMotion = now + 0.045 -- every 0.05 s server frame (float steps must not skip one)
-        u.publishMotion(now)
+    if #universeState.publish > 0 and now >= (universeState.nextMotion or 0) then
+        universeState.nextMotion = now + 0.045 -- every 0.05 s server frame (float steps must not skip one)
+        universeState.publishMotion(now)
     end
     local names = {}
-    for name in pairs(u.wanted) do
+    for name in pairs(universeState.wanted) do
         names[#names + 1] = name
     end
     table.sort(names)
@@ -1683,22 +1772,22 @@ local function frame(now)
         'sectors='
             .. (#names > 0 and table.concat(names, ',') or '-')
             .. ' published='
-            .. #u.publish
+            .. #universeState.publish
     )
 end
-function u.frame(now)
+function universeState.frame(now)
     local ok, err = pcall(frame, now)
     if not ok then
-        u.failed = true
+        universeState.failed = true
         log('STOPPED ' .. tostring(err))
         feature('world_sync', 'adapter_stopped')
     end
 end
 RegisterEvent('X4LAN_Universe.Exclude', function(_, object)
-    u.excluded[key(ConvertIDTo64Bit(object))] = true
+    universeState.excluded[key(ConvertIDTo64Bit(object))] = true
 end)
 RegisterEvent('X4LAN_Universe.Ready', function()
-    u.ready = true
+    universeState.ready = true
     log(
         'READY mode='
             .. cfg.world_mode
