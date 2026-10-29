@@ -99,13 +99,13 @@ end
 -- own=true carries the window of the current readback; MD refuses a stale one (self-healing:
 -- without own, readbacks report gen 0, no frames go out and the relay ends the generation).
 local function authority(entity, generation, own)
-    local a = healthAdapter.auth[entity]
-    if a[1] ~= generation or a[2] ~= own then
+    local authorityState = healthAdapter.auth[entity]
+    if authorityState[1] ~= generation or authorityState[2] ~= own then
         local args = {
             entity = entity,
             gen = generation,
             own = own,
-            ended = generation == 0 and a[1] or nil,
+            ended = generation == 0 and authorityState[1] or nil,
         } -- a revocation names its generation
         healthAdapter.auth[entity] = { generation, own }
         if own and healthAdapter.mdStamp then
@@ -211,9 +211,14 @@ function healthAdapter.base(fields, now)
     end
     -- An expired or refused Base never confirms: retry it, bounded by RETRY. MD applies a
     -- generation's baseline once and only confirms repeats, so a retry never resets HP again.
-    local b = healthAdapter.basing
+    local baseline = healthAdapter.basing
     if
-        (b and b.entity == entity and b.gen == generation and now - b.at < RETRY) or not writable()
+        (
+            baseline
+            and baseline.entity == entity
+            and baseline.gen == generation
+            and now - baseline.at < RETRY
+        ) or not writable()
     then
         return
     end
@@ -236,16 +241,16 @@ function healthAdapter.based(payload)
     end
     local entity, generation = tostring(payload):match('^(%d)|(%d+)$')
     entity, generation = tonumber(entity), tonumber(generation)
-    local b = healthAdapter.basing
+    local baseline = healthAdapter.basing
     if
-        b
-        and b.entity == entity
-        and b.gen == generation
+        baseline
+        and baseline.entity == entity
+        and baseline.gen == generation
         and valid(entity, generation)
         and healthAdapter.mine(entity)
     then
         healthAdapter.live, healthAdapter.basing, healthAdapter.reading, healthAdapter.seq =
-            b, nil, nil, 0
+            baseline, nil, nil, 0
         authority(entity, generation, true)
         -- Acknowledge at once; every repeated HBASE of this generation re-sends it (bounded 0.25 s).
         -- No HEALTH goes out before this first HACK.
@@ -374,10 +379,10 @@ function healthAdapter.frame(now)
         -- A stale pilot stream is an authority boundary: close the generation (the ship returns to the
         -- host from its canonical value) and tell the relay, which starts a new generation whose
         -- baseline is the host's WORLD again; the old one never resumes.
-        for entity, r in pairs(healthAdapter.remote) do
-            if now - r.at > FRESH then
-                healthAdapter.stale[entity] = r.gen
-                healthAdapter.close(entity, r.gen)
+        for entity, readingState in pairs(healthAdapter.remote) do
+            if now - readingState.at > FRESH then
+                healthAdapter.stale[entity] = readingState.gen
+                healthAdapter.close(entity, readingState.gen)
             end
         end
         for entity = 1, 2 do
@@ -409,32 +414,32 @@ function healthAdapter.frame(now)
         )
     end
     -- Each fresh MD readback is reported at most once; nothing while paused or from a stale one.
-    local r = healthAdapter.reading
+    local readingState = healthAdapter.reading
     if
         not healthAdapter.live
         or not healthAdapter.nextAck
-        or not r
-        or r.sent
-        or r.entity ~= healthAdapter.live.entity
+        or not readingState
+        or readingState.sent
+        or readingState.entity ~= healthAdapter.live.entity
         or paused()
-        or now - r.at > READING
+        or now - readingState.at > READING
     then
         return
     end
     if not healthAdapter.urgent and now < (healthAdapter.nextSend or 0) then
         return
     end
-    r.sent, healthAdapter.urgent, healthAdapter.nextSend, healthAdapter.seq =
+    readingState.sent, healthAdapter.urgent, healthAdapter.nextSend, healthAdapter.seq =
         true, false, now + INTERVAL, healthAdapter.seq + 1
     send(
         string.format(
             'HEALTH|1|%s|%d|%d|%d|%.3f|%.3f',
             sessionState.client.lease,
-            r.entity,
+            readingState.entity,
             healthAdapter.live.gen,
             healthAdapter.seq,
-            r.hull,
-            r.shield
+            readingState.hull,
+            readingState.shield
         )
     )
 end

@@ -8,8 +8,8 @@ local dockAdapter, coopAdapter, sessionState = API.coopDocks, API.coop, API.stat
 local execution =
     { generation = { 0, 0 }, ack = { 0, 0 }, keys = {}, operation = 0, epoch = API.nonce() }
 dockAdapter.execution = execution
-local function log(v)
-    DebugError('[X4LAN] COOP_DOCK_EXEC ' .. v)
+local function log(inputValue)
+    DebugError('[X4LAN] COOP_DOCK_EXEC ' .. inputValue)
 end
 local function event(control, value)
     AddUITriggeredEvent('X4LAN_CoopAttachment', control, value)
@@ -19,15 +19,12 @@ local function key(entity, now)
     -- preparation, but must not repeatedly cancel an already invoked undock.
     local intent = dockAdapter.intent(entity, now)
     if not intent then
-        return table.concat(
-            {
-                'blocked',
-                tostring(coopAdapter.owners[entity]),
-                tostring(coopAdapter.epochs[entity]),
-                tostring(coopAdapter.pilots[entity]),
-            },
-            '|'
-        ),
+        return table.concat({
+            'blocked',
+            tostring(coopAdapter.owners[entity]),
+            tostring(coopAdapter.epochs[entity]),
+            tostring(coopAdapter.pilots[entity]),
+        }, '|'),
             nil
     end
     return table.concat(
@@ -45,16 +42,13 @@ local function fence(entity, authorityKey, intent)
     if execution.pending then
         execution.pending = nil
     end
-    event(
-        'Fence',
-        {
-            seed = cfg.seed_id,
-            epoch = execution.epoch,
-            ship = entity,
-            generation = execution.generation[entity],
-            enabled = intent ~= nil,
-        }
-    )
+    event('Fence', {
+        seed = cfg.seed_id,
+        epoch = execution.epoch,
+        ship = entity,
+        generation = execution.generation[entity],
+        enabled = intent ~= nil,
+    })
 end
 function dockAdapter.authorized(entity, now)
     local authorityKey, intent = key(entity, now)
@@ -236,14 +230,15 @@ function dockAdapter.executeFrame(now)
         end
     end
 end
-RegisterEvent('X4LAN_CoopAttachment.Ready', function(_, v)
-    if v == cfg.seed_id .. '|' .. execution.epoch and not dockAdapter.closed then
+RegisterEvent('X4LAN_CoopAttachment.Ready', function(_, inputValue)
+    if inputValue == cfg.seed_id .. '|' .. execution.epoch and not dockAdapter.closed then
         execution.ready = true
         log('READY')
     end
 end)
-RegisterEvent('X4LAN_CoopAttachment.Fenced', function(_, v)
-    local seed, epoch, entity, generation = tostring(v):match('^([^|]+)|([^|]+)|(%d)|(%d+)$')
+RegisterEvent('X4LAN_CoopAttachment.Fenced', function(_, inputValue)
+    local seed, epoch, entity, generation =
+        tostring(inputValue):match('^([^|]+)|([^|]+)|(%d)|(%d+)$')
     entity, generation = tonumber(entity), tonumber(generation)
     if
         seed == cfg.seed_id
@@ -256,11 +251,11 @@ RegisterEvent('X4LAN_CoopAttachment.Fenced', function(_, v)
         execution.ack[entity] = generation
     end
 end)
-RegisterEvent('X4LAN_CoopAttachment.Error', function(_, v)
-    dockAdapter.stop(v)
+RegisterEvent('X4LAN_CoopAttachment.Error', function(_, inputValue)
+    dockAdapter.stop(inputValue)
 end)
-RegisterEvent('X4LAN_CoopAttachment.Window', function(_, v)
-    local seed, epoch, op, accepted = tostring(v):match('^([^|]+)|([^|]+)|(%d+)|([01])$')
+RegisterEvent('X4LAN_CoopAttachment.Window', function(_, inputValue)
+    local seed, epoch, op, accepted = tostring(inputValue):match('^([^|]+)|([^|]+)|(%d+)|([01])$')
     local pendingOperation = execution.pending
     local now = GetCurRealTime()
     if
@@ -284,8 +279,8 @@ RegisterEvent('X4LAN_CoopAttachment.Window', function(_, v)
         { seed = cfg.seed_id, epoch = execution.epoch, operation = pendingOperation.operation }
     )
 end)
-RegisterEvent('X4LAN_CoopAttachment.Applied', function(_, v)
-    local seed, epoch, op, result = tostring(v):match('^([^|]+)|([^|]+)|(%d+)|(%a+)$')
+RegisterEvent('X4LAN_CoopAttachment.Applied', function(_, inputValue)
+    local seed, epoch, op, result = tostring(inputValue):match('^([^|]+)|([^|]+)|(%d+)|(%a+)$')
     local pendingOperation = execution.pending
     local now = GetCurRealTime()
     if

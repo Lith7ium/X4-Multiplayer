@@ -10,10 +10,16 @@ local C = require('ffi').C
 local dockAdapter = { localRows = {}, remote = {}, published = {}, closed = false }
 API.coopDocks = dockAdapter
 local modes = { FREE = true, UNKNOWN = true, APPROACH = true, EXTERNAL = true, STORED = true }
-local function integer(v, max)
-    local n = tonumber(v)
-    if n and n == n and n >= 0 and n % 1 == 0 and n <= max then
-        return n
+local function integer(value, max)
+    local parsedNumber = tonumber(value)
+    if
+        parsedNumber
+        and parsedNumber == parsedNumber
+        and parsedNumber >= 0
+        and parsedNumber % 1 == 0
+        and parsedNumber <= max
+    then
+        return parsedNumber
     end
 end
 local function valid(mode, dock)
@@ -24,12 +30,12 @@ local function valid(mode, dock)
             or (mode == 'APPROACH' or mode == 'EXTERNAL' or mode == 'STORED') and dock > 0
         )
 end
-local function log(v)
-    DebugError('[X4LAN] COOP_DOCK ' .. v)
+local function log(value)
+    DebugError('[X4LAN] COOP_DOCK ' .. value)
 end
-local function send(v)
+local function send(value)
     if sessionState.client and sessionState.client.lease then
-        sessionState.transport:send(v)
+        sessionState.transport:send(value)
     end
 end
 local function stop(reason)
@@ -224,22 +230,28 @@ function coopAdapter.receive(fields, now)
     return true
 end
 local function cancelDenied(now)
-    local v = dockAdapter.denied
+    local value = dockAdapter.denied
     local x = dockAdapter.execution
     if
-        not v
+        not value
         or not x
         or not x.ready
-        or now - v.at > 0.75
+        or now - value.at > 0.75
         or API.paused()
-        or coopAdapter.owners[v.entity] ~= cfg.slot
-        or coopAdapter.epochs[v.entity] ~= v.epoch
+        or coopAdapter.owners[value.entity] ~= cfg.slot
+        or coopAdapter.epochs[value.entity] ~= value.epoch
     then
         return
     end
-    local own = localRow(v.entity, now)
-    local sent = dockAdapter.published[v.entity]
-    if not own or own.dock ~= v.dock or not sent or sent.first > v.seq or sent.dock ~= v.dock then
+    local own = localRow(value.entity, now)
+    local sent = dockAdapter.published[value.entity]
+    if
+        not own
+        or own.dock ~= value.dock
+        or not sent
+        or sent.first > value.seq
+        or sent.dock ~= value.dock
+    then
         return
     end
     if now < (dockAdapter.nextDenied or 0) then
@@ -249,10 +261,10 @@ local function cancelDenied(now)
     AddUITriggeredEvent('X4LAN_CoopDocks', 'Denied', {
         seed = cfg.seed_id,
         epoch = x.epoch,
-        ship = v.entity,
-        native = API.id(coopAdapter.ships[v.entity]),
-        generation = x.generation[v.entity],
-        dock = v.dock,
+        ship = value.entity,
+        native = API.id(coopAdapter.ships[value.entity]),
+        generation = x.generation[value.entity],
+        dock = value.dock,
         stamp = own.stamp,
         age = own.age,
     })
