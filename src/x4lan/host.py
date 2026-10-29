@@ -1,4 +1,5 @@
 """Two-slot UDP relay. Only Python's standard library is required (3.10+)."""
+
 from __future__ import annotations
 
 import argparse
@@ -45,7 +46,9 @@ def bundle(packets, peers):
         if len(items) == 1:
             out.append((address, items[0][0]))
         else:
-            out.append((address, b'XB|1|' + capable[address] + b'|' + b''.join(i for _, i in items)))
+            out.append(
+                (address, b'XB|1|' + capable[address] + b'|' + b''.join(i for _, i in items))
+            )
 
     for address, packet in packets:
         lease = capable.get(address)
@@ -55,7 +58,7 @@ def bundle(packets, peers):
             flush(address)
             out.append((address, packet))
             continue
-        body = kind + b'|' + rest[len(envelope):]
+        body = kind + b'|' + rest[len(envelope) :]
         item = str(len(body)).encode('ascii') + b':' + body
         header = len(b'XB|1|') + len(lease) + 1
         if header + len(item) > MAX_PACKET:
@@ -143,10 +146,14 @@ class Session:
                 return [f"PONG|1|{nonce}|{self.build}|{self.bubble}".encode("ascii")]
             if fields[0] == "RESUME" and len(fields) == 10:
                 _, _, token, build, sector, bubble, slot, previous_nonce, lease, nonce = fields
-                if (not hmac.compare_digest(token, self.token) or build != self.build or
-                        bubble != self.bubble or slot not in ('p1', 'p2') or
-                        not all(HEX.fullmatch(v) for v in (previous_nonce, lease, nonce)) or
-                        not ATOM.fullmatch(sector)):
+                if (
+                    not hmac.compare_digest(token, self.token)
+                    or build != self.build
+                    or bubble != self.bubble
+                    or slot not in ('p1', 'p2')
+                    or not all(HEX.fullmatch(v) for v in (previous_nonce, lease, nonce))
+                    or not ATOM.fullmatch(sector)
+                ):
                     return []
                 peer = self.peers.get(slot)
                 saved = self.resumable.get(slot)
@@ -155,12 +162,18 @@ class Session:
                     # A new relay cannot prove this is the same world. Do not
                     # silently start a second economy over an existing game.
                     return [f"RESET|1|{nonce}".encode('ascii')]
-                if (not hmac.compare_digest(candidate.lease, lease) or
-                        (candidate.nonce != previous_nonce and
-                         not (candidate.nonce == nonce and candidate.resume_from == previous_nonce)) or
-                        (self.sector is not None and self.sector != sector) or
-                        (peer is None and saved[1] != sector) or
-                        any(p.address == address for key, p in self.peers.items() if key != slot)):
+                if (
+                    not hmac.compare_digest(candidate.lease, lease)
+                    or (
+                        candidate.nonce != previous_nonce
+                        and not (
+                            candidate.nonce == nonce and candidate.resume_from == previous_nonce
+                        )
+                    )
+                    or (self.sector is not None and self.sector != sector)
+                    or (peer is None and saved[1] != sector)
+                    or any(p.address == address for key, p in self.peers.items() if key != slot)
+                ):
                     return []
                 candidate.resume_from = previous_nonce
                 candidate.address, candidate.nonce, candidate.last_seen = address, nonce, now
@@ -174,9 +187,13 @@ class Session:
                 _, _, token, build, sector, bubble, slot, nonce = fields
                 if not hmac.compare_digest(token, self.token):
                     return []
-                if (build != self.build or bubble != self.bubble or
-                        slot not in ("p1", "p2") or not HEX.fullmatch(nonce) or
-                        not ATOM.fullmatch(sector)):
+                if (
+                    build != self.build
+                    or bubble != self.bubble
+                    or slot not in ("p1", "p2")
+                    or not HEX.fullmatch(nonce)
+                    or not ATOM.fullmatch(sector)
+                ):
                     return []
                 if self.sector is not None and sector != self.sector:
                     return []
@@ -198,8 +215,14 @@ class Session:
             if fields[0] == "XBCAP" and len(fields) == 4:
                 # Additive capability: relays without it ignore the message, and only a
                 # client that announced it ever receives an XB bundle.
-                peer = next((p for p in self.peers.values()
-                             if p.address == address and hmac.compare_digest(p.lease, fields[2])), None)
+                peer = next(
+                    (
+                        p
+                        for p in self.peers.values()
+                        if p.address == address and hmac.compare_digest(p.lease, fields[2])
+                    ),
+                    None,
+                )
                 if peer is not None and fields[3] == BUNDLE_VERSION:
                     peer.bundle = True
                 return []
@@ -207,8 +230,14 @@ class Session:
                 return []
             if len(fields) != (10 if fields[0] == "STATE" else 4):
                 return []
-            peer = next((p for p in self.peers.values()
-                         if p.address == address and hmac.compare_digest(p.lease, fields[2])), None)
+            peer = next(
+                (
+                    p
+                    for p in self.peers.values()
+                    if p.address == address and hmac.compare_digest(p.lease, fields[2])
+                ),
+                None,
+            )
             if peer is None:
                 return []
             seq = sequence(fields[3])
@@ -264,9 +293,11 @@ class Relay:
         self.received_packets = self.received_bytes = 0
         self.sent_packets = self.sent_bytes = self.send_errors = 0
         from .netprobe import NetProbe
+
         self.netprobe = NetProbe(time.monotonic())
         try:  # player factions (internal packages); absent from builds that omit players.py
             from .players import PlayerRoster
+
             self.players = PlayerRoster()
         except ImportError:
             self.players = None
@@ -326,8 +357,10 @@ def require_two_players(config) -> None:
     running a two-slot relay for a larger session.
     """
     if config.get('dedicated') or config.get('max_players', 2) != 2:
-        raise ValueError('The Python relay serves two-player sessions only; '
-                         'dedicated/N-player sessions use x4lan-dedicated.')
+        raise ValueError(
+            'The Python relay serves two-player sessions only; '
+            'dedicated/N-player sessions use x4lan-dedicated.'
+        )
 
 
 def main() -> None:
@@ -357,21 +390,43 @@ def main() -> None:
     from .bubble import BubbleSession
     from .economy import EconomySession
     from .coop import CoopSession
-    session_type = CoopSession if config.get('coop') else EconomySession if args.trading else BubbleSession if args.bubble_actions else Session
+
+    session_type = (
+        CoopSession
+        if config.get('coop')
+        else EconomySession
+        if args.trading
+        else BubbleSession
+        if args.bubble_actions
+        else Session
+    )
     if config.get('world_sync'):
         from .universe import UniverseSession
+
         session_type = UniverseSession
     session = session_type(token, build, bubble)
     relay = Relay(args.bind, port, session)
-    print(f"X4 LAN transform relay on {args.bind}:{port}; build={build}; bubble={bubble}", flush=True)
-    print("Experimental host-authoritative test bubble." if args.bubble_actions or args.trading else "Experiment: client poses only; no shared physics, damage, AI or economy.", flush=True)
+    print(
+        f"X4 LAN transform relay on {args.bind}:{port}; build={build}; bubble={bubble}", flush=True
+    )
+    print(
+        "Experimental host-authoritative test bubble."
+        if args.bubble_actions or args.trading
+        else "Experiment: client poses only; no shared physics, damage, AI or economy.",
+        flush=True,
+    )
     last_status = ""
     try:
         while True:
             relay.step()
             for line in relay.netprobe.report(relay.session.peers, time.monotonic()):
                 print(line, flush=True)
-            status = ", ".join(f"{slot}@{p.address[0]}:{p.address[1]}" for slot, p in session.peers.items()) or "waiting"
+            status = (
+                ", ".join(
+                    f"{slot}@{p.address[0]}:{p.address[1]}" for slot, p in session.peers.items()
+                )
+                or "waiting"
+            )
             if status != last_status:
                 print(status, flush=True)
                 last_status = status

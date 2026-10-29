@@ -3,6 +3,7 @@
 The relay binds each request to the authenticated pilot and ship generation.
 It retains outcomes through reconnect and never infers success from a timeout.
 """
+
 from .host import HEX, sequence
 from .economy import WARE
 
@@ -18,8 +19,7 @@ class CargoTransactions:
         self.inventory_cursor = 0
 
     def busy(self, ship):
-        return any(r['ship'] == ship and r['result'] == 'PENDING'
-                   for r in self.requests.values())
+        return any(r['ship'] == ship and r['result'] == 'PENDING' for r in self.requests.values())
 
     def reply(self, lease, request, status, fence=0):
         return f'CARGOREPLY|1|{lease}|{request}|{status}|{fence}'.encode()
@@ -54,16 +54,23 @@ class CargoTransactions:
                 fence = sequence(f[5])
                 old = self.requests.get(request)
                 if old and old['host'] == peer.lease and old['result'] == 'PENDING':
-                    old['result'] = f[4]; old['fence'] = fence
+                    old['result'] = f[4]
+                    old['fence'] = fence
                 return []
             if f[0] != 'CARGOREQ' or len(f) != 11:
                 return []
             host, ship, epoch, verb, obj, ware, amount = f[4:]
             ship, epoch, obj, amount = map(sequence, (ship, epoch, obj, amount))
-            if (not HEX.fullmatch(host) or ship not in (1, 2) or epoch < 1 or
-                    verb not in ('DROP', 'PICKUP') or not WARE.fullmatch(ware) or
-                    not 0 < amount <= 1000000 or (verb == 'DROP' and obj != 0) or
-                    (verb == 'PICKUP' and obj == 0)):
+            if (
+                not HEX.fullmatch(host)
+                or ship not in (1, 2)
+                or epoch < 1
+                or verb not in ('DROP', 'PICKUP')
+                or not WARE.fullmatch(ware)
+                or not 0 < amount <= 1000000
+                or (verb == 'DROP' and obj != 0)
+                or (verb == 'PICKUP' and obj == 0)
+            ):
                 return []
             signature = (slot, host, ship, epoch, verb, obj, ware, amount)
             old = self.requests.get(request)
@@ -74,15 +81,26 @@ class CargoTransactions:
             authority = s.peers.get('p1')
             if not authority or authority.lease != host:
                 return [self.reply(peer.lease, request, 'STALE')]
-            if s.owners[ship] != slot or s.epochs[ship] != epoch or s.pilot(ship) != slot or s.dead(ship):
+            if (
+                s.owners[ship] != slot
+                or s.epochs[ship] != epoch
+                or s.pilot(ship) != slot
+                or s.dead(ship)
+            ):
                 return [self.reply(peer.lease, request, 'REJECTED')]
             if s.busy(ship):
                 return [self.reply(peer.lease, request, 'BUSY')]
             # Reject new requests at the cap; never evict a completed ID into reuse.
             if len(self.requests) >= 8192:
                 return [self.reply(peer.lease, request, 'BUSY')]
-            self.requests[request] = dict(signature=signature, ship=ship, host=host,
-                                          requester=slot, result='PENDING', next_send=now)
+            self.requests[request] = dict(
+                signature=signature,
+                ship=ship,
+                host=host,
+                requester=slot,
+                result='PENDING',
+                next_send=now,
+            )
             return [self.reply(peer.lease, request, 'PENDING')]
         except (ValueError, UnicodeError, OverflowError):
             return []
@@ -92,14 +110,18 @@ class CargoTransactions:
         result = []
         guest = self.session.peers.get('p2')
         if host and guest and now >= self.next_inventory:
-            self.next_inventory = now + .2
+            self.next_inventory = now + 0.2
             values = list(self.inventory.values())
-            selected = [values[(self.inventory_cursor+i) % len(values)]
-                        for i in range(min(32, len(values)))]
+            selected = [
+                values[(self.inventory_cursor + i) % len(values)]
+                for i in range(min(32, len(values)))
+            ]
             self.inventory_cursor += len(selected)
             for _, at, fields in selected:
-                if fields[0] == host.lease and now-at < 2:
-                    result.append((guest.address, ('CINV|1|'+guest.lease+'|'+'|'.join(fields)).encode()))
+                if fields[0] == host.lease and now - at < 2:
+                    result.append(
+                        (guest.address, ('CINV|1|' + guest.lease + '|' + '|'.join(fields)).encode())
+                    )
         for request, item in self.requests.items():
             if item['result'] != 'PENDING':
                 continue
@@ -109,7 +131,7 @@ class CargoTransactions:
                 continue
             if now < item['next_send']:
                 continue
-            item['next_send'] = now + .25
+            item['next_send'] = now + 0.25
             slot, _, ship, epoch, verb, obj, ware, amount = item['signature']
             packet = f'CARGOEXEC|1|{host.lease}|{request}|{ship}|{epoch}|{verb}|{obj}|{ware}|{amount}|{slot}'
             result.append((host.address, packet.encode()))

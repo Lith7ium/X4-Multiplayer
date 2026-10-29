@@ -1,4 +1,5 @@
 """Explicit, package-local recovery helper for the internal 45841 test profile."""
+
 from __future__ import annotations
 
 import argparse
@@ -17,9 +18,13 @@ def read_json(path):
 def ensure_closed():
     if sys.platform != 'win32':
         raise RuntimeError('Run this recovery helper on the Windows test PC.')
-    result = subprocess.run(['tasklist.exe', '/FI', 'IMAGENAME eq X4.exe', '/FO', 'CSV', '/NH'],
-                            capture_output=True, text=True, check=True,
-                            creationflags=subprocess.CREATE_NO_WINDOW)
+    result = subprocess.run(
+        ['tasklist.exe', '/FI', 'IMAGENAME eq X4.exe', '/FO', 'CSV', '/NH'],
+        capture_output=True,
+        text=True,
+        check=True,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
     if '"x4.exe"' in result.stdout.lower():
         raise RuntimeError('Close X4 completely, then run this helper again.')
 
@@ -28,14 +33,23 @@ def plan(package_root):
     """Read only: validate ownership and discover actual extension IDs."""
     package = read_json(package_root / 'package.json')
     state = read_json(package_root / 'installation.json')
-    if (package.get('channel') != 'internal' or package.get('slot') not in ('p1', 'p2')
-            or not package.get('package_id') or state.get('package_id') != package['package_id']
-            or state.get('version') != package.get('version')):
+    if (
+        package.get('channel') != 'internal'
+        or package.get('slot') not in ('p1', 'p2')
+        or not package.get('package_id')
+        or state.get('package_id') != package['package_id']
+        or state.get('version') != package.get('version')
+    ):
         raise RuntimeError('A matching installed internal package is required.')
     profile = Path(state['profile'])
     game = Path(state['game'])
-    if (not profile.is_absolute() or profile.name != '45841' or profile.resolve().name != '45841'
-            or not (profile / 'config.xml').is_file() or not game.is_absolute()):
+    if (
+        not profile.is_absolute()
+        or profile.name != '45841'
+        or profile.resolve().name != '45841'
+        or not (profile / 'config.xml').is_file()
+        or not game.is_absolute()
+    ):
         raise RuntimeError('Refusing an unexpected or missing test profile.')
     marker = game / 'extensions/x4_lan_lab/.x4lan-package-id'
     if marker.read_text(encoding='utf-8-sig') != package['package_id']:
@@ -89,7 +103,11 @@ def plan(package_root):
             enabled = 'true'
         elif extension_id.startswith('ego_dlc_') and extension_id != 'ego_dlc_ventures':
             # Preserve DLC that the tester deliberately disabled.
-            enabled = 'false' if any(e.get('enabled', '').lower() in ('false', '0') for e in entries) else 'true'
+            enabled = (
+                'false'
+                if any(e.get('enabled', '').lower() in ('false', '0') for e in entries)
+                else 'true'
+            )
         else:
             enabled = 'false'
             disabled.append(extension_id)
@@ -101,13 +119,19 @@ def plan(package_root):
 
 
 def apply(package_root, proposed):
-    raise RuntimeError('WITHDRAWN: Workshop subscriptions were reported lost. '
-                       'Do not isolate mods with this helper. Use 10-RECOVER-WORKSHOP.cmd.')
+    raise RuntimeError(
+        'WITHDRAWN: Workshop subscriptions were reported lost. '
+        'Do not isolate mods with this helper. Use 10-RECOVER-WORKSHOP.cmd.'
+    )
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Isolate mods for the installed internal test profile only.')
-    parser.add_argument('--check', action='store_true', help='Print the proposed selection without writing files')
+    parser = argparse.ArgumentParser(
+        description='Isolate mods for the installed internal test profile only.'
+    )
+    parser.add_argument(
+        '--check', action='store_true', help='Print the proposed selection without writing files'
+    )
     args = parser.parse_args()
     root = Path(__file__).resolve().parent
     try:
@@ -116,11 +140,20 @@ def main():
         ensure_closed()
         proposed = plan(root)
         print('Test profile:', proposed[0].parent)
-        print('Multiplayer enabled; existing official DLC choices retained; Ventures and other mods disabled.')
+        print(
+            'Multiplayer enabled; existing official DLC choices retained; Ventures and other mods disabled.'
+        )
         print('Disabled extension IDs:', ', '.join(proposed[3]))
         print('WITHDRAWN HELPER - CHECK ONLY: no files changed. Do not apply this selection.')
         return 0
-    except (OSError, ValueError, RuntimeError, KeyError, ET.ParseError, subprocess.SubprocessError) as exc:
+    except (
+        OSError,
+        ValueError,
+        RuntimeError,
+        KeyError,
+        ET.ParseError,
+        subprocess.SubprocessError,
+    ) as exc:
         print('ERROR:', exc, file=sys.stderr)
         return 1
 

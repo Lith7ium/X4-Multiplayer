@@ -4,6 +4,7 @@ This carries exact save bytes over a reliable stream. It does not load a game,
 restore peer roles, or establish ongoing universe authority. The caller supplies
 the expected session/build/content identity. No network-supplied path is used.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -30,7 +31,9 @@ class SeedError(ValueError):
 
 
 def canonical(value):
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode(
+        "ascii"
+    )
 
 
 def _hex(value, pattern):
@@ -44,15 +47,34 @@ def _key(token):
 
 
 def _mac(token, purpose, nonce, payload):
-    return hmac.new(_key(token), purpose + b"\0" + nonce.encode("ascii") + b"\0" + payload,
-                    hashlib.sha256).hexdigest()
+    return hmac.new(
+        _key(token), purpose + b"\0" + nonce.encode("ascii") + b"\0" + payload, hashlib.sha256
+    ).hexdigest()
 
 
 def validate_manifest(value):
-    keys = {"protocol", "seed_id", "sha256", "size", "game_build", "mod_sha256", "extensions", "format"}
-    if not isinstance(value, dict) or set(value) != keys or type(value["protocol"]) is not int or value["protocol"] != 1:
+    keys = {
+        "protocol",
+        "seed_id",
+        "sha256",
+        "size",
+        "game_build",
+        "mod_sha256",
+        "extensions",
+        "format",
+    }
+    if (
+        not isinstance(value, dict)
+        or set(value) != keys
+        or type(value["protocol"]) is not int
+        or value["protocol"] != 1
+    ):
         raise SeedError("unsupported seed manifest")
-    if not _hex(value["seed_id"], HEX32) or not _hex(value["sha256"], HEX64) or not _hex(value["mod_sha256"], HEX64):
+    if (
+        not _hex(value["seed_id"], HEX32)
+        or not _hex(value["sha256"], HEX64)
+        or not _hex(value["mod_sha256"], HEX64)
+    ):
         raise SeedError("invalid seed/content identity")
     if type(value["size"]) is not int or not 0 < value["size"] <= MAX_SAVE:
         raise SeedError("seed size exceeds limit")
@@ -65,8 +87,10 @@ def validate_manifest(value):
         raise SeedError("extension manifest exceeds limit")
     names = []
     for row in extensions:
-        if not isinstance(row, dict) or set(row) != {"id", "version"} or not all(
-            isinstance(row[k], str) and ATOM.fullmatch(row[k]) for k in row
+        if (
+            not isinstance(row, dict)
+            or set(row) != {"id", "version"}
+            or not all(isinstance(row[k], str) and ATOM.fullmatch(row[k]) for k in row)
         ):
             raise SeedError("invalid extension manifest")
         names.append(row["id"])
@@ -103,10 +127,18 @@ def create_bundle(snapshot, destination, *, seed_id, game_build, mod_sha256, ext
     if source.is_symlink() or not source.is_file():
         raise SeedError("snapshot must be a regular file")
     before = source.stat()
-    manifest = validate_manifest(dict(
-        protocol=1, seed_id=seed_id, sha256="0" * 64, size=before.st_size,
-        game_build=game_build, mod_sha256=mod_sha256, extensions=extensions,
-        format="x4-xml-gzip" if source.suffix == ".gz" else "x4-xml"))
+    manifest = validate_manifest(
+        dict(
+            protocol=1,
+            seed_id=seed_id,
+            sha256="0" * 64,
+            size=before.st_size,
+            game_build=game_build,
+            mod_sha256=mod_sha256,
+            extensions=extensions,
+            format="x4-xml-gzip" if source.suffix == ".gz" else "x4-xml",
+        )
+    )
     folder = _new_directory(destination)
     part = folder / "seed.part"
     try:
@@ -117,7 +149,11 @@ def create_bundle(snapshot, destination, *, seed_id, game_build, mod_sha256, ext
             outgoing.flush()
             os.fsync(outgoing.fileno())
         after = source.stat()
-        if (before.st_size, before.st_mtime_ns, before.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ino):
+        if (before.st_size, before.st_mtime_ns, before.st_ino) != (
+            after.st_size,
+            after.st_mtime_ns,
+            after.st_ino,
+        ):
             raise SeedError("snapshot changed during sealing")
         part.rename(folder / "seed.bin")
         (folder / "manifest.json").write_bytes(canonical(manifest) + b"\n")
@@ -135,10 +171,18 @@ def read_bundle(folder):
         raise SeedError("invalid manifest file")
     manifest = validate_manifest(json.loads(path.read_bytes()))
     snapshot = folder / "seed.bin"
-    if snapshot.is_symlink() or not snapshot.is_file() or snapshot.stat().st_size != manifest["size"]:
+    if (
+        snapshot.is_symlink()
+        or not snapshot.is_file()
+        or snapshot.stat().st_size != manifest["size"]
+    ):
         raise SeedError("invalid sealed save")
     with snapshot.open("rb") as stream:
-        digest = hashlib.file_digest(stream, "sha256").hexdigest() if hasattr(hashlib, "file_digest") else _digest(stream)
+        digest = (
+            hashlib.file_digest(stream, "sha256").hexdigest()
+            if hasattr(hashlib, "file_digest")
+            else _digest(stream)
+        )
     if not hmac.compare_digest(digest, manifest["sha256"]):
         raise SeedError("sealed save checksum mismatch")
     return manifest, snapshot
@@ -185,12 +229,20 @@ def send_bundle(connection, folder, token):
     nonce = secrets.token_hex(16)
     _send_header(connection, {"protocol": 1, "nonce": nonce})
     request = _receive_header(connection)
-    if (not isinstance(request, dict) or set(request) != {"seed_id", "mac"}
-            or request["seed_id"] != manifest["seed_id"]
-            or not _hex(request["mac"], HEX64)
-            or not hmac.compare_digest(request["mac"], _mac(token, b"request", nonce, manifest["seed_id"].encode("ascii")))):
+    if (
+        not isinstance(request, dict)
+        or set(request) != {"seed_id", "mac"}
+        or request["seed_id"] != manifest["seed_id"]
+        or not _hex(request["mac"], HEX64)
+        or not hmac.compare_digest(
+            request["mac"], _mac(token, b"request", nonce, manifest["seed_id"].encode("ascii"))
+        )
+    ):
         raise SeedError("seed request authentication failed")
-    _send_header(connection, {"manifest": manifest, "mac": _mac(token, b"manifest", nonce, canonical(manifest))})
+    _send_header(
+        connection,
+        {"manifest": manifest, "mac": _mac(token, b"manifest", nonce, canonical(manifest))},
+    )
     with snapshot.open("rb") as stream:
         for block in iter(lambda: stream.read(CHUNK), b""):
             connection.sendall(block)
@@ -202,25 +254,47 @@ def receive_bundle(connection, destination, token, *, seed_id, game_build, mod_s
     if not _hex(seed_id, HEX32):
         raise SeedError("invalid expected seed ID")
     hello = _receive_header(connection)
-    if (not isinstance(hello, dict) or set(hello) != {"protocol", "nonce"}
-            or type(hello["protocol"]) is not int or hello["protocol"] != 1
-            or not _hex(hello["nonce"], HEX32)):
+    if (
+        not isinstance(hello, dict)
+        or set(hello) != {"protocol", "nonce"}
+        or type(hello["protocol"]) is not int
+        or hello["protocol"] != 1
+        or not _hex(hello["nonce"], HEX32)
+    ):
         raise SeedError("invalid seed challenge")
     nonce = hello["nonce"]
-    _send_header(connection, {"seed_id": seed_id, "mac": _mac(token, b"request", nonce, seed_id.encode("ascii"))})
+    _send_header(
+        connection,
+        {"seed_id": seed_id, "mac": _mac(token, b"request", nonce, seed_id.encode("ascii"))},
+    )
     response = _receive_header(connection)
-    if not isinstance(response, dict) or set(response) != {"manifest", "mac"} or not _hex(response["mac"], HEX64):
+    if (
+        not isinstance(response, dict)
+        or set(response) != {"manifest", "mac"}
+        or not _hex(response["mac"], HEX64)
+    ):
         raise SeedError("invalid signed manifest")
     manifest = validate_manifest(response["manifest"])
-    if not hmac.compare_digest(response["mac"], _mac(token, b"manifest", nonce, canonical(manifest))):
+    if not hmac.compare_digest(
+        response["mac"], _mac(token, b"manifest", nonce, canonical(manifest))
+    ):
         raise SeedError("seed manifest authentication failed")
-    expected = dict(seed_id=seed_id, game_build=game_build, mod_sha256=mod_sha256, extensions=extensions)
+    expected = dict(
+        seed_id=seed_id, game_build=game_build, mod_sha256=mod_sha256, extensions=extensions
+    )
     if any(manifest[k] != expected[k] for k in ("seed_id", "game_build", "mod_sha256")):
         raise SeedError("session, game build or multiplayer scripts differ")
     if manifest["extensions"] != extensions:
-        describe = lambda rows: ", ".join(row["id"] + "@" + row["version"] for row in rows) or "(none)"
-        raise SeedError("Enabled DLC/mods differ. Host: " + describe(manifest["extensions"])
-                        + ". This computer: " + describe(extensions) + ". No content settings were changed")
+        describe = lambda rows: (
+            ", ".join(row["id"] + "@" + row["version"] for row in rows) or "(none)"
+        )
+        raise SeedError(
+            "Enabled DLC/mods differ. Host: "
+            + describe(manifest["extensions"])
+            + ". This computer: "
+            + describe(extensions)
+            + ". No content settings were changed"
+        )
     folder = _new_directory(destination)
     part = folder / "seed.part"
     try:

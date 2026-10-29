@@ -4,6 +4,7 @@ This is not a station mover or a continuous economy synchronizer. A display code
 alone is not unique; pose is checked AFTER identity matching, never used to pick
 an object. Runtime handles may change across processes and saved-game loads.
 """
+
 from __future__ import annotations
 
 import math
@@ -18,35 +19,62 @@ ATOM = re.compile(r'[A-Za-z0-9_.-]{1,128}\Z')
 
 
 def validate(catalog):
-    if (not isinstance(catalog, dict) or set(catalog) != {'protocol','recipe_sha256','stations'}
-            or type(catalog['protocol']) is not int or catalog['protocol'] != 1
-            or not seed._hex(catalog['recipe_sha256'],seed.HEX64)):
+    if (
+        not isinstance(catalog, dict)
+        or set(catalog) != {'protocol', 'recipe_sha256', 'stations'}
+        or type(catalog['protocol']) is not int
+        or catalog['protocol'] != 1
+        or not seed._hex(catalog['recipe_sha256'], seed.HEX64)
+    ):
         raise seed.SeedError('invalid station catalog header')
-    rows=catalog['stations']
-    if not isinstance(rows,list) or not 1 <= len(rows) <= MAX_STATIONS:
+    rows = catalog['stations']
+    if not isinstance(rows, list) or not 1 <= len(rows) <= MAX_STATIONS:
         raise seed.SeedError('station catalog size outside bounds')
-    identities=set(); handles=set()
+    identities = set()
+    handles = set()
     for row in rows:
-        if not isinstance(row,dict) or set(row) != {'object','code','macro','owner','sector','pose'}:
+        if not isinstance(row, dict) or set(row) != {
+            'object',
+            'code',
+            'macro',
+            'owner',
+            'sector',
+            'pose',
+        }:
             raise seed.SeedError('invalid station row')
-        if type(row['object']) is not int or not 1 <= row['object'] < 2**64 or row['object'] in handles:
+        if (
+            type(row['object']) is not int
+            or not 1 <= row['object'] < 2**64
+            or row['object'] in handles
+        ):
             raise seed.SeedError('invalid or aliased local station handle')
-        values=[row[k] for k in ('code','macro','owner','sector')]
-        if any(not isinstance(v,str) or not ATOM.fullmatch(v) or v in ('nil','unknown','null') for v in values):
+        values = [row[k] for k in ('code', 'macro', 'owner', 'sector')]
+        if any(
+            not isinstance(v, str) or not ATOM.fullmatch(v) or v in ('nil', 'unknown', 'null')
+            for v in values
+        ):
             raise seed.SeedError('unresolved station identity')
-        identity=tuple(values)
+        identity = tuple(values)
         if identity in identities:
             raise seed.SeedError('ambiguous station identity; pose matching is forbidden')
-        pose=row['pose']
-        if (not isinstance(pose,list) or len(pose)!=6 or any(type(v) not in (float,int)
-                or not math.isfinite(v) or abs(v)>1e12 for v in pose)):
+        pose = row['pose']
+        if (
+            not isinstance(pose, list)
+            or len(pose) != 6
+            or any(
+                type(v) not in (float, int) or not math.isfinite(v) or abs(v) > 1e12 for v in pose
+            )
+        ):
             raise seed.SeedError('invalid station pose')
-        identities.add(identity);handles.add(row['object'])
+        identities.add(identity)
+        handles.add(row['object'])
     return catalog
 
 
 def create(recipe, stations):
-    return validate(dict(protocol=1,recipe_sha256=world_start.fingerprint(recipe),stations=stations))
+    return validate(
+        dict(protocol=1, recipe_sha256=world_start.fingerprint(recipe), stations=stations)
+    )
 
 
 def match(host, guest):
@@ -55,26 +83,50 @@ def match(host, guest):
     Only call with catalogs actually captured from the two native worlds; equal
     recipes alone cannot grant admission. No guessing or partial binding occurs.
     """
-    validate(host);validate(guest)
-    if host['recipe_sha256']!=guest['recipe_sha256']:
+    validate(host)
+    validate(guest)
+    if host['recipe_sha256'] != guest['recipe_sha256']:
         raise seed.SeedError('different generation/content/world recipes')
+
     def index(catalog):
-        return {tuple(row[k] for k in ('code','macro','owner','sector')):row for row in catalog['stations']}
-    source=index(host);target=index(guest)
-    missing=sorted(source.keys()-target.keys());extra=sorted(target.keys()-source.keys())
-    mismatches=[];bindings={};max_position=max_angle=0.0
+        return {
+            tuple(row[k] for k in ('code', 'macro', 'owner', 'sector')): row
+            for row in catalog['stations']
+        }
+
+    source = index(host)
+    target = index(guest)
+    missing = sorted(source.keys() - target.keys())
+    extra = sorted(target.keys() - source.keys())
+    mismatches = []
+    bindings = {}
+    max_position = max_angle = 0.0
     for identity in sorted(source.keys() & target.keys()):
-        a,b=source[identity],target[identity]
-        position=math.dist(a['pose'][:3],b['pose'][:3])
-        angle=max(abs((x-y+math.pi)%(2*math.pi)-math.pi) for x,y in zip(a['pose'][3:],b['pose'][3:]))
-        max_position=max(max_position,position);max_angle=max(max_angle,angle)
-        if position>POSITION_TOLERANCE_M or angle>ANGLE_TOLERANCE_RAD:
-            mismatches.append(dict(identity=list(identity),position_error_m=position,angle_error_rad=angle))
-        bindings[str(a['object'])]=b['object']
-    accepted=not (missing or extra or mismatches)
-    return dict(station_layout_matches=accepted,host_count=len(source),guest_count=len(target),
-                missing=[list(k) for k in missing],extra=[list(k) for k in extra],pose_mismatches=mismatches,
-                max_position_error_m=max_position,max_angle_error_rad=max_angle,
-                local_bindings=bindings if accepted else {},
-                identity_key=['code','macro','owner','sector'],
-                ongoing_world_authority=False,save_resume_acceptance=False)
+        a, b = source[identity], target[identity]
+        position = math.dist(a['pose'][:3], b['pose'][:3])
+        angle = max(
+            abs((x - y + math.pi) % (2 * math.pi) - math.pi)
+            for x, y in zip(a['pose'][3:], b['pose'][3:])
+        )
+        max_position = max(max_position, position)
+        max_angle = max(max_angle, angle)
+        if position > POSITION_TOLERANCE_M or angle > ANGLE_TOLERANCE_RAD:
+            mismatches.append(
+                dict(identity=list(identity), position_error_m=position, angle_error_rad=angle)
+            )
+        bindings[str(a['object'])] = b['object']
+    accepted = not (missing or extra or mismatches)
+    return dict(
+        station_layout_matches=accepted,
+        host_count=len(source),
+        guest_count=len(target),
+        missing=[list(k) for k in missing],
+        extra=[list(k) for k in extra],
+        pose_mismatches=mismatches,
+        max_position_error_m=max_position,
+        max_angle_error_rad=max_angle,
+        local_bindings=bindings if accepted else {},
+        identity_key=['code', 'macro', 'owner', 'sector'],
+        ongoing_world_authority=False,
+        save_resume_acceptance=False,
+    )
