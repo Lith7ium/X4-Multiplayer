@@ -1,170 +1,170 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_Interactions" xsi:noNamespaceSchemaLocation="md.xsd">
-  <cues>
-    <cue name="Lab" namespace="this">
-      <conditions>
-        <event_ui_triggered screen="'X4LAN'" control="'InteractionTest'" />
-      </conditions>
-      <actions>
-        <set_value name="$p1" exact="player.ship" />
-        <set_value name="$p2" exact="event.param3" />
-        <set_value name="$ships" exact="[$p1, $p2]" />
-        <set_value name="$targets" exact="[]" />
-        <set_value name="$shots1" exact="0" />
-        <set_value name="$shots2" exact="0" />
-        <set_value name="$hits1" exact="0" />
-        <set_value name="$hits2" exact="0" />
-        <set_value name="$collect1" exact="0" />
-        <set_value name="$collect2" exact="0" />
-        <debug_text text="'[X4LAN-TEST] BEGIN p1=%s p2=%s p1_weapons=%s p2_weapons_before=%s'.[$p1, $p2, $p1.weapons.operational.count, $p2.weapons.operational.count]" />
-        <apply_loadout object="$p2" loadout="$p1.loadout" />
-        <do_all exact="2" counter="$i">
-          <set_value name="$s" exact="$ships.{$i}" />
-          <set_object_name object="$s" name="'X4LAN test P%s'.[$i]" />
-          <reset_weapongroups object="$s" />
-          <activate_weapongroup object="$s" weapongroup="0" primary="true" />
-          <warp object="$s" sector="$p1.sector">
-            <position x="($i - 1) * 2km" y="10km" z="0m" />
-            <rotation yaw="0deg" pitch="0deg" roll="0deg" />
-          </warp>
-          <create_ship name="$target" macro="macro.ship_arg_m_trans_container_01_a_macro" sector="$p1.sector">
-            <owner exact="faction.ownerless" />
-            <position x="($i - 1) * 2km" y="10km" z="400m" />
-          </create_ship>
-          <set_object_name object="$target" name="'X4LAN weapon target %s'.[$i]" />
-          <append_to_list name="$targets" exact="$target" />
-          <debug_text text="'[X4LAN-TEST] EQUIPPED slot=%s weapons=%s cargo_capacity=%s target_hull=%s'.[$i, $s.weapons.operational.count, $s.cargo.{ware.energycells}.max, $target.hull]" />
-        </do_all>
-        <add_to_group groupname="$weapons1" list="$p1.weapons.operational.list" />
-        <add_to_group groupname="$weapons2" list="$p2.weapons.operational.list" />
-        <create_station name="$station" macro="macro.station_gen_factory_base_01_macro" sector="$p1.sector" owner="faction.player" state="componentstate.operational" constructionplan="'x4ep1_gamestart_trade_playerfactory'" rawname="'X4LAN cargo test station'">
-          <position x="1km" y="10km" z="5km" />
-        </create_station>
-        <add_cargo object="$station" ware="ware.energycells" exact="200" />
-        <create_ship name="$donor" macro="macro.ship_arg_m_trans_container_01_a_macro" sector="$p1.sector">
-          <owner exact="faction.player" />
-          <pilot>
-            <select race="race.argon" />
-          </pilot>
-          <position x="1km" y="11km" z="0m" />
-        </create_ship>
-        <add_cargo object="$donor" ware="ware.energycells" exact="40" />
-      </actions>
-      <cues>
-        <cue name="Shots1" instantiate="true">
-          <conditions>
-            <event_weapon_fired group="$weapons1" />
-          </conditions>
-          <actions>
-            <set_value name="$shots1" operation="add" exact="1" />
-          </actions>
+    <cues>
+        <cue name="Lab" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN'" control="'InteractionTest'"/>
+            </conditions>
+            <actions>
+                <set_value name="$p1" exact="player.ship"/>
+                <set_value name="$p2" exact="event.param3"/>
+                <set_value name="$ships" exact="[$p1, $p2]"/>
+                <set_value name="$targets" exact="[]"/>
+                <set_value name="$shots1" exact="0"/>
+                <set_value name="$shots2" exact="0"/>
+                <set_value name="$hits1" exact="0"/>
+                <set_value name="$hits2" exact="0"/>
+                <set_value name="$collect1" exact="0"/>
+                <set_value name="$collect2" exact="0"/>
+                <debug_text text="'[X4LAN-TEST] BEGIN p1=%s p2=%s p1_weapons=%s p2_weapons_before=%s'.[$p1, $p2, $p1.weapons.operational.count, $p2.weapons.operational.count]"/>
+                <apply_loadout object="$p2" loadout="$p1.loadout"/>
+                <do_all exact="2" counter="$i">
+                    <set_value name="$s" exact="$ships.{$i}"/>
+                    <set_object_name object="$s" name="'X4LAN test P%s'.[$i]"/>
+                    <reset_weapongroups object="$s"/>
+                    <activate_weapongroup object="$s" weapongroup="0" primary="true"/>
+                    <warp object="$s" sector="$p1.sector">
+                        <position x="($i - 1) * 2km" y="10km" z="0m"/>
+                        <rotation yaw="0deg" pitch="0deg" roll="0deg"/>
+                    </warp>
+                    <create_ship name="$target" macro="macro.ship_arg_m_trans_container_01_a_macro" sector="$p1.sector">
+                        <owner exact="faction.ownerless"/>
+                        <position x="($i - 1) * 2km" y="10km" z="400m"/>
+                    </create_ship>
+                    <set_object_name object="$target" name="'X4LAN weapon target %s'.[$i]"/>
+                    <append_to_list name="$targets" exact="$target"/>
+                    <debug_text text="'[X4LAN-TEST] EQUIPPED slot=%s weapons=%s cargo_capacity=%s target_hull=%s'.[$i, $s.weapons.operational.count, $s.cargo.{ware.energycells}.max, $target.hull]"/>
+                </do_all>
+                <add_to_group groupname="$weapons1" list="$p1.weapons.operational.list"/>
+                <add_to_group groupname="$weapons2" list="$p2.weapons.operational.list"/>
+                <create_station name="$station" macro="macro.station_gen_factory_base_01_macro" sector="$p1.sector" owner="faction.player" state="componentstate.operational" constructionplan="'x4ep1_gamestart_trade_playerfactory'" rawname="'X4LAN cargo test station'">
+                    <position x="1km" y="10km" z="5km"/>
+                </create_station>
+                <add_cargo object="$station" ware="ware.energycells" exact="200"/>
+                <create_ship name="$donor" macro="macro.ship_arg_m_trans_container_01_a_macro" sector="$p1.sector">
+                    <owner exact="faction.player"/>
+                    <pilot>
+                        <select race="race.argon"/>
+                    </pilot>
+                    <position x="1km" y="11km" z="0m"/>
+                </create_ship>
+                <add_cargo object="$donor" ware="ware.energycells" exact="40"/>
+            </actions>
+            <cues>
+                <cue name="Shots1" instantiate="true">
+                    <conditions>
+                        <event_weapon_fired group="$weapons1"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$shots1" operation="add" exact="1"/>
+                    </actions>
+                </cue>
+                <cue name="Shots2" instantiate="true">
+                    <conditions>
+                        <event_weapon_fired group="$weapons2"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$shots2" operation="add" exact="1"/>
+                    </actions>
+                </cue>
+                <cue name="Hits1" instantiate="true">
+                    <conditions>
+                        <event_object_attacked object="$targets.{1}" attacker="$p1"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$hits1" operation="add" exact="1"/>
+                    </actions>
+                </cue>
+                <cue name="Hits2" instantiate="true">
+                    <conditions>
+                        <event_object_attacked object="$targets.{2}" attacker="$p2"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$hits2" operation="add" exact="1"/>
+                    </actions>
+                </cue>
+                <cue name="Collect1" instantiate="true">
+                    <conditions>
+                        <event_object_collected_ware object="$p1" ware="ware.energycells"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$collect1" operation="add" exact="event.param2"/>
+                        <debug_text text="'[X4LAN-TEST] COLLECT_EVENT slot=1 amount=%s'.[event.param2]"/>
+                    </actions>
+                </cue>
+                <cue name="Collect2" instantiate="true">
+                    <conditions>
+                        <event_object_collected_ware object="$p2" ware="ware.energycells"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$collect2" operation="add" exact="event.param2"/>
+                        <debug_text text="'[X4LAN-TEST] COLLECT_EVENT slot=2 amount=%s'.[event.param2]"/>
+                    </actions>
+                </cue>
+                <cue name="Sequence">
+                    <delay exact="10s"/>
+                    <actions>
+                        <debug_text text="'[X4LAN-TEST] FIRE_BEGIN'"/>
+                        <shoot object="$p2"/>
+                        <debug_text text="'[X4LAN-TEST] HEALTH_BEFORE slot=1 hull=%s shield=%s maxshield=%s'.[$targets.{1}.hull,$targets.{1}.shield,$targets.{1}.maxshield]"/>
+                        <debug_text text="'[X4LAN-TEST] HEALTH_BEFORE slot=2 hull=%s shield=%s maxshield=%s'.[$targets.{2}.hull,$targets.{2}.shield,$targets.{2}.maxshield]"/>
+                        <start_script object="$donor.pilot" name="'x4lan.interaction.fire'">
+                            <param name="ship" value="$p1"/>
+                            <param name="target" value="$targets.{1}"/>
+                        </start_script>
+                    </actions>
+                    <delay exact="5s"/>
+                    <actions>
+                        <stop_shooting object="$p1"/>
+                        <stop_shooting object="$p2"/>
+                    </actions>
+                    <delay exact="3s"/>
+                    <actions>
+                        <debug_text text="'[X4LAN-TEST] WEAPONS slot=1 shots=%s hits=%s target_hull=%s target_maxhull=%s target_shield=%s'.[$shots1, $hits1, $targets.{1}.hull, $targets.{1}.maxhull, $targets.{1}.shield]"/>
+                        <debug_text text="'[X4LAN-TEST] WEAPONS slot=2 shots=%s hits=%s target_hull=%s target_maxhull=%s target_shield=%s'.[$shots2, $hits2, $targets.{2}.hull, $targets.{2}.maxhull, $targets.{2}.shield]"/>
+                        <do_all exact="2" counter="$i">
+                            <drop_cargo object="$donor" ware="ware.energycells" exact="20" groupname="$drops"/>
+                            <set_value name="$s" exact="$ships.{$i}"/>
+                            <debug_text text="'[X4LAN-TEST] PICKUP_BEFORE slot=%s cargo=%s drops=%s donor=%s'.[$i, $s.cargo.{ware.energycells}.count, $drops.count, $donor.cargo.{ware.energycells}.count]"/>
+                            <do_all exact="$drops.count" counter="$j">
+                                <warp object="$drops.{$j}" zone="$s.zone">
+                                    <position object="$s" y="30m"/>
+                                </warp>
+                                <collect_drop object="$s" drop="$drops.{$j}"/>
+                            </do_all>
+                            <clear_group group="$drops"/>
+                        </do_all>
+                    </actions>
+                    <delay exact="3s"/>
+                    <actions>
+                        <debug_text text="'[X4LAN-TEST] PICKUP_AFTER slot=1 cargo=%s collected=%s'.[$p1.cargo.{ware.energycells}.count, $collect1]"/>
+                        <debug_text text="'[X4LAN-TEST] PICKUP_AFTER slot=2 cargo=%s collected=%s'.[$p2.cargo.{ware.energycells}.count, $collect2]"/>
+                        <debug_text text="'[X4LAN-TEST] STATION stock=%s modules=%s'.[$station.cargo.{ware.energycells}.count, $station.modules.operational.count]"/>
+                        <request_docking ship="$p1" container="$station" requiretrading="true" queuedresult="$q1" grantedresult="$g1"/>
+                        <request_docking ship="$p2" container="$station" requiretrading="true" queuedresult="$q2" grantedresult="$g2"/>
+                        <debug_text text="'[X4LAN-TEST] DOCK_REQUEST p1_queued=%s p1_granted=%s p2_queued=%s p2_granted=%s'.[$q1,$g1,$q2,$g2]"/>
+                    </actions>
+                    <delay exact="3s"/>
+                    <actions>
+                        <do_if value="$p1.assigneddock">
+                            <dock ship="$p1"/>
+                        </do_if>
+                        <do_if value="$p2.assigneddock">
+                            <dock ship="$p2"/>
+                        </do_if>
+                        <start_script object="$donor.pilot" name="'x4lan.interaction.trade'">
+                            <param name="p1" value="$p1"/>
+                            <param name="p2" value="$p2"/>
+                            <param name="station" value="$station"/>
+                        </start_script>
+                    </actions>
+                    <delay exact="90s"/>
+                    <actions>
+                        <debug_text text="'[X4LAN-TEST] FINAL p1_cargo=%s p2_cargo=%s station_stock=%s p1_docked=%s p2_docked=%s'.[$p1.cargo.{ware.energycells}.count, $p2.cargo.{ware.energycells}.count, $station.cargo.{ware.energycells}.count, $p1.dock, $p2.dock]"/>
+                        <debug_text text="'[X4LAN-TEST] END'"/>
+                    </actions>
+                </cue>
+            </cues>
         </cue>
-        <cue name="Shots2" instantiate="true">
-          <conditions>
-            <event_weapon_fired group="$weapons2" />
-          </conditions>
-          <actions>
-            <set_value name="$shots2" operation="add" exact="1" />
-          </actions>
-        </cue>
-        <cue name="Hits1" instantiate="true">
-          <conditions>
-            <event_object_attacked object="$targets.{1}" attacker="$p1" />
-          </conditions>
-          <actions>
-            <set_value name="$hits1" operation="add" exact="1" />
-          </actions>
-        </cue>
-        <cue name="Hits2" instantiate="true">
-          <conditions>
-            <event_object_attacked object="$targets.{2}" attacker="$p2" />
-          </conditions>
-          <actions>
-            <set_value name="$hits2" operation="add" exact="1" />
-          </actions>
-        </cue>
-        <cue name="Collect1" instantiate="true">
-          <conditions>
-            <event_object_collected_ware object="$p1" ware="ware.energycells" />
-          </conditions>
-          <actions>
-            <set_value name="$collect1" operation="add" exact="event.param2" />
-            <debug_text text="'[X4LAN-TEST] COLLECT_EVENT slot=1 amount=%s'.[event.param2]" />
-          </actions>
-        </cue>
-        <cue name="Collect2" instantiate="true">
-          <conditions>
-            <event_object_collected_ware object="$p2" ware="ware.energycells" />
-          </conditions>
-          <actions>
-            <set_value name="$collect2" operation="add" exact="event.param2" />
-            <debug_text text="'[X4LAN-TEST] COLLECT_EVENT slot=2 amount=%s'.[event.param2]" />
-          </actions>
-        </cue>
-        <cue name="Sequence">
-          <delay exact="10s" />
-          <actions>
-            <debug_text text="'[X4LAN-TEST] FIRE_BEGIN'" />
-            <shoot object="$p2" />
-            <debug_text text="'[X4LAN-TEST] HEALTH_BEFORE slot=1 hull=%s shield=%s maxshield=%s'.[$targets.{1}.hull,$targets.{1}.shield,$targets.{1}.maxshield]" />
-            <debug_text text="'[X4LAN-TEST] HEALTH_BEFORE slot=2 hull=%s shield=%s maxshield=%s'.[$targets.{2}.hull,$targets.{2}.shield,$targets.{2}.maxshield]" />
-            <start_script object="$donor.pilot" name="'x4lan.interaction.fire'">
-              <param name="ship" value="$p1" />
-              <param name="target" value="$targets.{1}" />
-            </start_script>
-          </actions>
-          <delay exact="5s" />
-          <actions>
-            <stop_shooting object="$p1" />
-            <stop_shooting object="$p2" />
-          </actions>
-          <delay exact="3s" />
-          <actions>
-            <debug_text text="'[X4LAN-TEST] WEAPONS slot=1 shots=%s hits=%s target_hull=%s target_maxhull=%s target_shield=%s'.[$shots1, $hits1, $targets.{1}.hull, $targets.{1}.maxhull, $targets.{1}.shield]" />
-            <debug_text text="'[X4LAN-TEST] WEAPONS slot=2 shots=%s hits=%s target_hull=%s target_maxhull=%s target_shield=%s'.[$shots2, $hits2, $targets.{2}.hull, $targets.{2}.maxhull, $targets.{2}.shield]" />
-            <do_all exact="2" counter="$i">
-              <drop_cargo object="$donor" ware="ware.energycells" exact="20" groupname="$drops" />
-              <set_value name="$s" exact="$ships.{$i}" />
-              <debug_text text="'[X4LAN-TEST] PICKUP_BEFORE slot=%s cargo=%s drops=%s donor=%s'.[$i, $s.cargo.{ware.energycells}.count, $drops.count, $donor.cargo.{ware.energycells}.count]" />
-              <do_all exact="$drops.count" counter="$j">
-                <warp object="$drops.{$j}" zone="$s.zone">
-                  <position object="$s" y="30m" />
-                </warp>
-                <collect_drop object="$s" drop="$drops.{$j}" />
-              </do_all>
-              <clear_group group="$drops" />
-            </do_all>
-          </actions>
-          <delay exact="3s" />
-          <actions>
-            <debug_text text="'[X4LAN-TEST] PICKUP_AFTER slot=1 cargo=%s collected=%s'.[$p1.cargo.{ware.energycells}.count, $collect1]" />
-            <debug_text text="'[X4LAN-TEST] PICKUP_AFTER slot=2 cargo=%s collected=%s'.[$p2.cargo.{ware.energycells}.count, $collect2]" />
-            <debug_text text="'[X4LAN-TEST] STATION stock=%s modules=%s'.[$station.cargo.{ware.energycells}.count, $station.modules.operational.count]" />
-            <request_docking ship="$p1" container="$station" requiretrading="true" queuedresult="$q1" grantedresult="$g1" />
-            <request_docking ship="$p2" container="$station" requiretrading="true" queuedresult="$q2" grantedresult="$g2" />
-            <debug_text text="'[X4LAN-TEST] DOCK_REQUEST p1_queued=%s p1_granted=%s p2_queued=%s p2_granted=%s'.[$q1,$g1,$q2,$g2]" />
-          </actions>
-          <delay exact="3s" />
-          <actions>
-            <do_if value="$p1.assigneddock">
-              <dock ship="$p1" />
-            </do_if>
-            <do_if value="$p2.assigneddock">
-              <dock ship="$p2" />
-            </do_if>
-            <start_script object="$donor.pilot" name="'x4lan.interaction.trade'">
-              <param name="p1" value="$p1" />
-              <param name="p2" value="$p2" />
-              <param name="station" value="$station" />
-            </start_script>
-          </actions>
-          <delay exact="90s" />
-          <actions>
-            <debug_text text="'[X4LAN-TEST] FINAL p1_cargo=%s p2_cargo=%s station_stock=%s p1_docked=%s p2_docked=%s'.[$p1.cargo.{ware.energycells}.count, $p2.cargo.{ware.energycells}.count, $station.cargo.{ware.energycells}.count, $p1.dock, $p2.dock]" />
-            <debug_text text="'[X4LAN-TEST] END'" />
-          </actions>
-        </cue>
-      </cues>
-    </cue>
-  </cues>
+    </cues>
 </mdscript>

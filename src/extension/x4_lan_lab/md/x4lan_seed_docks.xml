@@ -1,74 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Explicit pristine-seed opt-in. No transport or docking commands here. -->
-<mdscript name="X4LAN_SeedDocks" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <cues>
-  <cue name="State" namespace="this">
-   <conditions><event_ui_triggered screen="'X4LAN_SeedDocks'" control="'Mark'"/></conditions>
-   <actions>
-    <do_if value="md.X4LAN_Seed.State.$id? and md.X4LAN_Seed.State.$id == event.param3 and not md.X4LAN_Seed.State.$loads? and not md.X4LAN_Bubble.Arena.$ships? and not md.X4LAN_Bubble.PrepareShips.$own?">
-     <!-- The ordinary LAN fixture must share saved bay references too. Create
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_SeedDocks" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="State" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_SeedDocks'" control="'Mark'"/>
+            </conditions>
+            <actions>
+                <do_if value="md.X4LAN_Seed.State.$id? and md.X4LAN_Seed.State.$id == event.param3 and not md.X4LAN_Seed.State.$loads? and not md.X4LAN_Bubble.Arena.$ships? and not md.X4LAN_Bubble.PrepareShips.$own?">
+                    <!-- The ordinary LAN fixture must share saved bay references too. Create
           it before enumeration, then Arena reuses this exact saved station. -->
-     <create_station name="$testStation" macro="macro.station_gen_factory_base_01_macro" sector="player.ship.sector" owner="faction.player" state="componentstate.operational" constructionplan="'x4lan_market'" rawname="'LAN Test Station'">
-      <position x="0m" y="10km" z="5km"/>
-     </create_station>
-     <create_station name="$testStation2" macro="macro.station_gen_factory_base_01_macro" sector="player.ship.sector" owner="faction.player" state="componentstate.operational" constructionplan="'x4lan_market'" rawname="'LAN Trading Station Beta'">
-      <position x="8km" y="10km" z="5km"/>
-     </create_station>
-     <find_object_component name="$testDocks" object="$testStation" class="class.dockingbay" multiple="true" recursive="false" includeobjects="false"/>
-     <find_object_component name="$testDocks2" object="$testStation2" class="class.dockingbay" multiple="true" recursive="false" includeobjects="false"/>
-     <find_ship name="$ships" space="player.galaxy" multiple="true" recursive="true"/>
-     <find_station name="$stations" space="player.galaxy" multiple="true"/>
-     <find_object_component name="$raw" object="$ships" class="class.dockingbay" multiple="true" recursive="false" includeobjects="false"/>
-     <find_object_component name="$raw" object="$stations" class="class.dockingbay" multiple="true" recursive="false" includeobjects="false" append="true"/>
-     <set_value name="$docks" exact="[]"/><set_value name="$indices" exact="table[]"/>
-     <set_value name="$parents" exact="[]"/><set_value name="$containers" exact="[]"/><set_value name="$positions" exact="[]"/>
-     <set_value name="$macros" exact="[]"/><set_value name="$containerMacros" exact="[]"/>
-     <set_value name="$external" exact="[]"/><set_value name="$storage" exact="[]"/><set_value name="$capacities" exact="[]"/>
-     <do_if value="$testStation.isoperational and $testStation2.isoperational and $testDocks.count gt 0 and $testDocks2.count gt 0 and $raw.count gt 0 and $raw.count le 250000">
-      <do_all exact="$raw.count" counter="$i">
-       <set_value name="$dock" exact="$raw.{$i}"/>
-       <do_if value="not $indices.{$dock}?">
-        <append_to_list name="$docks" exact="$dock"/><set_value name="$indices.{$dock}" exact="$docks.count"/>
-        <append_to_list name="$parents" exact="$dock.parent"/><append_to_list name="$containers" exact="$dock.container"/>
-        <append_to_list name="$positions" exact="$dock.relativeposition.{$dock.container}"/>
-        <!-- Save stable macro IDs, not macro-value equality across reloads. -->
-        <append_to_list name="$macros" exact="$dock.macro.id"/><append_to_list name="$containerMacros" exact="$dock.container.macro.id"/>
-        <append_to_list name="$external" exact="$dock.external"/><append_to_list name="$storage" exact="$dock.isstorage"/>
-        <append_to_list name="$capacities" exact="$dock.shipstorage.capacity"/>
-       </do_if>
-      </do_all>
-      <set_value name="$version" exact="1"/><set_value name="$id" exact="event.param3"/>
-      <raise_lua_event name="'X4LAN_SeedDocks.Marked'" param="$id"/>
-     </do_if>
-     <do_else><raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'missing test station bays or empty/oversized saved dock registry'"/></do_else>
-    </do_if>
-    <do_else><raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'dock capture requires a pristine seed'"/></do_else>
-   </actions>
-  </cue>
-  <cue name="Read" instantiate="true">
-   <conditions><event_ui_triggered screen="'X4LAN_SeedDocks'" control="'Read'"/></conditions>
-   <actions>
-    <set_value name="$v" exact="event.param3"/>
-    <do_if value="State.$id? and State.$id == $v.$seed and State.$version == 1 and State.$docks.count gt 0 and State.$docks.count le 250000 and (($v.$mode == 'capture' and not md.X4LAN_Seed.State.$loads?) or ($v.$mode == 'load' and md.X4LAN_Seed.State.$loads == 1)) and $v.$start ge 1 and $v.$start le State.$docks.count and $v.$serial ge 0 and $v.$serial le 2147483647">
-     <set_value name="$last" exact="if $v.$serial == 0 then [$v.$start + 63,State.$docks.count].min else $v.$start"/>
-     <set_value name="$valid" exact="true"/>
-     <raise_lua_event name="'X4LAN_SeedDocks.Begin'" param="'%s|%s|%s|%s|%s'.[State.$id,$v.$serial,$v.$start,$last,State.$docks.count]"/>
-     <do_all exact="$last - $v.$start + 1" counter="$offset">
-      <set_value name="$i" exact="$v.$start + $offset - 1"/><set_value name="$dock" exact="State.$docks.{$i}"/>
-      <!-- Saved mobile docks can disappear during ordinary simulation. Never
+                    <create_station name="$testStation" macro="macro.station_gen_factory_base_01_macro" sector="player.ship.sector" owner="faction.player" state="componentstate.operational" constructionplan="'x4lan_market'" rawname="'LAN Test Station'">
+                        <position x="0m" y="10km" z="5km"/>
+                    </create_station>
+                    <create_station name="$testStation2" macro="macro.station_gen_factory_base_01_macro" sector="player.ship.sector" owner="faction.player" state="componentstate.operational" constructionplan="'x4lan_market'" rawname="'LAN Trading Station Beta'">
+                        <position x="8km" y="10km" z="5km"/>
+                    </create_station>
+                    <find_object_component name="$testDocks" object="$testStation" class="class.dockingbay" multiple="true" recursive="false" includeobjects="false"/>
+                    <find_object_component name="$testDocks2" object="$testStation2" class="class.dockingbay" multiple="true" recursive="false" includeobjects="false"/>
+                    <find_ship name="$ships" space="player.galaxy" multiple="true" recursive="true"/>
+                    <find_station name="$stations" space="player.galaxy" multiple="true"/>
+                    <find_object_component name="$raw" object="$ships" class="class.dockingbay" multiple="true" recursive="false" includeobjects="false"/>
+                    <find_object_component name="$raw" object="$stations" class="class.dockingbay" multiple="true" recursive="false" includeobjects="false" append="true"/>
+                    <set_value name="$docks" exact="[]"/>
+                    <set_value name="$indices" exact="table[]"/>
+                    <set_value name="$parents" exact="[]"/>
+                    <set_value name="$containers" exact="[]"/>
+                    <set_value name="$positions" exact="[]"/>
+                    <set_value name="$macros" exact="[]"/>
+                    <set_value name="$containerMacros" exact="[]"/>
+                    <set_value name="$external" exact="[]"/>
+                    <set_value name="$storage" exact="[]"/>
+                    <set_value name="$capacities" exact="[]"/>
+                    <do_if value="$testStation.isoperational and $testStation2.isoperational and $testDocks.count gt 0 and $testDocks2.count gt 0 and $raw.count gt 0 and $raw.count le 250000">
+                        <do_all exact="$raw.count" counter="$i">
+                            <set_value name="$dock" exact="$raw.{$i}"/>
+                            <do_if value="not $indices.{$dock}?">
+                                <append_to_list name="$docks" exact="$dock"/>
+                                <set_value name="$indices.{$dock}" exact="$docks.count"/>
+                                <append_to_list name="$parents" exact="$dock.parent"/>
+                                <append_to_list name="$containers" exact="$dock.container"/>
+                                <append_to_list name="$positions" exact="$dock.relativeposition.{$dock.container}"/>
+                                <!-- Save stable macro IDs, not macro-value equality across reloads. -->
+                                <append_to_list name="$macros" exact="$dock.macro.id"/>
+                                <append_to_list name="$containerMacros" exact="$dock.container.macro.id"/>
+                                <append_to_list name="$external" exact="$dock.external"/>
+                                <append_to_list name="$storage" exact="$dock.isstorage"/>
+                                <append_to_list name="$capacities" exact="$dock.shipstorage.capacity"/>
+                            </do_if>
+                        </do_all>
+                        <set_value name="$version" exact="1"/>
+                        <set_value name="$id" exact="event.param3"/>
+                        <raise_lua_event name="'X4LAN_SeedDocks.Marked'" param="$id"/>
+                    </do_if>
+                    <do_else>
+                        <raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'missing test station bays or empty/oversized saved dock registry'"/>
+                    </do_else>
+                </do_if>
+                <do_else>
+                    <raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'dock capture requires a pristine seed'"/>
+                </do_else>
+            </actions>
+        </cue>
+        <cue name="Read" instantiate="true">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_SeedDocks'" control="'Read'"/>
+            </conditions>
+            <actions>
+                <set_value name="$v" exact="event.param3"/>
+                <do_if value="State.$id? and State.$id == $v.$seed and State.$version == 1 and State.$docks.count gt 0 and State.$docks.count le 250000 and (($v.$mode == 'capture' and not md.X4LAN_Seed.State.$loads?) or ($v.$mode == 'load' and md.X4LAN_Seed.State.$loads == 1)) and $v.$start ge 1 and $v.$start le State.$docks.count and $v.$serial ge 0 and $v.$serial le 2147483647">
+                    <set_value name="$last" exact="if $v.$serial == 0 then [$v.$start + 63,State.$docks.count].min else $v.$start"/>
+                    <set_value name="$valid" exact="true"/>
+                    <raise_lua_event name="'X4LAN_SeedDocks.Begin'" param="'%s|%s|%s|%s|%s'.[State.$id,$v.$serial,$v.$start,$last,State.$docks.count]"/>
+                    <do_all exact="$last - $v.$start + 1" counter="$offset">
+                        <set_value name="$i" exact="$v.$start + $offset - 1"/>
+                        <set_value name="$dock" exact="State.$docks.{$i}"/>
+                        <!-- Saved mobile docks can disappear during ordinary simulation. Never
            evaluate docking-only properties on a missing or differently typed ref. -->
-      <do_if value="$dock.exists"><do_if value="$dock.isclass.dockingbay">
-      <do_if value="$dock.exists and $dock.parent.exists and $dock.container.exists and State.$indices.{$dock}? and State.$indices.{$dock} == $i and $dock.parent == State.$parents.{$i} and $dock.container == State.$containers.{$i} and $dock.macro.id == State.$macros.{$i} and $dock.container.macro.id == State.$containerMacros.{$i} and $dock.external == State.$external.{$i} and $dock.isstorage == State.$storage.{$i} and $dock.shipstorage.capacity == State.$capacities.{$i} and $dock.distanceto.[State.$containers.{$i},State.$positions.{$i}] le 0.05m">
-       <raise_lua_event name="'X4LAN_SeedDocks.Row'" param="'%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'.[State.$id,$v.$serial,$i,$dock,$dock.parent,$dock.container,State.$macros.{$i},State.$containerMacros.{$i},if $dock.external then 1 else 0,if $dock.isstorage then 1 else 0,$dock.shipstorage.capacity,$dock.distanceto.[State.$containers.{$i},State.$positions.{$i}] / 1m]"/>
-      </do_if>
-      <do_else><set_value name="$valid" exact="false"/><raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'saved dock witnesses changed at index %s'.[$i]"/></do_else>
-      </do_if><do_else><set_value name="$valid" exact="false"/><raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'saved reference is not a dockingbay at index %s container=%s'.[$i,State.$containerMacros.{$i}]"/></do_else></do_if>
-      <do_else><set_value name="$valid" exact="false"/><raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'saved reference no longer exists at index %s container=%s'.[$i,State.$containerMacros.{$i}]"/></do_else>
-     </do_all>
-     <raise_lua_event name="'X4LAN_SeedDocks.End'" param="'%s|%s|%s|%s|%s|%s'.[State.$id,$v.$serial,$v.$start,$last,State.$docks.count,if $valid then 1 else 0]"/>
-    </do_if>
-    <do_else><raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'missing or incompatible saved dock request'"/></do_else>
-   </actions>
-  </cue>
- </cues>
+                        <do_if value="$dock.exists">
+                            <do_if value="$dock.isclass.dockingbay">
+                                <do_if value="$dock.exists and $dock.parent.exists and $dock.container.exists and State.$indices.{$dock}? and State.$indices.{$dock} == $i and $dock.parent == State.$parents.{$i} and $dock.container == State.$containers.{$i} and $dock.macro.id == State.$macros.{$i} and $dock.container.macro.id == State.$containerMacros.{$i} and $dock.external == State.$external.{$i} and $dock.isstorage == State.$storage.{$i} and $dock.shipstorage.capacity == State.$capacities.{$i} and $dock.distanceto.[State.$containers.{$i},State.$positions.{$i}] le 0.05m">
+                                    <raise_lua_event name="'X4LAN_SeedDocks.Row'" param="'%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s'.[State.$id,$v.$serial,$i,$dock,$dock.parent,$dock.container,State.$macros.{$i},State.$containerMacros.{$i},if $dock.external then 1 else 0,if $dock.isstorage then 1 else 0,$dock.shipstorage.capacity,$dock.distanceto.[State.$containers.{$i},State.$positions.{$i}] / 1m]"/>
+                                </do_if>
+                                <do_else>
+                                    <set_value name="$valid" exact="false"/>
+                                    <raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'saved dock witnesses changed at index %s'.[$i]"/>
+                                </do_else>
+                            </do_if>
+                            <do_else>
+                                <set_value name="$valid" exact="false"/>
+                                <raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'saved reference is not a dockingbay at index %s container=%s'.[$i,State.$containerMacros.{$i}]"/>
+                            </do_else>
+                        </do_if>
+                        <do_else>
+                            <set_value name="$valid" exact="false"/>
+                            <raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'saved reference no longer exists at index %s container=%s'.[$i,State.$containerMacros.{$i}]"/>
+                        </do_else>
+                    </do_all>
+                    <raise_lua_event name="'X4LAN_SeedDocks.End'" param="'%s|%s|%s|%s|%s|%s'.[State.$id,$v.$serial,$v.$start,$last,State.$docks.count,if $valid then 1 else 0]"/>
+                </do_if>
+                <do_else>
+                    <raise_lua_event name="'X4LAN_SeedDocks.Error'" param="'missing or incompatible saved dock request'"/>
+                </do_else>
+            </actions>
+        </cue>
+    </cues>
 </mdscript>

@@ -1,23 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mdscript name="X4LAN" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
-  <cues>
-    <cue name="ReadyRequest" instantiate="true">
-      <conditions>
-        <event_ui_triggered screen="'X4LAN'" control="'Ready'" />
-        <check_value value="player.age gt 1s" />
-      </conditions>
-      <actions>
-        <debug_text text="'[X4LAN] MD ready request received'" />
-        <raise_lua_event name="'X4LAN.Loaded'" />
-      </actions>
-    </cue>
-    <cue name="Loaded" instantiate="true">
-      <conditions><event_game_loaded /></conditions>
-      <actions><raise_lua_event name="'X4LAN.Loaded'" /></actions>
-    </cue>
-    <cue name="Started" instantiate="true">
-      <conditions><event_game_started /></conditions>
-      <actions><raise_lua_event name="'X4LAN.Loaded'" /></actions>
-    </cue>
-  </cues>
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="ReadyRequest" instantiate="true">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN'" control="'Ready'"/>
+                <check_value value="player.age gt 1s"/>
+            </conditions>
+            <actions>
+                <debug_text text="'[X4LAN] MD ready request received'"/>
+                <raise_lua_event name="'X4LAN.Loaded'"/>
+            </actions>
+        </cue>
+        <cue name="Loaded" instantiate="true">
+            <conditions>
+                <event_game_loaded/>
+            </conditions>
+            <actions>
+                <raise_lua_event name="'X4LAN.Loaded'"/>
+            </actions>
+        </cue>
+        <cue name="Started" instantiate="true">
+            <conditions>
+                <event_game_started/>
+            </conditions>
+            <actions>
+                <raise_lua_event name="'X4LAN.Loaded'"/>
+            </actions>
+        </cue>
+    </cues>
 </mdscript>

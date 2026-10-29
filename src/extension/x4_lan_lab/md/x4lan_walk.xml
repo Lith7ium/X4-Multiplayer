@@ -5,195 +5,313 @@
      comes from the local floor at that container-relative position. Anything the
      engine refuses hides the avatar with a rate-limited WALK_* line; nothing retries
      in a tight loop and the player is never moved. -->
-<mdscript name="X4LAN_Walk" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <cues><cue name="Session" namespace="this">
-  <conditions><event_ui_triggered screen="'X4LAN_Walk'" control="'Setup'"/></conditions>
-  <actions>
-   <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
-   <set_value name="$players" exact="event.param3.$players"/><set_value name="$ownSlot" exact="event.param3.$slot"/>
-   <set_value name="$avatars" exact="table[]"/><set_value name="$visible" exact="table[]"/>
-   <set_value name="$busyUntil" exact="table[]"/><set_value name="$stations" exact="table[]"/>
-   <set_value name="$missAt" exact="table[]"/><set_value name="$logAt" exact="table[]"/>
-   <set_value name="$transfers" exact="0"/><set_value name="$walks" exact="0"/><set_value name="$places" exact="0"/>
-   <create_group groupname="$avatarGroup"/>
-   <debug_text text="'[X4LAN] WALK_MD_READY players=%s slot=p%s ships=%s'.[$players,$ownSlot,$arena.$ships.count]"/>
-   <raise_lua_event name="'X4LAN_Walk.Ready'"/>
-  </actions>
-  <cues>
-   <!-- $logKey/$logText: at most one line per key every 5 game seconds. -->
-   <library name="Log"><actions>
-    <do_if value="not $logAt.{$logKey}? or player.age ge $logAt.{$logKey} + 5s">
-     <set_value name="$logAt.{$logKey}" exact="player.age"/>
-     <debug_text text="'[X4LAN] ' + $logText"/>
-    </do_if>
-   </actions></library>
-   <!-- Local pose every 0.1 s: state|kind|ship|sector|code|macro|room|x|y|z|yaw|transfers|reason. -->
-   <cue name="Publish" instantiate="true" checkinterval="0.1s"><conditions><check_value value="true"/></conditions><actions>
-    <set_value name="$state" exact="0"/><set_value name="$kind" exact="'none'"/><set_value name="$ship" exact="0"/>
-    <set_value name="$reason" exact="'ok'"/><set_value name="$c" exact="player.container"/>
-    <do_if value="@player.occupiedship.exists"><set_value name="$reason" exact="'pilot'"/></do_if>
-    <do_elseif value="@player.spacesuit.exists"><set_value name="$reason" exact="'suit'"/></do_elseif>
-    <do_elseif value="not @player.entity.exists or not @$c.exists"><set_value name="$reason" exact="'nocontainer'"/></do_elseif>
-    <do_else>
-     <set_value name="$ship" exact="$arena.$ships.indexof.{$c}"/>
-     <do_if value="$ship gt 0"><set_value name="$state" exact="1"/><set_value name="$kind" exact="'ship'"/></do_if>
-     <do_elseif value="$c.isclass.station and @$c.sector.exists"><set_value name="$state" exact="1"/><set_value name="$kind" exact="'station'"/></do_elseif>
-     <do_else><set_value name="$reason" exact="'container'"/></do_else>
-    </do_else>
-    <do_if value="$state == 1">
-     <set_value name="$p" exact="player.entity.relativeposition.{$c}"/><set_value name="$r" exact="player.entity.relativerotation.{$c}"/>
-     <set_value name="$room" exact="if @player.room.exists then player.room.macro.id else '-'"/>
-     <do_if value="$kind == 'station'">
-      <raise_lua_event name="'X4LAN_Walk.Pose2'" param="'1|station|0|%s|%s|%s|%s|%s|%s|%s|%s|%s|ok'.[$c.sector.macro.id,$c.idcode,$c.macro.id,$room,$p.x/1m,$p.y/1m,$p.z/1m,$r.yaw/1deg,$transfers]"/>
-     </do_if>
-     <do_else>
-      <raise_lua_event name="'X4LAN_Walk.Pose2'" param="'1|ship|%s|-|-|-|%s|%s|%s|%s|%s|%s|ok'.[$ship,$room,$p.x/1m,$p.y/1m,$p.z/1m,$r.yaw/1deg,$transfers]"/>
-     </do_else>
-    </do_if>
-    <do_else><raise_lua_event name="'X4LAN_Walk.Pose2'" param="'0|none|0|-|-|-|-|0|0|0|0|%s|%s'.[$transfers,$reason]"/></do_else>
-   </actions></cue>
-   <!-- A finished transporter (elevator) ride of the local player; remote avatars ride too. -->
-   <cue name="Transported" instantiate="true"><conditions><event_entity_transport_finished entity="player.entity"/></conditions><actions>
-    <set_value name="$transfers" exact="$transfers + 1"/>
-    <debug_text text="'[X4LAN] WALK_TRANSFER local transfers=%s from=%s to=%s'.[$transfers,@event.param.macro.id,@player.room.macro.id]"/>
-   </actions></cue>
-   <!-- Platform triggers (mission doors, vents, terminals) are local only: logged so a
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_Walk" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="Session" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Walk'" control="'Setup'"/>
+            </conditions>
+            <actions>
+                <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
+                <set_value name="$players" exact="event.param3.$players"/>
+                <set_value name="$ownSlot" exact="event.param3.$slot"/>
+                <set_value name="$avatars" exact="table[]"/>
+                <set_value name="$visible" exact="table[]"/>
+                <set_value name="$busyUntil" exact="table[]"/>
+                <set_value name="$stations" exact="table[]"/>
+                <set_value name="$missAt" exact="table[]"/>
+                <set_value name="$logAt" exact="table[]"/>
+                <set_value name="$transfers" exact="0"/>
+                <set_value name="$walks" exact="0"/>
+                <set_value name="$places" exact="0"/>
+                <create_group groupname="$avatarGroup"/>
+                <debug_text text="'[X4LAN] WALK_MD_READY players=%s slot=p%s ships=%s'.[$players,$ownSlot,$arena.$ships.count]"/>
+                <raise_lua_event name="'X4LAN_Walk.Ready'"/>
+            </actions>
+            <cues>
+                <!-- $logKey/$logText: at most one line per key every 5 game seconds. -->
+                <library name="Log">
+                    <actions>
+                        <do_if value="not $logAt.{$logKey}? or player.age ge $logAt.{$logKey} + 5s">
+                            <set_value name="$logAt.{$logKey}" exact="player.age"/>
+                            <debug_text text="'[X4LAN] ' + $logText"/>
+                        </do_if>
+                    </actions>
+                </library>
+                <!-- Local pose every 0.1 s: state|kind|ship|sector|code|macro|room|x|y|z|yaw|transfers|reason. -->
+                <cue name="Publish" instantiate="true" checkinterval="0.1s">
+                    <conditions>
+                        <check_value value="true"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$state" exact="0"/>
+                        <set_value name="$kind" exact="'none'"/>
+                        <set_value name="$ship" exact="0"/>
+                        <set_value name="$reason" exact="'ok'"/>
+                        <set_value name="$c" exact="player.container"/>
+                        <do_if value="@player.occupiedship.exists">
+                            <set_value name="$reason" exact="'pilot'"/>
+                        </do_if>
+                        <do_elseif value="@player.spacesuit.exists">
+                            <set_value name="$reason" exact="'suit'"/>
+                        </do_elseif>
+                        <do_elseif value="not @player.entity.exists or not @$c.exists">
+                            <set_value name="$reason" exact="'nocontainer'"/>
+                        </do_elseif>
+                        <do_else>
+                            <set_value name="$ship" exact="$arena.$ships.indexof.{$c}"/>
+                            <do_if value="$ship gt 0">
+                                <set_value name="$state" exact="1"/>
+                                <set_value name="$kind" exact="'ship'"/>
+                            </do_if>
+                            <do_elseif value="$c.isclass.station and @$c.sector.exists">
+                                <set_value name="$state" exact="1"/>
+                                <set_value name="$kind" exact="'station'"/>
+                            </do_elseif>
+                            <do_else>
+                                <set_value name="$reason" exact="'container'"/>
+                            </do_else>
+                        </do_else>
+                        <do_if value="$state == 1">
+                            <set_value name="$p" exact="player.entity.relativeposition.{$c}"/>
+                            <set_value name="$r" exact="player.entity.relativerotation.{$c}"/>
+                            <set_value name="$room" exact="if @player.room.exists then player.room.macro.id else '-'"/>
+                            <do_if value="$kind == 'station'">
+                                <raise_lua_event name="'X4LAN_Walk.Pose2'" param="'1|station|0|%s|%s|%s|%s|%s|%s|%s|%s|%s|ok'.[$c.sector.macro.id,$c.idcode,$c.macro.id,$room,$p.x/1m,$p.y/1m,$p.z/1m,$r.yaw/1deg,$transfers]"/>
+                            </do_if>
+                            <do_else>
+                                <raise_lua_event name="'X4LAN_Walk.Pose2'" param="'1|ship|%s|-|-|-|%s|%s|%s|%s|%s|%s|ok'.[$ship,$room,$p.x/1m,$p.y/1m,$p.z/1m,$r.yaw/1deg,$transfers]"/>
+                            </do_else>
+                        </do_if>
+                        <do_else>
+                            <raise_lua_event name="'X4LAN_Walk.Pose2'" param="'0|none|0|-|-|-|-|0|0|0|0|%s|%s'.[$transfers,$reason]"/>
+                        </do_else>
+                    </actions>
+                </cue>
+                <!-- A finished transporter (elevator) ride of the local player; remote avatars ride too. -->
+                <cue name="Transported" instantiate="true">
+                    <conditions>
+                        <event_entity_transport_finished entity="player.entity"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$transfers" exact="$transfers + 1"/>
+                        <debug_text text="'[X4LAN] WALK_TRANSFER local transfers=%s from=%s to=%s'.[$transfers,@event.param.macro.id,@player.room.macro.id]"/>
+                    </actions>
+                </cue>
+                <!-- Platform triggers (mission doors, vents, terminals) are local only: logged so a
         native test can name them, never replayed on other clients. -->
-   <cue name="TriggerDiag" instantiate="true"><conditions><event_player_activated_platform_trigger/></conditions><actions>
-    <debug_text text="'[X4LAN] WALK_TRIGGER local component=%s group=%s room=%s replicated=0'.[@event.param.macro.id,event.param2,@player.room.macro.id]"/>
-   </actions></cue>
-   <cue name="TransportDone" instantiate="true"><conditions><event_entity_transport_finished group="$avatarGroup"/></conditions><actions>
-    <do_all exact="8" counter="$i">
-     <do_if value="@$avatars.{$i} == event.object">
-      <set_value name="$busyUntil.{$i}" exact="0s"/>
-      <set_value name="$logKey" exact="'transported:%s'.[$i]"/><set_value name="$logText" exact="'WALK_TRANSPORT slot=p%s finished room=%s'.[$i,@event.object.room.macro.id]"/>
-      <include_actions ref="Log"/>
-     </do_if>
-    </do_all>
-   </actions></cue>
-   <cue name="Move" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Walk'" control="'Move'"/></conditions><actions>
-    <set_value name="$v" exact="event.param3"/><set_value name="$slot" exact="$v.$slot"/><set_value name="$why" exact="''"/>
-    <set_value name="$c" exact="null"/><set_value name="$fp" exact="null"/><set_value name="$fc" exact="null"/><set_value name="$room" exact="null"/>
-    <do_if value="$slot ge 1 and $slot le 8 and $slot != $ownSlot">
-     <do_if value="not $avatars.{$slot}?">
-      <set_value name="$newAvatar" exact="null"/>
-      <create_cue_actor cue="Session" name="$newAvatar">
-       <select race="race.argon" tags="tag.aipilot"/><name name="'Player %s'.[$slot]"/><owner exact="faction.player"/>
-      </create_cue_actor>
-      <do_if value="@$newAvatar.exists">
-       <set_entity_traits entity="$newAvatar" missionactor="true" customhandler="true"/>
-       <set_entity_role entity="$newAvatar" role="entityrole.passenger"/>
-       <set_entity_overrides entity="$newAvatar" title="'Player %s'.[$slot]" icon="'captain'"/>
-       <add_to_group groupname="$avatarGroup" object="$newAvatar"/>
-       <set_value name="$avatars.{$slot}" exact="$newAvatar"/><set_value name="$visible.{$slot}" exact="false"/>
-       <debug_text text="'[X4LAN] WALK_AVATAR slot=p%s created'.[$slot]"/>
-      </do_if>
-     </do_if>
-     <set_value name="$a" exact="@$avatars.{$slot}"/>
-     <do_if value="not @$a.exists"><set_value name="$why" exact="'avatar'"/></do_if>
-     <do_elseif value="@$busyUntil.{$slot} gt player.age"><set_value name="$why" exact="'transporting'"/></do_elseif>
-     <do_elseif value="$v.$kind == 'ship'">
-      <do_if value="$v.$ship ge 1 and $v.$ship le $arena.$ships.count"><set_value name="$c" exact="$arena.$ships.{$v.$ship}"/></do_if>
-     </do_elseif>
-     <do_elseif value="$v.$kind == 'station'">
-      <set_value name="$key" exact="$v.$sector + '|' + $v.$code + '|' + $v.$macro"/>
-      <set_value name="$c" exact="@$stations.{$key}"/>
-      <do_if value="not @$c.exists or $c.idcode != $v.$code or $c.macro.id != $v.$macro">
-       <set_value name="$c" exact="null"/>
-       <do_if value="not $missAt.{$key}? or player.age ge $missAt.{$key} + 5s">
-        <!-- Never search with an unresolved macro: a null filter would match anything. -->
-        <set_value name="$sm" exact="macro.{$v.$sector}"/><set_value name="$cm" exact="macro.{$v.$macro}"/>
-        <do_if value="@$sm.id == $v.$sector and @$cm.id == $v.$macro">
-         <find_sector name="$sec" macro="$sm" required="false"/>
-         <do_if value="@$sec.exists">
-          <find_station name="$found" space="$sec" macro="$cm" multiple="true"/>
-          <do_all exact="$found.count" counter="$k"><do_if value="$found.{$k}.idcode == $v.$code"><set_value name="$c" exact="$found.{$k}"/></do_if></do_all>
-         </do_if>
-        </do_if>
-        <do_if value="@$c.exists"><set_value name="$stations.{$key}" exact="$c"/><remove_value name="$missAt.{$key}"/></do_if>
-        <do_else><set_value name="$missAt.{$key}" exact="player.age"/></do_else>
-       </do_if>
-      </do_if>
-     </do_elseif>
-     <do_if value="$why == ''">
-      <do_if value="not @$c.exists"><set_value name="$why" exact="'context'"/></do_if>
-      <do_elseif value="$c.sector != player.sector"><set_value name="$why" exact="'elsewhere'"/></do_elseif>
-      <do_else>
-       <set_value name="$target" exact="position.[$v.$x * 1m, $v.$y * 1m, $v.$z * 1m]"/>
-       <get_floor_position object="$c">
-        <position value="$target" object="$c"/>
-        <result position="$fp" context="$fc" room="$room"/>
-       </get_floor_position>
-       <do_if value="not @$room.exists or not @$fc.exists"><set_value name="$why" exact="'floor'"/></do_if>
-      </do_else>
-     </do_if>
-     <do_if value="$why == ''">
-      <set_value name="$yaw" exact="$v.$yaw * 1deg - $room.relativerotation.{$c}.yaw"/>
-      <do_if value="$v.$room != '-' and $room.macro.id != $v.$room">
-       <set_value name="$logKey" exact="'room:%s'.[$slot]"/><set_value name="$logText" exact="'WALK_ROOM_MISMATCH slot=p%s sent=%s local=%s (placed on the local floor)'.[$slot,$v.$room,$room.macro.id]"/>
-       <include_actions ref="Log"/>
-      </do_if>
-      <set_value name="$done" exact="false"/>
-      <!-- Transporter (elevator): stand the avatar in the nearest NPC transport slot of its
+                <cue name="TriggerDiag" instantiate="true">
+                    <conditions>
+                        <event_player_activated_platform_trigger/>
+                    </conditions>
+                    <actions>
+                        <debug_text text="'[X4LAN] WALK_TRIGGER local component=%s group=%s room=%s replicated=0'.[@event.param.macro.id,event.param2,@player.room.macro.id]"/>
+                    </actions>
+                </cue>
+                <cue name="TransportDone" instantiate="true">
+                    <conditions>
+                        <event_entity_transport_finished group="$avatarGroup"/>
+                    </conditions>
+                    <actions>
+                        <do_all exact="8" counter="$i">
+                            <do_if value="@$avatars.{$i} == event.object">
+                                <set_value name="$busyUntil.{$i}" exact="0s"/>
+                                <set_value name="$logKey" exact="'transported:%s'.[$i]"/>
+                                <set_value name="$logText" exact="'WALK_TRANSPORT slot=p%s finished room=%s'.[$i,@event.object.room.macro.id]"/>
+                                <include_actions ref="Log"/>
+                            </do_if>
+                        </do_all>
+                    </actions>
+                </cue>
+                <cue name="Move" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Walk'" control="'Move'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$v" exact="event.param3"/>
+                        <set_value name="$slot" exact="$v.$slot"/>
+                        <set_value name="$why" exact="''"/>
+                        <set_value name="$c" exact="null"/>
+                        <set_value name="$fp" exact="null"/>
+                        <set_value name="$fc" exact="null"/>
+                        <set_value name="$room" exact="null"/>
+                        <do_if value="$slot ge 1 and $slot le 8 and $slot != $ownSlot">
+                            <do_if value="not $avatars.{$slot}?">
+                                <set_value name="$newAvatar" exact="null"/>
+                                <create_cue_actor cue="Session" name="$newAvatar">
+                                    <select race="race.argon" tags="tag.aipilot"/>
+                                    <name name="'Player %s'.[$slot]"/>
+                                    <owner exact="faction.player"/>
+                                </create_cue_actor>
+                                <do_if value="@$newAvatar.exists">
+                                    <set_entity_traits entity="$newAvatar" missionactor="true" customhandler="true"/>
+                                    <set_entity_role entity="$newAvatar" role="entityrole.passenger"/>
+                                    <set_entity_overrides entity="$newAvatar" title="'Player %s'.[$slot]" icon="'captain'"/>
+                                    <add_to_group groupname="$avatarGroup" object="$newAvatar"/>
+                                    <set_value name="$avatars.{$slot}" exact="$newAvatar"/>
+                                    <set_value name="$visible.{$slot}" exact="false"/>
+                                    <debug_text text="'[X4LAN] WALK_AVATAR slot=p%s created'.[$slot]"/>
+                                </do_if>
+                            </do_if>
+                            <set_value name="$a" exact="@$avatars.{$slot}"/>
+                            <do_if value="not @$a.exists">
+                                <set_value name="$why" exact="'avatar'"/>
+                            </do_if>
+                            <do_elseif value="@$busyUntil.{$slot} gt player.age">
+                                <set_value name="$why" exact="'transporting'"/>
+                            </do_elseif>
+                            <do_elseif value="$v.$kind == 'ship'">
+                                <do_if value="$v.$ship ge 1 and $v.$ship le $arena.$ships.count">
+                                    <set_value name="$c" exact="$arena.$ships.{$v.$ship}"/>
+                                </do_if>
+                            </do_elseif>
+                            <do_elseif value="$v.$kind == 'station'">
+                                <set_value name="$key" exact="$v.$sector + '|' + $v.$code + '|' + $v.$macro"/>
+                                <set_value name="$c" exact="@$stations.{$key}"/>
+                                <do_if value="not @$c.exists or $c.idcode != $v.$code or $c.macro.id != $v.$macro">
+                                    <set_value name="$c" exact="null"/>
+                                    <do_if value="not $missAt.{$key}? or player.age ge $missAt.{$key} + 5s">
+                                        <!-- Never search with an unresolved macro: a null filter would match anything. -->
+                                        <set_value name="$sm" exact="macro.{$v.$sector}"/>
+                                        <set_value name="$cm" exact="macro.{$v.$macro}"/>
+                                        <do_if value="@$sm.id == $v.$sector and @$cm.id == $v.$macro">
+                                            <find_sector name="$sec" macro="$sm" required="false"/>
+                                            <do_if value="@$sec.exists">
+                                                <find_station name="$found" space="$sec" macro="$cm" multiple="true"/>
+                                                <do_all exact="$found.count" counter="$k">
+                                                    <do_if value="$found.{$k}.idcode == $v.$code">
+                                                        <set_value name="$c" exact="$found.{$k}"/>
+                                                    </do_if>
+                                                </do_all>
+                                            </do_if>
+                                        </do_if>
+                                        <do_if value="@$c.exists">
+                                            <set_value name="$stations.{$key}" exact="$c"/>
+                                            <remove_value name="$missAt.{$key}"/>
+                                        </do_if>
+                                        <do_else>
+                                            <set_value name="$missAt.{$key}" exact="player.age"/>
+                                        </do_else>
+                                    </do_if>
+                                </do_if>
+                            </do_elseif>
+                            <do_if value="$why == ''">
+                                <do_if value="not @$c.exists">
+                                    <set_value name="$why" exact="'context'"/>
+                                </do_if>
+                                <do_elseif value="$c.sector != player.sector">
+                                    <set_value name="$why" exact="'elsewhere'"/>
+                                </do_elseif>
+                                <do_else>
+                                    <set_value name="$target" exact="position.[$v.$x * 1m, $v.$y * 1m, $v.$z * 1m]"/>
+                                    <get_floor_position object="$c">
+                                        <position value="$target" object="$c"/>
+                                        <result position="$fp" context="$fc" room="$room"/>
+                                    </get_floor_position>
+                                    <do_if value="not @$room.exists or not @$fc.exists">
+                                        <set_value name="$why" exact="'floor'"/>
+                                    </do_if>
+                                </do_else>
+                            </do_if>
+                            <do_if value="$why == ''">
+                                <set_value name="$yaw" exact="$v.$yaw * 1deg - $room.relativerotation.{$c}.yaw"/>
+                                <do_if value="$v.$room != '-' and $room.macro.id != $v.$room">
+                                    <set_value name="$logKey" exact="'room:%s'.[$slot]"/>
+                                    <set_value name="$logText" exact="'WALK_ROOM_MISMATCH slot=p%s sent=%s local=%s (placed on the local floor)'.[$slot,$v.$room,$room.macro.id]"/>
+                                    <include_actions ref="Log"/>
+                                </do_if>
+                                <set_value name="$done" exact="false"/>
+                                <!-- Transporter (elevator): stand the avatar in the nearest NPC transport slot of its
            current room and ride to the slot nearest the new pose; fall back to placement. -->
-      <do_if value="$v.$mode == 'transport' and @$visible.{$slot} and @$a.room.exists and $a.room != $room">
-       <set_value name="$s" exact="null"/><set_value name="$e" exact="null"/><set_value name="$moved" exact="[]"/>
-       <find_npc_waypoint name="$starts" object="$a.room" tags="tag.npctransport" multiple="true" excludeblocked="false"/>
-       <find_npc_waypoint name="$ends" object="$room" tags="tag.npctransport" multiple="true" excludeblocked="false"/>
-       <do_all exact="$starts.count" counter="$k"><do_if value="not $s or $starts.{$k}.distanceto.{$a} lt $s.distanceto.{$a}"><set_value name="$s" exact="$starts.{$k}"/></do_if></do_all>
-       <do_all exact="$ends.count" counter="$k"><do_if value="not $e or $ends.{$k}.distanceto.[$c,$target] lt $e.distanceto.[$c,$target]"><set_value name="$e" exact="$ends.{$k}"/></do_if></do_all>
-       <do_if value="$s and $e">
-        <remove_actor_from_room actor="$a"/>
-        <add_actor_to_room actor="$a" slot="$s" setroomslot="false" result="$atStart"/>
-        <do_if value="$atStart"><activate_transporter start="$s" destination="$e" entity="$a" result="$moved"/></do_if>
-        <do_if value="@$moved.count gt 0">
-         <set_value name="$busyUntil.{$slot}" exact="player.age + 8s"/><set_value name="$visible.{$slot}" exact="true"/><set_value name="$done" exact="true"/>
-         <debug_text text="'[X4LAN] WALK_TRANSPORT slot=p%s started from=%s to=%s'.[$slot,$a.room.macro.id,$room.macro.id]"/>
-        </do_if>
-        <do_else>
-         <set_value name="$visible.{$slot}" exact="false"/>
-         <debug_text text="'[X4LAN] WALK_TRANSPORT slot=p%s refused at_start=%s; placing instead'.[$slot,$atStart]"/>
-        </do_else>
-       </do_if>
-       <do_else><debug_text text="'[X4LAN] WALK_TRANSPORT slot=p%s no transport slots (start=%s end=%s); placing instead'.[$slot,$starts.count,$ends.count]"/></do_else>
-      </do_if>
-      <!-- Small moves in the same room: the engine walk animates the avatar. -->
-      <do_if value="not $done and @$visible.{$slot} and $a.room == $room and $a.distanceto.[$c,$target] le 6m">
-       <start_actor_walk actor="$a" target="$room" speed="$v.$speed" triggeranimation="false">
-        <position value="$fp" object="$fc" space="$room"/>
-        <rotation yaw="$yaw"/>
-       </start_actor_walk>
-       <set_value name="$walks" exact="$walks + 1"/><set_value name="$done" exact="true"/>
-      </do_if>
-      <do_if value="not $done">
-       <do_if value="@$visible.{$slot}"><remove_actor_from_room actor="$a"/></do_if>
-       <set_value name="$placed" exact="false"/>
-       <add_actor_to_room actor="$a" object="$room" result="$placed">
-        <position value="$fp" object="$fc" space="$room"/>
-        <rotation yaw="$yaw"/>
-       </add_actor_to_room>
-       <set_value name="$visible.{$slot}" exact="$placed"/><set_value name="$places" exact="$places + 1"/>
-       <set_value name="$logKey" exact="'placed:%s'.[$slot]"/>
-       <set_value name="$logText" exact="'WALK_PLACED slot=p%s ok=%s kind=%s container=%s room=%s walks=%s places=%s'.[$slot,$placed,$v.$kind,$c.knownname,$room.macro.id,$walks,$places]"/>
-       <include_actions ref="Log"/>
-      </do_if>
-     </do_if>
-     <do_elseif value="$why != 'transporting'">
-      <do_if value="@$visible.{$slot}"><remove_actor_from_room actor="$a"/><set_value name="$visible.{$slot}" exact="false"/></do_if>
-      <set_value name="$logKey" exact="'hidden:%s:%s'.[$slot,$why]"/>
-      <set_value name="$logText" exact="'WALK_HIDDEN slot=p%s reason=%s kind=%s ship=%s code=%s'.[$slot,$why,$v.$kind,$v.$ship,$v.$code]"/>
-      <include_actions ref="Log"/>
-     </do_elseif>
-    </do_if>
-   </actions></cue>
-   <cue name="Hide" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Walk'" control="'Hide'"/></conditions><actions>
-    <set_value name="$slot" exact="event.param3.$slot"/>
-    <do_if value="@$visible.{$slot} and @$avatars.{$slot}.exists">
-     <remove_actor_from_room actor="$avatars.{$slot}"/><set_value name="$visible.{$slot}" exact="false"/>
-     <debug_text text="'[X4LAN] WALK_HIDDEN slot=p%s reason=%s'.[$slot,event.param3.$reason]"/>
-    </do_if>
-    <set_value name="$busyUntil.{$slot}" exact="0s"/>
-   </actions></cue>
-  </cues>
- </cue></cues>
+                                <do_if value="$v.$mode == 'transport' and @$visible.{$slot} and @$a.room.exists and $a.room != $room">
+                                    <set_value name="$s" exact="null"/>
+                                    <set_value name="$e" exact="null"/>
+                                    <set_value name="$moved" exact="[]"/>
+                                    <find_npc_waypoint name="$starts" object="$a.room" tags="tag.npctransport" multiple="true" excludeblocked="false"/>
+                                    <find_npc_waypoint name="$ends" object="$room" tags="tag.npctransport" multiple="true" excludeblocked="false"/>
+                                    <do_all exact="$starts.count" counter="$k">
+                                        <do_if value="not $s or $starts.{$k}.distanceto.{$a} lt $s.distanceto.{$a}">
+                                            <set_value name="$s" exact="$starts.{$k}"/>
+                                        </do_if>
+                                    </do_all>
+                                    <do_all exact="$ends.count" counter="$k">
+                                        <do_if value="not $e or $ends.{$k}.distanceto.[$c,$target] lt $e.distanceto.[$c,$target]">
+                                            <set_value name="$e" exact="$ends.{$k}"/>
+                                        </do_if>
+                                    </do_all>
+                                    <do_if value="$s and $e">
+                                        <remove_actor_from_room actor="$a"/>
+                                        <add_actor_to_room actor="$a" slot="$s" setroomslot="false" result="$atStart"/>
+                                        <do_if value="$atStart">
+                                            <activate_transporter start="$s" destination="$e" entity="$a" result="$moved"/>
+                                        </do_if>
+                                        <do_if value="@$moved.count gt 0">
+                                            <set_value name="$busyUntil.{$slot}" exact="player.age + 8s"/>
+                                            <set_value name="$visible.{$slot}" exact="true"/>
+                                            <set_value name="$done" exact="true"/>
+                                            <debug_text text="'[X4LAN] WALK_TRANSPORT slot=p%s started from=%s to=%s'.[$slot,$a.room.macro.id,$room.macro.id]"/>
+                                        </do_if>
+                                        <do_else>
+                                            <set_value name="$visible.{$slot}" exact="false"/>
+                                            <debug_text text="'[X4LAN] WALK_TRANSPORT slot=p%s refused at_start=%s; placing instead'.[$slot,$atStart]"/>
+                                        </do_else>
+                                    </do_if>
+                                    <do_else>
+                                        <debug_text text="'[X4LAN] WALK_TRANSPORT slot=p%s no transport slots (start=%s end=%s); placing instead'.[$slot,$starts.count,$ends.count]"/>
+                                    </do_else>
+                                </do_if>
+                                <!-- Small moves in the same room: the engine walk animates the avatar. -->
+                                <do_if value="not $done and @$visible.{$slot} and $a.room == $room and $a.distanceto.[$c,$target] le 6m">
+                                    <start_actor_walk actor="$a" target="$room" speed="$v.$speed" triggeranimation="false">
+                                        <position value="$fp" object="$fc" space="$room"/>
+                                        <rotation yaw="$yaw"/>
+                                    </start_actor_walk>
+                                    <set_value name="$walks" exact="$walks + 1"/>
+                                    <set_value name="$done" exact="true"/>
+                                </do_if>
+                                <do_if value="not $done">
+                                    <do_if value="@$visible.{$slot}">
+                                        <remove_actor_from_room actor="$a"/>
+                                    </do_if>
+                                    <set_value name="$placed" exact="false"/>
+                                    <add_actor_to_room actor="$a" object="$room" result="$placed">
+                                        <position value="$fp" object="$fc" space="$room"/>
+                                        <rotation yaw="$yaw"/>
+                                    </add_actor_to_room>
+                                    <set_value name="$visible.{$slot}" exact="$placed"/>
+                                    <set_value name="$places" exact="$places + 1"/>
+                                    <set_value name="$logKey" exact="'placed:%s'.[$slot]"/>
+                                    <set_value name="$logText" exact="'WALK_PLACED slot=p%s ok=%s kind=%s container=%s room=%s walks=%s places=%s'.[$slot,$placed,$v.$kind,$c.knownname,$room.macro.id,$walks,$places]"/>
+                                    <include_actions ref="Log"/>
+                                </do_if>
+                            </do_if>
+                            <do_elseif value="$why != 'transporting'">
+                                <do_if value="@$visible.{$slot}">
+                                    <remove_actor_from_room actor="$a"/>
+                                    <set_value name="$visible.{$slot}" exact="false"/>
+                                </do_if>
+                                <set_value name="$logKey" exact="'hidden:%s:%s'.[$slot,$why]"/>
+                                <set_value name="$logText" exact="'WALK_HIDDEN slot=p%s reason=%s kind=%s ship=%s code=%s'.[$slot,$why,$v.$kind,$v.$ship,$v.$code]"/>
+                                <include_actions ref="Log"/>
+                            </do_elseif>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Hide" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Walk'" control="'Hide'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$slot" exact="event.param3.$slot"/>
+                        <do_if value="@$visible.{$slot} and @$avatars.{$slot}.exists">
+                            <remove_actor_from_room actor="$avatars.{$slot}"/>
+                            <set_value name="$visible.{$slot}" exact="false"/>
+                            <debug_text text="'[X4LAN] WALK_HIDDEN slot=p%s reason=%s'.[$slot,event.param3.$reason]"/>
+                        </do_if>
+                        <set_value name="$busyUntil.{$slot}" exact="0s"/>
+                    </actions>
+                </cue>
+            </cues>
+        </cue>
+    </cues>
 </mdscript>

@@ -5,6 +5,7 @@ not simulate NPCs, validate pickup transactions, or synchronize vanilla missions
 The host X4 process supplies state. Absence means removal from a sector view,
 not proof of global destruction. Sessions use a distinct world1- build label.
 """
+
 from dataclasses import dataclass
 import math
 import zlib
@@ -28,9 +29,9 @@ REPEAT_BUDGET = 2
 # (a straight-flying NPC only every 1-4 s), and a client extrapolates any sample, so a sample
 # this client has not received yet (late joiner, sector change) is forwarded while younger
 # than MOTION_KEEP s, after the recent ones.
-MOTION_LIVE = .75
+MOTION_LIVE = 0.75
 MOTION_KEEP = 5.0
-RETRY = .25
+RETRY = 0.25
 STAGE_TIMEOUT = 15
 
 
@@ -42,29 +43,35 @@ def atom(value, macro=False):
 
 def record(value):
     """id,kind,macro,owner,x,y,z,yaw,pitch,roll,ware,amount (all ASCII)."""
-    if len(value) > MAX_RECORD or not value.isascii() or any(c.isspace() for c in value):
+    if (
+        len(value) > MAX_RECORD
+        or not value.isascii()
+        or any(character.isspace() for character in value)
+    ):
         raise ValueError('record size/encoding')
-    f = value.split(',')
-    if len(f) != 12 or not sequence(f[0]):
+    fields = value.split(',')
+    if len(fields) != 12 or not sequence(fields[0]):
         raise ValueError('record fields/id')
-    if f[1] not in ('ship', 'drop'):
+    if fields[1] not in ('ship', 'drop'):
         raise ValueError('object kind')
-    atom(f[2], True); atom(f[3]); atom(f[10])
-    for i, text in enumerate(f[4:10]):
-        v = float(text)
-        if not math.isfinite(v) or abs(v) > (50_000_000 if i < 3 else math.tau):
+    atom(fields[2], True)
+    atom(fields[3])
+    atom(fields[10])
+    for i, text in enumerate(fields[4:10]):
+        coordinate = float(text)
+        if not math.isfinite(coordinate) or abs(coordinate) > (50_000_000 if i < 3 else math.tau):
             raise ValueError('object pose')
-    amount = sequence(f[11])
-    if amount > 1_000_000 or (f[1] == 'ship' and (f[10] != 'none' or amount)):
+    amount = sequence(fields[11])
+    if amount > 1_000_000 or (fields[1] == 'ship' and (fields[10] != 'none' or amount)):
         raise ValueError('object cargo')
-    if f[1] == 'drop' and (f[10] == 'none' or not amount):
+    if fields[1] == 'drop' and (fields[10] == 'none' or not amount):
         raise ValueError('empty drop')
-    return int(f[0])
+    return int(fields[0])
 
 
 def checksum(rows):
     # Integrity check for assembly, not authentication; the lease authenticates.
-    return zlib.adler32('\n'.join(rows).encode('ascii')) & 0xffffffff
+    return zlib.adler32('\n'.join(rows).encode('ascii')) & 0xFFFFFFFF
 
 
 @dataclass(frozen=True)
@@ -104,12 +111,16 @@ class Baseline:
 
 class Receiver:
     """Only a verified commit replaces visible state. At most one staged sector."""
+
     def __init__(self):
         self.latest = None
         self.pending = None
 
     def receive(self, f, now):
-        """Return (ack index, committed baseline), or (None, None) on rejection."""
+        """Receive decoded packet fields f; return acknowledgement and committed baseline.
+
+        Rejected packets return (None, None).
+        """
         if len(f) < 5 or not HEX.fullmatch(f[3]):
             return None, None
         epoch, rev = f[3], sequence(f[4])
@@ -122,42 +133,44 @@ class Receiver:
             if rev == old.revision:
                 # Lost final acknowledgement: retransmit completion, not effects.
                 return len(old.rows) + 1, None
-        p = self.pending
-        if p and now - p['at'] > STAGE_TIMEOUT:
-            self.pending = p = None
+        pending = self.pending
+        if pending and now - pending['at'] > STAGE_TIMEOUT:
+            self.pending = pending = None
         if f[0] == 'UBEGIN' and len(f) == 8:
             sector = atom(f[5], True)
             count = sequence(f[6])
             if count > MAX_OBJECTS or not f[7].isascii() or not f[7].isdecimal():
                 return None, None
             digest = int(f[7])
-            if not 0 <= digest <= 0xffffffff:
+            if not 0 <= digest <= 0xFFFFFFFF:
                 return None, None
             identity = (epoch, rev, sector, count, digest)
-            if p:
-                if identity != p['identity']:
+            if pending:
+                if identity != pending['identity']:
                     return None, None  # A newer begin cannot evict in-flight work.
             else:
                 self.pending = dict(identity=identity, rows={}, at=now)
             return 0, None
-        if not p or p['identity'][:2] != (epoch, rev):
+        if not pending or pending['identity'][:2] != (epoch, rev):
             return -1, None  # Sender must restart this transfer from its begin.
-        _, _, sector, count, digest = p['identity']
+        _, _, sector, count, digest = pending['identity']
         if f[0] == 'UOBJECT' and len(f) == 7:
-            index = sequence(f[5]); record(f[6])
+            index = sequence(f[5])
+            record(f[6])
             if not 1 <= index <= count:
                 return None, None
-            previous = p['rows'].get(index)
+            previous = pending['rows'].get(index)
             if previous is not None and previous != f[6]:
                 self.pending = None
                 return -1, None
             if previous is None:
-                p['rows'][index] = f[6]; p['at'] = now
+                pending['rows'][index] = f[6]
+                pending['at'] = now
             return index, None
         if f[0] == 'UCOMMIT' and len(f) == 5:
-            if len(p['rows']) != count:
+            if len(pending['rows']) != count:
                 return None, None
-            rows = tuple(p['rows'][i] for i in range(1, count + 1))
+            rows = tuple(pending['rows'][i] for i in range(1, count + 1))
             try:
                 baseline = Baseline.create(epoch, rev, sector, rows)
             except ValueError:
@@ -173,6 +186,7 @@ class Receiver:
 
 class Sender:
     """Selective acknowledgement with a bounded sliding window and retries."""
+
     def __init__(self, baseline):
         self.baseline = baseline
         self.acked = set()
@@ -180,12 +194,13 @@ class Sender:
         self.done = False
 
     def acknowledge(self, epoch, revision, index):
-        b = self.baseline
-        if epoch != b.epoch or revision != b.revision:
+        baseline = self.baseline
+        if epoch != baseline.epoch or revision != baseline.revision:
             return
-        end = len(b.rows) + 1
+        end = len(baseline.rows) + 1
         if index == -1:
-            self.acked.clear(); self.sent_at.clear()
+            self.acked.clear()
+            self.sent_at.clear()
         elif index == end and end in self.sent_at:
             self.done = True
         elif 0 <= index < end and index in self.sent_at:
@@ -194,22 +209,25 @@ class Sender:
     def packets(self, lease, now):
         if self.done:
             return []
-        b = self.baseline
+        baseline = self.baseline
         if 0 not in self.acked:
             indices = [0]
         else:
-            outstanding = [i for i in range(1, len(b.rows) + 1) if i not in self.acked]
-            indices = outstanding[:WINDOW] or [len(b.rows) + 1]
+            outstanding = [
+                index for index in range(1, len(baseline.rows) + 1) if index not in self.acked
+            ]
+            indices = outstanding[:WINDOW] or [len(baseline.rows) + 1]
         result = []
-        for i in indices:
-            if now - self.sent_at.get(i, -math.inf) >= RETRY:
-                self.sent_at[i] = now
-                result.append(b.packet(lease, i))
+        for index in indices:
+            if now - self.sent_at.get(index, -math.inf) >= RETRY:
+                self.sent_at[index] = now
+                result.append(baseline.packet(lease, index))
         return result
 
 
 class UniverseSession(DockSession):
     """Opt-in INTERNAL W01. Host lease owns the epoch for the whole relay life."""
+
     def __init__(self, *args):
         super().__init__(*args)
         if not self.build.startswith('world1-'):
@@ -245,27 +263,39 @@ class UniverseSession(DockSession):
             return self.identities.receive(raw, address, now)
         if raw.startswith((b'CARGOREQ|', b'CARGODONE|', b'CINV|')):
             return self.cargo.receive(raw, address, now)
-        if not raw.startswith((b'UBEGIN|', b'UOBJECT|', b'UCOMMIT|', b'UACK|', b'UINTEREST|', b'UPOS|', b'UMOVE|',
-                               b'UFOCUS|')):
+        if not raw.startswith(
+            (
+                b'UBEGIN|',
+                b'UOBJECT|',
+                b'UCOMMIT|',
+                b'UACK|',
+                b'UINTEREST|',
+                b'UPOS|',
+                b'UMOVE|',
+                b'UFOCUS|',
+            )
+        ):
             return super().receive(raw, address, now)
         self.expire(now)
         if len(raw) > MAX_PACKET:
             return []
         try:
-            f = raw.decode('ascii').split('|')
-            if len(f) < 3 or f[1] != '1':
+            fields = raw.decode('ascii').split('|')
+            if len(fields) < 3 or fields[1] != '1':
                 return []
-            slot, peer = self._peer(f[2], address)
+            slot, peer = self._peer(fields[2], address)
             if not peer:
                 return []
-            if f[0] == 'UINTEREST' and slot == 'p2' and len(f) == 5:
-                seq = sequence(f[3]); sector = atom(f[4], True)
+            if fields[0] == 'UINTEREST' and slot == 'p2' and len(fields) == 5:
+                seq = sequence(fields[3])
+                sector = atom(fields[4], True)
                 old = self.interest
                 if old and old[0] == peer.lease and seq <= old[1]:
                     return []
                 self.interest = (peer.lease, seq, sector)
                 if not old or old[0] != peer.lease or old[2] != sector:
-                    self.delivery = None; self.delivered = None
+                    self.delivery = None
+                    self.delivered = None
                     # A sector change discards the guest's replicas: resend cached motion.
                     self.forwarded = {}
                     # The guest's receiver has a global monotonic revision. On
@@ -273,39 +303,49 @@ class UniverseSession(DockSession):
                     # forever and block delivery of the next fresh one. Require
                     # a capture newer than any baseline already sent to this
                     # guest; a genuinely new guest may use the cache immediately.
-                    self.interest_after_revision = (self.universe.latest.revision
-                        if old and old[0] == peer.lease and self.universe.latest else 0)
+                    self.interest_after_revision = (
+                        self.universe.latest.revision
+                        if old and old[0] == peer.lease and self.universe.latest
+                        else 0
+                    )
                 return []
-            if f[0] == 'UFOCUS' and slot == 'p2' and len(f) == 5:
-                seq = sequence(f[3]); target = sequence(f[4])
+            if fields[0] == 'UFOCUS' and slot == 'p2' and len(fields) == 5:
+                seq = sequence(fields[3])
+                target = sequence(fields[4])
                 old = self.focus
                 if old and old[0] == peer.lease and seq <= old[1]:
                     return []
                 self.focus = (peer.lease, seq, target)
                 return []
-            if f[0] == 'UACK' and slot == 'p2' and len(f) == 6:
-                rev = sequence(f[4]); index = -1 if f[5] == '-1' else sequence(f[5])
+            if fields[0] == 'UACK' and slot == 'p2' and len(fields) == 6:
+                rev = sequence(fields[4])
+                index = -1 if fields[5] == '-1' else sequence(fields[5])
                 if self.delivery and self.delivery_lease == peer.lease:
-                    self.delivery.acknowledge(f[3], rev, index)
+                    self.delivery.acknowledge(fields[3], rev, index)
                     if self.delivery.done:
                         self.delivered = self.delivery.baseline.revision
                 return []
-            if slot != 'p1' or len(f) < 5 or f[3] != peer.lease:
+            if slot != 'p1' or len(fields) < 5 or fields[3] != peer.lease:
                 return []
             if self.universe_epoch and self.universe_epoch != peer.lease:
                 return []  # A fresh host game needs a new relay and fresh guest.
-            if (f[0] == 'UPOS' and len(f) == 13) or (f[0] == 'UMOVE' and len(f) == 20):
-                entity, seq = sequence(f[4]), sequence(f[5]); sector = atom(f[6], True)
-                if f[0] == 'UPOS':
-                    pose(f[7:])
+            if (fields[0] == 'UPOS' and len(fields) == 13) or (
+                fields[0] == 'UMOVE' and len(fields) == 20
+            ):
+                entity, seq = sequence(fields[4]), sequence(fields[5])
+                sector = atom(fields[6], True)
+                if fields[0] == 'UPOS':
+                    pose(fields[7:])
                 else:
-                    sample_time = float(f[7])
+                    sample_time = float(fields[7])
                     if not math.isfinite(sample_time) or not 0 <= sample_time <= 1e12:
                         return []
-                    pose(f[8:14])
-                    velocity = [float(v) for v in f[14:20]]
-                    if not all(math.isfinite(v) and abs(v) <= (100000 if i < 3 else math.tau)
-                               for i, v in enumerate(velocity)):
+                    pose(fields[8:14])
+                    velocity = [float(value) for value in fields[14:20]]
+                    if not all(
+                        math.isfinite(value) and abs(value) <= (100000 if i < 3 else math.tau)
+                        for i, value in enumerate(velocity)
+                    ):
                         return []
                 baseline = self.sectors.get(sector)
                 if not baseline or entity not in self.entity_ids.get(sector, set()):
@@ -313,11 +353,11 @@ class UniverseSession(DockSession):
                 old = self.positions.get(entity)
                 if old and seq <= old[0]:
                     return []
-                if old and f[0] == old[4] == 'UMOVE' and sample_time <= float(old[3][4]):
+                if old and fields[0] == old[4] == 'UMOVE' and sample_time <= float(old[3][4]):
                     return []
-                self.positions[entity] = (seq, now, sector, f[3:], f[0])
+                self.positions[entity] = (seq, now, sector, fields[3:], fields[0])
                 return []
-            ack, committed = self.universe.receive(f, now)
+            ack, committed = self.universe.receive(fields, now)
             if ack is None:
                 return []
             self.universe_epoch = peer.lease
@@ -327,11 +367,22 @@ class UniverseSession(DockSession):
                 self.sectors[committed.sector] = committed
                 while len(self.sectors) > 8:
                     del self.sectors[next(iter(self.sectors))]
-                self.entity_ids = {k: {record(row) for row in b.rows} for k, b in self.sectors.items()}
+                self.entity_ids = {
+                    entry_key: {record(row) for row in b.rows}
+                    for entry_key, b in self.sectors.items()
+                }
                 live = set().union(*self.entity_ids.values())
-                self.positions = {k: v for k, v in self.positions.items() if k in live}
-                self.forwarded = {k: v for k, v in self.forwarded.items() if k in live}
-            return [f'UACK|1|{peer.lease}|{f[3]}|{f[4]}|{ack}'.encode('ascii')]
+                self.positions = {
+                    entry_key: value
+                    for entry_key, value in self.positions.items()
+                    if entry_key in live
+                }
+                self.forwarded = {
+                    entry_key: value
+                    for entry_key, value in self.forwarded.items()
+                    if entry_key in live
+                }
+            return [f'UACK|1|{peer.lease}|{fields[3]}|{fields[4]}|{ack}'.encode('ascii')]
         except (ValueError, OverflowError, UnicodeError):
             return []
 
@@ -350,13 +401,21 @@ class UniverseSession(DockSession):
             self.focus_sent = focus[:2]
             result.append((host.address, f'UFOCUS|1|{host.lease}|{focus[1]}|{focus[2]}'.encode()))
         if self.delivery_lease != guest.lease:
-            self.delivery = None; self.delivered = None; self.delivery_lease = guest.lease
+            self.delivery = None
+            self.delivered = None
+            self.delivery_lease = guest.lease
         latest = self.sectors.get(sector)
-        if (latest and latest.revision > self.interest_after_revision and
-                (not self.delivery or self.delivery.done) and latest.revision != self.delivered):
+        if (
+            latest
+            and latest.revision > self.interest_after_revision
+            and (not self.delivery or self.delivery.done)
+            and latest.revision != self.delivered
+        ):
             self.delivery = Sender(latest)
         if self.delivery:
-            result.extend((guest.address, p) for p in self.delivery.packets(guest.lease, now))
+            result.extend(
+                (guest.address, packet) for packet in self.delivery.packets(guest.lease, now)
+            )
         # Independent, lossy motion cannot create entities or commit a baseline.
         # Samples not yet forwarded go first: recent ones (younger than MOTION_LIVE) oldest
         # arrival first, then older ones up to MOTION_KEEP (catch-up after a join or sector
@@ -364,15 +423,22 @@ class UniverseSession(DockSession):
         # new ones waited. Up to REPEAT_BUDGET recent samples are then repeated round robin to
         # cover datagram loss.
         if self.forwarded_lease != guest.lease:
-            self.forwarded = {}; self.forwarded_lease = guest.lease
-        kept = [(k, v) for k, v in self.positions.items() if v[2] == sector and now - v[1] < MOTION_KEEP]
+            self.forwarded = {}
+            self.forwarded_lease = guest.lease
+        kept = [
+            (entry_key, entry_value)
+            for entry_key, entry_value in self.positions.items()
+            if entry_value[2] == sector and now - entry_value[1] < MOTION_KEEP
+        ]
         live = [kv for kv in kept if now - kv[1][1] < MOTION_LIVE]
         if kept:
-            fresh = sorted((kv for kv in kept if self.forwarded.get(kv[0]) != kv[1][0]),
-                           key=lambda kv: (now - kv[1][1] >= MOTION_LIVE, kv[1][1]))
+            fresh = sorted(
+                (kv for kv in kept if self.forwarded.get(kv[0]) != kv[1][0]),
+                key=lambda kv: (now - kv[1][1] >= MOTION_LIVE, kv[1][1]),
+            )
             chosen = fresh[:MOTION_BUDGET]
             if len(chosen) < MOTION_BUDGET:
-                taken = {k for k, _ in chosen}
+                taken = {entry_key for entry_key, _ in chosen}
                 rest = [kv for kv in live if kv[0] not in taken]
                 if rest:
                     take = min(REPEAT_BUDGET, MOTION_BUDGET - len(chosen), len(rest))
@@ -381,5 +447,7 @@ class UniverseSession(DockSession):
             for entity, entry in chosen:
                 fields, kind = entry[3], entry[4]
                 self.forwarded[entity] = entry[0]
-                result.append((guest.address, (kind+'|1|' + guest.lease + '|' + '|'.join(fields)).encode()))
+                result.append(
+                    (guest.address, (kind + '|1|' + guest.lease + '|' + '|'.join(fields)).encode())
+                )
         return result

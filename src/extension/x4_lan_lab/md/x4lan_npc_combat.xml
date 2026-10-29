@@ -1,179 +1,285 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mdscript name="X4LAN_NpcCombat" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <cues>
-  <cue name="Session" namespace="this">
-   <conditions><event_ui_triggered screen="'X4LAN_NpcCombat'" control="'Setup'"/></conditions>
-   <actions>
-    <set_value name="Session.$arena" exact="md.X4LAN_Bubble.Arena"/>
-    <set_value name="Session.$capture" exact="md.X4LAN_ShotCapture.Session"/>
-    <set_value name="Session.$rows" exact="table[]"/><set_value name="Session.$byObject" exact="table[]"/>
-    <set_value name="Session.$failed" exact="false"/><set_value name="Session.$applying" exact="false"/>
-    <set_value name="Session.$collisions" exact="[]"/><set_value name="Session.$collisionAt" exact="-1s"/>
-    <create_group groupname="Session.$objects"/>
-    <raise_lua_event name="'X4LAN_NpcCombat.Ready'"/>
-   </actions>
-   <cues>
-    <cue name="Stop" instantiate="true" namespace="this"><conditions><event_ui_triggered screen="'X4LAN_NpcCombat'" control="'Stop'"/></conditions><actions>
-     <set_value name="Session.$failed" exact="true"/>
-    </actions></cue>
-    <!-- Every queued action rechecks native identity, ownership, sector, docking and player
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_NpcCombat" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="Session" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_NpcCombat'" control="'Setup'"/>
+            </conditions>
+            <actions>
+                <set_value name="Session.$arena" exact="md.X4LAN_Bubble.Arena"/>
+                <set_value name="Session.$capture" exact="md.X4LAN_ShotCapture.Session"/>
+                <set_value name="Session.$rows" exact="table[]"/>
+                <set_value name="Session.$byObject" exact="table[]"/>
+                <set_value name="Session.$failed" exact="false"/>
+                <set_value name="Session.$applying" exact="false"/>
+                <set_value name="Session.$collisions" exact="[]"/>
+                <set_value name="Session.$collisionAt" exact="-1s"/>
+                <create_group groupname="Session.$objects"/>
+                <raise_lua_event name="'X4LAN_NpcCombat.Ready'"/>
+            </actions>
+            <cues>
+                <cue name="Stop" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_NpcCombat'" control="'Stop'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="Session.$failed" exact="true"/>
+                    </actions>
+                </cue>
+                <!-- Every queued action rechecks native identity, ownership, sector, docking and player
          occupancy at EXECUTION, in the readback's wall second and bounded game-age window. -->
-    <library name="Check"><actions>
-     <set_value name="$ok" exact="false"/>
-     <do_if value="not Session.$failed and not @Session.$arena.$shotFailed and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $a.$stamp and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline and @$o.isoperational">
-      <set_value name="$ok" exact="$o.idcode == $a.$code and $o.macro.id == $a.$macro and $o.owner == faction.{$a.$owner} and $o.owner != faction.player and $o.sector.macro.id == $a.$sector and ($o.isclass.ship_s or $o.isclass.ship_m) and not $o.dock and not $o.isinternallystored and $o != player.controlled and $o != player.occupiedship and $o != player.container and Session.$arena.$ships.indexof.{$o} == 0"/>
-     </do_if>
-    </actions></library>
-    <library name="Read"><actions>
-     <raise_lua_event name="'X4LAN_NpcCombat.Read'" param="'%s|%s|%s|%s|%s|%s'.[$r.$id,$r.$gen,$r.$serial,if $r.$dead then 0 else @$r.$object.hullpercentage,if $r.$dead then 0 else @$r.$object.shieldpercentage,if $r.$dead then 0 else 1]"/>
-    </actions></library>
-    <cue name="Bind" instantiate="true" namespace="this"><conditions><event_ui_triggered screen="'X4LAN_NpcCombat'" control="'Bind'"/></conditions><actions>
-     <set_value name="$a" exact="event.param3"/><set_value name="$o" exact="$a.$object"/>
-     <include_actions ref="Check"/>
-     <do_if value="$ok and $a.$id gt 0 and $a.$gen gt 0 and $a.$serial gt 0">
-      <do_if value="not Session.$rows.{$a.$id}?">
-       <do_if value="Session.$byObject.{$o}? and Session.$byObject.{$o} != $a.$id">
-        <set_value name="Session.$rows.{Session.$byObject.{$o}}.$retired" exact="true"/>
-       </do_if>
-       <set_value name="$r" exact="table[$id=$a.$id,$gen=$a.$gen,$serial=$a.$serial,$object=$o,$code=$a.$code,$macro=$a.$macro,$owner=$a.$owner,$sector=$a.$sector,$dead=false,$seq=0,$me=0,$sg=0,$count=0,$quarantine=0s,$gens=[0,0],$counts=[0,0]]"/>
-       <set_value name="Session.$rows.{$a.$id}" exact="$r"/><set_value name="Session.$byObject.{$o}" exact="$a.$id"/>
-       <add_to_group groupname="Session.$objects" object="$o"/>
-      </do_if>
-      <set_value name="$r" exact="Session.$rows.{$a.$id}"/>
-      <!-- A sector return may create a new LOCAL replica. Preserve the cumulative
+                <library name="Check">
+                    <actions>
+                        <set_value name="$ok" exact="false"/>
+                        <do_if value="not Session.$failed and not @Session.$arena.$shotFailed and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $a.$stamp and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline and @$o.isoperational">
+                            <set_value name="$ok" exact="$o.idcode == $a.$code and $o.macro.id == $a.$macro and $o.owner == faction.{$a.$owner} and $o.owner != faction.player and $o.sector.macro.id == $a.$sector and ($o.isclass.ship_s or $o.isclass.ship_m) and not $o.dock and not $o.isinternallystored and $o != player.controlled and $o != player.occupiedship and $o != player.container and Session.$arena.$ships.indexof.{$o} == 0"/>
+                        </do_if>
+                    </actions>
+                </library>
+                <library name="Read">
+                    <actions>
+                        <raise_lua_event name="'X4LAN_NpcCombat.Read'" param="'%s|%s|%s|%s|%s|%s'.[$r.$id,$r.$gen,$r.$serial,if $r.$dead then 0 else @$r.$object.hullpercentage,if $r.$dead then 0 else @$r.$object.shieldpercentage,if $r.$dead then 0 else 1]"/>
+                    </actions>
+                </library>
+                <cue name="Bind" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_NpcCombat'" control="'Bind'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <set_value name="$o" exact="$a.$object"/>
+                        <include_actions ref="Check"/>
+                        <do_if value="$ok and $a.$id gt 0 and $a.$gen gt 0 and $a.$serial gt 0">
+                            <do_if value="not Session.$rows.{$a.$id}?">
+                                <do_if value="Session.$byObject.{$o}? and Session.$byObject.{$o} != $a.$id">
+                                    <set_value name="Session.$rows.{Session.$byObject.{$o}}.$retired" exact="true"/>
+                                </do_if>
+                                <set_value name="$r" exact="table[$id=$a.$id,$gen=$a.$gen,$serial=$a.$serial,$object=$o,$code=$a.$code,$macro=$a.$macro,$owner=$a.$owner,$sector=$a.$sector,$dead=false,$seq=0,$me=0,$sg=0,$count=0,$quarantine=0s,$gens=[0,0],$counts=[0,0]]"/>
+                                <set_value name="Session.$rows.{$a.$id}" exact="$r"/>
+                                <set_value name="Session.$byObject.{$o}" exact="$a.$id"/>
+                                <add_to_group groupname="Session.$objects" object="$o"/>
+                            </do_if>
+                            <set_value name="$r" exact="Session.$rows.{$a.$id}"/>
+                            <!-- A sector return may create a new LOCAL replica. Preserve the cumulative
            hit ledger; only its native reference and quarantine are renewed. -->
-      <do_if value="not Session.$arena.$host and not $r.$dead and $r.$gen == $a.$gen and $a.$serial gt $r.$serial and $r.$macro == $a.$macro and $r.$owner == $a.$owner and $r.$sector == $a.$sector">
-       <set_value name="$r.$object" exact="$o"/><set_value name="$r.$code" exact="$a.$code"/><set_value name="$r.$serial" exact="$a.$serial"/>
-       <set_value name="$r.$seq" exact="0"/><set_value name="$r.$quarantine" exact="player.age + @Session.$capture.$capLifetime + 0.25s"/>
-       <set_value name="Session.$byObject.{$o}" exact="$a.$id"/><add_to_group groupname="Session.$objects" object="$o"/>
-      </do_if>
-      <do_if value="not @$r.$retired and not $r.$dead and $r.$gen == $a.$gen and $r.$serial == $a.$serial and $r.$object == $o and $r.$code == $a.$code and $r.$macro == $a.$macro and $r.$owner == $a.$owner and $r.$sector == $a.$sector">
-       <set_value name="$r.$at" exact="player.age"/>
-       <do_if value="Session.$arena.$host"><include_actions ref="Read"/></do_if>
-       <do_else>
-        <set_object_min_hull object="$o" exact="0.000001"/>
-        <!-- The host sends a new sequence on every 10 Hz readback, changed or not. Write hull/shield
+                            <do_if value="not Session.$arena.$host and not $r.$dead and $r.$gen == $a.$gen and $a.$serial gt $r.$serial and $r.$macro == $a.$macro and $r.$owner == $a.$owner and $r.$sector == $a.$sector">
+                                <set_value name="$r.$object" exact="$o"/>
+                                <set_value name="$r.$code" exact="$a.$code"/>
+                                <set_value name="$r.$serial" exact="$a.$serial"/>
+                                <set_value name="$r.$seq" exact="0"/>
+                                <set_value name="$r.$quarantine" exact="player.age + @Session.$capture.$capLifetime + 0.25s"/>
+                                <set_value name="Session.$byObject.{$o}" exact="$a.$id"/>
+                                <add_to_group groupname="Session.$objects" object="$o"/>
+                            </do_if>
+                            <do_if value="not @$r.$retired and not $r.$dead and $r.$gen == $a.$gen and $r.$serial == $a.$serial and $r.$object == $o and $r.$code == $a.$code and $r.$macro == $a.$macro and $r.$owner == $a.$owner and $r.$sector == $a.$sector">
+                                <set_value name="$r.$at" exact="player.age"/>
+                                <do_if value="Session.$arena.$host">
+                                    <include_actions ref="Read"/>
+                                </do_if>
+                                <do_else>
+                                    <set_object_min_hull object="$o" exact="0.000001"/>
+                                    <!-- The host sends a new sequence on every 10 Hz readback, changed or not. Write hull/shield
              only when they differ by more than 0.5 points: every set_object_shield counts as a
              change and re-shows the HUD shield bar, so rewriting the unchanged value on each NHP
              made the bars of all bound replicas flash (same guard as the Bubble Apply). -->
-        <do_if value="$a.$sequence gt $r.$seq">
-         <set_value name="Session.$applying" exact="true"/>
-         <do_if value="($o.hullpercentage - $a.$hull) * ($o.hullpercentage - $a.$hull) gt 0.25"><set_object_hull object="$o" exact="[0.000001,$a.$hull].max"/></do_if>
-         <do_if value="($o.shieldpercentage - $a.$shield) * ($o.shieldpercentage - $a.$shield) gt 0.25"><set_object_shield object="$o" exact="$a.$shield"/></do_if>
-         <set_value name="Session.$applying" exact="false"/><set_value name="$r.$seq" exact="$a.$sequence"/>
-        </do_if>
-        <set_value name="$me" exact="@Session.$capture.$capMe"/><set_value name="$sg" exact="0"/>
-        <do_if value="$me gt 0"><set_value name="$sg" exact="Session.$arena.$shotCurrentGen.{$me}"/></do_if>
-        <do_if value="$r.$me != $me or $r.$sg != $sg">
-         <set_value name="$r.$me" exact="$me"/><set_value name="$r.$sg" exact="$sg"/><set_value name="$r.$count" exact="0"/>
-         <set_value name="$r.$quarantine" exact="player.age + @Session.$capture.$capLifetime + 0.25s"/>
-        </do_if>
-       </do_else>
-      </do_if>
-     </do_if>
-    </actions></cue>
-    <cue name="Apply" instantiate="true" namespace="this"><conditions><event_ui_triggered screen="'X4LAN_NpcCombat'" control="'Apply'"/></conditions><actions>
-     <set_value name="$a" exact="event.param3"/><set_value name="$o" exact="$a.$object"/>
-     <include_actions ref="Check"/>
-     <set_value name="$r" exact="@Session.$rows.{$a.$id}"/>
-     <do_if value="$ok and Session.$arena.$host and $r and not @$r.$retired and not $r.$dead and $r.$object == $o and $r.$serial == $a.$serial and $r.$gen == $a.$gen and player.age - $r.$at lt 5s and $a.$shooter ge 1 and $a.$shooter le 2">
-      <set_value name="$e" exact="$a.$shooter"/>
-      <do_if value="$a.$state == Session.$arena.$shotState and player.age - Session.$arena.$shotStateAt le 0.3s and $a.$sgen == Session.$arena.$shotCurrentGen.{$e} and $a.$sgen gt Session.$arena.$healthClosed.{$e} and @Session.$arena.$healthLive.{$e} and @Session.$arena.$healthGen.{$e} == $a.$sgen and not Session.$arena.$dead.{$e} and @Session.$arena.$ships.{$e}.isoperational and $a.$strength gt 0 and $a.$strength == Session.$arena.$shotStrength.{$e}">
-       <do_if value="$a.$sgen gt $r.$gens.{$e} and $a.$base == 0"><set_value name="$r.$gens.{$e}" exact="$a.$sgen"/><set_value name="$r.$counts.{$e}" exact="0"/></do_if>
-       <do_if value="$a.$sgen == $r.$gens.{$e}">
-        <do_if value="$a.$base == $r.$counts.{$e} and $a.$count gt $a.$base and $a.$count - $a.$base le 20">
-         <set_value name="Session.$applying" exact="true"/>
-         <do_all exact="$a.$count - $a.$base">
-          <do_if value="$o.isoperational"><apply_attackstrength object="$o" attacker="Session.$arena.$ships.{$e}" hullshield="$a.$strength" hullonly="0" shieldonly="0" hullnoshield="0"/></do_if>
-         </do_all>
-         <set_value name="Session.$applying" exact="false"/>
-         <set_value name="$r.$counts.{$e}" exact="$a.$count"/>
-         <do_if value="not $o.isoperational"><set_value name="$r.$dead" exact="true"/></do_if>
-         <debug_text text="'[X4LAN] NPC_APPLIED id=%s gen=%s shooter=%s sgen=%s hits=%s..%s strength=%s hull=%s shield=%s dead=%s'.[$a.$id,$a.$gen,$e,$a.$sgen,$a.$base,$a.$count,$a.$strength,@$o.hullpercentage,@$o.shieldpercentage,$r.$dead]"/>
-         <include_actions ref="Read"/>
-        </do_if>
-        <do_if value="$a.$count le $r.$counts.{$e}">
-         <raise_lua_event name="'X4LAN_NpcCombat.Applied'" param="'%s|%s|%s|%s|%s|%s'.[$r.$id,$r.$gen,$r.$serial,$e,$a.$sgen,$r.$counts.{$e}]"/>
-        </do_if>
-       </do_if>
-      </do_if>
-     </do_if>
-    </actions></cue>
-    <cue name="Destroy" instantiate="true" namespace="this"><conditions><event_ui_triggered screen="'X4LAN_NpcCombat'" control="'Destroy'"/></conditions><actions>
-     <set_value name="$a" exact="event.param3"/><set_value name="$o" exact="$a.$object"/><include_actions ref="Check"/>
-     <set_value name="$r" exact="@Session.$rows.{$a.$id}"/>
-     <do_if value="$ok and not Session.$arena.$host and $r and not $r.$dead and not @$r.$retired and $r.$object == $o and $r.$serial == $a.$serial and $r.$gen == $a.$gen and $a.$sequence gt $r.$seq">
-      <set_value name="$r.$dead" exact="true"/><set_value name="$r.$seq" exact="$a.$sequence"/>
-      <set_object_min_hull object="$o" exact="0"/><destroy_object object="$o" explosion="false"/>
-      <debug_text text="'[X4LAN] NPC_DESTROY id=%s gen=%s code=%s'.[$r.$id,$r.$gen,$r.$code]"/>
-     </do_if>
-    </actions></cue>
-    <cue name="Destroyed" instantiate="true" namespace="this"><conditions><event_object_destroyed group="Session.$objects"/></conditions><actions>
-     <do_if value="Session.$arena.$host and Session.$byObject.{event.object}?">
-      <set_value name="$r" exact="Session.$rows.{Session.$byObject.{event.object}}"/>
-      <do_if value="$r.$object == event.object"><set_value name="$r.$dead" exact="true"/><include_actions ref="Read"/></do_if>
-     </do_if>
-    </actions></cue>
-    <!-- Close the old combat identity permanently on an authority context transition,
+                                    <do_if value="$a.$sequence gt $r.$seq">
+                                        <set_value name="Session.$applying" exact="true"/>
+                                        <do_if value="($o.hullpercentage - $a.$hull) * ($o.hullpercentage - $a.$hull) gt 0.25">
+                                            <set_object_hull object="$o" exact="[0.000001,$a.$hull].max"/>
+                                        </do_if>
+                                        <do_if value="($o.shieldpercentage - $a.$shield) * ($o.shieldpercentage - $a.$shield) gt 0.25">
+                                            <set_object_shield object="$o" exact="$a.$shield"/>
+                                        </do_if>
+                                        <set_value name="Session.$applying" exact="false"/>
+                                        <set_value name="$r.$seq" exact="$a.$sequence"/>
+                                    </do_if>
+                                    <set_value name="$me" exact="@Session.$capture.$capMe"/>
+                                    <set_value name="$sg" exact="0"/>
+                                    <do_if value="$me gt 0">
+                                        <set_value name="$sg" exact="Session.$arena.$shotCurrentGen.{$me}"/>
+                                    </do_if>
+                                    <do_if value="$r.$me != $me or $r.$sg != $sg">
+                                        <set_value name="$r.$me" exact="$me"/>
+                                        <set_value name="$r.$sg" exact="$sg"/>
+                                        <set_value name="$r.$count" exact="0"/>
+                                        <set_value name="$r.$quarantine" exact="player.age + @Session.$capture.$capLifetime + 0.25s"/>
+                                    </do_if>
+                                </do_else>
+                            </do_if>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Apply" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_NpcCombat'" control="'Apply'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <set_value name="$o" exact="$a.$object"/>
+                        <include_actions ref="Check"/>
+                        <set_value name="$r" exact="@Session.$rows.{$a.$id}"/>
+                        <do_if value="$ok and Session.$arena.$host and $r and not @$r.$retired and not $r.$dead and $r.$object == $o and $r.$serial == $a.$serial and $r.$gen == $a.$gen and player.age - $r.$at lt 5s and $a.$shooter ge 1 and $a.$shooter le 2">
+                            <set_value name="$e" exact="$a.$shooter"/>
+                            <do_if value="$a.$state == Session.$arena.$shotState and player.age - Session.$arena.$shotStateAt le 0.3s and $a.$sgen == Session.$arena.$shotCurrentGen.{$e} and $a.$sgen gt Session.$arena.$healthClosed.{$e} and @Session.$arena.$healthLive.{$e} and @Session.$arena.$healthGen.{$e} == $a.$sgen and not Session.$arena.$dead.{$e} and @Session.$arena.$ships.{$e}.isoperational and $a.$strength gt 0 and $a.$strength == Session.$arena.$shotStrength.{$e}">
+                                <do_if value="$a.$sgen gt $r.$gens.{$e} and $a.$base == 0">
+                                    <set_value name="$r.$gens.{$e}" exact="$a.$sgen"/>
+                                    <set_value name="$r.$counts.{$e}" exact="0"/>
+                                </do_if>
+                                <do_if value="$a.$sgen == $r.$gens.{$e}">
+                                    <do_if value="$a.$base == $r.$counts.{$e} and $a.$count gt $a.$base and $a.$count - $a.$base le 20">
+                                        <set_value name="Session.$applying" exact="true"/>
+                                        <do_all exact="$a.$count - $a.$base">
+                                            <do_if value="$o.isoperational">
+                                                <apply_attackstrength object="$o" attacker="Session.$arena.$ships.{$e}" hullshield="$a.$strength" hullonly="0" shieldonly="0" hullnoshield="0"/>
+                                            </do_if>
+                                        </do_all>
+                                        <set_value name="Session.$applying" exact="false"/>
+                                        <set_value name="$r.$counts.{$e}" exact="$a.$count"/>
+                                        <do_if value="not $o.isoperational">
+                                            <set_value name="$r.$dead" exact="true"/>
+                                        </do_if>
+                                        <debug_text text="'[X4LAN] NPC_APPLIED id=%s gen=%s shooter=%s sgen=%s hits=%s..%s strength=%s hull=%s shield=%s dead=%s'.[$a.$id,$a.$gen,$e,$a.$sgen,$a.$base,$a.$count,$a.$strength,@$o.hullpercentage,@$o.shieldpercentage,$r.$dead]"/>
+                                        <include_actions ref="Read"/>
+                                    </do_if>
+                                    <do_if value="$a.$count le $r.$counts.{$e}">
+                                        <raise_lua_event name="'X4LAN_NpcCombat.Applied'" param="'%s|%s|%s|%s|%s|%s'.[$r.$id,$r.$gen,$r.$serial,$e,$a.$sgen,$r.$counts.{$e}]"/>
+                                    </do_if>
+                                </do_if>
+                            </do_if>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Destroy" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_NpcCombat'" control="'Destroy'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <set_value name="$o" exact="$a.$object"/>
+                        <include_actions ref="Check"/>
+                        <set_value name="$r" exact="@Session.$rows.{$a.$id}"/>
+                        <do_if value="$ok and not Session.$arena.$host and $r and not $r.$dead and not @$r.$retired and $r.$object == $o and $r.$serial == $a.$serial and $r.$gen == $a.$gen and $a.$sequence gt $r.$seq">
+                            <set_value name="$r.$dead" exact="true"/>
+                            <set_value name="$r.$seq" exact="$a.$sequence"/>
+                            <set_object_min_hull object="$o" exact="0"/>
+                            <destroy_object object="$o" explosion="false"/>
+                            <debug_text text="'[X4LAN] NPC_DESTROY id=%s gen=%s code=%s'.[$r.$id,$r.$gen,$r.$code]"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Destroyed" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_object_destroyed group="Session.$objects"/>
+                    </conditions>
+                    <actions>
+                        <do_if value="Session.$arena.$host and Session.$byObject.{event.object}?">
+                            <set_value name="$r" exact="Session.$rows.{Session.$byObject.{event.object}}"/>
+                            <do_if value="$r.$object == event.object">
+                                <set_value name="$r.$dead" exact="true"/>
+                                <include_actions ref="Read"/>
+                            </do_if>
+                        </do_if>
+                    </actions>
+                </cue>
+                <!-- Close the old combat identity permanently on an authority context transition,
          even when it returns to its earlier owner/sector before the next Lua scan. -->
-    <cue name="Retire" instantiate="true" namespace="this"><conditions><check_any>
-     <event_object_docked group="Session.$objects"/>
-     <event_object_changed_owner group="Session.$objects"/>
-     <event_object_changed_sector group="Session.$objects"/>
-    </check_any></conditions><actions>
-     <do_if value="Session.$arena.$host and Session.$byObject.{event.object}?">
-      <set_value name="$r" exact="Session.$rows.{Session.$byObject.{event.object}}"/>
-      <do_if value="$r.$object == event.object and not @$r.$retired">
-       <set_value name="$r.$retired" exact="true"/>
-       <raise_lua_event name="'X4LAN_NpcCombat.Retired'" param="'%s|%s|%s'.[$r.$id,$r.$gen,$r.$serial]"/>
-      </do_if>
-     </do_if>
-    </actions></cue>
-    <cue name="Collided" instantiate="true" namespace="this"><conditions><event_object_collided group="Session.$objects"/></conditions><actions>
-     <do_if value="Session.$collisionAt != player.age"><set_value name="Session.$collisions" exact="[]"/><set_value name="Session.$collisionAt" exact="player.age"/></do_if>
-     <append_to_list name="Session.$collisions" exact="[event.object,event.param]"/>
-     <append_to_list name="Session.$collisions" exact="[event.param,event.object]"/>
-    </actions></cue>
-    <library name="Classify"><actions>
-     <set_value name="$admitted" exact="false"/><set_value name="$r" exact="null"/>
-     <do_if value="not Session.$arena.$host and not Session.$failed and not Session.$applying and not @Session.$arena.$shotFailed and not @Session.$capture.$capFailed and Session.$byObject.{$o}?">
-      <set_value name="$r" exact="Session.$rows.{Session.$byObject.{$o}}"/><set_value name="$e" exact="@Session.$capture.$capMe"/>
-      <do_if value="$e gt 0 and not $r.$dead and $r.$object == $o and $o.isoperational and $o.idcode == $r.$code and $o.macro.id == $r.$macro and $o.owner == faction.{$r.$owner} and $o.owner != faction.player and $o.sector.macro.id == $r.$sector and not $o.dock and not $o.isinternallystored and player.age - $r.$at lt 5s and player.age - @Session.$capture.$capStateAt le 0.3s and player.age - Session.$arena.$shotStateAt le 0.3s">
-       <set_value name="$sg" exact="Session.$arena.$shotCurrentGen.{$e}"/>
-       <set_value name="$att" exact="@$o.lastattacker"/>
-       <do_if value="$att == Session.$arena.$ships.{$e} and player.controlled == $att and @Session.$arena.$healthOwn.{$e} and @Session.$arena.$healthAuth.{$e} == $sg and $sg gt Session.$arena.$healthClosed.{$e} and @Session.$arena.$shotVisualMode.{$e} == 1 and @Session.$arena.$shotVisualGen.{$e} == $sg and player.age - @Session.$arena.$shotVisualAt.{$e} le 0.3s and Session.$arena.$shotStrength.{$e} gt 0">
-        <set_value name="$admitted" exact="true"/>
-        <do_if value="Session.$collisionAt == player.age"><do_all exact="Session.$collisions.count" counter="$i">
-         <do_if value="Session.$collisions.{$i}.{1} == $o and Session.$collisions.{$i}.{2} == $att"><set_value name="$admitted" exact="false"/></do_if>
-        </do_all></do_if>
-       </do_if>
-      </do_if>
-     </do_if>
-    </actions></library>
-    <library name="Count"><actions>
-     <do_if value="$r.$me == $e and $r.$sg == $sg and player.age ge $r.$quarantine and $r.$count lt 1000000">
-      <set_value name="$r.$count" exact="$r.$count + 1"/>
-      <raise_lua_event name="'X4LAN_NpcCombat.Count'" param="'%s|%s|%s|%s|%s|%s'.[$r.$id,$r.$gen,$r.$serial,$e,$sg,$r.$count]"/>
-     </do_if>
-    </actions></library>
-    <cue name="Shield" instantiate="true" namespace="this"><conditions><event_object_shield_damaged group="Session.$objects"/></conditions><actions>
-     <set_value name="$o" exact="event.object"/><set_value name="$amount" exact="event.param3"/><include_actions ref="Classify"/>
-     <do_if value="$admitted and $amount gt 0 and $o.maxshield gt 0">
-      <set_object_shield object="$o" exact="[100,($o.shield + $amount) * 100.0 / $o.maxshield].min"/>
-      <include_actions ref="Count"/>
-     </do_if>
-    </actions></cue>
-    <cue name="Hull" instantiate="true" namespace="this"><conditions><event_object_hull_damaged group="Session.$objects"/></conditions><actions>
-     <do_if value="event.param == event.object">
-      <set_value name="$o" exact="event.object"/><set_value name="$amount" exact="event.param3"/><include_actions ref="Classify"/>
-      <do_if value="$admitted and $amount gt 0 and $o.maxhull gt 0">
-       <set_value name="$counts" exact="$o.shield le 0"/>
-       <set_object_hull object="$o" exact="[100,($o.hull + $amount) * 100.0 / $o.maxhull].min"/>
-       <do_if value="$counts"><include_actions ref="Count"/></do_if>
-      </do_if>
-     </do_if>
-    </actions></cue>
-   </cues>
-  </cue>
- </cues>
+                <cue name="Retire" instantiate="true" namespace="this">
+                    <conditions>
+                        <check_any>
+                            <event_object_docked group="Session.$objects"/>
+                            <event_object_changed_owner group="Session.$objects"/>
+                            <event_object_changed_sector group="Session.$objects"/>
+                        </check_any>
+                    </conditions>
+                    <actions>
+                        <do_if value="Session.$arena.$host and Session.$byObject.{event.object}?">
+                            <set_value name="$r" exact="Session.$rows.{Session.$byObject.{event.object}}"/>
+                            <do_if value="$r.$object == event.object and not @$r.$retired">
+                                <set_value name="$r.$retired" exact="true"/>
+                                <raise_lua_event name="'X4LAN_NpcCombat.Retired'" param="'%s|%s|%s'.[$r.$id,$r.$gen,$r.$serial]"/>
+                            </do_if>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Collided" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_object_collided group="Session.$objects"/>
+                    </conditions>
+                    <actions>
+                        <do_if value="Session.$collisionAt != player.age">
+                            <set_value name="Session.$collisions" exact="[]"/>
+                            <set_value name="Session.$collisionAt" exact="player.age"/>
+                        </do_if>
+                        <append_to_list name="Session.$collisions" exact="[event.object,event.param]"/>
+                        <append_to_list name="Session.$collisions" exact="[event.param,event.object]"/>
+                    </actions>
+                </cue>
+                <library name="Classify">
+                    <actions>
+                        <set_value name="$admitted" exact="false"/>
+                        <set_value name="$r" exact="null"/>
+                        <do_if value="not Session.$arena.$host and not Session.$failed and not Session.$applying and not @Session.$arena.$shotFailed and not @Session.$capture.$capFailed and Session.$byObject.{$o}?">
+                            <set_value name="$r" exact="Session.$rows.{Session.$byObject.{$o}}"/>
+                            <set_value name="$e" exact="@Session.$capture.$capMe"/>
+                            <do_if value="$e gt 0 and not $r.$dead and $r.$object == $o and $o.isoperational and $o.idcode == $r.$code and $o.macro.id == $r.$macro and $o.owner == faction.{$r.$owner} and $o.owner != faction.player and $o.sector.macro.id == $r.$sector and not $o.dock and not $o.isinternallystored and player.age - $r.$at lt 5s and player.age - @Session.$capture.$capStateAt le 0.3s and player.age - Session.$arena.$shotStateAt le 0.3s">
+                                <set_value name="$sg" exact="Session.$arena.$shotCurrentGen.{$e}"/>
+                                <set_value name="$att" exact="@$o.lastattacker"/>
+                                <do_if value="$att == Session.$arena.$ships.{$e} and player.controlled == $att and @Session.$arena.$healthOwn.{$e} and @Session.$arena.$healthAuth.{$e} == $sg and $sg gt Session.$arena.$healthClosed.{$e} and @Session.$arena.$shotVisualMode.{$e} == 1 and @Session.$arena.$shotVisualGen.{$e} == $sg and player.age - @Session.$arena.$shotVisualAt.{$e} le 0.3s and Session.$arena.$shotStrength.{$e} gt 0">
+                                    <set_value name="$admitted" exact="true"/>
+                                    <do_if value="Session.$collisionAt == player.age">
+                                        <do_all exact="Session.$collisions.count" counter="$i">
+                                            <do_if value="Session.$collisions.{$i}.{1} == $o and Session.$collisions.{$i}.{2} == $att">
+                                                <set_value name="$admitted" exact="false"/>
+                                            </do_if>
+                                        </do_all>
+                                    </do_if>
+                                </do_if>
+                            </do_if>
+                        </do_if>
+                    </actions>
+                </library>
+                <library name="Count">
+                    <actions>
+                        <do_if value="$r.$me == $e and $r.$sg == $sg and player.age ge $r.$quarantine and $r.$count lt 1000000">
+                            <set_value name="$r.$count" exact="$r.$count + 1"/>
+                            <raise_lua_event name="'X4LAN_NpcCombat.Count'" param="'%s|%s|%s|%s|%s|%s'.[$r.$id,$r.$gen,$r.$serial,$e,$sg,$r.$count]"/>
+                        </do_if>
+                    </actions>
+                </library>
+                <cue name="Shield" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_object_shield_damaged group="Session.$objects"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$o" exact="event.object"/>
+                        <set_value name="$amount" exact="event.param3"/>
+                        <include_actions ref="Classify"/>
+                        <do_if value="$admitted and $amount gt 0 and $o.maxshield gt 0">
+                            <set_object_shield object="$o" exact="[100,($o.shield + $amount) * 100.0 / $o.maxshield].min"/>
+                            <include_actions ref="Count"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Hull" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_object_hull_damaged group="Session.$objects"/>
+                    </conditions>
+                    <actions>
+                        <do_if value="event.param == event.object">
+                            <set_value name="$o" exact="event.object"/>
+                            <set_value name="$amount" exact="event.param3"/>
+                            <include_actions ref="Classify"/>
+                            <do_if value="$admitted and $amount gt 0 and $o.maxhull gt 0">
+                                <set_value name="$counts" exact="$o.shield le 0"/>
+                                <set_object_hull object="$o" exact="[100,($o.hull + $amount) * 100.0 / $o.maxhull].min"/>
+                                <do_if value="$counts">
+                                    <include_actions ref="Count"/>
+                                </do_if>
+                            </do_if>
+                        </do_if>
+                    </actions>
+                </cue>
+            </cues>
+        </cue>
+    </cues>
 </mdscript>

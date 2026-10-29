@@ -654,14 +654,39 @@ class CoopOwnerMd(unittest.TestCase):
             self.assertIn(keep, tick)
         mirror = E.tostring(next(c for c in root.iter('cue') if c.get('name') == 'RelationMirror'), encoding='unicode')
         self.assertIn('isrelationlocked', mirror)
-        # Every docking request of a shared ship first hands it back to `player`.
-        guard = '<do_if value="$ship.owner != faction.player"><set_owner object="$ship" faction="faction.player"'
+        # The owner guard must precede the request on the same execution path.
         for name in ('x4lan_bubble.xml', 'x4lan_coop.xml', 'x4lan_trade.xml', 'x4lan_coop_attachment.xml'):
-            text = (EXT / 'md' / name).read_text(encoding='utf-8')
-            hits = list(re.finditer(r'<request_docking(?:_at_dock)? ship="\$ship"', text))
-            self.assertTrue(hits, name)
-            for m in hits:
-                self.assertIn(guard, text[max(0, m.start() - 300):m.start()], name)
+            document = E.parse(EXT / 'md' / name).getroot()
+            parents = {child: parent for parent in document.iter() for child in parent}
+            requests = [
+                element for element in document.iter()
+                if element.tag in ('request_docking', 'request_docking_at_dock')
+                and element.get('ship') == '$ship'
+            ]
+            self.assertTrue(requests, name)
+            for request in requests:
+                current = request
+                guarded = False
+                while current in parents:
+                    siblings = list(parents[current])
+                    index = siblings.index(current)
+                    previous = siblings[index - 1] if index else None
+                    if (
+                        previous is not None
+                        and previous.tag == 'do_if'
+                        and previous.get('value') == '$ship.owner != faction.player'
+                    ):
+                        children = list(previous)
+                        owner = children[0] if children else None
+                        guarded = (
+                            owner is not None
+                            and owner.tag == 'set_owner'
+                            and owner.get('object') == '$ship'
+                            and owner.get('faction') == 'faction.player'
+                        )
+                        break
+                    current = parents[current]
+                self.assertTrue(guarded, name)
 
 
 class FlagDefaults(unittest.TestCase):

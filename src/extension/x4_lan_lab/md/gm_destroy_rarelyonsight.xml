@@ -1,75 +1,86 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <diff>
-  <add sel="/mdscript/cues/library[@name='Start']//cue[@name='CreateOffer']/actions">
-    <do_if value="@md.X4LAN_Missions.Session.$active">
-      <do_if value="md.X4LAN_Missions.Session.$host">
-        <include_actions ref="md.X4LAN_Missions.RegisterQuota"/>
-      </do_if>
-      <do_else>
-        <do_if value="$MissionCue.hasmissionoffer">
-          <remove_offer cue="$MissionCue"/>
+    <add sel="/mdscript/cues/library[@name='Start']//cue[@name='CreateOffer']/actions">
+        <do_if value="@md.X4LAN_Missions.Session.$active">
+            <do_if value="md.X4LAN_Missions.Session.$host">
+                <include_actions ref="md.X4LAN_Missions.RegisterQuota"/>
+            </do_if>
+            <do_else>
+                <do_if value="$MissionCue.hasmissionoffer">
+                    <remove_offer cue="$MissionCue"/>
+                </do_if>
+                <do_if value="$MissionCue.hasmission">
+                    <remove_mission cue="$MissionCue" type="aborted"/>
+                </do_if>
+                <cancel_cue cue="Start"/>
+            </do_else>
         </do_if>
-        <do_if value="$MissionCue.hasmission">
-          <remove_mission cue="$MissionCue" type="aborted"/>
+    </add>
+    <add sel="/mdscript/cues/library[@name='Start']//cue[@name='MissionAccepted']/actions">
+        <do_if value="@md.X4LAN_Missions.Session.$active">
+            <do_if value="md.X4LAN_Missions.Session.$host">
+                <include_actions ref="md.X4LAN_Missions.RegisterQuota"/>
+            </do_if>
+            <do_else>
+                <do_if value="$MissionCue.hasmissionoffer">
+                    <remove_offer cue="$MissionCue"/>
+                </do_if>
+                <do_if value="$MissionCue.hasmission">
+                    <remove_mission cue="$MissionCue" type="aborted"/>
+                </do_if>
+                <cancel_cue cue="Start"/>
+            </do_else>
         </do_if>
-        <cancel_cue cue="Start"/>
-      </do_else>
-    </do_if>
-  </add>
-  <add sel="/mdscript/cues/library[@name='Start']//cue[@name='MissionAccepted']/actions">
-    <do_if value="@md.X4LAN_Missions.Session.$active">
-      <do_if value="md.X4LAN_Missions.Session.$host">
-        <include_actions ref="md.X4LAN_Missions.RegisterQuota"/>
-      </do_if>
-      <do_else>
-        <do_if value="$MissionCue.hasmissionoffer">
-          <remove_offer cue="$MissionCue"/>
+    </add>
+    <add sel="/mdscript/cues/library[@name='Start']//remove_mission[@type='completed']" pos="before">
+        <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission">
+            <run_actions ref="md.X4LAN_Missions.Change">
+                <param name="Mission" value="$MissionCue"/>
+                <param name="State" value="'C'"/>
+            </run_actions>
         </do_if>
-        <do_if value="$MissionCue.hasmission">
-          <remove_mission cue="$MissionCue" type="aborted"/>
+    </add>
+    <add sel="(/mdscript/cues/library[@name='Start']//remove_mission[@type='failed'])[1]" pos="before">
+        <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission">
+            <run_actions ref="md.X4LAN_Missions.Change">
+                <param name="Mission" value="$MissionCue"/>
+                <param name="State" value="'F'"/>
+            </run_actions>
         </do_if>
-        <cancel_cue cue="Start"/>
-      </do_else>
-    </do_if>
-  </add>
-  <add sel="/mdscript/cues/library[@name='Start']//remove_mission[@type='completed']" pos="before">
-    <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission">
-      <run_actions ref="md.X4LAN_Missions.Change">
-        <param name="Mission" value="$MissionCue"/>
-        <param name="State" value="'C'"/>
-      </run_actions>
-    </do_if>
-  </add>
-  <add sel="(/mdscript/cues/library[@name='Start']//remove_mission[@type='failed'])[1]" pos="before">
-    <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission">
-      <run_actions ref="md.X4LAN_Missions.Change">
-        <param name="Mission" value="$MissionCue"/>
-        <param name="State" value="'F'"/>
-      </run_actions>
-    </do_if>
-  </add>
-  <add sel="(/mdscript/cues/library[@name='Start']//remove_mission[@type='failed'])[2]" pos="before">
-    <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission">
-      <run_actions ref="md.X4LAN_Missions.Change">
-        <param name="Mission" value="$MissionCue"/>
-        <param name="State" value="'F'"/>
-      </run_actions>
-    </do_if>
-  </add>
-  <add sel="/mdscript/cues/library[@name='Start']//cue[@name='Aborted']/actions/remove_mission[@type='aborted']" pos="before">
-    <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission">
-      <run_actions ref="md.X4LAN_Missions.Change">
-        <param name="Mission" value="$MissionCue"/>
-        <param name="State" value="'X'"/>
-      </run_actions>
-    </do_if>
-  </add>
-  <add sel="/mdscript/cues/library[@name='Start']/cues/cue[@name='CleanUp']/actions" pos="prepend">
-    <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission">
-      <run_actions ref="md.X4LAN_Missions.Change">
-        <param name="Mission" value="$MissionCue"/>
-        <param name="State" value="if $MissionCue.$x4lanMission.$state == 'O' then 'W' else 'F'"/>
-      </run_actions>
-    </do_if>
-  </add>
-<replace sel="/mdscript/cues/library[@name='Start']//cue[@name='Aborted']/conditions"><conditions><check_any><event_mission_aborted cue="$MissionCue"/><check_all><event_cue_signalled/><check_value value="@md.X4LAN_Missions.Session.$active and md.X4LAN_Missions.Session.$host and @$MissionCue.$x4lanMission"/></check_all></check_any></conditions></replace></diff>
+    </add>
+    <add sel="(/mdscript/cues/library[@name='Start']//remove_mission[@type='failed'])[2]" pos="before">
+        <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission">
+            <run_actions ref="md.X4LAN_Missions.Change">
+                <param name="Mission" value="$MissionCue"/>
+                <param name="State" value="'F'"/>
+            </run_actions>
+        </do_if>
+    </add>
+    <add sel="/mdscript/cues/library[@name='Start']//cue[@name='Aborted']/actions/remove_mission[@type='aborted']" pos="before">
+        <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission">
+            <run_actions ref="md.X4LAN_Missions.Change">
+                <param name="Mission" value="$MissionCue"/>
+                <param name="State" value="'X'"/>
+            </run_actions>
+        </do_if>
+    </add>
+    <add sel="/mdscript/cues/library[@name='Start']/cues/cue[@name='CleanUp']/actions" pos="prepend">
+        <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission">
+            <run_actions ref="md.X4LAN_Missions.Change">
+                <param name="Mission" value="$MissionCue"/>
+                <param name="State" value="if $MissionCue.$x4lanMission.$state == 'O' then 'W' else 'F'"/>
+            </run_actions>
+        </do_if>
+    </add>
+    <replace sel="/mdscript/cues/library[@name='Start']//cue[@name='Aborted']/conditions">
+        <conditions>
+            <check_any>
+                <event_mission_aborted cue="$MissionCue"/>
+                <check_all>
+                    <event_cue_signalled/>
+                    <check_value value="@md.X4LAN_Missions.Session.$active and md.X4LAN_Missions.Session.$host and @$MissionCue.$x4lanMission"/>
+                </check_all>
+            </check_any>
+        </conditions>
+    </replace>
+</diff>

@@ -1,4 +1,5 @@
 """Create two configured client folders without modifying an X4 installation."""
+
 import argparse
 import ipaddress
 import json
@@ -9,7 +10,9 @@ import shutil
 from x4lan.host import ATOM
 
 
-def prepare(output: Path, host: str, build: str, mode: str = "telemetry", port: int = 45841) -> dict:
+def prepare(
+    output: Path, host: str, build: str, mode: str = "telemetry", port: int = 45841
+) -> dict:
     ipaddress.IPv4Address(host)
     if not ATOM.fullmatch(build):
         raise ValueError("build must be an identifier such as 9.00-611726")
@@ -17,13 +20,20 @@ def prepare(output: Path, host: str, build: str, mode: str = "telemetry", port: 
         raise ValueError("invalid mode or port")
     output.mkdir(parents=True, exist_ok=False)
     session = dict(token=secrets.token_hex(16), build=build, bubble="bubble-01", port=port)
-    (output / "session.json").write_text(json.dumps(session, indent=2)+"\n", encoding="utf-8")
+    (output / "session.json").write_text(json.dumps(session, indent=2) + "\n", encoding="utf-8")
     source = Path(__file__).parent / "src" / "extension" / "x4_lan_lab"
     for slot in ("p1", "p2"):
         target = output / slot / "extensions" / "x4_lan_lab"
         shutil.copytree(source, target)
-        values = {"enabled": True, "test_profile": "45841", "host": host, **session, "slot": slot, "mode": mode,
-                  "proxy_macro": "ship_arg_s_scout_01_a_macro"}
+        values = {
+            "enabled": True,
+            "test_profile": "45841",
+            "host": host,
+            **session,
+            "slot": slot,
+            "mode": mode,
+            "proxy_macro": "ship_arg_s_scout_01_a_macro",
+        }
         lines = ["-- Generated X4 LAN Lab configuration", "X4LAN_CONFIG = {"]
         for key, value in values.items():
             literal = "true" if value is True else json.dumps(value)

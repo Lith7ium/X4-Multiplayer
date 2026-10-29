@@ -1,42 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Optional pristine snapshot identity; inactive without explicit UI events. -->
-<mdscript name="X4LAN_Seed" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <cues>
-  <cue name="State" namespace="this">
-   <conditions><event_ui_triggered screen="'X4LAN_Seed'" control="'Mark'"/></conditions>
-   <actions>
-    <do_if value="not md.X4LAN_Bubble.Arena.$ships? and not md.X4LAN_Bubble.PrepareShips.$own?">
-     <set_value name="$id" exact="event.param3"/>
-    </do_if>
-   </actions>
-  </cue>
-  <cue name="Inspect" instantiate="true">
-   <conditions><event_ui_triggered screen="'X4LAN_Seed'" control="'Inspect'"/></conditions>
-   <actions>
-    <set_value name="$pristine" exact="not md.X4LAN_Bubble.Arena.$ships? and not md.X4LAN_Bubble.PrepareShips.$own?"/>
-    <!-- An optional saved test station must still be the original fixture.
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_Seed" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="State" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Seed'" control="'Mark'"/>
+            </conditions>
+            <actions>
+                <do_if value="not md.X4LAN_Bubble.Arena.$ships? and not md.X4LAN_Bubble.PrepareShips.$own?">
+                    <set_value name="$id" exact="event.param3"/>
+                </do_if>
+            </actions>
+        </cue>
+        <cue name="Inspect" instantiate="true">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Seed'" control="'Inspect'"/>
+            </conditions>
+            <actions>
+                <set_value name="$pristine" exact="not md.X4LAN_Bubble.Arena.$ships? and not md.X4LAN_Bubble.PrepareShips.$own?"/>
+                <!-- An optional saved test station must still be the original fixture.
          Never silently replace a missing station with different bay identities. -->
-    <do_if value="md.X4LAN_SeedDocks.State.$testStation?">
-     <set_value name="$station" exact="md.X4LAN_SeedDocks.State.$testStation"/>
-     <do_if value="not $station.exists"><set_value name="$pristine" exact="false"/></do_if>
-     <do_elseif value="not $station.isclass.station or not $station.isoperational or $station.macro.id != 'station_gen_factory_base_01_macro' or $station.owner != faction.player"><set_value name="$pristine" exact="false"/></do_elseif>
-    </do_if>
-    <do_if value="md.X4LAN_SeedDocks.State.$testStation2?">
-     <set_value name="$station" exact="md.X4LAN_SeedDocks.State.$testStation2"/>
-     <do_if value="not $station.exists"><set_value name="$pristine" exact="false"/></do_if>
-     <do_elseif value="not $station.isclass.station or not $station.isoperational or $station.macro.id != 'station_gen_factory_base_01_macro' or $station.owner != faction.player"><set_value name="$pristine" exact="false"/></do_elseif>
-    </do_if>
-    <raise_lua_event name="'X4LAN_Seed.State'" param="'%s|%s|%s'.[if State.$id? then State.$id else '',if $pristine then 1 else 0,if State.$loads? then State.$loads else 0]"/>
-   </actions>
-  </cue>
-  <cue name="Loaded" instantiate="true">
-   <conditions><event_game_loaded/></conditions>
-   <actions>
-    <!-- Readable after UI reload even if its Lua notification was missed. -->
-    <set_value name="State.$loads" exact="(if State.$loads? then State.$loads else 0) + 1"/>
-    <debug_text text="'[X4LAN] SEED_NATIVE loaded count=%s marked=%s'.[State.$loads,State.$id?]"/>
-    <raise_lua_event name="'X4LAN_Seed.Loaded'"/>
-   </actions>
-  </cue>
- </cues>
+                <do_if value="md.X4LAN_SeedDocks.State.$testStation?">
+                    <set_value name="$station" exact="md.X4LAN_SeedDocks.State.$testStation"/>
+                    <do_if value="not $station.exists">
+                        <set_value name="$pristine" exact="false"/>
+                    </do_if>
+                    <do_elseif value="not $station.isclass.station or not $station.isoperational or $station.macro.id != 'station_gen_factory_base_01_macro' or $station.owner != faction.player">
+                        <set_value name="$pristine" exact="false"/>
+                    </do_elseif>
+                </do_if>
+                <do_if value="md.X4LAN_SeedDocks.State.$testStation2?">
+                    <set_value name="$station" exact="md.X4LAN_SeedDocks.State.$testStation2"/>
+                    <do_if value="not $station.exists">
+                        <set_value name="$pristine" exact="false"/>
+                    </do_if>
+                    <do_elseif value="not $station.isclass.station or not $station.isoperational or $station.macro.id != 'station_gen_factory_base_01_macro' or $station.owner != faction.player">
+                        <set_value name="$pristine" exact="false"/>
+                    </do_elseif>
+                </do_if>
+                <raise_lua_event name="'X4LAN_Seed.State'" param="'%s|%s|%s'.[if State.$id? then State.$id else '',if $pristine then 1 else 0,if State.$loads? then State.$loads else 0]"/>
+            </actions>
+        </cue>
+        <cue name="Loaded" instantiate="true">
+            <conditions>
+                <event_game_loaded/>
+            </conditions>
+            <actions>
+                <!-- Readable after UI reload even if its Lua notification was missed. -->
+                <set_value name="State.$loads" exact="(if State.$loads? then State.$loads else 0) + 1"/>
+                <debug_text text="'[X4LAN] SEED_NATIVE loaded count=%s marked=%s'.[State.$loads,State.$id?]"/>
+                <raise_lua_event name="'X4LAN_Seed.Loaded'"/>
+            </actions>
+        </cue>
+    </cues>
 </mdscript>

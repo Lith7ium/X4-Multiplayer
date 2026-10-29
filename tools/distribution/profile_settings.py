@@ -1,4 +1,5 @@
 """Copy display/control preferences into an owned internal profile, never saves/mod selection."""
+
 from datetime import datetime, timezone
 import json
 import os
@@ -27,13 +28,20 @@ def xml_root(data, name):
 def owned_profile(package_root, slot_validator=None):
     package = read_json(package_root / 'package.json')
     state = read_json(package_root / 'installation.json')
-    if (package.get('channel') != 'internal' or not package.get('package_id')
-            or state.get('package_id') != package['package_id']):
+    if (
+        package.get('channel') != 'internal'
+        or not package.get('package_id')
+        or state.get('package_id') != package['package_id']
+    ):
         raise RuntimeError('Settings import requires this package\'s installed internal mod.')
     profile = Path(state['profile'])
     expected = str(package.get('test_profile', '45841'))
-    if (expected not in TEST_PROFILES or not profile.is_absolute() or profile.name != expected
-            or profile.resolve().name != expected):
+    if (
+        expected not in TEST_PROFILES
+        or not profile.is_absolute()
+        or profile.name != expected
+        or profile.resolve().name != expected
+    ):
         raise RuntimeError('Unexpected test profile path.')
     marker = Path(state['game']) / 'extensions/x4_lan_lab/.x4lan-package-id'
     if marker.read_text(encoding='utf-8-sig') != package['package_id']:
@@ -42,15 +50,23 @@ def owned_profile(package_root, slot_validator=None):
         raise RuntimeError('The test profile contains saves or a linked save folder.')
     if any((profile / 'save').glob('*.xml*')):
         if slot_validator is None:
-            raise RuntimeError('The test profile contains saves; a verified shared-world slot is required.')
+            raise RuntimeError(
+                'The test profile contains saves; a verified shared-world slot is required.'
+            )
         slot_validator(profile)
     return profile
 
 
 def candidates(profile):
-    return sorted(p for p in profile.parent.iterdir()
-                  if p.is_dir() and p.name.isdigit() and p.name not in TEST_PROFILES
-                  and not p.is_symlink() and (p / 'config.xml').is_file())
+    return sorted(
+        candidate
+        for candidate in profile.parent.iterdir()
+        if candidate.is_dir()
+        and candidate.name.isdigit()
+        and candidate.name not in TEST_PROFILES
+        and not candidate.is_symlink()
+        and (candidate / 'config.xml').is_file()
+    )
 
 
 def prepare(profile, source):
@@ -64,8 +80,12 @@ def prepare(profile, source):
     if tree.tag != 'root':
         raise RuntimeError('Unknown source config.xml format.')
     # Keep resolution, quality and controls; use borderless for background ticks.
-    for name, value in {'autosave': 'false', 'uisafemode': 'false',
-                        'fullscreen': 'false', 'borderless': 'true'}.items():
+    for name, value in {
+        'autosave': 'false',
+        'uisafemode': 'false',
+        'fullscreen': 'false',
+        'borderless': 'true',
+    }.items():
         nodes = tree.findall(name)
         if not nodes:
             nodes = [ET.SubElement(tree, name)]
@@ -92,7 +112,9 @@ def prepare(profile, source):
 def atomic_write(path, data):
     temporary = None
     try:
-        with tempfile.NamedTemporaryFile(dir=path.parent, prefix='.x4lan-settings-', delete=False) as stream:
+        with tempfile.NamedTemporaryFile(
+            dir=path.parent, prefix='.x4lan-settings-', delete=False
+        ) as stream:
             temporary = Path(stream.name)
             stream.write(data)
         os.replace(temporary, path)
@@ -101,7 +123,9 @@ def atomic_write(path, data):
             temporary.unlink()
 
 
-def import_settings(package_root, source=None, keep=False, ask=input, slot_validator=None, force_select=False):
+def import_settings(
+    package_root, source=None, keep=False, ask=input, slot_validator=None, force_select=False
+):
     profile = owned_profile(package_root, slot_validator)
     if source and keep:
         raise ValueError('Choose a source profile or keep the test settings, not both.')
@@ -115,7 +139,9 @@ def import_settings(package_root, source=None, keep=False, ask=input, slot_valid
                 print(f'{i}: {candidate}')
             answer = ask('Profile number (0 keeps the current test settings): ').strip()
             if not answer.isdigit() or int(answer) > len(choices):
-                raise ValueError('Invalid settings profile selection. Run 01-INSTALL again to retry.')
+                raise ValueError(
+                    'Invalid settings profile selection. Run 01-INSTALL again to retry.'
+                )
             if int(answer):
                 source = choices[int(answer) - 1]
     record = {'profile': str(profile), 'source': None, 'files': []}
@@ -125,13 +151,22 @@ def import_settings(package_root, source=None, keep=False, ask=input, slot_valid
         print('Keeping current test settings / game defaults; no normal settings profile selected.')
         return record
     source, files, before = prepare(profile, Path(source))
-    backup = package_root / 'backups' / ('settings-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S-%fZ'))
+    backup = (
+        package_root
+        / 'backups'
+        / ('settings-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S-%fZ'))
+    )
     backup.mkdir(parents=True)
     for name, data in before.items():
         if data is not None:
             (backup / name).write_bytes(data)
     record.update(source=str(source), files=sorted(files), backup=str(backup))
-    (backup / 'before.json').write_text(json.dumps({n: v is not None for n, v in before.items()}, indent=2) + '\n')
+    (backup / 'before.json').write_text(
+        json.dumps(
+            {filename: contents is not None for filename, contents in before.items()}, indent=2
+        )
+        + '\n'
+    )
     changed = []
     try:
         for name, data in files.items():
@@ -153,9 +188,16 @@ def import_settings(package_root, source=None, keep=False, ask=input, slot_valid
             except OSError as exc:
                 failures.append(str(exc))
         if failures:
-            raise RuntimeError('Settings import failed; rollback incomplete. Backup: ' + str(backup) + '; ' + '; '.join(failures)) from error
+            raise RuntimeError(
+                'Settings import failed; rollback incomplete. Backup: '
+                + str(backup)
+                + '; '
+                + '; '.join(failures)
+            ) from error
         raise
     print('Display, graphics and controls copied from:', source)
     print('Previous test settings backed up to:', backup)
-    print('Test profile uses borderless mode for Alt+Tab, with autosave/protected UI mode disabled. Resolution and controls are preserved.')
+    print(
+        'Test profile uses borderless mode for Alt+Tab, with autosave/protected UI mode disabled. Resolution and controls are preserved.'
+    )
     return record

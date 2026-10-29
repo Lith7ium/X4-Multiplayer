@@ -1,48 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mdscript name="X4LAN_Universe" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <cues>
-  <cue name="Setup">
-   <conditions><event_ui_triggered screen="'X4LAN_Universe'" control="'Setup'"/></conditions>
-   <actions>
-    <!-- W01 must not enumerate or remove the existing co-op fixtures. -->
-    <!-- Every shared client ship (two, or one per client in N-player sessions). -->
-    <do_all exact="md.X4LAN_Bubble.Arena.$ships.count" counter="$i">
-     <raise_lua_event name="'X4LAN_Universe.Exclude'" param="md.X4LAN_Bubble.Arena.$ships.{$i}"/>
-    </do_all>
-    <do_all exact="2" counter="$i">
-     <raise_lua_event name="'X4LAN_Universe.Exclude'" param="md.X4LAN_Bubble.Arena.$targets.{$i}"/>
-     <raise_lua_event name="'X4LAN_Universe.Target%s'.[$i]" param="md.X4LAN_Bubble.Arena.$targets.{$i}"/>
-    </do_all>
-    <raise_lua_event name="'X4LAN_Universe.Exclude'" param="md.X4LAN_Bubble.Arena.$donor"/>
-    <raise_lua_event name="'X4LAN_Universe.Ready'"/>
-   </actions>
-  </cue>
-  <cue name="Describe" instantiate="true">
-   <conditions><event_ui_triggered screen="'X4LAN_Universe'" control="'Describe'"/></conditions>
-   <actions><do_if value="event.param3.$object.isoperational">
-    <set_object_name object="event.param3.$object" name="event.param3.$name"/>
-    <set_object_radar_visible object="event.param3.$object" visible="true"/>
-   </do_if></actions>
-  </cue>
-  <!-- Client local-NPC sweep: every ship in the given sector, one Lua event each, then a
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_Universe" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="Setup">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Universe'" control="'Setup'"/>
+            </conditions>
+            <actions>
+                <!-- W01 must not enumerate or remove the existing co-op fixtures. -->
+                <!-- Every shared client ship (two, or one per client in N-player sessions). -->
+                <do_all exact="md.X4LAN_Bubble.Arena.$ships.count" counter="$i">
+                    <raise_lua_event name="'X4LAN_Universe.Exclude'" param="md.X4LAN_Bubble.Arena.$ships.{$i}"/>
+                </do_all>
+                <do_all exact="2" counter="$i">
+                    <raise_lua_event name="'X4LAN_Universe.Exclude'" param="md.X4LAN_Bubble.Arena.$targets.{$i}"/>
+                    <raise_lua_event name="'X4LAN_Universe.Target%s'.[$i]" param="md.X4LAN_Bubble.Arena.$targets.{$i}"/>
+                </do_all>
+                <raise_lua_event name="'X4LAN_Universe.Exclude'" param="md.X4LAN_Bubble.Arena.$donor"/>
+                <raise_lua_event name="'X4LAN_Universe.Ready'"/>
+            </actions>
+        </cue>
+        <cue name="Describe" instantiate="true">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Universe'" control="'Describe'"/>
+            </conditions>
+            <actions>
+                <do_if value="event.param3.$object.isoperational">
+                    <set_object_name object="event.param3.$object" name="event.param3.$name"/>
+                    <set_object_radar_visible object="event.param3.$object" visible="true"/>
+                </do_if>
+            </actions>
+        </cue>
+        <!-- Client local-NPC sweep: every ship in the given sector, one Lua event each, then a
        done event with the request token. Lua filters out replicas, shared ships, player
        occupants and player-owned ships before removing anything. -->
-  <cue name="Sweep" instantiate="true">
-   <conditions><event_ui_triggered screen="'X4LAN_Universe'" control="'Sweep'"/></conditions>
-   <actions>
-    <set_value name="$request" exact="event.param3"/>
-    <do_if value="@$request.$sector.exists">
-     <find_ship name="$ships" space="$request.$sector" multiple="true"/>
-     <do_all exact="$ships.count" counter="$i">
-      <raise_lua_event name="'X4LAN_Universe.Swept'" param="$ships.{$i}"/>
-     </do_all>
-    </do_if>
-    <raise_lua_event name="'X4LAN_Universe.SweepDone'" param="$request.$token"/>
-   </actions>
-  </cue>
-  <cue name="Known" instantiate="true">
-   <conditions><event_ui_triggered screen="'X4LAN_Universe'" control="'Known'"/></conditions>
-   <actions><do_if value="event.param3.isoperational"><set_known object="event.param3" known="true"/></do_if></actions>
-  </cue>
- </cues>
+        <cue name="Sweep" instantiate="true">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Universe'" control="'Sweep'"/>
+            </conditions>
+            <actions>
+                <set_value name="$request" exact="event.param3"/>
+                <do_if value="@$request.$sector.exists">
+                    <find_ship name="$ships" space="$request.$sector" multiple="true"/>
+                    <do_all exact="$ships.count" counter="$i">
+                        <raise_lua_event name="'X4LAN_Universe.Swept'" param="$ships.{$i}"/>
+                    </do_all>
+                </do_if>
+                <raise_lua_event name="'X4LAN_Universe.SweepDone'" param="$request.$token"/>
+            </actions>
+        </cue>
+        <cue name="Known" instantiate="true">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Universe'" control="'Known'"/>
+            </conditions>
+            <actions>
+                <do_if value="event.param3.isoperational">
+                    <set_known object="event.param3" known="true"/>
+                </do_if>
+            </actions>
+        </cue>
+    </cues>
 </mdscript>

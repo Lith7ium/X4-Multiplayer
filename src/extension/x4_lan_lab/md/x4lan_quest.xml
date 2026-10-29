@@ -1,80 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mdscript name="X4LAN_Quest" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <cues>
-  <cue name="Session" namespace="this">
-   <conditions><event_ui_triggered screen="'X4LAN_Quest'" control="'Setup'"/></conditions>
-   <actions>
-    <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/><set_value name="$host" exact="$arena.$host"/>
-    <set_value name="$revision" exact="0"/><set_value name="$stage" exact="1"/><set_value name="$delivered" exact="0"/><set_value name="$destroyed" exact="0"/>
-    <set_value name="$paid" exact="false"/><set_value name="$closed" exact="false"/><set_value name="$seen" exact="[]"/><set_value name="$last" exact="''"/>
-    <create_mission cue="Session" name="'Cooperative Trial'" description="'Work together as one crew. Sell a total of 20 Energy Cells to LAN Trading Station Beta, then destroy both LAN Target ships. Either pilot can contribute using either shared ship. The 25,000 credit reward is paid once into your shared treasury.'" faction="faction.argon" type="missiontype.trade" reward="25000Cr" abortable="false" activate="true"/>
-    <include_actions ref="md.X4LAN_Quest.Present"/>
-    <raise_lua_event name="'X4LAN_Quest.Ready'"/>
-    <debug_text text="'[X4LAN] QUEST_READY host=%s shared=Cooperative Trial'.[$host]"/>
-   </actions>
-   <cues>
-    <cue name="Delivery" instantiate="true">
-     <conditions><event_ui_triggered screen="'X4LAN_Quest'" control="'Delivery'"/><check_value value="$host and $stage == 1"/></conditions>
-     <actions>
-      <set_value name="$request" exact="event.param3.$request"/><set_value name="$amount" exact="event.param3.$amount"/>
-      <do_if value="not $seen.indexof.{$request} and $amount gt 0">
-       <append_to_list name="$seen" exact="$request"/>
-       <set_value name="$delivered" exact="[20, $delivered + $amount].min"/>
-       <debug_text text="'[X4LAN] QUEST_DELIVERY request=%s amount=%s total=%s'.[$request,$amount,$delivered]"/>
-      </do_if>
-     </actions>
-    </cue>
-    <cue name="Tick" instantiate="true" checkinterval="0.5s">
-     <conditions><check_value value="$host"/></conditions>
-     <actions>
-      <set_value name="$destroyed" exact="0"/>
-      <do_all exact="2" counter="$i"><do_if value="not $arena.$targets.{$i}.isoperational"><set_value name="$destroyed" operation="add" exact="1"/></do_if></do_all>
-      <do_if value="$delivered ge 20"><set_value name="$stage" exact="2"/></do_if>
-      <do_if value="$delivered ge 20 and $destroyed == 2">
-       <set_value name="$stage" exact="3"/>
-       <do_if value="not $paid"><set_value name="$paid" exact="true"/><reward_player money="25000Cr"/><debug_text text="'[X4LAN] QUEST_REWARD shared=25000Cr once=true'"/></do_if>
-      </do_if>
-      <set_value name="$state" exact="'%s|%s|%s|%s'.[$stage,$delivered,$destroyed,if $paid then 1 else 0]"/>
-      <do_if value="$state != $last">
-       <set_value name="$last" exact="$state"/><set_value name="$revision" operation="add" exact="1"/>
-       <include_actions ref="md.X4LAN_Quest.Present"/>
-       <raise_lua_event name="'X4LAN_Quest.Snapshot'" param="'%s|%s'.[$revision,$state]"/>
-       <debug_text text="'[X4LAN] QUEST_STATE revision=%s stage=%s delivered=%s destroyed=%s paid=%s'.[$revision,$stage,$delivered,$destroyed,$paid]"/>
-      </do_if>
-     </actions>
-    </cue>
-    <cue name="Apply" instantiate="true">
-     <conditions><event_ui_triggered screen="'X4LAN_Quest'" control="'Apply'"/><check_value value="not $host"/></conditions>
-     <actions>
-      <do_if value="event.param3.$revision gt $revision">
-       <set_value name="$revision" exact="event.param3.$revision"/><set_value name="$stage" exact="event.param3.$stage"/>
-       <set_value name="$delivered" exact="event.param3.$delivered"/><set_value name="$destroyed" exact="event.param3.$destroyed"/>
-       <set_value name="$paid" exact="event.param3.$paid == 1"/>
-       <include_actions ref="md.X4LAN_Quest.Present"/>
-       <debug_text text="'[X4LAN] QUEST_MIRROR revision=%s stage=%s delivered=%s destroyed=%s paid=%s'.[$revision,$stage,$delivered,$destroyed,$paid]"/>
-      </do_if>
-     </actions>
-    </cue>
-   </cues>
-  </cue>
-  <library name="Present" purpose="include_actions">
-   <actions>
-    <do_if value="$stage == 1">
-     <set_objective cue="md.X4LAN_Quest.Session" action="objective.custom" customaction="'Sell 20 Energy Cells together'" object="md.X4LAN_Trade.Market.$markets.{2}" text="'LAN Trading Station Beta - shared delivery'" silent="true">
-      <progress max="20" progress="$delivered" text="'Energy Cells delivered'"/>
-     </set_objective>
-    </do_if>
-    <do_elseif value="$stage == 2">
-     <set_value name="$target" exact="if $arena.$targets.{1}.isoperational then $arena.$targets.{1} else $arena.$targets.{2}"/>
-     <set_objective cue="md.X4LAN_Quest.Session" action="objective.custom" customaction="'Destroy both LAN Targets together'" object="$target" text="'Either pilot can contribute'" silent="true">
-      <progress max="2" progress="$destroyed" text="'Targets destroyed'"/>
-     </set_objective>
-    </do_elseif>
-    <do_elseif value="$stage == 3 and not $closed">
-     <set_value name="$closed" exact="true"/><remove_mission cue="md.X4LAN_Quest.Session" type="completed"/>
-     <show_notification text="'Cooperative Trial completed. 25,000 credits added to the shared treasury.'" timeout="10s" priority="8"/>
-    </do_elseif>
-   </actions>
-  </library>
- </cues>
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_Quest" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="Session" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Quest'" control="'Setup'"/>
+            </conditions>
+            <actions>
+                <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
+                <set_value name="$host" exact="$arena.$host"/>
+                <set_value name="$revision" exact="0"/>
+                <set_value name="$stage" exact="1"/>
+                <set_value name="$delivered" exact="0"/>
+                <set_value name="$destroyed" exact="0"/>
+                <set_value name="$paid" exact="false"/>
+                <set_value name="$closed" exact="false"/>
+                <set_value name="$seen" exact="[]"/>
+                <set_value name="$last" exact="''"/>
+                <create_mission cue="Session" name="'Cooperative Trial'" description="'Work together as one crew. Sell a total of 20 Energy Cells to LAN Trading Station Beta, then destroy both LAN Target ships. Either pilot can contribute using either shared ship. The 25,000 credit reward is paid once into your shared treasury.'" faction="faction.argon" type="missiontype.trade" reward="25000Cr" abortable="false" activate="true"/>
+                <include_actions ref="md.X4LAN_Quest.Present"/>
+                <raise_lua_event name="'X4LAN_Quest.Ready'"/>
+                <debug_text text="'[X4LAN] QUEST_READY host=%s shared=Cooperative Trial'.[$host]"/>
+            </actions>
+            <cues>
+                <cue name="Delivery" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Quest'" control="'Delivery'"/>
+                        <check_value value="$host and $stage == 1"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$request" exact="event.param3.$request"/>
+                        <set_value name="$amount" exact="event.param3.$amount"/>
+                        <do_if value="not $seen.indexof.{$request} and $amount gt 0">
+                            <append_to_list name="$seen" exact="$request"/>
+                            <set_value name="$delivered" exact="[20, $delivered + $amount].min"/>
+                            <debug_text text="'[X4LAN] QUEST_DELIVERY request=%s amount=%s total=%s'.[$request,$amount,$delivered]"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Tick" instantiate="true" checkinterval="0.5s">
+                    <conditions>
+                        <check_value value="$host"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$destroyed" exact="0"/>
+                        <do_all exact="2" counter="$i">
+                            <do_if value="not $arena.$targets.{$i}.isoperational">
+                                <set_value name="$destroyed" operation="add" exact="1"/>
+                            </do_if>
+                        </do_all>
+                        <do_if value="$delivered ge 20">
+                            <set_value name="$stage" exact="2"/>
+                        </do_if>
+                        <do_if value="$delivered ge 20 and $destroyed == 2">
+                            <set_value name="$stage" exact="3"/>
+                            <do_if value="not $paid">
+                                <set_value name="$paid" exact="true"/>
+                                <reward_player money="25000Cr"/>
+                                <debug_text text="'[X4LAN] QUEST_REWARD shared=25000Cr once=true'"/>
+                            </do_if>
+                        </do_if>
+                        <set_value name="$state" exact="'%s|%s|%s|%s'.[$stage,$delivered,$destroyed,if $paid then 1 else 0]"/>
+                        <do_if value="$state != $last">
+                            <set_value name="$last" exact="$state"/>
+                            <set_value name="$revision" operation="add" exact="1"/>
+                            <include_actions ref="md.X4LAN_Quest.Present"/>
+                            <raise_lua_event name="'X4LAN_Quest.Snapshot'" param="'%s|%s'.[$revision,$state]"/>
+                            <debug_text text="'[X4LAN] QUEST_STATE revision=%s stage=%s delivered=%s destroyed=%s paid=%s'.[$revision,$stage,$delivered,$destroyed,$paid]"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Apply" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Quest'" control="'Apply'"/>
+                        <check_value value="not $host"/>
+                    </conditions>
+                    <actions>
+                        <do_if value="event.param3.$revision gt $revision">
+                            <set_value name="$revision" exact="event.param3.$revision"/>
+                            <set_value name="$stage" exact="event.param3.$stage"/>
+                            <set_value name="$delivered" exact="event.param3.$delivered"/>
+                            <set_value name="$destroyed" exact="event.param3.$destroyed"/>
+                            <set_value name="$paid" exact="event.param3.$paid == 1"/>
+                            <include_actions ref="md.X4LAN_Quest.Present"/>
+                            <debug_text text="'[X4LAN] QUEST_MIRROR revision=%s stage=%s delivered=%s destroyed=%s paid=%s'.[$revision,$stage,$delivered,$destroyed,$paid]"/>
+                        </do_if>
+                    </actions>
+                </cue>
+            </cues>
+        </cue>
+        <library name="Present" purpose="include_actions">
+            <actions>
+                <do_if value="$stage == 1">
+                    <set_objective cue="md.X4LAN_Quest.Session" action="objective.custom" customaction="'Sell 20 Energy Cells together'" object="md.X4LAN_Trade.Market.$markets.{2}" text="'LAN Trading Station Beta - shared delivery'" silent="true">
+                        <progress max="20" progress="$delivered" text="'Energy Cells delivered'"/>
+                    </set_objective>
+                </do_if>
+                <do_elseif value="$stage == 2">
+                    <set_value name="$target" exact="if $arena.$targets.{1}.isoperational then $arena.$targets.{1} else $arena.$targets.{2}"/>
+                    <set_objective cue="md.X4LAN_Quest.Session" action="objective.custom" customaction="'Destroy both LAN Targets together'" object="$target" text="'Either pilot can contribute'" silent="true">
+                        <progress max="2" progress="$destroyed" text="'Targets destroyed'"/>
+                    </set_objective>
+                </do_elseif>
+                <do_elseif value="$stage == 3 and not $closed">
+                    <set_value name="$closed" exact="true"/>
+                    <remove_mission cue="md.X4LAN_Quest.Session" type="completed"/>
+                    <show_notification text="'Cooperative Trial completed. 25,000 credits added to the shared treasury.'" timeout="10s" priority="8"/>
+                </do_elseif>
+            </actions>
+        </library>
+    </cues>
 </mdscript>

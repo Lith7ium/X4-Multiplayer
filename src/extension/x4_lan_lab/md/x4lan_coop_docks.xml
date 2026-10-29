@@ -1,69 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Optional saved-bay observation and bounded cancellation of a denied local approach. -->
-<mdscript name="X4LAN_CoopDocks" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <cues>
-  <cue name="Session" namespace="this">
-   <conditions><event_ui_triggered screen="'X4LAN_CoopDocks'" control="'Setup'"/></conditions>
-   <actions>
-    <set_value name="$ready" exact="false"/>
-    <do_if value="md.X4LAN_Seed.State.$id? and md.X4LAN_Seed.State.$id == event.param3 and md.X4LAN_Seed.State.$loads == 1 and md.X4LAN_SeedDocks.State.$id? and md.X4LAN_SeedDocks.State.$id == event.param3 and md.X4LAN_SeedDocks.State.$version == 1 and md.X4LAN_Bubble.Arena.$ships?">
-     <set_value name="$ready" exact="true"/>
-     <set_value name="md.X4LAN_Bubble.Arena.$coopDocks" exact="true"/>
-     <raise_lua_event name="'X4LAN_CoopDocks.Ready'" param="event.param3"/>
-    </do_if>
-    <do_else><raise_lua_event name="'X4LAN_CoopDocks.Error'" param="'missing shared saved dock registry'"/></do_else>
-   </actions>
-   <cues>
-    <cue name="Denied" instantiate="true">
-     <conditions><event_ui_triggered screen="'X4LAN_CoopDocks'" control="'Denied'"/></conditions>
-     <actions>
-      <set_value name="$v" exact="event.param3"/>
-      <do_if value="$ready and $v.$ship ge 1 and $v.$ship le 2 and md.X4LAN_CoopAttachment.State.$active and $v.$seed == md.X4LAN_CoopAttachment.State.$seed and $v.$epoch == md.X4LAN_CoopAttachment.State.$epoch and $v.$generation == md.X4LAN_CoopAttachment.State.$generations.{$v.$ship} and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $v.$stamp and player.age / 1s ge $v.$age and player.age / 1s le $v.$age + 0.3">
-       <set_value name="$ship" exact="md.X4LAN_Bubble.Arena.$ships.{$v.$ship}"/>
-       <do_if value="$ship.isoperational and $ship == $v.$native and player.occupiedship == $ship and $v.$dock ge 1 and $v.$dock le md.X4LAN_SeedDocks.State.$docks.count">
-        <set_value name="$dock" exact="md.X4LAN_SeedDocks.State.$docks.{$v.$dock}"/>
-        <do_if value="$dock.exists and ($ship.assigneddock == $dock or $ship.dock == $dock)">
-         <!-- Never teleport or force-undock the physical player. Cancel only an
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_CoopDocks" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="Session" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_CoopDocks'" control="'Setup'"/>
+            </conditions>
+            <actions>
+                <set_value name="$ready" exact="false"/>
+                <do_if value="md.X4LAN_Seed.State.$id? and md.X4LAN_Seed.State.$id == event.param3 and md.X4LAN_Seed.State.$loads == 1 and md.X4LAN_SeedDocks.State.$id? and md.X4LAN_SeedDocks.State.$id == event.param3 and md.X4LAN_SeedDocks.State.$version == 1 and md.X4LAN_Bubble.Arena.$ships?">
+                    <set_value name="$ready" exact="true"/>
+                    <set_value name="md.X4LAN_Bubble.Arena.$coopDocks" exact="true"/>
+                    <raise_lua_event name="'X4LAN_CoopDocks.Ready'" param="event.param3"/>
+                </do_if>
+                <do_else>
+                    <raise_lua_event name="'X4LAN_CoopDocks.Error'" param="'missing shared saved dock registry'"/>
+                </do_else>
+            </actions>
+            <cues>
+                <cue name="Denied" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_CoopDocks'" control="'Denied'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$v" exact="event.param3"/>
+                        <do_if value="$ready and $v.$ship ge 1 and $v.$ship le 2 and md.X4LAN_CoopAttachment.State.$active and $v.$seed == md.X4LAN_CoopAttachment.State.$seed and $v.$epoch == md.X4LAN_CoopAttachment.State.$epoch and $v.$generation == md.X4LAN_CoopAttachment.State.$generations.{$v.$ship} and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $v.$stamp and player.age / 1s ge $v.$age and player.age / 1s le $v.$age + 0.3">
+                            <set_value name="$ship" exact="md.X4LAN_Bubble.Arena.$ships.{$v.$ship}"/>
+                            <do_if value="$ship.isoperational and $ship == $v.$native and player.occupiedship == $ship and $v.$dock ge 1 and $v.$dock le md.X4LAN_SeedDocks.State.$docks.count">
+                                <set_value name="$dock" exact="md.X4LAN_SeedDocks.State.$docks.{$v.$dock}"/>
+                                <do_if value="$dock.exists and ($ship.assigneddock == $dock or $ship.dock == $dock)">
+                                    <!-- Never teleport or force-undock the physical player. Cancel only an
               approach still assigned to the exact denied bay at execution. -->
-         <do_if value="not $ship.dock and not $ship.isinternallystored and $ship.assigneddock == $dock">
-          <remove_docking_request ship="$ship" container="$dock.container" immediate="true"/>
-          <debug_text text="'[X4LAN] COOP_DOCK denied approach cancelled ship=%s dock=%s'.[$v.$ship,$v.$dock]"/>
-         </do_if>
-         <do_if value="not Session.$noticeAt? or player.age ge Session.$noticeAt + 5s">
-          <set_value name="Session.$noticeAt" exact="player.age"/>
-          <show_notification text="'This docking bay is reserved by the other player. Select another bay.'" timeout="6s" priority="8"/>
-         </do_if>
-        </do_if>
-       </do_if>
-      </do_if>
-     </actions>
-    </cue>
-    <cue name="Read" instantiate="true">
-     <conditions><event_ui_triggered screen="'X4LAN_CoopDocks'" control="'Read'"/></conditions>
-     <actions>
-      <do_if value="$ready and player.timewarp.factor gt 0s">
-       <do_all exact="2" counter="$i">
-        <set_value name="$ship" exact="md.X4LAN_Bubble.Arena.$ships.{$i}"/>
-        <set_value name="$mode" exact="'UNKNOWN'"/><set_value name="$dock" exact="null"/><set_value name="$index" exact="0"/>
-        <do_if value="$ship.isoperational">
-         <do_if value="$ship.dock.exists">
-          <set_value name="$dock" exact="$ship.dock"/>
-          <set_value name="$mode" exact="if $ship.isinternallystored then 'STORED' else if $dock.external then 'EXTERNAL' else 'UNKNOWN'"/>
-         </do_if>
-         <do_elseif value="$ship.assigneddock.exists"><set_value name="$dock" exact="$ship.assigneddock"/><set_value name="$mode" exact="'APPROACH'"/></do_elseif>
-         <do_elseif value="not $ship.isinternallystored"><set_value name="$mode" exact="'FREE'"/></do_elseif>
-         <do_if value="$dock.exists">
-          <do_if value="md.X4LAN_SeedDocks.State.$indices.{$dock}?"><set_value name="$index" exact="md.X4LAN_SeedDocks.State.$indices.{$dock}"/></do_if>
-          <do_else><set_value name="$mode" exact="'UNKNOWN'"/></do_else>
-         </do_if>
-         <do_if value="$mode == 'UNKNOWN'"><set_value name="$index" exact="0"/></do_if>
-        </do_if>
-        <raise_lua_event name="'X4LAN_CoopDocks.Row'" param="'%s|%s|%s|%s|%s|%s'.[player.age / 1s,player.systemtime.{'%Y-%m-%dT%H:%M:%S'},$i,$ship,$mode,$index]"/>
-       </do_all>
-      </do_if>
-     </actions>
-    </cue>
-   </cues>
-  </cue>
- </cues>
+                                    <do_if value="not $ship.dock and not $ship.isinternallystored and $ship.assigneddock == $dock">
+                                        <remove_docking_request ship="$ship" container="$dock.container" immediate="true"/>
+                                        <debug_text text="'[X4LAN] COOP_DOCK denied approach cancelled ship=%s dock=%s'.[$v.$ship,$v.$dock]"/>
+                                    </do_if>
+                                    <do_if value="not Session.$noticeAt? or player.age ge Session.$noticeAt + 5s">
+                                        <set_value name="Session.$noticeAt" exact="player.age"/>
+                                        <show_notification text="'This docking bay is reserved by the other player. Select another bay.'" timeout="6s" priority="8"/>
+                                    </do_if>
+                                </do_if>
+                            </do_if>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Read" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_CoopDocks'" control="'Read'"/>
+                    </conditions>
+                    <actions>
+                        <do_if value="$ready and player.timewarp.factor gt 0s">
+                            <do_all exact="2" counter="$i">
+                                <set_value name="$ship" exact="md.X4LAN_Bubble.Arena.$ships.{$i}"/>
+                                <set_value name="$mode" exact="'UNKNOWN'"/>
+                                <set_value name="$dock" exact="null"/>
+                                <set_value name="$index" exact="0"/>
+                                <do_if value="$ship.isoperational">
+                                    <do_if value="$ship.dock.exists">
+                                        <set_value name="$dock" exact="$ship.dock"/>
+                                        <set_value name="$mode" exact="if $ship.isinternallystored then 'STORED' else if $dock.external then 'EXTERNAL' else 'UNKNOWN'"/>
+                                    </do_if>
+                                    <do_elseif value="$ship.assigneddock.exists">
+                                        <set_value name="$dock" exact="$ship.assigneddock"/>
+                                        <set_value name="$mode" exact="'APPROACH'"/>
+                                    </do_elseif>
+                                    <do_elseif value="not $ship.isinternallystored">
+                                        <set_value name="$mode" exact="'FREE'"/>
+                                    </do_elseif>
+                                    <do_if value="$dock.exists">
+                                        <do_if value="md.X4LAN_SeedDocks.State.$indices.{$dock}?">
+                                            <set_value name="$index" exact="md.X4LAN_SeedDocks.State.$indices.{$dock}"/>
+                                        </do_if>
+                                        <do_else>
+                                            <set_value name="$mode" exact="'UNKNOWN'"/>
+                                        </do_else>
+                                    </do_if>
+                                    <do_if value="$mode == 'UNKNOWN'">
+                                        <set_value name="$index" exact="0"/>
+                                    </do_if>
+                                </do_if>
+                                <raise_lua_event name="'X4LAN_CoopDocks.Row'" param="'%s|%s|%s|%s|%s|%s'.[player.age / 1s,player.systemtime.{'%Y-%m-%dT%H:%M:%S'},$i,$ship,$mode,$index]"/>
+                            </do_all>
+                        </do_if>
+                    </actions>
+                </cue>
+            </cues>
+        </cue>
+    </cues>
 </mdscript>

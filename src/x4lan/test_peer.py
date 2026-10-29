@@ -2,6 +2,7 @@
 
 This is a trajectory generator, not a second X4 client. It cannot prove multiplayer.
 """
+
 import argparse
 import json
 import math
@@ -43,31 +44,42 @@ def main():
                     raw = sock.recv(769)
                 except (BlockingIOError, ConnectionRefusedError, ConnectionResetError):
                     break
-                f = raw.decode("ascii", errors="replace").split("|")
-                if len(f) == 5 and f[:3] == ["WELCOME", "1", nonce]:
+                fields = raw.decode("ascii", errors="replace").split("|")
+                if len(fields) == 5 and fields[:3] == ["WELCOME", "1", nonce]:
                     if lease is None:
-                        lease = f[3]
+                        lease = fields[3]
                         print("Connected to relay", flush=True)
-                    if lease == f[3]:
+                    if lease == fields[3]:
                         last_host = now
-                if lease and len(f) in (4, 12) and f[0] in ("EMPTY", "PEER") and f[1:3] == ["1", lease]:
+                if (
+                    lease
+                    and len(fields) in (4, 12)
+                    and fields[0] in ("EMPTY", "PEER")
+                    and fields[1:3] == ["1", lease]
+                ):
                     last_host = now
-                    if f[0] == "PEER" and now-last_print >= 2:
-                        print("X4 pose received: " + ", ".join(f[6:9]), flush=True)
+                    if fields[0] == "PEER" and now - last_print >= 2:
+                        print("X4 pose received: " + ", ".join(fields[6:9]), flush=True)
                         last_print = now
-            if lease and now - last_send >= .05:
+            if lease and now - last_send >= 0.05:
                 seq += 1
-                t = (now - started) * .15
+                phase = (now - started) * 0.15
                 slot_x = -1000 if args.slot == "p1" else 1000
-                pose = (slot_x + 300*math.cos(t), 100*math.sin(t*.7), 300*math.sin(t),
-                        ((-t+math.pi) % math.tau)-math.pi, .2*math.sin(t*.8), .3*math.sin(t*.6))
+                pose = (
+                    slot_x + 300 * math.cos(phase),
+                    100 * math.sin(phase * 0.7),
+                    300 * math.sin(phase),
+                    ((-phase + math.pi) % math.tau) - math.pi,
+                    0.2 * math.sin(phase * 0.8),
+                    0.3 * math.sin(phase * 0.6),
+                )
                 msg = f"STATE|1|{lease}|{seq}|" + "|".join(f"{x:.9g}" for x in pose)
                 try:
                     sock.send(msg.encode("ascii"))
                 except OSError:
                     pass
                 last_send = now
-            time.sleep(.005)
+            time.sleep(0.005)
     except KeyboardInterrupt:
         pass
     finally:

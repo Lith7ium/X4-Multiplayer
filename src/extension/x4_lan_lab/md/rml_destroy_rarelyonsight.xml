@@ -1,12 +1,12 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <diff>
-  <add sel="/mdscript/cues/library[@name='DestroyRarelyOnSight']//cue[@name='CheckMissionStatus']/actions">
-    <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission and $shipmatches">
-      <run_actions ref="md.X4LAN_Missions.Change">
-        <param name="Mission" value="$MissionCue" />
-        <param name="State" value="'A'" />
-        <param name="Done" value="$TargetCountDone" />
-      </run_actions>
-    </do_if>
-  </add>
+    <add sel="/mdscript/cues/library[@name='DestroyRarelyOnSight']//cue[@name='CheckMissionStatus']/actions">
+        <do_if value="@md.X4LAN_Missions.Session.$active and @$MissionCue.$x4lanMission and $shipmatches">
+            <run_actions ref="md.X4LAN_Missions.Change">
+                <param name="Mission" value="$MissionCue"/>
+                <param name="State" value="'A'"/>
+                <param name="Done" value="$TargetCountDone"/>
+            </run_actions>
+        </do_if>
+    </add>
 </diff>

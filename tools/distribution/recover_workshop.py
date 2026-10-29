@@ -3,6 +3,7 @@
 Never launches X4, calls Steam APIs, or writes Steam/normal-profile/mod files.
 The old helper recorded affected IDs, NOT a subscription snapshot.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,13 +48,22 @@ def workshop_id(value):
 def prepare(root):
     package = read_json(root / 'package.json')
     state = read_json(root / 'installation.json')
-    if (package.get('channel') != 'internal' or package.get('slot') not in ('p1', 'p2')
-            or not package.get('package_id') or state.get('package_id') != package['package_id']
-            or package.get('version') != state.get('version')):
+    if (
+        package.get('channel') != 'internal'
+        or package.get('slot') not in ('p1', 'p2')
+        or not package.get('package_id')
+        or state.get('package_id') != package['package_id']
+        or package.get('version') != state.get('version')
+    ):
         raise RuntimeError('Use the original configured internal package folder.')
     profile = Path(state['profile'])
-    if (not profile.is_absolute() or profile.name != '45841' or linked(profile)
-            or profile.resolve().name != '45841' or not (profile / 'config.xml').is_file()):
+    if (
+        not profile.is_absolute()
+        or profile.name != '45841'
+        or linked(profile)
+        or profile.resolve().name != '45841'
+        or not (profile / 'config.xml').is_file()
+    ):
         raise RuntimeError('Unexpected test profile; no recovery changes made.')
     target = profile / 'content.xml'
     if linked(target) or linked(root / 'backups'):
@@ -85,15 +95,20 @@ def prepare(root):
             raise RuntimeError('Invalid after checksum.')
         if not isinstance(record.get('disabled_ids'), list):
             raise RuntimeError('Invalid affected-ID list.')
-        candidates.update(n for value in record['disabled_ids'] if (n := workshop_id(value)))
+        candidates.update(
+            item_id for value in record['disabled_ids'] if (item_id := workshop_id(value))
+        )
         records.append((folder, record, before))
     if not records:
-        raise RuntimeError('No Fix-1 backups found. Keep the original package and its backups; '
-                           'do not guess a former subscription list.')
+        raise RuntimeError(
+            'No Fix-1 backups found. Keep the original package and its backups; '
+            'do not guess a former subscription list.'
+        )
     current = target.read_bytes() if target.exists() else None
     original = records[0][2]
-    chain_valid = all(digest(records[i][2]) == records[i-1][1]['after_sha256']
-                      for i in range(1, len(records)))
+    chain_valid = all(
+        digest(records[i][2]) == records[i - 1][1]['after_sha256'] for i in range(1, len(records))
+    )
     if current == original:
         status = 'already_original'
     elif chain_valid and digest(current) == records[-1][1]['after_sha256']:
@@ -136,9 +151,17 @@ def prepare(root):
                     names[number] = entry.get('name') or folder.name
             except (OSError, ValueError, ET.ParseError):
                 warnings.append('Could not read a display name from ' + str(manifest))
-    return dict(target=target, current=current, original=original, status=status,
-                records=records, ids=sorted(candidates, key=int), prior=prior,
-                names=names, warnings=warnings)
+    return dict(
+        target=target,
+        current=current,
+        original=original,
+        status=status,
+        records=records,
+        ids=sorted(candidates, key=int),
+        prior=prior,
+        names=names,
+        warnings=warnings,
+    )
 
 
 def page(plan, status):
@@ -146,12 +169,21 @@ def page(plan, status):
     for number in plan['ids']:
         old = ', '.join(plan['prior'].get(number, ['unknown']))
         name = plan['names'].get(number, 'Workshop item ' + number)
-        rows.append('<tr><td><input type="checkbox" aria-label="Checked in Steam"></td>'
-                    '<td>' + html.escape(name) + '</td><td>' + number + '</td><td>'
-                    + html.escape(old) + '</td><td><a target="_blank" rel="noopener noreferrer" '
-                    'href="https://steamcommunity.com/sharedfiles/filedetails/?id=' + number
-                    + '">Open Workshop item</a></td></tr>')
-    return '''<!doctype html><html lang="en"><meta charset="utf-8">
+        rows.append(
+            '<tr><td><input type="checkbox" aria-label="Checked in Steam"></td>'
+            '<td>'
+            + html.escape(name)
+            + '</td><td>'
+            + number
+            + '</td><td>'
+            + html.escape(old)
+            + '</td><td><a target="_blank" rel="noopener noreferrer" '
+            'href="https://steamcommunity.com/sharedfiles/filedetails/?id='
+            + number
+            + '">Open Workshop item</a></td></tr>'
+        )
+    return (
+        '''<!doctype html><html lang="en"><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
 <title>X4 Workshop recovery</title><style>body{font:17px system-ui;max-width:1100px;margin:40px auto;padding:20px}
 td,th{padding:10px;text-align:left;border-bottom:1px solid #ccc}a{color:#1257a6}</style>
@@ -165,13 +197,18 @@ affected Steam account. Click Subscribe for mods you want back. Already subscrib
 need no action. Do not click Unsubscribe.</li>
 <li>Check <a href="https://steamcommunity.com/my/myworkshopfiles/?appid=392160&amp;browsesort=mysubscriptions"
 target="_blank" rel="noopener noreferrer">your X4 subscriptions in Steam</a> afterwards.</li></ol>
-<p>Local test selection: <b>''' + html.escape(status) + '''</b>. Rollback of a local file does not
+<p>Local test selection: <b>'''
+        + html.escape(status)
+        + '''</b>. Rollback of a local file does not
 restore account subscriptions. If manual review is required, the current file was left untouched.</p>
 <p>Checkboxes are only temporary notes, not Steam status; reloading this page resets them.
 If an item is unavailable/private, check the logged-in account and retain this report.</p>
 <table><tr><th>Checked</th><th>Installed name</th><th>Workshop ID</th><th>Original local enabled value</th>
-<th>Steam</th></tr>''' + ''.join(rows) + '''</table><p>No items listed means no valid ws_ IDs were
+<th>Steam</th></tr>'''
+        + ''.join(rows)
+        + '''</table><p>No items listed means no valid ws_ IDs were
 found in the helper records, not that there were no subscriptions.</p></html>'''
+    )
 
 
 def recover(root, plan, restore=True):
@@ -188,10 +225,16 @@ def recover(root, plan, restore=True):
         (output / 'content-before-recovery.xml').write_bytes(plan['current'])
     if plan['original'] is not None:
         (output / 'content-original.xml').write_bytes(plan['original'])
-    record = dict(profile=str(target.parent), status='prepared', before_sha256=digest(plan['current']),
-                  original_sha256=digest(plan['original']), candidates=plan['ids'],
-                  subscription_status='not_checked_or_modified', warnings=plan['warnings'],
-                  source_records=[str(f / 'change.json') for f, _, _ in plan['records']])
+    record = dict(
+        profile=str(target.parent),
+        status='prepared',
+        before_sha256=digest(plan['current']),
+        original_sha256=digest(plan['original']),
+        candidates=plan['ids'],
+        subscription_status='not_checked_or_modified',
+        warnings=plan['warnings'],
+        source_records=[str(folder / 'change.json') for folder, _, _ in plan['records']],
+    )
     journal = output / 'recovery.json'
     journal.write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
     # Always leave usable links even if local rollback fails later.
@@ -207,8 +250,9 @@ def recover(root, plan, restore=True):
         else:
             temporary = None
             try:
-                with tempfile.NamedTemporaryFile(dir=target.parent, prefix='content-recovery-',
-                                                 suffix='.tmp', delete=False) as stream:
+                with tempfile.NamedTemporaryFile(
+                    dir=target.parent, prefix='content-recovery-', suffix='.tmp', delete=False
+                ) as stream:
                     temporary = Path(stream.name)
                     stream.write(plan['original'])
                 os.replace(temporary, target)
@@ -228,7 +272,11 @@ def recover(root, plan, restore=True):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--report-only', action='store_true', help='Create links without rolling back the test selection')
+    parser.add_argument(
+        '--report-only',
+        action='store_true',
+        help='Create links without rolling back the test selection',
+    )
     parser.add_argument('--no-open', action='store_true', help='Do not open the local HTML report')
     args = parser.parse_args()
     try:
@@ -239,7 +287,9 @@ def main():
         print('Local selection:', status)
         print('Workshop candidates:', len(plan['ids']))
         print('Report:', report)
-        print('Steam subscriptions were NOT changed. Review the links and click Subscribe in Steam.')
+        print(
+            'Steam subscriptions were NOT changed. Review the links and click Subscribe in Steam.'
+        )
         print('Keep X4 closed and do not resume the affected multiplayer test profile.')
         if not args.no_open:
             try:
@@ -247,7 +297,15 @@ def main():
             except OSError:
                 print('Open the HTML report above manually.')
         return 0
-    except (OSError, ValueError, RuntimeError, KeyError, TypeError, ET.ParseError, subprocess.SubprocessError) as exc:
+    except (
+        OSError,
+        ValueError,
+        RuntimeError,
+        KeyError,
+        TypeError,
+        ET.ParseError,
+        subprocess.SubprocessError,
+    ) as exc:
         print('ERROR:', exc, file=sys.stderr)
         return 1
 

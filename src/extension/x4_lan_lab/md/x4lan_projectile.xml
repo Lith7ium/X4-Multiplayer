@@ -1,93 +1,216 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mdscript name="X4LAN_Projectile" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <!-- Opt-in observed-shot visuals. Meshless owned carriers never establish hits or damage.
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_Projectile" xsi:noNamespaceSchemaLocation="md.xsd">
+    <!-- Opt-in observed-shot visuals. Meshless owned carriers never establish hits or damage.
       No cue starts until the Lua adapter requests Setup. Each queued creation repeats native
       current-generation/original-ship/fresh-proof checks; expired permission clears its objects.
       Fixed slots plus monotonic operation IDs fence late create/remove acknowledgements. -->
- <cues><cue name="Session" namespace="this">
-  <conditions><event_ui_triggered screen="'X4LAN_Projectile'" control="'Setup'"/></conditions>
-  <actions>
-   <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/><set_value name="$failed" exact="false"/>
-   <set_value name="$arena.$projectileVisualEnabled" exact="true"/>
-   <set_value name="$tickets" exact="[0,0]"/><set_value name="$gens" exact="[0,0]"/><set_value name="$modes" exact="[0,0]"/>
-   <set_value name="$kinds" exact="[0,0]"/><set_value name="$ships" exact="[null,null]"/><set_value name="$sectors" exact="[null,null]"/>
-   <set_value name="$at" exact="[-10s,-10s]"/>
-   <set_value name="$effects" exact="['x4lan_projectile_plasma','x4lan_projectile_pulse1','x4lan_projectile_pulse2']"/>
-   <set_value name="$bullets" exact="['bullet_ter_s_plasma_01_mk1_macro','bullet_gen_s_laser_01_mk1_macro','bullet_gen_s_laser_01_mk2_macro']"/>
-   <create_group groupname="$guns1"/><create_group groupname="$guns2"/>
-   <create_list name="$objects" exact="256"/><create_list name="$operations" exact="256"/><create_list name="$entities" exact="256"/>
-   <create_list name="$expires" exact="256"/><create_list name="$objectEffects" exact="256"/>
-   <do_all exact="256" counter="$i"><set_value name="$operations.{$i}" exact="0"/></do_all>
-   <do_all exact="2" counter="$e"><do_if value="@$arena.$ships.{$e}.isoperational and player.controlled != $arena.$ships.{$e}"><stop_shooting object="$arena.$ships.{$e}"/></do_if><set_value name="$arena.$fireRemaining.{$e}" exact="[0,0]"/><set_value name="$arena.$fireManaged.{$e}" exact="false"/></do_all>
-   <raise_lua_event name="'X4LAN_Projectile.Ready'"/>
-  </actions>
-  <cues>
-   <library name="RemoveSlot"><actions>
-    <do_if value="@$objects.{$i}.exists"><remove_effect object="$objects.{$i}" effect="$objectEffects.{$i}"/><destroy_object object="$objects.{$i}" explosion="false"/></do_if>
-    <set_value name="$objects.{$i}" exact="null"/>
-   </actions></library>
-   <library name="ClearEntity"><actions>
-    <set_value name="$modes.{$e}" exact="0"/>
-    <do_all exact="256" counter="$i"><do_if value="@$entities.{$i} == $e"><include_actions ref="RemoveSlot"/></do_if></do_all>
-   </actions></library>
-   <library name="Window"><actions>
-    <set_value name="$a" exact="event.param3"/><set_value name="$e" exact="$a.$entity"/>
-    <set_value name="$valid" exact="not $failed and not @$arena.$shotFailed and $e ge 1 and $e le 2 and $a.$gen gt 0 and $a.$gen == $arena.$shotCurrentGen.{$e} and $a.$gen gt $arena.$healthClosed.{$e} and $a.$revision == $arena.$shotState and player.age - $arena.$shotStateAt le 0.3s and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $a.$stamp and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline and @$arena.$ships.{$e}.isoperational"/>
-   </actions></library>
-   <cue name="State" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Projectile'" control="'State'"/></conditions><actions>
-    <include_actions ref="Window"/>
-    <do_if value="$valid and $a.$ticket ge $tickets.{$e} and ($a.$mode == 1 or $a.$mode == 2) and $a.$kind ge 1 and $a.$kind le 3 and $a.$mode == $arena.$shotVisualMode.{$e} and $a.$gen == $arena.$shotVisualGen.{$e} and player.age - $arena.$shotVisualAt.{$e} le 0.3s and $arena.$ships.{$e}.sector == $a.$sector">
-     <do_if value="$a.$ticket gt $tickets.{$e}"><include_actions ref="ClearEntity"/><set_value name="$tickets.{$e}" exact="$a.$ticket"/><set_value name="$gens.{$e}" exact="$a.$gen"/><set_value name="$kinds.{$e}" exact="$a.$kind"/><set_value name="$ships.{$e}" exact="$arena.$ships.{$e}"/><set_value name="$sectors.{$e}" exact="$arena.$ships.{$e}.sector"/><set_value name="$modes.{$e}" exact="$a.$mode"/>
-      <do_if value="$e == 1"><add_to_group groupname="$guns1" list="$ships.{$e}.weapons.operational.list" replace="true"/></do_if><do_else><add_to_group groupname="$guns2" list="$ships.{$e}.weapons.operational.list" replace="true"/></do_else>
-     </do_if>
-     <do_if value="$a.$gen == $gens.{$e} and $a.$kind == $kinds.{$e} and $a.$mode == $modes.{$e} and $arena.$ships.{$e} == $ships.{$e} and $arena.$ships.{$e}.sector == $sectors.{$e}">
-      <set_value name="$at.{$e}" exact="player.age"/><raise_lua_event name="'X4LAN_Projectile.State'" param="'%s|%s'.[$e,$tickets.{$e}]"/>
-     </do_if>
-    </do_if>
-   </actions></cue>
-   <cue name="Revoke" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Projectile'" control="'Revoke'"/></conditions><actions>
-    <set_value name="$a" exact="event.param3"/><set_value name="$e" exact="$a.$entity"/>
-    <do_if value="$e ge 1 and $e le 2 and $a.$ticket gt $tickets.{$e}"><set_value name="$tickets.{$e}" exact="$a.$ticket"/><include_actions ref="ClearEntity"/></do_if>
-   </actions></cue>
-   <library name="Born"><actions>
-    <do_if value="not $failed and not @$arena.$shotFailed and $modes.{$e} == 1 and player.controlled == $ships.{$e} and $ships.{$e} == $arena.$ships.{$e} and $ships.{$e}.sector == $sectors.{$e} and $gens.{$e} == $arena.$shotCurrentGen.{$e} and $gens.{$e} gt $arena.$healthClosed.{$e} and $arena.$shotVisualMode.{$e} == 1 and $arena.$shotVisualGen.{$e} == $gens.{$e} and player.age - $at.{$e} le 0.3s and player.age - $arena.$shotVisualAt.{$e} le 0.3s and player.timewarp.factor gt 0s">
-     <do_if value="event.param.isclass.bullet and event.param.macro.id == $bullets.{$kinds.{$e}}">
-      <!-- Component velocity is expressed in its rotated basis. Transform the
+    <cues>
+        <cue name="Session" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Projectile'" control="'Setup'"/>
+            </conditions>
+            <actions>
+                <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
+                <set_value name="$failed" exact="false"/>
+                <set_value name="$arena.$projectileVisualEnabled" exact="true"/>
+                <set_value name="$tickets" exact="[0,0]"/>
+                <set_value name="$gens" exact="[0,0]"/>
+                <set_value name="$modes" exact="[0,0]"/>
+                <set_value name="$kinds" exact="[0,0]"/>
+                <set_value name="$ships" exact="[null,null]"/>
+                <set_value name="$sectors" exact="[null,null]"/>
+                <set_value name="$at" exact="[-10s,-10s]"/>
+                <set_value name="$effects" exact="['x4lan_projectile_plasma','x4lan_projectile_pulse1','x4lan_projectile_pulse2']"/>
+                <set_value name="$bullets" exact="['bullet_ter_s_plasma_01_mk1_macro','bullet_gen_s_laser_01_mk1_macro','bullet_gen_s_laser_01_mk2_macro']"/>
+                <create_group groupname="$guns1"/>
+                <create_group groupname="$guns2"/>
+                <create_list name="$objects" exact="256"/>
+                <create_list name="$operations" exact="256"/>
+                <create_list name="$entities" exact="256"/>
+                <create_list name="$expires" exact="256"/>
+                <create_list name="$objectEffects" exact="256"/>
+                <do_all exact="256" counter="$i">
+                    <set_value name="$operations.{$i}" exact="0"/>
+                </do_all>
+                <do_all exact="2" counter="$e">
+                    <do_if value="@$arena.$ships.{$e}.isoperational and player.controlled != $arena.$ships.{$e}">
+                        <stop_shooting object="$arena.$ships.{$e}"/>
+                    </do_if>
+                    <set_value name="$arena.$fireRemaining.{$e}" exact="[0,0]"/>
+                    <set_value name="$arena.$fireManaged.{$e}" exact="false"/>
+                </do_all>
+                <raise_lua_event name="'X4LAN_Projectile.Ready'"/>
+            </actions>
+            <cues>
+                <library name="RemoveSlot">
+                    <actions>
+                        <do_if value="@$objects.{$i}.exists">
+                            <remove_effect object="$objects.{$i}" effect="$objectEffects.{$i}"/>
+                            <destroy_object object="$objects.{$i}" explosion="false"/>
+                        </do_if>
+                        <set_value name="$objects.{$i}" exact="null"/>
+                    </actions>
+                </library>
+                <library name="ClearEntity">
+                    <actions>
+                        <set_value name="$modes.{$e}" exact="0"/>
+                        <do_all exact="256" counter="$i">
+                            <do_if value="@$entities.{$i} == $e">
+                                <include_actions ref="RemoveSlot"/>
+                            </do_if>
+                        </do_all>
+                    </actions>
+                </library>
+                <library name="Window">
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <set_value name="$e" exact="$a.$entity"/>
+                        <set_value name="$valid" exact="not $failed and not @$arena.$shotFailed and $e ge 1 and $e le 2 and $a.$gen gt 0 and $a.$gen == $arena.$shotCurrentGen.{$e} and $a.$gen gt $arena.$healthClosed.{$e} and $a.$revision == $arena.$shotState and player.age - $arena.$shotStateAt le 0.3s and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $a.$stamp and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline and @$arena.$ships.{$e}.isoperational"/>
+                    </actions>
+                </library>
+                <cue name="State" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Projectile'" control="'State'"/>
+                    </conditions>
+                    <actions>
+                        <include_actions ref="Window"/>
+                        <do_if value="$valid and $a.$ticket ge $tickets.{$e} and ($a.$mode == 1 or $a.$mode == 2) and $a.$kind ge 1 and $a.$kind le 3 and $a.$mode == $arena.$shotVisualMode.{$e} and $a.$gen == $arena.$shotVisualGen.{$e} and player.age - $arena.$shotVisualAt.{$e} le 0.3s and $arena.$ships.{$e}.sector == $a.$sector">
+                            <do_if value="$a.$ticket gt $tickets.{$e}">
+                                <include_actions ref="ClearEntity"/>
+                                <set_value name="$tickets.{$e}" exact="$a.$ticket"/>
+                                <set_value name="$gens.{$e}" exact="$a.$gen"/>
+                                <set_value name="$kinds.{$e}" exact="$a.$kind"/>
+                                <set_value name="$ships.{$e}" exact="$arena.$ships.{$e}"/>
+                                <set_value name="$sectors.{$e}" exact="$arena.$ships.{$e}.sector"/>
+                                <set_value name="$modes.{$e}" exact="$a.$mode"/>
+                                <do_if value="$e == 1">
+                                    <add_to_group groupname="$guns1" list="$ships.{$e}.weapons.operational.list" replace="true"/>
+                                </do_if>
+                                <do_else>
+                                    <add_to_group groupname="$guns2" list="$ships.{$e}.weapons.operational.list" replace="true"/>
+                                </do_else>
+                            </do_if>
+                            <do_if value="$a.$gen == $gens.{$e} and $a.$kind == $kinds.{$e} and $a.$mode == $modes.{$e} and $arena.$ships.{$e} == $ships.{$e} and $arena.$ships.{$e}.sector == $sectors.{$e}">
+                                <set_value name="$at.{$e}" exact="player.age"/>
+                                <raise_lua_event name="'X4LAN_Projectile.State'" param="'%s|%s'.[$e,$tickets.{$e}]"/>
+                            </do_if>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Revoke" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Projectile'" control="'Revoke'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <set_value name="$e" exact="$a.$entity"/>
+                        <do_if value="$e ge 1 and $e le 2 and $a.$ticket gt $tickets.{$e}">
+                            <set_value name="$tickets.{$e}" exact="$a.$ticket"/>
+                            <include_actions ref="ClearEntity"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <library name="Born">
+                    <actions>
+                        <do_if value="not $failed and not @$arena.$shotFailed and $modes.{$e} == 1 and player.controlled == $ships.{$e} and $ships.{$e} == $arena.$ships.{$e} and $ships.{$e}.sector == $sectors.{$e} and $gens.{$e} == $arena.$shotCurrentGen.{$e} and $gens.{$e} gt $arena.$healthClosed.{$e} and $arena.$shotVisualMode.{$e} == 1 and $arena.$shotVisualGen.{$e} == $gens.{$e} and player.age - $at.{$e} le 0.3s and player.age - $arena.$shotVisualAt.{$e} le 0.3s and player.timewarp.factor gt 0s">
+                            <do_if value="event.param.isclass.bullet and event.param.macro.id == $bullets.{$kinds.{$e}}">
+                                <!-- Component velocity is expressed in its rotated basis. Transform the
            real projectile's vector into the same sector frame as the C pose. -->
-      <set_value name="$velocity" exact="event.param.velocity"/>
-      <set_value name="$rotation" exact="event.param.relativerotation.{$sectors.{$e}}"/>
-      <set_value name="$vx" exact="$velocity.x * $rotation.right.x + $velocity.y * $rotation.up.x + $velocity.z * $rotation.forward.x"/>
-      <set_value name="$vy" exact="$velocity.x * $rotation.right.y + $velocity.y * $rotation.up.y + $velocity.z * $rotation.forward.y"/>
-      <set_value name="$vz" exact="$velocity.x * $rotation.right.z + $velocity.y * $rotation.up.z + $velocity.z * $rotation.forward.z"/>
-      <raise_lua_event name="'X4LAN_Projectile.Born'" param="'%s|%s|%s|%s|%s|%s|%s|%s|%s'.[$e,$gens.{$e},$tickets.{$e},event.param,$sectors.{$e},$kinds.{$e},$vx,$vy,$vz]"/>
-     </do_if>
-    </do_if>
-   </actions></library>
-   <cue name="Born1" instantiate="true"><conditions><event_weapon_fired group="$guns1"/></conditions><actions><set_value name="$e" exact="1"/><include_actions ref="Born"/></actions></cue>
-   <cue name="Born2" instantiate="true"><conditions><event_weapon_fired group="$guns2"/></conditions><actions><set_value name="$e" exact="2"/><include_actions ref="Born"/></actions></cue>
-   <cue name="Create" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Projectile'" control="'Create'"/></conditions><actions>
-    <include_actions ref="Window"/><set_value name="$i" exact="$a.$slot"/>
-    <do_if value="$valid and $i ge 1 and $i le 256 and $a.$operation gt $operations.{$i} and $a.$ticket == $tickets.{$e} and $a.$gen == $gens.{$e} and $modes.{$e} == 2 and player.controlled != $ships.{$e} and $ships.{$e} == $arena.$ships.{$e} and $ships.{$e}.sector == $sectors.{$e} and player.sector == $sectors.{$e} and $a.$kind == $kinds.{$e} and $arena.$shotVisualMode.{$e} == 2 and $arena.$shotVisualGen.{$e} == $gens.{$e} and player.age - $at.{$e} le 0.3s and player.age - $arena.$shotVisualAt.{$e} le 0.3s and $a.$ttl gt 0 and $a.$ttl le 3">
-     <include_actions ref="RemoveSlot"/><set_value name="$operations.{$i}" exact="$a.$operation"/><set_value name="$entities.{$i}" exact="$e"/>
-     <set_value name="$objectEffects.{$i}" exact="$effects.{$a.$kind}"/><set_value name="$expires.{$i}" exact="player.age + $a.$ttl * 1s"/>
-     <create_object name="$objects.{$i}" macro="macro.x4lan_projectile_carrier_macro" sector="$sectors.{$e}"><position x="$a.$x * 1m" y="$a.$y * 1m" z="$a.$z * 1m"/><rotation yaw="$a.$yaw * 1deg" pitch="$a.$pitch * 1deg" roll="$a.$roll * 1deg"/></create_object>
-     <add_effect object="$objects.{$i}" effect="$objectEffects.{$i}"/>
-     <raise_lua_event name="'X4LAN_Projectile.Created'" param="'%s|%s|%s|%s|%s|%s'.[$e,$tickets.{$e},$i,$operations.{$i},$objects.{$i},$sectors.{$e}]"/>
-    </do_if><do_else>
-     <raise_lua_event name="'X4LAN_Projectile.Rejected'" param="'%s|%s|%s|%s'.[$e,$a.$ticket,$i,$a.$operation]"/>
-    </do_else>
-   </actions></cue>
-   <cue name="Remove" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Projectile'" control="'Remove'"/></conditions><actions>
-    <set_value name="$a" exact="event.param3"/><set_value name="$i" exact="$a.$slot"/>
-    <do_if value="$i ge 1 and $i le 256 and $a.$operation ge $operations.{$i}"><set_value name="$operations.{$i}" exact="$a.$operation"/><include_actions ref="RemoveSlot"/></do_if>
-   </actions></cue>
-   <cue name="Watchdog" instantiate="true" checkinterval="50ms"><conditions><check_value value="true"/></conditions><actions>
-    <do_all exact="2" counter="$e"><do_if value="$modes.{$e} gt 0 and ($failed or @$arena.$shotFailed or player.age - $at.{$e} gt 0.3s or $arena.$shotVisualMode.{$e} != $modes.{$e} or $arena.$shotVisualGen.{$e} != $gens.{$e} or $gens.{$e} != $arena.$shotCurrentGen.{$e} or $gens.{$e} le $arena.$healthClosed.{$e} or not @$ships.{$e}.isoperational or $ships.{$e} != $arena.$ships.{$e} or $ships.{$e}.sector != $sectors.{$e})"><include_actions ref="ClearEntity"/></do_if></do_all>
-    <do_all exact="256" counter="$i"><do_if value="@$objects.{$i}.exists and player.age ge $expires.{$i}"><include_actions ref="RemoveSlot"/></do_if></do_all>
-   </actions></cue>
-   <cue name="Stop" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Projectile'" control="'Stop'"/></conditions><actions>
-    <set_value name="$failed" exact="true"/><do_all exact="2" counter="$e"><include_actions ref="ClearEntity"/></do_all>
-   </actions></cue>
-  </cues>
- </cue></cues>
+                                <set_value name="$velocity" exact="event.param.velocity"/>
+                                <set_value name="$rotation" exact="event.param.relativerotation.{$sectors.{$e}}"/>
+                                <set_value name="$vx" exact="$velocity.x * $rotation.right.x + $velocity.y * $rotation.up.x + $velocity.z * $rotation.forward.x"/>
+                                <set_value name="$vy" exact="$velocity.x * $rotation.right.y + $velocity.y * $rotation.up.y + $velocity.z * $rotation.forward.y"/>
+                                <set_value name="$vz" exact="$velocity.x * $rotation.right.z + $velocity.y * $rotation.up.z + $velocity.z * $rotation.forward.z"/>
+                                <raise_lua_event name="'X4LAN_Projectile.Born'" param="'%s|%s|%s|%s|%s|%s|%s|%s|%s'.[$e,$gens.{$e},$tickets.{$e},event.param,$sectors.{$e},$kinds.{$e},$vx,$vy,$vz]"/>
+                            </do_if>
+                        </do_if>
+                    </actions>
+                </library>
+                <cue name="Born1" instantiate="true">
+                    <conditions>
+                        <event_weapon_fired group="$guns1"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$e" exact="1"/>
+                        <include_actions ref="Born"/>
+                    </actions>
+                </cue>
+                <cue name="Born2" instantiate="true">
+                    <conditions>
+                        <event_weapon_fired group="$guns2"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$e" exact="2"/>
+                        <include_actions ref="Born"/>
+                    </actions>
+                </cue>
+                <cue name="Create" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Projectile'" control="'Create'"/>
+                    </conditions>
+                    <actions>
+                        <include_actions ref="Window"/>
+                        <set_value name="$i" exact="$a.$slot"/>
+                        <do_if value="$valid and $i ge 1 and $i le 256 and $a.$operation gt $operations.{$i} and $a.$ticket == $tickets.{$e} and $a.$gen == $gens.{$e} and $modes.{$e} == 2 and player.controlled != $ships.{$e} and $ships.{$e} == $arena.$ships.{$e} and $ships.{$e}.sector == $sectors.{$e} and player.sector == $sectors.{$e} and $a.$kind == $kinds.{$e} and $arena.$shotVisualMode.{$e} == 2 and $arena.$shotVisualGen.{$e} == $gens.{$e} and player.age - $at.{$e} le 0.3s and player.age - $arena.$shotVisualAt.{$e} le 0.3s and $a.$ttl gt 0 and $a.$ttl le 3">
+                            <include_actions ref="RemoveSlot"/>
+                            <set_value name="$operations.{$i}" exact="$a.$operation"/>
+                            <set_value name="$entities.{$i}" exact="$e"/>
+                            <set_value name="$objectEffects.{$i}" exact="$effects.{$a.$kind}"/>
+                            <set_value name="$expires.{$i}" exact="player.age + $a.$ttl * 1s"/>
+                            <create_object name="$objects.{$i}" macro="macro.x4lan_projectile_carrier_macro" sector="$sectors.{$e}">
+                                <position x="$a.$x * 1m" y="$a.$y * 1m" z="$a.$z * 1m"/>
+                                <rotation yaw="$a.$yaw * 1deg" pitch="$a.$pitch * 1deg" roll="$a.$roll * 1deg"/>
+                            </create_object>
+                            <add_effect object="$objects.{$i}" effect="$objectEffects.{$i}"/>
+                            <raise_lua_event name="'X4LAN_Projectile.Created'" param="'%s|%s|%s|%s|%s|%s'.[$e,$tickets.{$e},$i,$operations.{$i},$objects.{$i},$sectors.{$e}]"/>
+                        </do_if>
+                        <do_else>
+                            <raise_lua_event name="'X4LAN_Projectile.Rejected'" param="'%s|%s|%s|%s'.[$e,$a.$ticket,$i,$a.$operation]"/>
+                        </do_else>
+                    </actions>
+                </cue>
+                <cue name="Remove" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Projectile'" control="'Remove'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <set_value name="$i" exact="$a.$slot"/>
+                        <do_if value="$i ge 1 and $i le 256 and $a.$operation ge $operations.{$i}">
+                            <set_value name="$operations.{$i}" exact="$a.$operation"/>
+                            <include_actions ref="RemoveSlot"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Watchdog" instantiate="true" checkinterval="50ms">
+                    <conditions>
+                        <check_value value="true"/>
+                    </conditions>
+                    <actions>
+                        <do_all exact="2" counter="$e">
+                            <do_if value="$modes.{$e} gt 0 and ($failed or @$arena.$shotFailed or player.age - $at.{$e} gt 0.3s or $arena.$shotVisualMode.{$e} != $modes.{$e} or $arena.$shotVisualGen.{$e} != $gens.{$e} or $gens.{$e} != $arena.$shotCurrentGen.{$e} or $gens.{$e} le $arena.$healthClosed.{$e} or not @$ships.{$e}.isoperational or $ships.{$e} != $arena.$ships.{$e} or $ships.{$e}.sector != $sectors.{$e})">
+                                <include_actions ref="ClearEntity"/>
+                            </do_if>
+                        </do_all>
+                        <do_all exact="256" counter="$i">
+                            <do_if value="@$objects.{$i}.exists and player.age ge $expires.{$i}">
+                                <include_actions ref="RemoveSlot"/>
+                            </do_if>
+                        </do_all>
+                    </actions>
+                </cue>
+                <cue name="Stop" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Projectile'" control="'Stop'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$failed" exact="true"/>
+                        <do_all exact="2" counter="$e">
+                            <include_actions ref="ClearEntity"/>
+                        </do_all>
+                    </actions>
+                </cue>
+            </cues>
+        </cue>
+    </cues>
 </mdscript>

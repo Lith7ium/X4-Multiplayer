@@ -6,6 +6,7 @@ proxy per remote client, AUTH with one group per ship, XSHIP and per-remote spac
 """
 from pathlib import Path
 import unittest
+from xml.etree import ElementTree
 from test_game_adapter import MOCK, LuaRuntime
 from test_bubble_adapter import EXTRA
 
@@ -257,7 +258,18 @@ class NPlayerMdContractTests(unittest.TestCase):
         text = (self.MD / 'x4lan_coop.xml').read_text()
         self.assertNotIn('[[0,0],[0,0]]', text)
         self.assertIn('<do_all exact="$count" counter="$i">', text)
-        self.assertIn('<do_if value="$v.$ship gt 2"><set_value name="$dockWindow" exact="true"/></do_if>', text)
+        coop_xml = ElementTree.fromstring(text)
+        extra_ship_guards = [
+            node for node in coop_xml.iter('do_if')
+            if node.get('value') == '$v.$ship gt 2'
+        ]
+        self.assertTrue(any(
+            len(guard) == 1
+            and guard[0].tag == 'set_value'
+            and guard[0].get('name') == '$dockWindow'
+            and guard[0].get('exact') == 'true'
+            for guard in extra_ship_guards
+        ))
         life = (self.MD / 'x4lan_life.xml').read_text()
         self.assertIn('<do_all exact="$arena.$ships.count" counter="$i">', life)
         # The native attachment session starts for every client slot, not only p2

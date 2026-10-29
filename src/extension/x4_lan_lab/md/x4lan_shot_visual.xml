@@ -1,60 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mdscript name="X4LAN_ShotVisual" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <cues><cue name="Session" namespace="this">
-  <conditions><event_ui_triggered screen="'X4LAN_ShotVisual'" control="'Setup'"/></conditions>
-  <actions>
-   <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
-   <set_value name="$arena.$shotVisualEnabled" exact="true"/>
-   <!-- Latch before Prepare: observed mode never starts scripted replay guns.
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_ShotVisual" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="Session" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_ShotVisual'" control="'Setup'"/>
+            </conditions>
+            <actions>
+                <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
+                <set_value name="$arena.$shotVisualEnabled" exact="true"/>
+                <!-- Latch before Prepare: observed mode never starts scripted replay guns.
         stop_shooting on the actual player ship also suppresses manual input. -->
-   <set_value name="$arena.$projectileVisualEnabled" exact="@event.param3.$observed == true"/>
-   <!-- Per shared ship; visuals run for ships 1/2 only (ship 3+ entries stay neutral). -->
-   <set_value name="$arena.$shotVisualMode" exact="[]"/><set_value name="$arena.$shotVisualGen" exact="[]"/><set_value name="$arena.$shotVisualAt" exact="[]"/>
-   <do_all exact="[$arena.$ships.count,2].max" counter="$i">
-    <append_to_list name="$arena.$shotVisualMode" exact="0"/><append_to_list name="$arena.$shotVisualGen" exact="0"/><append_to_list name="$arena.$shotVisualAt" exact="-10s"/>
-   </do_all>
-   <set_value name="$ticket" exact="[0,0]"/><set_value name="$sequence" exact="[0,0]"/>
-   <set_value name="$wanted" exact="[0,0]"/><set_value name="$objects" exact="[null,null]"/>
-   <set_value name="$failed" exact="false"/>
-   <raise_lua_event name="'X4LAN_ShotVisual.Ready'"/>
-  </actions>
-  <cues>
-   <library name="StopEntity"><actions>
-    <set_value name="$arena.$shotVisualMode.{$e}" exact="0"/>
-    <set_value name="$arena.$fireRemaining.{$e}" exact="[0,0]"/>
-    <set_value name="$arena.$fireManaged.{$e}" exact="false"/>
-    <do_if value="@$arena.$ships.{$e}.isoperational and (not @$arena.$projectileVisualEnabled or player.controlled != $arena.$ships.{$e})"><stop_shooting object="$arena.$ships.{$e}"/></do_if>
-   </actions></library>
-   <library name="Window"><actions>
-    <set_value name="$a" exact="event.param3"/><set_value name="$e" exact="$a.$entity"/>
-    <set_value name="$valid" exact="not $failed and not @$arena.$shotFailed and $e ge 1 and $e le 2 and $a.$gen gt 0 and $a.$gen == $arena.$shotCurrentGen.{$e} and $a.$gen gt $arena.$healthClosed.{$e} and $a.$revision == $arena.$shotState and player.age - $arena.$shotStateAt le 0.3s and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $a.$stamp and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline and @$arena.$ships.{$e}.isoperational"/>
-   </actions></library>
-   <cue name="Prepare" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_ShotVisual'" control="'Prepare'"/></conditions><actions>
-    <include_actions ref="Window"/>
-    <do_if value="$valid and $a.$ticket gt $ticket.{$e} and ($a.$mode == 1 or $a.$mode == 2)">
-     <include_actions ref="StopEntity"/>
-     <set_value name="$ticket.{$e}" exact="$a.$ticket"/><set_value name="$wanted.{$e}" exact="$a.$mode"/>
-     <set_value name="$objects.{$e}" exact="$arena.$ships.{$e}"/>
-     <set_value name="$arena.$shotVisualGen.{$e}" exact="$a.$gen"/>
-     <raise_lua_event name="'X4LAN_ShotVisual.Prepared'" param="'%s|%s|%s|%s|%s'.[$e,$a.$gen,$a.$ticket,$a.$mode,$objects.{$e}]"/>
-    </do_if>
-   </actions></cue>
-   <cue name="Proof" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_ShotVisual'" control="'Proof'"/></conditions><actions>
-    <include_actions ref="Window"/>
-    <do_if value="$valid and $a.$ticket == $ticket.{$e} and $a.$mode == $wanted.{$e} and $a.$sequence gt $sequence.{$e} and $a.$gen == $arena.$shotVisualGen.{$e} and $objects.{$e} == $arena.$ships.{$e}">
-     <set_value name="$sequence.{$e}" exact="$a.$sequence"/>
-     <set_value name="$arena.$shotVisualMode.{$e}" exact="$a.$mode"/>
-     <set_value name="$arena.$shotVisualAt.{$e}" exact="player.age"/>
-     <raise_lua_event name="'X4LAN_ShotVisual.Proven'" param="'%s|%s|%s|%s|%s'.[$e,$a.$gen,$a.$ticket,$a.$mode,$a.$sequence]"/>
-    </do_if>
-   </actions></cue>
-   <cue name="Watchdog" instantiate="true" checkinterval="0.05s"><conditions><check_value value="true"/></conditions><actions>
-    <do_all exact="2" counter="$e"><do_if value="$arena.$shotVisualMode.{$e} gt 0 and (player.age - $arena.$shotVisualAt.{$e} gt 0.3s or $arena.$shotVisualGen.{$e} != $arena.$shotCurrentGen.{$e} or $arena.$shotVisualGen.{$e} le $arena.$healthClosed.{$e} or @$arena.$shotFailed or not @$arena.$ships.{$e}.isoperational or $objects.{$e} != $arena.$ships.{$e})"><include_actions ref="StopEntity"/></do_if></do_all>
-   </actions></cue>
-   <cue name="Stop" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_ShotVisual'" control="'Stop'"/></conditions><actions>
-    <set_value name="$failed" exact="true"/>
-    <do_all exact="2" counter="$e"><include_actions ref="StopEntity"/></do_all>
-   </actions></cue>
-  </cues>
- </cue></cues>
+                <set_value name="$arena.$projectileVisualEnabled" exact="@event.param3.$observed == true"/>
+                <!-- Per shared ship; visuals run for ships 1/2 only (ship 3+ entries stay neutral). -->
+                <set_value name="$arena.$shotVisualMode" exact="[]"/>
+                <set_value name="$arena.$shotVisualGen" exact="[]"/>
+                <set_value name="$arena.$shotVisualAt" exact="[]"/>
+                <do_all exact="[$arena.$ships.count,2].max" counter="$i">
+                    <append_to_list name="$arena.$shotVisualMode" exact="0"/>
+                    <append_to_list name="$arena.$shotVisualGen" exact="0"/>
+                    <append_to_list name="$arena.$shotVisualAt" exact="-10s"/>
+                </do_all>
+                <set_value name="$ticket" exact="[0,0]"/>
+                <set_value name="$sequence" exact="[0,0]"/>
+                <set_value name="$wanted" exact="[0,0]"/>
+                <set_value name="$objects" exact="[null,null]"/>
+                <set_value name="$failed" exact="false"/>
+                <raise_lua_event name="'X4LAN_ShotVisual.Ready'"/>
+            </actions>
+            <cues>
+                <library name="StopEntity">
+                    <actions>
+                        <set_value name="$arena.$shotVisualMode.{$e}" exact="0"/>
+                        <set_value name="$arena.$fireRemaining.{$e}" exact="[0,0]"/>
+                        <set_value name="$arena.$fireManaged.{$e}" exact="false"/>
+                        <do_if value="@$arena.$ships.{$e}.isoperational and (not @$arena.$projectileVisualEnabled or player.controlled != $arena.$ships.{$e})">
+                            <stop_shooting object="$arena.$ships.{$e}"/>
+                        </do_if>
+                    </actions>
+                </library>
+                <library name="Window">
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <set_value name="$e" exact="$a.$entity"/>
+                        <set_value name="$valid" exact="not $failed and not @$arena.$shotFailed and $e ge 1 and $e le 2 and $a.$gen gt 0 and $a.$gen == $arena.$shotCurrentGen.{$e} and $a.$gen gt $arena.$healthClosed.{$e} and $a.$revision == $arena.$shotState and player.age - $arena.$shotStateAt le 0.3s and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $a.$stamp and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline and @$arena.$ships.{$e}.isoperational"/>
+                    </actions>
+                </library>
+                <cue name="Prepare" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_ShotVisual'" control="'Prepare'"/>
+                    </conditions>
+                    <actions>
+                        <include_actions ref="Window"/>
+                        <do_if value="$valid and $a.$ticket gt $ticket.{$e} and ($a.$mode == 1 or $a.$mode == 2)">
+                            <include_actions ref="StopEntity"/>
+                            <set_value name="$ticket.{$e}" exact="$a.$ticket"/>
+                            <set_value name="$wanted.{$e}" exact="$a.$mode"/>
+                            <set_value name="$objects.{$e}" exact="$arena.$ships.{$e}"/>
+                            <set_value name="$arena.$shotVisualGen.{$e}" exact="$a.$gen"/>
+                            <raise_lua_event name="'X4LAN_ShotVisual.Prepared'" param="'%s|%s|%s|%s|%s'.[$e,$a.$gen,$a.$ticket,$a.$mode,$objects.{$e}]"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Proof" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_ShotVisual'" control="'Proof'"/>
+                    </conditions>
+                    <actions>
+                        <include_actions ref="Window"/>
+                        <do_if value="$valid and $a.$ticket == $ticket.{$e} and $a.$mode == $wanted.{$e} and $a.$sequence gt $sequence.{$e} and $a.$gen == $arena.$shotVisualGen.{$e} and $objects.{$e} == $arena.$ships.{$e}">
+                            <set_value name="$sequence.{$e}" exact="$a.$sequence"/>
+                            <set_value name="$arena.$shotVisualMode.{$e}" exact="$a.$mode"/>
+                            <set_value name="$arena.$shotVisualAt.{$e}" exact="player.age"/>
+                            <raise_lua_event name="'X4LAN_ShotVisual.Proven'" param="'%s|%s|%s|%s|%s'.[$e,$a.$gen,$a.$ticket,$a.$mode,$a.$sequence]"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Watchdog" instantiate="true" checkinterval="0.05s">
+                    <conditions>
+                        <check_value value="true"/>
+                    </conditions>
+                    <actions>
+                        <do_all exact="2" counter="$e">
+                            <do_if value="$arena.$shotVisualMode.{$e} gt 0 and (player.age - $arena.$shotVisualAt.{$e} gt 0.3s or $arena.$shotVisualGen.{$e} != $arena.$shotCurrentGen.{$e} or $arena.$shotVisualGen.{$e} le $arena.$healthClosed.{$e} or @$arena.$shotFailed or not @$arena.$ships.{$e}.isoperational or $objects.{$e} != $arena.$ships.{$e})">
+                                <include_actions ref="StopEntity"/>
+                            </do_if>
+                        </do_all>
+                    </actions>
+                </cue>
+                <cue name="Stop" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_ShotVisual'" control="'Stop'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$failed" exact="true"/>
+                        <do_all exact="2" counter="$e">
+                            <include_actions ref="StopEntity"/>
+                        </do_all>
+                    </actions>
+                </cue>
+            </cues>
+        </cue>
+    </cues>
 </mdscript>
