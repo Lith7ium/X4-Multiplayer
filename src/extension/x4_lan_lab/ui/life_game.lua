@@ -6,7 +6,7 @@ if not cfg or not cfg.enabled or not cfg.bubble_actions or not api or not api.st
 end
 local ffi = require('ffi')
 local engine = ffi.C
-local s = api.state
+local state = api.state
 ffi.cdef([[void RemoveComponent(UniverseID);]])
 -- remotes: one body record and spacesuit replica per remote client lease. remote,
 -- remoteSuit and remoteKilled mirror the most recently updated remote (two players: the
@@ -14,72 +14,73 @@ ffi.cdef([[void RemoveComponent(UniverseID);]])
 local life = { mode = 'ship', dead = 0, generation = 0, sequence = 0, remotes = {} }
 api.life = life
 local MAX_REMOTES = 7
-local function log(v)
-    DebugError('[X4LAN] ' .. v)
+local function log(text)
+    DebugError('[X4LAN] ' .. text)
 end
 local function send(value)
-    if s.client and s.client.lease then
-        s.transport:send(value)
+    if state.client and state.client.lease then
+        state.transport:send(value)
         return true
     end
 end
-local function number(v, bound)
-    local n = tonumber(v)
-    if not n or n ~= n or math.abs(n) > bound then
+local function number(value, bound)
+    local number = tonumber(value)
+    if not number or number ~= number or math.abs(number) > bound then
         return nil
     end
-    return n
+    return number
 end
-function life.receive(client, f, now)
-    if api.walk and api.walk.receive(f, now) then
+function life.receive(client, fields, now)
+    if api.walk and api.walk.receive(fields, now) then
         return true
     end
     local remoteSector
-    if f[1] == 'BODY2' and cfg.coop then
-        if #f ~= 15 or not f[9]:match('^[%w_.-]+_macro$') or #f[9] > 96 then
+    if fields[1] == 'BODY2' and cfg.coop then
+        if #fields ~= 15 or not fields[9]:match('^[%w_.-]+_macro$') or #fields[9] > 96 then
             return true
         end
-        remoteSector = f[9]
-        table.remove(f, 9)
-        f[1] = 'BODY'
-    elseif f[1] == 'BODY' and cfg.coop then
+        remoteSector = fields[9]
+        table.remove(fields, 9)
+        fields[1] = 'BODY'
+    elseif fields[1] == 'BODY' and cfg.coop then
         return true
     end
-    if f[1] == 'BODY' then
-        if #f ~= 14 or not f[4]:match('^[a-f0-9]+$') or #f[4] ~= 32 then
+    if fields[1] == 'BODY' then
+        if #fields ~= 14 or not fields[4]:match('^[a-f0-9]+$') or #fields[4] ~= 32 then
             return true
         end
-        local seq = number(f[5], 2147483647)
-        local dead = number(f[7], 1)
-        local gen = number(f[8], 2147483647)
+        local sequence = number(fields[5], 2147483647)
+        local dead = number(fields[7], 1)
+        local generation = number(fields[8], 2147483647)
         if
-            not seq
-            or seq < 0
-            or seq % 1 ~= 0
+            not sequence
+            or sequence < 0
+            or sequence % 1 ~= 0
             or not dead
             or dead < 0
             or dead % 1 ~= 0
-            or not gen
-            or gen < 0
-            or gen % 1 ~= 0
+            or not generation
+            or generation < 0
+            or generation % 1 ~= 0
         then
             return true
         end
-        if f[6] ~= 'ship' and f[6] ~= 'foot' and f[6] ~= 'suit' then
+        if fields[6] ~= 'ship' and fields[6] ~= 'foot' and fields[6] ~= 'suit' then
             return true
         end
-        if f[6] == 'suit' and gen == 0 then
+        if fields[6] == 'suit' and generation == 0 then
             return true
         end
         local pose = {}
         for i = 1, 6 do
-            pose[i] = number(f[i + 8], i <= 3 and (cfg.coop and 50000000 or 50000) or 2 * math.pi)
+            pose[i] =
+                number(fields[i + 8], i <= 3 and (cfg.coop and 50000000 or 50000) or 2 * math.pi)
             if not pose[i] then
                 return true
             end
         end
-        local e = life.remotes[f[4]]
-        if not e then
+        local entry = life.remotes[fields[4]]
+        if not entry then
             local count = 0
             for _ in pairs(life.remotes) do
                 count = count + 1
@@ -87,42 +88,47 @@ function life.receive(client, f, now)
             if count >= MAX_REMOTES then
                 return true
             end
-            e = { sequence = -1, lease = f[4] }
-            life.remotes[f[4]] = e
+            entry = { sequence = -1, lease = fields[4] }
+            life.remotes[fields[4]] = entry
         end
-        if seq <= e.sequence then
+        if sequence <= entry.sequence then
             return true
         end
-        e.sequence = seq
-        e.remote = {
-            mode = f[6],
+        entry.sequence = sequence
+        entry.remote = {
+            mode = fields[6],
             dead = dead,
-            generation = gen,
+            generation = generation,
             pose = pose,
             at = now,
             sector = remoteSector,
         }
-        life.remote = e.remote
+        life.remote = entry.remote
         if dead == 1 and cfg.slot == 'p1' then
             -- BODY.dead names the sender's original ship. Two players: always ship 2. More
             -- players: only a fixture ship whose current pilot stream comes from this lease.
-            local R = api.roster or { players = 2 }
-            if R.players == 2 then
+            local roster = api.roster or { players = 2 }
+            if roster.players == 2 then
                 AddUITriggeredEvent('X4LAN_Life', 'ShipDeath', 2)
             else
                 for i = 1, 2 do
-                    local r = api.coop and api.coop.remote[i]
-                    if r and r.sourceLease == f[4] then
+                    local remotePilot = api.coop and api.coop.remote[i]
+                    if remotePilot and remotePilot.sourceLease == fields[4] then
                         AddUITriggeredEvent('X4LAN_Life', 'ShipDeath', i)
                     end
                 end
             end
         end
         return true
-    elseif f[1] == 'SUITKILL' then
-        local gen = #f == 5 and number(f[5], 2147483647) or nil
-        if cfg.slot ~= 'p1' and gen and gen == life.generation and life.mode == 'suit' then
-            AddUITriggeredEvent('X4LAN_Life', 'SuitDeath', gen)
+    elseif fields[1] == 'SUITKILL' then
+        local generation = #fields == 5 and number(fields[5], 2147483647) or nil
+        if
+            cfg.slot ~= 'p1'
+            and generation
+            and generation == life.generation
+            and life.mode == 'suit'
+        then
+            AddUITriggeredEvent('X4LAN_Life', 'SuitDeath', generation)
         end
         return true
     end
@@ -139,20 +145,27 @@ function life.frame(now)
     if api.paused() then
         return
     end
-    if now >= (life.nextSend or 0) and s.client and s.client.lease then
+    if now >= (life.nextSend or 0) and state.client and state.client.lease then
         life.nextSend = now + 0.1
         life.sequence = life.sequence + 1
         local pose = { 0, 0, 0, 0, 0, 0 }
         local mode = life.mode
         if mode == 'suit' then
             local current = engine.GetPlayerControlledShipID()
-            if current ~= 0 and current ~= s.ship and current ~= s.proxy then
+            if current ~= 0 and current ~= state.ship and current ~= state.proxy then
                 life.suit = current
             end
         end
         if mode == 'suit' and life.suit and engine.IsComponentOperational(life.suit) then
-            local p = engine.GetObjectPositionInSector(life.suit)
-            pose = { p.x, p.y - (cfg.coop and 0 or 10000), p.z, p.yaw, p.pitch, p.roll }
+            local position = engine.GetObjectPositionInSector(life.suit)
+            pose = {
+                position.x,
+                position.y - (cfg.coop and 0 or 10000),
+                position.z,
+                position.yaw,
+                position.pitch,
+                position.roll,
+            }
             if
                 math.max(math.abs(pose[1]), math.abs(pose[2]), math.abs(pose[3]))
                 > (cfg.coop and 50000000 or 50000)
@@ -166,7 +179,7 @@ function life.frame(now)
         local packet = {
             'BODY',
             '1',
-            s.client.lease,
+            state.client.lease,
             tostring(life.sequence),
             mode,
             tostring(life.dead),
@@ -178,9 +191,9 @@ function life.frame(now)
             local sector = object
                     and object ~= 0
                     and engine.GetContextByClass(object, 'sector', false)
-                or s.sector
+                or state.sector
             if sector == 0 then
-                sector = s.sector
+                sector = state.sector
             end
             packet[#packet + 1] = GetComponentData(api.id(sector), 'macro')
         end
@@ -189,92 +202,95 @@ function life.frame(now)
         end
         send(table.concat(packet, '|'))
         if cfg.slot == 'p1' then
-            for _, e in pairs(life.remotes) do
-                if e.killed then
-                    send('SUITKILL|1|' .. s.client.lease .. '|' .. e.killed)
+            for _, entry in pairs(life.remotes) do
+                if entry.killed then
+                    send('SUITKILL|1|' .. state.client.lease .. '|' .. entry.killed)
                 end
             end
         end
     end
     local live = {}
-    for lease, e in pairs(life.remotes) do
-        if s.client and s.client.lease and e.remote and now - e.remote.at >= 30 then
+    for lease, entry in pairs(life.remotes) do
+        if state.client and state.client.lease and entry.remote and now - entry.remote.at >= 30 then
             -- A departed client: remove its replica and forget the record.
             if
-                e.suit
-                and engine.IsComponentOperational(e.suit)
-                and engine.GetPlayerOccupiedShipID() ~= e.suit
+                entry.suit
+                and engine.IsComponentOperational(entry.suit)
+                and engine.GetPlayerOccupiedShipID() ~= entry.suit
             then
-                engine.RemoveComponent(e.suit)
+                engine.RemoveComponent(entry.suit)
             end
             life.remotes[lease] = nil
         else
-            live[#live + 1] = e
+            live[#live + 1] = entry
         end
     end
-    for _, e in ipairs(live) do
-        life.frameRemote(e, now)
+    for _, entry in ipairs(live) do
+        life.frameRemote(entry, now)
     end
     local latest = nil
-    for _, e in ipairs(live) do
-        if e.remote and (not latest or e.remote.at >= latest.remote.at) then
-            latest = e
+    for _, entry in ipairs(live) do
+        if entry.remote and (not latest or entry.remote.at >= latest.remote.at) then
+            latest = entry
         end
     end
     life.remoteSuit, life.remoteKilled =
         latest and latest.suit or nil, latest and latest.killed or nil
 end
-function life.frameRemote(e, now)
-    local remote = e.remote
+function life.frameRemote(entry, now)
+    local remote = entry.remote
     if not remote then
         return
     end
-    if e.suit and (remote.mode ~= 'suit' or e.generation ~= remote.generation) then
-        if engine.IsComponentOperational(e.suit) and engine.GetPlayerOccupiedShipID() ~= e.suit then
-            engine.RemoveComponent(e.suit)
+    if entry.suit and (remote.mode ~= 'suit' or entry.generation ~= remote.generation) then
+        if
+            engine.IsComponentOperational(entry.suit)
+            and engine.GetPlayerOccupiedShipID() ~= entry.suit
+        then
+            engine.RemoveComponent(entry.suit)
         end
-        e.suit = nil
-        e.killed = nil
+        entry.suit = nil
+        entry.killed = nil
     end
-    if remote.mode == 'suit' and now - remote.at < 1 and not e.killed then
-        local sector = cfg.coop and api.coop.sectorId(remote.sector) or s.sector
+    if remote.mode == 'suit' and now - remote.at < 1 and not entry.killed then
+        local sector = cfg.coop and api.coop.sectorId(remote.sector) or state.sector
         if cfg.coop and not api.coop.sectors[remote.sector] then
             return
         end
         local origin = cfg.coop and 0 or 10000
-        if not e.suit then
-            local p = remote.pose
-            e.suit = engine.SpawnObjectAtPos2(
+        if not entry.suit then
+            local pose = remote.pose
+            entry.suit = engine.SpawnObjectAtPos2(
                 'ship_arg_xs_spacesuit_01_a_macro',
                 sector,
-                ffi.new('UIPosRot', { x = p[1], y = p[2] + origin, z = p[3] }),
+                ffi.new('UIPosRot', { x = pose[1], y = pose[2] + origin, z = pose[3] }),
                 'player'
             )
-            if e.suit == 0 then
-                e.suit = nil
+            if entry.suit == 0 then
+                entry.suit = nil
                 return
             end
-            e.generation = remote.generation
+            entry.generation = remote.generation
             AddUITriggeredEvent(
                 'X4LAN_Life',
                 'RemoteSuit',
-                { object = api.id(e.suit), generation = remote.generation }
+                { object = api.id(entry.suit), generation = remote.generation }
             )
             log('remote spacesuit created; generation=' .. remote.generation)
         end
-        if engine.IsComponentOperational(e.suit) then
-            local p = remote.pose
-            local deg = 180 / math.pi
+        if engine.IsComponentOperational(entry.suit) then
+            local pose = remote.pose
+            local degreesPerRadian = 180 / math.pi
             engine.SetObjectSectorPos(
-                e.suit,
+                entry.suit,
                 sector,
                 ffi.new('UIPosRot', {
-                    x = p[1],
-                    y = p[2] + origin,
-                    z = p[3],
-                    yaw = p[4] * deg,
-                    pitch = p[5] * deg,
-                    roll = p[6] * deg,
+                    x = pose[1],
+                    y = pose[2] + origin,
+                    z = pose[3],
+                    yaw = pose[4] * degreesPerRadian,
+                    pitch = pose[5] * degreesPerRadian,
+                    roll = pose[6] * degreesPerRadian,
                 })
             )
         end
@@ -294,9 +310,9 @@ end)
 RegisterEvent('X4LAN_Life.RemoteSuitKilled', function(_, generation)
     -- MD names the suit by generation; it belongs to the remote whose replica has it.
     local gen = tonumber(generation)
-    for _, e in pairs(life.remotes) do
-        if e.suit and e.generation == gen then
-            e.killed = gen
+    for _, entry in pairs(life.remotes) do
+        if entry.suit and entry.generation == gen then
+            entry.killed = gen
         end
     end
     life.remoteKilled = gen

@@ -14,7 +14,8 @@ local function unbundle(packet, lease)
     if #packet > 768 or packet:sub(1, #header) ~= header then
         return {}
     end
-    local out, at = {}, #header + 1
+    local out = {}
+    local at = #header + 1
     while at <= #packet do
         local digits = packet:match('^(%d%d?%d?):', at)
         if not digits then
@@ -53,22 +54,22 @@ local function seq(value)
     if not value or not value:match('^%d+$') then
         return nil
     end
-    local n = tonumber(value)
-    if n > 2147483647 then
+    local number = tonumber(value)
+    if number > 2147483647 then
         return nil
     end
-    return n
+    return number
 end
 local function finite(value, bound)
-    local n = tonumber(value)
-    if not n or n ~= n or math.abs(n) > bound then
+    local number = tonumber(value)
+    if not number or number ~= number or math.abs(number) > bound then
         return nil
     end
-    return n
+    return number
 end
-local function angle(a, b, t)
-    local delta = (b - a + math.pi) % (2 * math.pi) - math.pi
-    return a + delta * t
+local function angle(startAngle, endAngle, fraction)
+    local delta = (endAngle - startAngle + math.pi) % (2 * math.pi) - math.pi
+    return startAngle + delta * fraction
 end
 -- Slot admission shared with the relay: p1..p<max_players>. Two players outside a
 -- dedicated session; a dedicated session without max_players is the legacy p1..p3.
@@ -87,21 +88,23 @@ local function interpolate(samples, now)
     if #samples == 0 or now - samples[#samples].time > 0.75 then
         return nil
     end
+    -- Render 100 ms behind arrival time to interpolate between received samples.
     local target = now - 0.10
-    local a, b = samples[1], samples[#samples]
+    local earlier, later = samples[1], samples[#samples]
     for i = 2, #samples do
         if samples[i].time >= target then
-            b = samples[i]
+            later = samples[i]
             break
         end
-        a = samples[i]
+        earlier = samples[i]
     end
-    local t = b.time > a.time and math.max(0, math.min(1, (target - a.time) / (b.time - a.time)))
+    local fraction = later.time > earlier.time
+            and math.max(0, math.min(1, (target - earlier.time) / (later.time - earlier.time)))
         or 0
     local pose = {}
     for i = 1, 6 do
-        pose[i] = i <= 3 and (a.pose[i] + (b.pose[i] - a.pose[i]) * t)
-            or angle(a.pose[i], b.pose[i], t)
+        pose[i] = i <= 3 and (earlier.pose[i] + (later.pose[i] - earlier.pose[i]) * fraction)
+            or angle(earlier.pose[i], later.pose[i], fraction)
     end
     return pose
 end
@@ -137,29 +140,35 @@ function X4LAN_CLIENT.new(config, transport, nonce, log, resume)
         self.samples, self.remote, self.remoteSeq, self.remotes = {}, nil, -1, {}
     end
     function self:receive(packet, now)
-        local f = split(packet)
-        if f[2] ~= '1' then
+        local fields = split(packet)
+        if fields[2] ~= '1' then
             return
         end
         if
-            f[1] == 'RESET'
-            and #f == 3
-            and f[3] == self.nonce
+            fields[1] == 'RESET'
+            and #fields == 3
+            and fields[3] == self.nonce
             and self.resume
             and not self.lease
         then
             self.reset = true
             return
         end
-        if f[1] == 'WELCOME' and #f == 5 and f[3] == self.nonce and hex(f[4]) and f[5] == '20' then
-            if self.resume and f[4] ~= self.resume.lease then
+        if
+            fields[1] == 'WELCOME'
+            and #fields == 5
+            and fields[3] == self.nonce
+            and hex(fields[4])
+            and fields[5] == '20'
+        then
+            if self.resume and fields[4] ~= self.resume.lease then
                 return
             end
-            if self.lease and self.lease ~= f[4] then
+            if self.lease and self.lease ~= fields[4] then
                 return
             end
-            if self.lease ~= f[4] then
-                self.lease = f[4]
+            if self.lease ~= fields[4] then
+                self.lease = fields[4]
                 clearRemotes()
                 self.log(
                     (self.resume and 'reconnected to relay as ' or 'connected to relay as ')
@@ -169,19 +178,19 @@ function X4LAN_CLIENT.new(config, transport, nonce, log, resume)
             self.lastHost = now
             return
         end
-        if not self.lease or f[3] ~= self.lease then
+        if not self.lease or fields[3] ~= self.lease then
             return
         end
-        if self.receiveExtension and self:receiveExtension(f, now) then
+        if self.receiveExtension and self:receiveExtension(fields, now) then
             return
         end
-        local tick = seq(f[4])
+        local tick = seq(fields[4])
         -- One tick carries one PEER per remote: a tick may repeat for another remote,
         -- never after an EMPTY of the same tick and never for the same remote.
         if not tick or tick < self.tick then
             return
         end
-        if f[1] == 'EMPTY' and #f == 4 then
+        if fields[1] == 'EMPTY' and #fields == 4 then
             if tick == self.tick then
                 return
             end
@@ -189,28 +198,33 @@ function X4LAN_CLIENT.new(config, transport, nonce, log, resume)
             self.tick, self.emptyTick, self.lastHost = tick, tick, now
             return
         end
-        if f[1] ~= 'PEER' or #f ~= 12 or not hex(f[5]) or f[5] == self.lease then
+        if
+            fields[1] ~= 'PEER'
+            or #fields ~= 12
+            or not hex(fields[5])
+            or fields[5] == self.lease
+        then
             return
         end
         if tick == self.tick and self.emptyTick == tick then
             return
         end
-        local remoteSeq = seq(f[6])
+        local remoteSeq = seq(fields[6])
         if not remoteSeq then
             return
         end
         local pose = {}
         for i = 1, 6 do
-            pose[i] = finite(f[i + 6], i <= 3 and 50000 or 2 * math.pi)
+            pose[i] = finite(fields[i + 6], i <= 3 and 50000 or 2 * math.pi)
             if not pose[i] then
                 return
             end
         end
-        local r = self.remotes[f[5]]
-        if r and tick <= r.tick then
+        local remoteTrack = self.remotes[fields[5]]
+        if remoteTrack and tick <= remoteTrack.tick then
             return
         end
-        if not r then
+        if not remoteTrack then
             local count = 0
             for _ in pairs(self.remotes) do
                 count = count + 1
@@ -218,19 +232,19 @@ function X4LAN_CLIENT.new(config, transport, nonce, log, resume)
             if count >= MAX_REMOTES then
                 return
             end
-            r = { seq = -1, tick = -1, samples = {} }
-            self.remotes[f[5]] = r
+            remoteTrack = { seq = -1, tick = -1, samples = {} }
+            self.remotes[fields[5]] = remoteTrack
         end
-        self.tick, self.lastHost, r.tick = tick, now, tick
-        if remoteSeq <= r.seq then
+        self.tick, self.lastHost, remoteTrack.tick = tick, now, tick
+        if remoteSeq <= remoteTrack.seq then
             return
         end
-        r.seq = remoteSeq
-        r.samples[#r.samples + 1] = { time = now, pose = pose }
-        while #r.samples > 8 do
-            table.remove(r.samples, 1)
+        remoteTrack.seq = remoteSeq
+        remoteTrack.samples[#remoteTrack.samples + 1] = { time = now, pose = pose }
+        while #remoteTrack.samples > 8 do
+            table.remove(remoteTrack.samples, 1)
         end
-        self.remote, self.remoteSeq, self.samples = f[5], r.seq, r.samples
+        self.remote, self.remoteSeq, self.samples = fields[5], remoteTrack.seq, remoteTrack.samples
     end
     function self:update(now, pose)
         self.startedAt = self.startedAt or now
@@ -309,8 +323,8 @@ function X4LAN_CLIENT.new(config, transport, nonce, log, resume)
     -- Every remote with a fresh legacy transform, keyed by its lease.
     function self:renderAll(now)
         local out = {}
-        for lease, r in pairs(self.remotes) do
-            out[lease] = interpolate(r.samples, now)
+        for lease, remoteTrack in pairs(self.remotes) do
+            out[lease] = interpolate(remoteTrack.samples, now)
         end
         return out
     end

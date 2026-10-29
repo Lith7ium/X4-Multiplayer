@@ -10,25 +10,25 @@ protocol.wares = {
     'siliconwafers',
 }
 protocol.index = {}
-for i, w in ipairs(protocol.wares) do
-    protocol.index[w] = i
+for i, ware in ipairs(protocol.wares) do
+    protocol.index[ware] = i
 end
-function protocol.split(s, sep)
-    local out = {}
-    for v in (s .. sep):gmatch('(.-)' .. sep) do
-        out[#out + 1] = v
+function protocol.split(text, separator)
+    local fields = {}
+    for value in (text .. separator):gmatch('(.-)' .. separator) do
+        fields[#fields + 1] = value
     end
-    return out
+    return fields
 end
-function protocol.integer(s, limit, signed)
-    if type(s) ~= 'string' or not s:match(signed and '^%-?%d+$' or '^%d+$') then
+function protocol.integer(text, limit, signed)
+    if type(text) ~= 'string' or not text:match(signed and '^%-?%d+$' or '^%d+$') then
         return nil
     end
-    local n = tonumber(s)
-    if not n or math.abs(n) > (limit or 1000000000000) then
+    local number = tonumber(text)
+    if not number or math.abs(number) > (limit or 1000000000000) then
         return nil
     end
-    return n
+    return number
 end
 function protocol.snapshot(payload)
     if #payload > 4000 then
@@ -38,50 +38,50 @@ function protocol.snapshot(payload)
     if #rows ~= #protocol.wares + 1 then
         return nil
     end
-    local m = protocol.split(rows[1], ',')
-    if #m ~= 5 or m[1] ~= 'M' then
+    local balanceFields = protocol.split(rows[1], ',')
+    if #balanceFields ~= 5 or balanceFields[1] ~= 'M' then
         return nil
     end
     local result = { balances = {}, rows = {} }
     local seen = {}
     for i = 1, 4 do
-        result.balances[i] = protocol.integer(m[i + 1])
+        result.balances[i] = protocol.integer(balanceFields[i + 1])
         if not result.balances[i] then
             return nil
         end
     end
     for i = 2, #rows do
-        local r = protocol.split(rows[i], ',')
-        local index = protocol.index[r[2]]
-        if #r ~= 13 or r[1] ~= 'W' or not index or seen[index] then
+        local wareFields = protocol.split(rows[i], ',')
+        local index = protocol.index[wareFields[2]]
+        if #wareFields ~= 13 or wareFields[1] ~= 'W' or not index or seen[index] then
             return nil
         end
         seen[index] = true
-        local v = {}
+        local values = {}
         for j = 3, 13 do
-            v[j - 2] = protocol.integer(r[j])
-            if not v[j - 2] then
+            values[j - 2] = protocol.integer(wareFields[j])
+            if not values[j - 2] then
                 return nil
             end
         end
-        if v[1] < 1 or v[1] > 100000 then
+        if values[1] < 1 or values[1] > 100000 then
             return nil
         end
         for _, j in ipairs({ 2, 3, 4, 5, 8, 11 }) do
-            if v[j] > 1000000 then
+            if values[j] > 1000000 then
                 return nil
             end
         end
         for _, j in ipairs({ 6, 7, 9, 10 }) do
-            if v[j] < 1 then
+            if values[j] < 1 then
                 return nil
             end
         end
         result.rows[#result.rows + 1] = {
             index = index,
-            cargo = { v[2], v[3], v[4], v[5] },
-            prices = { v[6], v[7], v[9], v[10] },
-            limits = { v[8], v[11] },
+            cargo = { values[2], values[3], values[4], values[5] },
+            prices = { values[6], values[7], values[9], values[10] },
+            limits = { values[8], values[11] },
         }
     end
     return result
@@ -93,24 +93,24 @@ function protocol.lines(payload)
     end
     local result, seen = {}, {}
     for _, row in ipairs(rows) do
-        local f = protocol.split(row, ',')
-        local index = protocol.index[f[1]]
-        local qty = protocol.integer(f[2], 1000000, true)
-        local price = protocol.integer(f[3])
+        local fields = protocol.split(row, ',')
+        local index = protocol.index[fields[1]]
+        local quantity = protocol.integer(fields[2], 1000000, true)
+        local price = protocol.integer(fields[3])
         if
-            #f ~= 3
+            #fields ~= 3
             or not index
             or seen[index]
-            or not qty
-            or qty == 0
+            or not quantity
+            or quantity == 0
             or not price
             or price == 0
-            or math.abs(qty) * price > 1000000000000
+            or math.abs(quantity) * price > 1000000000000
         then
             return nil
         end
         seen[index] = true
-        result[#result + 1] = { index = index, quantity = qty, price = price }
+        result[#result + 1] = { index = index, quantity = quantity, price = price }
     end
     return result
 end
@@ -132,18 +132,18 @@ function protocol.assembler()
             then
                 return nil
             end
-            for rev, item in pairs(self.pending) do
-                if now - item.at > 3 or rev < revision - 4 then
-                    self.pending[rev] = nil
+            for revisionKey, item in pairs(self.pending) do
+                if now - item.at > 3 or revisionKey < revision - 4 then
+                    self.pending[revisionKey] = nil
                 end
             end
             local item = self.pending[revision]
             if not item then
                 local count, oldest = 0, nil
-                for rev in pairs(self.pending) do
+                for revisionKey in pairs(self.pending) do
                     count = count + 1
-                    if not oldest or rev < oldest then
-                        oldest = rev
+                    if not oldest or revisionKey < oldest then
+                        oldest = revisionKey
                     end
                 end
                 if count >= 4 then
@@ -169,9 +169,9 @@ function protocol.assembler()
                 return nil
             end
             self.revision = revision
-            for rev in pairs(self.pending) do
-                if rev <= revision then
-                    self.pending[rev] = nil
+            for revisionKey in pairs(self.pending) do
+                if revisionKey <= revision then
+                    self.pending[revisionKey] = nil
                 end
             end
             return parsed

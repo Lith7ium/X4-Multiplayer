@@ -10,18 +10,18 @@ ffi.cdef(
     [[bool IsPlayerValid(void);bool IsGamePaused(void);
 bool IsSaveListLoadingComplete(void);void ReloadSaveList(void);const char* GetSaveFolderPath(void);]]
 )
-local s = {}
-X4LAN_SEED_CAPTURE = s
+local capture = {}
+X4LAN_SEED_CAPTURE = capture
 local function log(text)
     DebugError('[X4LAN] WORLD_CAPTURE ' .. text)
 end
 local function fail(reason)
-    s.failed = tostring(reason)
-    log('STOPPED ' .. s.failed)
-    if s.paused and engine.IsGamePaused() then
+    capture.failed = tostring(reason)
+    log('STOPPED ' .. capture.failed)
+    if capture.paused and engine.IsGamePaused() then
         Pause()
     end
-    s.paused = false
+    capture.paused = false
 end
 log('BEGIN id=' .. tostring(cfg.seed_id))
 local ok, err = pcall(function()
@@ -42,61 +42,61 @@ if not ok then
     return
 end
 RegisterEvent('gameSaved', function(_, success)
-    if not s.saving or s.done or s.failed then
+    if not capture.saving or capture.done or capture.failed then
         return
     end
     if success ~= true and success ~= 1 then
         fail('native save failed')
         return
     end
-    s.done = true
-    s.exitAt = GetCurRealTime() + 1
+    capture.done = true
+    capture.exitAt = GetCurRealTime() + 1
     log('SAVED id=' .. cfg.seed_id .. ' slot=save_010')
 end)
 -- Optional saved-reference registry. It must be sealed into the same pristine
 -- snapshot before SaveGame; a missing/rejected acknowledgement never saves.
 RegisterEvent('X4LAN_SeedDocks.Marked', function(_, id)
-    if not s.pendingDocks or s.failed or s.done then
+    if not capture.pendingDocks or capture.failed or capture.done then
         return
     end
     if id ~= cfg.seed_id then
         fail('dock registry belongs to another world')
         return
     end
-    s.pendingDocks = false
-    s.docksMarked = true
+    capture.pendingDocks = false
+    capture.docksMarked = true
     -- Inspect again on the next frame, so the ordinary pristine-world gate still
     -- runs after native registry construction and before saving.
     log('DOCKS_MARKED id=' .. id)
 end)
 RegisterEvent('X4LAN_SeedDocks.Error', function(_, reason)
-    if s.pendingDocks and not s.failed then
+    if capture.pendingDocks and not capture.failed then
         fail('dock registry: ' .. tostring(reason))
     end
 end)
 RegisterEvent('X4LAN_Seed.State', function(_, payload)
-    if not s.pending or s.saving or s.done or s.failed then
+    if not capture.pending or capture.saving or capture.done or capture.failed then
         return
     end
-    s.pending = false
+    capture.pending = false
     local ok, err = pcall(function()
-        if payload == '|1|0' and not s.marked then
-            s.marked = true
+        if payload == '|1|0' and not capture.marked then
+            capture.marked = true
             AddUITriggeredEvent('X4LAN_Seed', 'Mark', cfg.seed_id)
             return
         end
         assert(payload == cfg.seed_id .. '|1|0', 'world is not a pristine new host world')
-        if cfg.coop_docks and not s.docksMarked then
-            s.pendingDocks = true
+        if cfg.coop_docks and not capture.docksMarked then
+            capture.pendingDocks = true
             AddUITriggeredEvent('X4LAN_SeedDocks', 'Mark', cfg.seed_id)
             return
         end
         assert(IsSavingPossible(false), 'native saving unavailable')
         if not engine.IsGamePaused() then
             Pause()
-            s.paused = true
+            capture.paused = true
         end
-        s.saving = true
+        capture.saving = true
         log('SAVE_REQUESTED id=' .. cfg.seed_id)
         SaveGame('save_010', 'X4 Multiplayer shared starting world ' .. cfg.seed_id)
     end)
@@ -106,12 +106,12 @@ RegisterEvent('X4LAN_Seed.State', function(_, payload)
 end)
 local function frame()
     local now = GetCurRealTime()
-    if s.failed then
+    if capture.failed then
         return
     end
-    if s.done then
-        if now >= s.exitAt and not s.exiting then
-            s.exiting = true
+    if capture.done then
+        if now >= capture.exitAt and not capture.exiting then
+            capture.exiting = true
             log('EXIT id=' .. cfg.seed_id)
             QuitGame()
         end
@@ -120,14 +120,20 @@ local function frame()
     if not engine.IsPlayerValid() then
         return
     end
-    s.started = s.started or now
-    assert(now - s.started < 180, 'native capture timed out')
-    if s.saving or s.pending or s.pendingDocks or now - s.started < 3 or now < (s.next or 0) then
+    capture.started = capture.started or now
+    assert(now - capture.started < 180, 'native capture timed out')
+    if
+        capture.saving
+        or capture.pending
+        or capture.pendingDocks
+        or now - capture.started < 3
+        or now < (capture.next or 0)
+    then
         return
     end
-    if not s.refreshed then
+    if not capture.refreshed then
         engine.ReloadSaveList()
-        s.refreshed = true
+        capture.refreshed = true
         return
     end
     if not engine.IsSaveListLoadingComplete() then
@@ -139,8 +145,8 @@ local function frame()
             'reserved world slot already exists; refusing overwrite'
         )
     end
-    s.pending = true
-    s.next = now + 1
+    capture.pending = true
+    capture.next = now + 1
     AddUITriggeredEvent('X4LAN_Seed', 'Inspect')
 end
 SetScript('onUpdate', function()

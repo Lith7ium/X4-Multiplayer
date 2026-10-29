@@ -8,7 +8,7 @@ local ffi = require('ffi')
 local engine = ffi.C
 local universe = api.universe
 local protocol = X4LAN_UNIVERSE_PROTOCOL
-local s = api.state
+local state = api.state
 ffi.cdef([[const char* GetObjectIDCode(UniverseID);const char* GetComponentName(UniverseID);
 void SetObjectForcedRadarVisible(UniverseID,bool);]])
 local identity = { bound = {}, rows = {}, fixtures = {}, seq = 0, cursor = 1, sent = {} }
@@ -22,8 +22,8 @@ identity.FRESH = 4
 local function key(object)
     return tostring(object):gsub('ULL$', '')
 end
-local function log(v)
-    DebugError('[X4LAN] IDENTITY ' .. v)
+local function log(text)
+    DebugError('[X4LAN] IDENTITY ' .. text)
 end
 local nativeCode = engine.GetObjectIDCode
 function identity.display(object)
@@ -62,28 +62,30 @@ function identity.bind(object, code, name)
     then
         return false
     end
-    local k = key(object)
-    local old = identity.bound[k]
+    local objectKey = key(object)
+    local old = identity.bound[objectKey]
     if old and old.text == code and old.name == name then
         return true
     end
-    identity.bound[k] =
+    identity.bound[objectKey] =
         { object = object, code = ffi.new('char[?]', #code + 1, code), text = code, name = name }
     AddUITriggeredEvent('X4LAN_Universe', 'Describe', { object = api.id(object), name = name })
     return true
 end
 function identity.unbind(object)
-    local k = key(object)
-    local old = identity.bound[k]
+    local objectKey = key(object)
+    local old = identity.bound[objectKey]
     if old and old.forced and engine.IsComponentOperational(object) then
         engine.SetObjectForcedRadarVisible(object, false)
     end
-    identity.bound[k] = nil
+    identity.bound[objectKey] = nil
 end
 local function encode(text)
-    return (text:gsub('.', function(c)
-        return string.format('%02x', c:byte())
-    end))
+    return (
+        text:gsub('.', function(character)
+            return string.format('%02x', character:byte())
+        end)
+    )
 end
 local function decode(text)
     if
@@ -95,9 +97,11 @@ local function decode(text)
     then
         return nil
     end
-    return (text:gsub('..', function(c)
-        return string.char(tonumber(c, 16))
-    end))
+    return (
+        text:gsub('..', function(hexByte)
+            return string.char(tonumber(hexByte, 16))
+        end)
+    )
 end
 local function fixture(id)
     if id <= 2 then
@@ -116,59 +120,64 @@ local function observe(object, row)
     if not identity.bind(object, row.code, row.name) then
         return
     end
-    local b = identity.bound[key(object)]
-    b.at = row.at
-    if row.known and not b.known then
+    local binding = identity.bound[key(object)]
+    binding.at = row.at
+    if row.known and not binding.known then
         AddUITriggeredEvent('X4LAN_Universe', 'Known', api.id(object))
-        b.known = true
+        binding.known = true
     end
-    if b.forced ~= row.contact then
+    if binding.forced ~= row.contact then
         engine.SetObjectForcedRadarVisible(object, row.contact)
-        b.forced = row.contact
+        binding.forced = row.contact
     end
 end
 local receive = universe.receive
-function universe.receive(f, now)
-    if f[1] ~= 'IDENT' then
-        return receive(f, now)
+function universe.receive(fields, now)
+    if fields[1] ~= 'IDENT' then
+        return receive(fields, now)
     end
-    if cfg.slot == 'p1' or #f ~= 11 or not universe.latest or f[4] ~= universe.latest.epoch then
+    if
+        cfg.slot == 'p1'
+        or #fields ~= 11
+        or not universe.latest
+        or fields[4] ~= universe.latest.epoch
+    then
         return true
     end
-    local seq, id = protocol.integer(f[5]), protocol.integer(f[7])
-    local scope = f[6]
+    local sequence, id = protocol.integer(fields[5]), protocol.integer(fields[7])
+    local scope = fields[6]
     if
-        not seq
+        not sequence
         or not id
         or id == 0
         or (scope ~= 'P' and scope ~= 'N' and scope ~= 'F')
         or (scope == 'P' and id > (api.coop and api.coop.count or 2))
         or (scope == 'F' and id > 4)
-        or not f[8]:match('^[A-Z0-9-]+$')
-        or #f[8] > 32
-        or (f[10] ~= '0' and f[10] ~= '1')
-        or (f[11] ~= '0' and f[11] ~= '1')
+        or not fields[8]:match('^[A-Z0-9-]+$')
+        or #fields[8] > 32
+        or (fields[10] ~= '0' and fields[10] ~= '1')
+        or (fields[11] ~= '0' and fields[11] ~= '1')
     then
         return true
     end
-    local name = decode(f[9])
+    local name = decode(fields[9])
     if not name or name:find('[%z\1-\31\127]') then
         return true
     end
-    local k = scope .. id
-    local old = identity.rows[k]
-    if old and old.epoch == f[4] and seq <= old.seq then
+    local rowKey = scope .. id
+    local old = identity.rows[rowKey]
+    if old and old.epoch == fields[4] and sequence <= old.seq then
         return true
     end
-    identity.rows[k] = {
-        epoch = f[4],
+    identity.rows[rowKey] = {
+        epoch = fields[4],
         scope = scope,
         id = id,
-        seq = seq,
-        code = f[8],
+        seq = sequence,
+        code = fields[8],
         name = name,
-        known = f[10] == '1',
-        contact = f[11] == '1',
+        known = fields[10] == '1',
+        contact = fields[11] == '1',
         at = now,
     }
     return true
@@ -179,10 +188,10 @@ local function sensors()
         if engine.IsComponentOperational(ship) then
             local range = GetComponentData(api.id(ship), 'maxradarrange')
             if type(range) == 'number' and range > 0 then
-                local p = engine.GetObjectPositionInSector(ship)
+                local position = engine.GetObjectPositionInSector(ship)
                 list[#list + 1] = {
                     sector = engine.GetContextByClass(ship, 'sector', false),
-                    p = p,
+                    p = position,
                     range = range,
                 }
             end
@@ -206,20 +215,21 @@ local function publish(entry, radars)
     local known, visible = GetComponentData(api.id(object), 'isknown', 'isradarvisible')
     local contact = false
     local sector = engine.GetContextByClass(object, 'sector', false)
-    local p = engine.GetObjectPositionInSector(object)
+    local position = engine.GetObjectPositionInSector(object)
     if visible then
-        for _, r in ipairs(radars) do
+        for _, radar in ipairs(radars) do
             if
-                r.sector == sector
-                and (p.x - r.p.x) ^ 2 + (p.y - r.p.y) ^ 2 + (p.z - r.p.z) ^ 2 <= r.range ^ 2
+                radar.sector == sector
+                and (position.x - radar.p.x) ^ 2 + (position.y - radar.p.y) ^ 2 + (position.z - radar.p.z) ^ 2
+                    <= radar.range ^ 2
             then
                 contact = true
                 break
             end
         end
     end
-    local k = entry.scope .. entry.id
-    local last = identity.sent[k]
+    local rowKey = entry.scope .. entry.id
+    local last = identity.sent[rowKey]
     local now = identity.now or 0
     local flags = ((known or contact) and '1' or '0') .. (contact and '1' or '0')
     if
@@ -231,13 +241,13 @@ local function publish(entry, radars)
     then
         return
     end
-    identity.sent[k] = { code = code, name = name, flags = flags, at = now }
+    identity.sent[rowKey] = { code = code, name = name, flags = flags, at = now }
     identity.seq = identity.seq + 1
-    s.transport:send(table.concat({
+    state.transport:send(table.concat({
         'IDENT',
         '1',
-        s.client.lease,
-        s.client.lease,
+        state.client.lease,
+        state.client.lease,
         identity.seq,
         entry.scope,
         entry.id,
@@ -251,8 +261,8 @@ local function frame(now)
     if
         not universe.ready
         or not api.coop.ready
-        or not s.client
-        or not s.client.lease
+        or not state.client
+        or not state.client.lease
         or api.paused()
     then
         return
@@ -265,9 +275,9 @@ local function frame(now)
         identity.now = now
         if now >= (identity.nextPrune or 0) then
             identity.nextPrune = now + 10
-            for k, v in pairs(identity.sent) do
-                if now - v.at > 10 then
-                    identity.sent[k] = nil
+            for rowKey, sent in pairs(identity.sent) do
+                if now - sent.at > 10 then
+                    identity.sent[rowKey] = nil
                 end
             end
         end
@@ -282,8 +292,8 @@ local function frame(now)
                 list[#list + 1] = { scope = 'F', id = i, object = object }
             end
         end
-        for _, e in ipairs(universe.publish) do
-            list[#list + 1] = { scope = 'N', id = e.id, object = e.object }
+        for _, entity in ipairs(universe.publish) do
+            list[#list + 1] = { scope = 'N', id = entity.id, object = entity.object }
         end
         if #list == 0 then
             return
@@ -294,11 +304,11 @@ local function frame(now)
             identity.cursor = identity.cursor % #list + 1
         end
     else
-        for k, row in pairs(identity.rows) do
-            local r = row.scope == 'N' and universe.replicas[row.id] or nil
+        for rowKey, row in pairs(identity.rows) do
+            local replica = row.scope == 'N' and universe.replicas[row.id] or nil
             local object = row.scope == 'P' and api.coop.ships[row.id]
                 or row.scope == 'F' and fixture(row.id)
-                or r and r.object
+                or replica and replica.object
             if
                 universe.latest
                 and row.epoch == universe.latest.epoch
@@ -308,15 +318,15 @@ local function frame(now)
             then
                 observe(object, row)
             elseif now - row.at > 15 then
-                identity.rows[k] = nil
+                identity.rows[rowKey] = nil
             end
         end
-        for k, b in pairs(identity.bound) do
-            if not engine.IsComponentOperational(b.object) then
-                identity.bound[k] = nil
-            elseif b.forced and now - (b.at or 0) > identity.FRESH then
-                engine.SetObjectForcedRadarVisible(b.object, false)
-                b.forced = false
+        for rowKey, binding in pairs(identity.bound) do
+            if not engine.IsComponentOperational(binding.object) then
+                identity.bound[rowKey] = nil
+            elseif binding.forced and now - (binding.at or 0) > identity.FRESH then
+                engine.SetObjectForcedRadarVisible(binding.object, false)
+                binding.forced = false
             end
         end
     end
