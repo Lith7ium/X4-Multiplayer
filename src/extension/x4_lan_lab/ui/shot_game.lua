@@ -160,10 +160,10 @@ function shotAdapter.loadout(payload)
             ok = false
             reason = reason or 'damage-profile'
         end
-        for _, k in ipairs(OTHER) do
-            if ok and tonumber(entry[k]) ~= 0 then
+        for _, claimKey in ipairs(OTHER) do
+            if ok and tonumber(entry[claimKey]) ~= 0 then
                 ok = false
-                reason = reason or ('damage-channel:' .. k)
+                reason = reason or ('damage-channel:' .. claimKey)
             end
         end
     else
@@ -270,8 +270,8 @@ function shotAdapter.hit(v, n)
     then
         return false
     end
-    local k = key(entity, generation, v, victimGeneration)
-    shotAdapter.totals[k] = math.min(1000000, (shotAdapter.totals[k] or 0) + n)
+    local claimKey = key(entity, generation, v, victimGeneration)
+    shotAdapter.totals[claimKey] = math.min(1000000, (shotAdapter.totals[claimKey] or 0) + n)
     shotAdapter.dirty = true
     return true
 end
@@ -297,9 +297,9 @@ function shotAdapter.cumulative(v, sgen, vgen, total, from)
     then
         return false
     end
-    local k = key(entity, generation, v, victimGeneration)
-    if total > (shotAdapter.totals[k] or 0) then
-        shotAdapter.totals[k] = total
+    local claimKey = key(entity, generation, v, victimGeneration)
+    if total > (shotAdapter.totals[claimKey] or 0) then
+        shotAdapter.totals[claimKey] = total
         shotAdapter.dirty = true
     end
     return true
@@ -351,12 +351,12 @@ function shotAdapter.receive(fields)
     if not support or fields[11] ~= support.digest then
         return true
     end -- unsupported or different loadout
-    local k = key(entity, generation, v, victimGeneration)
-    local p = shotAdapter.pending[k]
-    if p and (seq <= p.seq or hits < p.hits) then
+    local claimKey = key(entity, generation, v, victimGeneration)
+    local pendingClaim = shotAdapter.pending[claimKey]
+    if pendingClaim and (seq <= pendingClaim.seq or hits < pendingClaim.hits) then
         return true
     end
-    shotAdapter.pending[k] = {
+    shotAdapter.pending[claimKey] = {
         seq = seq,
         hits = hits,
         shooter = entity,
@@ -389,23 +389,23 @@ function shotAdapter.applied(payload)
         return
     end
     local entity, v = math.floor((slot - 1) / 4) + 1, (slot - 1) % 4 + 1
-    local k = key(entity, generation, v, victimGeneration)
-    local p = shotAdapter.pending[k]
+    local claimKey = key(entity, generation, v, victimGeneration)
+    local pendingClaim = shotAdapter.pending[claimKey]
     if
-        not p
-        or count > p.hits
+        not pendingClaim
+        or count > pendingClaim.hits
         or validGen(entity) ~= generation
         or victimGen(v) ~= victimGeneration
         or not authority(v, victimGeneration)
     then
         return
     end
-    if count > (shotAdapter.confirmed[k] or 0) then
-        shotAdapter.confirmed[k] = count
+    if count > (shotAdapter.confirmed[claimKey] or 0) then
+        shotAdapter.confirmed[claimKey] = count
     end
-    local fl = shotAdapter.inflight[k]
+    local fl = shotAdapter.inflight[claimKey]
     if fl and fl.count <= count then
-        shotAdapter.inflight[k] = nil
+        shotAdapter.inflight[claimKey] = nil
     end
 end
 
@@ -449,8 +449,8 @@ function shotAdapter.frame(now)
     -- Shooter: cumulative counts of current generations only, at once on change, else every RESEND.
     local cur, curGen = shooter()
     local lease = sessionState.client and sessionState.client.lease
-    for k, total in pairs(shotAdapter.totals) do
-        local entity, generation, v, victimGeneration = k:match('^(%d)|(%d+)|(%d)|(%d+)$')
+    for claimKey, total in pairs(shotAdapter.totals) do
+        local entity, generation, v, victimGeneration = claimKey:match('^(%d)|(%d+)|(%d)|(%d+)$')
         entity, generation, v, victimGeneration =
             tonumber(entity), tonumber(generation), tonumber(v), tonumber(victimGeneration)
         if
@@ -460,9 +460,9 @@ function shotAdapter.frame(now)
             or not shotAdapter.support[entity]
             or authority(v, victimGeneration)
         then
-            shotAdapter.totals[k], shotAdapter.sentAt[k] = nil, nil
-        elseif lease and (shotAdapter.dirty or now >= (shotAdapter.sentAt[k] or 0)) then
-            shotAdapter.seq, shotAdapter.sentAt[k] = shotAdapter.seq + 1, now + RESEND
+            shotAdapter.totals[claimKey], shotAdapter.sentAt[claimKey] = nil, nil
+        elseif lease and (shotAdapter.dirty or now >= (shotAdapter.sentAt[claimKey] or 0)) then
+            shotAdapter.seq, shotAdapter.sentAt[claimKey] = shotAdapter.seq + 1, now + RESEND
             send(
                 string.format(
                     'SHOT|1|%s|%d|%d|%d|%d|%d|%d|%s',
@@ -480,37 +480,37 @@ function shotAdapter.frame(now)
     end
     shotAdapter.dirty = false
     -- Authority: issue the next increase (at most BATCH hits), retried until MD confirms it.
-    for k, p in pairs(shotAdapter.pending) do
+    for claimKey, pendingClaim in pairs(shotAdapter.pending) do
         if
-            validGen(p.shooter) ~= p.sgen
-            or victimGen(p.victim) ~= p.vgen
-            or not authority(p.victim, p.vgen)
+            validGen(pendingClaim.shooter) ~= pendingClaim.sgen
+            or victimGen(pendingClaim.victim) ~= pendingClaim.vgen
+            or not authority(pendingClaim.victim, pendingClaim.vgen)
         then
-            shotAdapter.pending[k], shotAdapter.confirmed[k], shotAdapter.inflight[k] =
+            shotAdapter.pending[claimKey], shotAdapter.confirmed[claimKey], shotAdapter.inflight[claimKey] =
                 nil, nil, nil
         else
-            local base = shotAdapter.confirmed[k] or 0
-            local fl = shotAdapter.inflight[k]
-            local support = shotAdapter.support[p.shooter]
+            local base = shotAdapter.confirmed[claimKey] or 0
+            local fl = shotAdapter.inflight[claimKey]
+            local support = shotAdapter.support[pendingClaim.shooter]
             if
-                p.hits > base
+                pendingClaim.hits > base
                 and support
-                and support.digest == p.digest
-                and support.strength == p.strength
+                and support.digest == pendingClaim.digest
+                and support.strength == pendingClaim.strength
                 and (not fl or now - fl.at >= RETRY)
                 and writable()
                 and shotAdapter.stateAck == shotAdapter.stateRevision
             then
-                local count = math.min(p.hits, base + BATCH)
-                shotAdapter.inflight[k] = { at = now, count = count }
+                local count = math.min(pendingClaim.hits, base + BATCH)
+                shotAdapter.inflight[claimKey] = { at = now, count = count }
                 AddUITriggeredEvent('X4LAN_Shot', 'Apply', {
-                    shooter = p.shooter,
-                    sgen = p.sgen,
-                    victim = p.victim,
-                    vgen = p.vgen,
+                    shooter = pendingClaim.shooter,
+                    sgen = pendingClaim.sgen,
+                    victim = pendingClaim.victim,
+                    vgen = pendingClaim.vgen,
                     base = base,
                     count = count,
-                    strength = p.strength,
+                    strength = pendingClaim.strength,
                     state = shotAdapter.stateAck,
                     stamp = healthAdapter.mdStamp,
                     from = healthAdapter.mdAge,

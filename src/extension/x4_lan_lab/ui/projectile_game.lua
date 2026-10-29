@@ -41,8 +41,8 @@ local KINDS = {
 }
 local TTL = { 1.7, 0.7, 0.7 }
 local DELAY = 0.15
-local function log(t)
-    DebugError('[X4LAN] PROJECTILE ' .. t)
+local function log(message)
+    DebugError('[X4LAN] PROJECTILE ' .. message)
 end
 local function liveBullet(id)
     -- The engine logs an error if IsComponentClass sees an already expired ID.
@@ -117,42 +117,39 @@ local function wanted(entity, now)
             return nil
         end
     else
-        local r = coopAdapter.remote[entity]
+        local remoteRecord = coopAdapter.remote[entity]
         local player = C.GetPlayerContainerID()
         if
-            not r
-            or not r.track
-            or not r.track.offset
-            or now - r.at > 0.35
-            or not r.sourceLease
+            not remoteRecord
+            or not remoteRecord.track
+            or not remoteRecord.track.offset
+            or now - remoteRecord.at > 0.35
+            or not remoteRecord.sourceLease
             or player == 0
             or C.GetContextByClass(player, 'sector', false) ~= sector
             or not shotVisual.readyReplay(entity, gen, now)
         then
             return nil
         end
-        if r.sector ~= GetComponentData(API.id(sector), 'macro') then
+        if remoteRecord.sector ~= GetComponentData(API.id(sector), 'macro') then
             return nil
         end
-        lease, sourceNow = r.sourceLease, now - r.track.offset
+        lease, sourceNow = remoteRecord.sourceLease, now - remoteRecord.track.offset
     end
     local name = GetComponentData(API.id(sector), 'macro')
     -- A.id creates engine LuaID userdata for MD/API arguments. It is not a string
     -- and may be a new wrapper on every call; key the stable native numeric IDs.
-    local key = table.concat(
-        {
-            sessionState.client.lease,
-            lease,
-            entity,
-            coopAdapter.epochs[entity],
-            gen,
-            tostring(ship),
-            tostring(sector),
-            mode,
-            kind,
-        },
-        '|'
-    )
+    local key = table.concat({
+        sessionState.client.lease,
+        lease,
+        entity,
+        coopAdapter.epochs[entity],
+        gen,
+        tostring(ship),
+        tostring(sector),
+        mode,
+        kind,
+    }, '|')
     return {
         key = key,
         entity = entity,
@@ -168,11 +165,11 @@ local function wanted(entity, now)
     }
 end
 local function remove(slot)
-    local r = projectiles.slots[slot]
-    if not r then
+    local remoteRecord = projectiles.slots[slot]
+    if not remoteRecord then
         return
     end
-    event('Remove', { slot = slot, operation = r.operation })
+    event('Remove', { slot = slot, operation = remoteRecord.operation })
     projectiles.slots[slot] = nil
 end
 local function revoke(context)
@@ -184,8 +181,8 @@ local function revoke(context)
     context.ackAt = nil
     event('Revoke', { entity = context.entity, ticket = context.ticket })
     motion.clear(context.buffer, context.sourceNow)
-    for slot, r in pairs(projectiles.slots) do
-        if r.entity == context.entity then
+    for slot, remoteRecord in pairs(projectiles.slots) do
+        if remoteRecord.entity == context.entity then
             remove(slot)
         end
     end
@@ -249,19 +246,25 @@ function projectiles.contextsFrame(now)
     end
 end
 function projectiles.state(payload)
-    local entity, t = tostring(payload):match('^(%d)|(%d+)$')
-    entity, t = tonumber(entity), tonumber(t)
+    local entity, ticket = tostring(payload):match('^(%d)|(%d+)$')
+    entity, ticket = tonumber(entity), tonumber(ticket)
     local context = entity and projectiles.contexts[entity]
     local cur = entity and wanted(entity, projectiles.now)
-    if context and cur and cur.key == context.key and context.enabled and context.ticket == t then
+    if
+        context
+        and cur
+        and cur.key == context.key
+        and context.enabled
+        and context.ticket == ticket
+    then
         context.ackAt = projectiles.now
     end
 end
 function projectiles.born(payload)
-    local entity, generation, t, id, sector, kind, vx, vy, vz =
+    local entity, generation, ticket, id, sector, kind, vx, vy, vz =
         tostring(payload):match('^(%d)|(%d+)|(%d+)|([^|]+)|([^|]+)|(%d)|([^|]+)|([^|]+)|([^|]+)$')
-    entity, generation, t, kind =
-        tonumber(entity), tonumber(generation), tonumber(t), tonumber(kind)
+    entity, generation, ticket, kind =
+        tonumber(entity), tonumber(generation), tonumber(ticket), tonumber(kind)
     local velocity = { tonumber(vx), tonumber(vy), tonumber(vz) }
     for i = 1, 3 do
         local n = velocity[i]
@@ -277,7 +280,7 @@ function projectiles.born(payload)
         or cur.key ~= context.key
         or context.mode ~= 1
         or context.gen ~= generation
-        or context.ticket ~= t
+        or context.ticket ~= ticket
         or context.kind ~= kind
     then
         return
@@ -454,24 +457,24 @@ function projectiles.receive(fields, now)
     return true
 end
 function projectiles.created(payload)
-    local entity, t, slot, op, id, sector =
+    local entity, ticket, slot, op, id, sector =
         tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d+)|([^|]+)|([^|]+)$')
-    entity, t, slot, op = tonumber(entity), tonumber(t), tonumber(slot), tonumber(op)
+    entity, ticket, slot, op = tonumber(entity), tonumber(ticket), tonumber(slot), tonumber(op)
     if not entity or not slot or slot < 1 or slot > motion.capacity then
         return
     end
     local context = projectiles.contexts[entity]
-    local r = projectiles.slots[slot]
+    local remoteRecord = projectiles.slots[slot]
     local cur = wanted(entity, projectiles.now)
     if
-        not r
-        or r.operation ~= op
-        or r.entity ~= entity
+        not remoteRecord
+        or remoteRecord.operation ~= op
+        or remoteRecord.entity ~= entity
         or not ready(context, projectiles.now)
         or not cur
         or cur.key ~= context.key
-        or context.ticket ~= t
-        or r.ticket ~= t
+        or context.ticket ~= ticket
+        or remoteRecord.ticket ~= ticket
     then
         event('Remove', { slot = slot, operation = op })
         return
@@ -481,16 +484,22 @@ function projectiles.created(payload)
         remove(slot)
         return
     end
-    r.object = object
+    remoteRecord.object = object
 end
 function projectiles.rejected(payload)
-    local entity, t, slot, op = tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d+)$')
-    entity, t, slot, op = tonumber(entity), tonumber(t), tonumber(slot), tonumber(op)
-    local r = slot and projectiles.slots[slot]
-    if r and r.entity == entity and r.ticket == t and r.operation == op and not r.object then
+    local entity, ticket, slot, op = tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d+)$')
+    entity, ticket, slot, op = tonumber(entity), tonumber(ticket), tonumber(slot), tonumber(op)
+    local remoteRecord = slot and projectiles.slots[slot]
+    if
+        remoteRecord
+        and remoteRecord.entity == entity
+        and remoteRecord.ticket == ticket
+        and remoteRecord.operation == op
+        and not remoteRecord.object
+    then
         -- A queued request can cross a freshness boundary. Retry while this exact
         -- observation is still live, without spending most of a short pulse's TTL.
-        r.retryAt = projectiles.now + 0.05
+        remoteRecord.retryAt = projectiles.now + 0.05
     end
 end
 function projectiles.renderFrame(now)
@@ -502,8 +511,12 @@ function projectiles.renderFrame(now)
                 local samples = motion.sample(context.buffer, cur.sourceNow - DELAY)
                 for id, sample in pairs(samples) do
                     local slot
-                    for i, r in pairs(projectiles.slots) do
-                        if r.entity == entity and r.id == id and r.ticket == context.ticket then
+                    for i, remoteRecord in pairs(projectiles.slots) do
+                        if
+                            remoteRecord.entity == entity
+                            and remoteRecord.id == id
+                            and remoteRecord.ticket == context.ticket
+                        then
                             slot = i
                             break
                         end
@@ -550,12 +563,12 @@ function projectiles.renderFrame(now)
                         end
                     end
                     if slot then
-                        local r = projectiles.slots[slot]
+                        local remoteRecord = projectiles.slots[slot]
                         wantedSlots[slot] = true
-                        if r.object then
+                        if remoteRecord.object then
                             if
-                                C.IsComponentClass(r.object, 'object')
-                                and C.GetContextByClass(r.object, 'sector', false)
+                                C.IsComponentClass(remoteRecord.object, 'object')
+                                and C.GetContextByClass(remoteRecord.object, 'sector', false)
                                     == context.sector
                             then
                                 local p = sample.pose
@@ -572,8 +585,8 @@ function projectiles.renderFrame(now)
                                 -- that still disagrees. Never apply this repair to ships or projectiles.
                                 local placed = false
                                 for attempt = 1, 2 do
-                                    C.SetObjectSectorPos(r.object, context.sector, pose)
-                                    local actual = C.GetObjectPositionInSector(r.object)
+                                    C.SetObjectSectorPos(remoteRecord.object, context.sector, pose)
+                                    local actual = C.GetObjectPositionInSector(remoteRecord.object)
                                     if
                                         closePosition(actual.x, pose.x)
                                         and closePosition(actual.y, pose.y)
@@ -590,7 +603,8 @@ function projectiles.renderFrame(now)
                                 remove(slot)
                             end
                         elseif
-                            r.retryAt and now >= r.retryAt or not r.retryAt and now - r.at > 0.3
+                            remoteRecord.retryAt and now >= remoteRecord.retryAt
+                            or not remoteRecord.retryAt and now - remoteRecord.at > 0.3
                         then
                             remove(slot)
                         end

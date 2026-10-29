@@ -139,17 +139,14 @@ local function proof(entity, row)
     local seq = serial()
     row.pendingProof = seq
     row.nextProof = shotVisual.now + 0.1
-    event(
-        'Proof',
-        {
-            entity = entity,
-            gen = row.gen,
-            ticket = row.ticket,
-            mode = row.mode,
-            sequence = seq,
-            revision = shotAdapter.stateRevision,
-        }
-    )
+    event('Proof', {
+        entity = entity,
+        gen = row.gen,
+        ticket = row.ticket,
+        mode = row.mode,
+        sequence = seq,
+        revision = shotAdapter.stateRevision,
+    })
 end
 function shotVisual.prepared(payload)
     local entity, generation, ticket, mode, id =
@@ -246,16 +243,13 @@ function shotVisual.frame(now)
                 phase = 'preparing',
             }
             shotVisual.rows[entity] = row
-            event(
-                'Prepare',
-                {
-                    entity = entity,
-                    gen = generation,
-                    ticket = ticket,
-                    mode = mode,
-                    revision = shotAdapter.stateRevision,
-                }
-            )
+            event('Prepare', {
+                entity = entity,
+                gen = generation,
+                ticket = ticket,
+                mode = mode,
+                revision = shotAdapter.stateRevision,
+            })
         elseif row.phase ~= 'preparing' and now >= (row.nextProof or 0) then
             proof(entity, row)
         end

@@ -31,26 +31,26 @@ local function percent(v)
     local x = tonumber(v)
     return x and x == x and x >= 0 and x <= 100 and x
 end
-local function key(id, generation, e, shooterGeneration)
-    return table.concat({ id, generation, e, shooterGeneration }, '|')
+local function key(id, generation, shooterEntity, shooterGeneration)
+    return table.concat({ id, generation, shooterEntity, shooterGeneration }, '|')
 end
 local function fresh(now)
     return not API.paused() and healthAdapter.mdStamp and now - healthAdapter.mdAt <= 0.5
 end
-local function validGen(e)
-    local g = healthAdapter.valid[e]
-    return g and g > (healthAdapter.closed[e] or 0) and g
+local function validGen(shooterEntity)
+    local g = healthAdapter.valid[shooterEntity]
+    return g and g > (healthAdapter.closed[shooterEntity] or 0) and g
 end
-local function pilot(e, shooterGeneration, slot)
-    return coopAdapter.owners[e] == slot
-        and coopAdapter.pilots[e] == slot
-        and validGen(e) == shooterGeneration
+local function pilot(shooterEntity, shooterGeneration, slot)
+    return coopAdapter.owners[shooterEntity] == slot
+        and coopAdapter.pilots[shooterEntity] == slot
+        and validGen(shooterEntity) == shooterGeneration
         and (
             slot == 'p1'
-            or cfg.slot ~= 'p1' and healthAdapter.live and healthAdapter.live.entity == e and healthAdapter.live.gen == shooterGeneration
+            or cfg.slot ~= 'p1' and healthAdapter.live and healthAdapter.live.entity == shooterEntity and healthAdapter.live.gen == shooterGeneration
             or cfg.slot == 'p1'
-                and healthAdapter.remote[e]
-                and healthAdapter.remote[e].gen == shooterGeneration
+                and healthAdapter.remote[shooterEntity]
+                and healthAdapter.remote[shooterEntity].gen == shooterGeneration
         )
 end
 local function send(fields)
@@ -72,32 +72,33 @@ function npcCombat.fail(reason)
     log('STOPPED ' .. tostring(reason))
     AddUITriggeredEvent('X4LAN_NpcCombat', 'Stop', {})
 end
-local function safe(r)
-    if r.retired then
+local function safe(record)
+    if record.retired then
         return false
     end
-    if not r.object or not C.IsComponentOperational(r.object) then
+    if not record.object or not C.IsComponentOperational(record.object) then
         return false
     end
     if
-        r.object == C.GetPlayerContainerID()
-        or r.object == C.GetPlayerOccupiedShipID()
-        or r.object == C.GetPlayerControlledShipID()
-        or coopAdapter.entity(r.object) > 0
+        record.object == C.GetPlayerContainerID()
+        or record.object == C.GetPlayerOccupiedShipID()
+        or record.object == C.GetPlayerControlledShipID()
+        or coopAdapter.entity(record.object) > 0
     then
         return false
     end
     if cfg.slot == 'p1' then
-        local identity = universe.identities[tostring(r.object):gsub('ULL$', '')]
-        if not identity or identity.id ~= r.id then
+        local identity = universe.identities[tostring(record.object):gsub('ULL$', '')]
+        if not identity or identity.id ~= record.id then
             return false
         end
     end
-    local macro, owner = GetComponentData(API.id(r.object), 'macro', 'owner')
-    return npcCombat.code(r.object) == r.code
-        and macro == r.macro
-        and owner == r.owner
-        and C.GetContextByClass(r.object, 'sector', false) == coopAdapter.sectorId(r.sector)
+    local macro, owner = GetComponentData(API.id(record.object), 'macro', 'owner')
+    return npcCombat.code(record.object) == record.code
+        and macro == record.macro
+        and owner == record.owner
+        and C.GetContextByClass(record.object, 'sector', false)
+            == coopAdapter.sectorId(record.sector)
 end
 local function make(id, object, sector, macro, owner, generation)
     if npcCombat.serial >= 32768 then
@@ -108,7 +109,7 @@ local function make(id, object, sector, macro, owner, generation)
         return
     end
     npcCombat.serial = npcCombat.serial + 1
-    local r = {
+    local record = {
         id = id,
         object = object,
         sector = sector,
@@ -118,32 +119,32 @@ local function make(id, object, sector, macro, owner, generation)
         gen = generation,
         serial = npcCombat.serial,
     }
-    if not r.code:match('^[A-Z0-9-]+$') or #r.code > 32 then
+    if not record.code:match('^[A-Z0-9-]+$') or #record.code > 32 then
         npcCombat.fail('native identity unavailable')
         return
     end
-    npcCombat.records[id] = r
-    return r
+    npcCombat.records[id] = record
+    return record
 end
-local function args(r)
+local function args(record)
     return {
-        id = r.id,
-        gen = r.gen,
-        serial = r.serial,
-        object = API.id(r.object),
-        code = r.code,
-        sector = r.sector,
-        macro = r.macro,
-        owner = r.owner,
+        id = record.id,
+        gen = record.gen,
+        serial = record.serial,
+        object = API.id(record.object),
+        code = record.code,
+        sector = record.sector,
+        macro = record.macro,
+        owner = record.owner,
     }
 end
 -- Called before a replica may respawn. A native local death is not host permission.
-function npcCombat.hidden(r)
-    local state = npcCombat.states[r.entity.id]
+function npcCombat.hidden(record)
+    local state = npcCombat.states[record.entity.id]
     if state and not state.alive then
         return true
     end
-    if r.npcBound and (not r.object or not C.IsComponentOperational(r.object)) then
+    if record.npcBound and (not record.object or not C.IsComponentOperational(record.object)) then
         npcCombat.fail('replica died without a host destruction state')
         return true
     end
@@ -151,15 +152,15 @@ function npcCombat.hidden(r)
 end
 function npcCombat.hide(replica, now)
     local state = npcCombat.states[replica.entity.id]
-    local r = npcCombat.records[replica.entity.id]
+    local record = npcCombat.records[replica.entity.id]
     if
         state
         and not state.alive
-        and not r
+        and not record
         and replica.object
         and C.IsComponentOperational(replica.object)
     then
-        r = make(
+        record = make(
             replica.entity.id,
             replica.object,
             replica.sector,
@@ -171,17 +172,17 @@ function npcCombat.hide(replica, now)
     if
         state
         and not state.alive
-        and r
-        and replica.object == r.object
-        and safe(r)
+        and record
+        and replica.object == record.object
+        and safe(record)
         and fresh(now)
-        and now >= (r.nextDestroy or 0)
+        and now >= (record.nextDestroy or 0)
     then
-        r.nextDestroy = now + 0.5
-        local bind = args(r)
+        record.nextDestroy = now + 0.5
+        local bind = args(record)
         bind.hull, bind.shield, bind.sequence = 0.000001, 0, 0
         call('Bind', bind) -- Covers a death overtaking the first healthy binding.
-        local a = args(r)
+        local a = args(record)
         a.sequence = state.seq
         call('Destroy', a)
     end
@@ -207,7 +208,7 @@ function npcCombat.receive(packetFields, now)
         local id, generation, seq =
             integer(packetFields[5]), integer(packetFields[6]), integer(packetFields[7])
         local hu, sh = percent(packetFields[12]), percent(packetFields[13])
-        local r = id and universe.replicas[id]
+        local record = id and universe.replicas[id]
         local old = id and npcCombat.states[id]
         if
             not id
@@ -216,11 +217,11 @@ function npcCombat.receive(packetFields, now)
             or not seq
             or not hu
             or not sh
-            or not r
-            or r.entity.kind ~= 'ship'
-            or packetFields[8] ~= r.sector
-            or packetFields[10] ~= r.entity.macro
-            or packetFields[11] ~= r.entity.owner
+            or not record
+            or record.entity.kind ~= 'ship'
+            or packetFields[8] ~= record.sector
+            or packetFields[10] ~= record.entity.macro
+            or packetFields[11] ~= record.entity.owner
             or packetFields[11] == 'player'
             or not packetFields[9]:match('^[A-Z0-9-]+$')
             or #packetFields[9] > 32
@@ -258,50 +259,50 @@ function npcCombat.receive(packetFields, now)
         and #packetFields == 12
         and packetFields[5] == sessionState.client.lease
     then
-        local id, generation, e, shooterGeneration, seq, hits =
+        local id, generation, shooterEntity, shooterGeneration, seq, hits =
             integer(packetFields[6]),
             integer(packetFields[7]),
             integer(packetFields[8], 2),
             integer(packetFields[9]),
             integer(packetFields[10]),
             integer(packetFields[11], 1000000)
-        local r = id and npcCombat.records[id]
-        local sup = e and shotAdapter.support[e]
+        local record = id and npcCombat.records[id]
+        local weaponSupport = shooterEntity and shotAdapter.support[shooterEntity]
         if
-            not r
-            or r.dead
-            or r.gen ~= generation
-            or not e
-            or e < 1
+            not record
+            or record.dead
+            or record.gen ~= generation
+            or not shooterEntity
+            or shooterEntity < 1
             or not shooterGeneration
-            or not pilot(e, shooterGeneration, coopAdapter.owners[e])
+            or not pilot(shooterEntity, shooterGeneration, coopAdapter.owners[shooterEntity])
             or not seq
             or not hits
-            or not sup
-            or packetFields[12] ~= sup.digest
-            or not safe(r)
+            or not weaponSupport
+            or packetFields[12] ~= weaponSupport.digest
+            or not safe(record)
             or not packetFields[4]:match('^[a-f0-9]+$')
             or #packetFields[4] ~= 32
         then
             return true
         end
-        local k = key(id, generation, e, shooterGeneration)
-        local p = npcCombat.pending[k]
-        if p and (seq <= p.seq or hits < p.hits or p.source ~= packetFields[4]) then
+        local k = key(id, generation, shooterEntity, shooterGeneration)
+        local claim = npcCombat.pending[k]
+        if claim and (seq <= claim.seq or hits < claim.hits or claim.source ~= packetFields[4]) then
             return true
         end
         npcCombat.pending[k] = {
             id = id,
             gen = generation,
-            e = e,
+            e = shooterEntity,
             sg = shooterGeneration,
             seq = seq,
             hits = hits,
             source = packetFields[4],
             digest = packetFields[12],
-            strength = sup.strength,
-            confirmed = p and p.confirmed or 0,
-            next = p and p.next or 0,
+            strength = weaponSupport.strength,
+            confirmed = claim and claim.confirmed or 0,
+            next = claim and claim.next or 0,
         }
     elseif
         packetFields[1] == 'NACK'
@@ -311,16 +312,16 @@ function npcCombat.receive(packetFields, now)
         and packetFields[4] == universe.latest.epoch
         and packetFields[5] == sessionState.client.lease
     then
-        local id, generation, e, shooterGeneration, count =
+        local id, generation, shooterEntity, shooterGeneration, count =
             integer(packetFields[6]),
             integer(packetFields[7]),
             integer(packetFields[8], 2),
             integer(packetFields[9]),
             integer(packetFields[10], 1000000)
-        if id and generation and e and shooterGeneration and count then
-            local p = npcCombat.claims[key(id, generation, e, shooterGeneration)]
-            if p and count <= p.hits then
-                p.ack = math.max(p.ack, count)
+        if id and generation and shooterEntity and shooterGeneration and count then
+            local claim = npcCombat.claims[key(id, generation, shooterEntity, shooterGeneration)]
+            if claim and count <= claim.hits then
+                claim.ack = math.max(claim.ack, count)
             end
         end
     end
@@ -331,39 +332,46 @@ function npcCombat.count(payload)
     if #packetFields ~= 6 or npcCombat.failed or cfg.slot == 'p1' then
         return
     end
-    local id, generation, serial, e, shooterGeneration, hits =
+    local id, generation, serial, shooterEntity, shooterGeneration, hits =
         integer(packetFields[1]),
         integer(packetFields[2]),
         integer(packetFields[3]),
         integer(packetFields[4], 2),
         integer(packetFields[5]),
         integer(packetFields[6], 1000000)
-    local r = id and npcCombat.records[id]
+    local record = id and npcCombat.records[id]
     local state = id and npcCombat.states[id]
     if
-        not r
-        or r.gen ~= generation
-        or r.serial ~= serial
+        not record
+        or record.gen ~= generation
+        or record.serial ~= serial
         or not state
         or not state.alive
-        or not e
-        or e < 1
+        or not shooterEntity
+        or shooterEntity < 1
         or not shooterGeneration
         or not hits
-        or not pilot(e, shooterGeneration, coopAdapter.owners[e])
-        or not shotAdapter.support[e]
-        or not safe(r)
+        or not pilot(shooterEntity, shooterGeneration, coopAdapter.owners[shooterEntity])
+        or not shotAdapter.support[shooterEntity]
+        or not safe(record)
         or (healthAdapter.now or 0) - state.at >= 5
     then
         return
     end
-    local k = key(id, generation, e, shooterGeneration)
-    local p = npcCombat.claims[k]
-    if not p then
-        p = { id = id, gen = generation, e = e, sg = shooterGeneration, hits = 0, ack = 0 }
-        npcCombat.claims[k] = p
+    local k = key(id, generation, shooterEntity, shooterGeneration)
+    local claim = npcCombat.claims[k]
+    if not claim then
+        claim = {
+            id = id,
+            gen = generation,
+            e = shooterEntity,
+            sg = shooterGeneration,
+            hits = 0,
+            ack = 0,
+        }
+        npcCombat.claims[k] = claim
     end
-    p.hits = math.max(p.hits, hits)
+    claim.hits = math.max(claim.hits, hits)
 end
 function npcCombat.read(payload)
     local packetFields = protocol.split(tostring(payload), '|')
@@ -372,34 +380,35 @@ function npcCombat.read(payload)
     end
     local id, generation, serial =
         integer(packetFields[1]), integer(packetFields[2]), integer(packetFields[3])
-    local r = id and npcCombat.records[id]
+    local record = id and npcCombat.records[id]
     local hull, shield = percent(packetFields[4]), percent(packetFields[5])
     if
-        not r
-        or r.gen ~= generation
-        or r.serial ~= serial
+        not record
+        or record.gen ~= generation
+        or record.serial ~= serial
         or not hull
         or not shield
         or (packetFields[6] ~= '0' and packetFields[6] ~= '1')
     then
         return
     end
-    if packetFields[6] == '1' and (r.dead or not safe(r)) then
+    if packetFields[6] == '1' and (record.dead or not safe(record)) then
         return
     end
-    r.hull, r.shield, r.dead, r.readAt = hull, shield, packetFields[6] == '0', healthAdapter.now
+    record.hull, record.shield, record.dead, record.readAt =
+        hull, shield, packetFields[6] == '0', healthAdapter.now
     local now = healthAdapter.now or 0
-    local sent = r.sent
+    local sent = record.sent
     if
         sent
         and sent.hull == hull
         and sent.shield == shield
-        and sent.dead == r.dead
+        and sent.dead == record.dead
         and now - sent.at < npcCombat.KEEPALIVE
     then
         return
     end
-    r.sent = { hull = hull, shield = shield, dead = r.dead, at = now }
+    record.sent = { hull = hull, shield = shield, dead = record.dead, at = now }
     npcCombat.seq = npcCombat.seq + 1
     send({
         'NHP',
@@ -409,13 +418,13 @@ function npcCombat.read(payload)
         id,
         generation,
         npcCombat.seq,
-        r.sector,
-        r.code,
-        r.macro,
-        r.owner,
+        record.sector,
+        record.code,
+        record.macro,
+        record.owner,
         hull,
         shield,
-        r.dead and 0 or 1,
+        record.dead and 0 or 1,
     })
 end
 function npcCombat.applied(payload)
@@ -423,39 +432,46 @@ function npcCombat.applied(payload)
     if #packetFields ~= 6 or npcCombat.failed or cfg.slot ~= 'p1' then
         return
     end
-    local id, generation, serial, e, shooterGeneration, count =
+    local id, generation, serial, shooterEntity, shooterGeneration, count =
         integer(packetFields[1]),
         integer(packetFields[2]),
         integer(packetFields[3]),
         integer(packetFields[4], 2),
         integer(packetFields[5]),
         integer(packetFields[6], 1000000)
-    if not id or not generation or not serial or not e or not shooterGeneration or not count then
-        return
-    end
-    local p = npcCombat.pending[key(id, generation, e, shooterGeneration)]
-    local r = npcCombat.records[id]
     if
-        not p
-        or not r
-        or serial ~= r.serial
-        or count > p.hits
-        or not pilot(e, shooterGeneration, coopAdapter.owners[e])
+        not id
+        or not generation
+        or not serial
+        or not shooterEntity
+        or not shooterGeneration
+        or not count
     then
         return
     end
-    p.confirmed = math.max(p.confirmed, count)
+    local claim = npcCombat.pending[key(id, generation, shooterEntity, shooterGeneration)]
+    local record = npcCombat.records[id]
+    if
+        not claim
+        or not record
+        or serial ~= record.serial
+        or count > claim.hits
+        or not pilot(shooterEntity, shooterGeneration, coopAdapter.owners[shooterEntity])
+    then
+        return
+    end
+    claim.confirmed = math.max(claim.confirmed, count)
     send({
         'NACK',
         1,
         sessionState.client.lease,
         sessionState.client.lease,
-        p.source,
+        claim.source,
         id,
         generation,
-        e,
+        shooterEntity,
         shooterGeneration,
-        p.confirmed,
+        claim.confirmed,
     })
 end
 function npcCombat.retired(payload)
@@ -463,13 +479,17 @@ function npcCombat.retired(payload)
     if #packetFields ~= 3 or cfg.slot ~= 'p1' then
         return
     end
-    local r = npcCombat.records[tonumber(packetFields[1])]
-    if not r or r.gen ~= tonumber(packetFields[2]) or r.serial ~= tonumber(packetFields[3]) then
+    local record = npcCombat.records[tonumber(packetFields[1])]
+    if
+        not record
+        or record.gen ~= tonumber(packetFields[2])
+        or record.serial ~= tonumber(packetFields[3])
+    then
         return
     end
-    r.retired = true
-    local identity = universe.identities[tostring(r.object):gsub('ULL$', '')]
-    if identity and identity.id == r.id then
+    record.retired = true
+    local identity = universe.identities[tostring(record.object):gsub('ULL$', '')]
+    if identity and identity.id == record.id then
         identity.retired = true
     end
 end
@@ -502,16 +522,16 @@ function npcCombat.frame(now)
             local id = cfg.slot == 'p1' and entry.id or entry
             local replica = cfg.slot ~= 'p1' and universe.replicas[id]
             local state = npcCombat.states[id]
-            local r = npcCombat.records[id]
+            local record = npcCombat.records[id]
             -- A terminal host fact remains actionable when the motion/baseline feed has
             -- expired. Never wait for another pose packet to retire a confirmed death.
             if replica and state and not state.alive then
                 npcCombat.hide(replica, now)
             end
             if cfg.slot == 'p1' then
-                if not r and C.IsComponentOperational(entry.object) then
+                if not record and C.IsComponentOperational(entry.object) then
                     local macro, owner = GetComponentData(API.id(entry.object), 'macro', 'owner')
-                    r = make(id, entry.object, entry.sector, macro, owner, 1)
+                    record = make(id, entry.object, entry.sector, macro, owner, 1)
                 end
             elseif
                 replica
@@ -521,8 +541,8 @@ function npcCombat.frame(now)
                 and replica.object
                 and C.IsComponentOperational(replica.object)
             then
-                if not r or r.object ~= replica.object then
-                    r = make(
+                if not record or record.object ~= replica.object then
+                    record = make(
                         id,
                         replica.object,
                         replica.sector,
@@ -533,18 +553,18 @@ function npcCombat.frame(now)
                 end
             end
             if
-                r
-                and safe(r)
+                record
+                and safe(record)
                 and (
                     cfg.slot == 'p1'
                     or replica
-                        and replica.object == r.object
+                        and replica.object == record.object
                         and state
                         and state.alive
                         and now - state.at < 5
                 )
             then
-                local a = args(r)
+                local a = args(record)
                 if cfg.slot ~= 'p1' then
                     a.hull, a.shield, a.sequence = state.hull, state.shield, state.seq
                     replica.npcBound = true
@@ -555,30 +575,34 @@ function npcCombat.frame(now)
         -- Destruction is reported by a native event and retained after baseline removal.
         if cfg.slot == 'p1' then
             local dead = {}
-            for _, r in pairs(npcCombat.records) do
-                if r.dead and universe.wanted[r.sector] then
-                    dead[#dead + 1] = r
+            for _, record in pairs(npcCombat.records) do
+                if record.dead and universe.wanted[record.sector] then
+                    dead[#dead + 1] = record
                 end
             end
             for i = 1, math.min(#dead, 128) do
                 npcCombat.deadCursor = (npcCombat.deadCursor or 0) % #dead + 1
-                local r = dead[npcCombat.deadCursor]
+                local record = dead[npcCombat.deadCursor]
                 -- The death itself was sent by n.read; repeat it at the keepalive cadence only.
-                if not r.sent or not r.sent.dead or now - r.sent.at >= npcCombat.KEEPALIVE then
-                    r.sent = { hull = 0, shield = 0, dead = true, at = now }
+                if
+                    not record.sent
+                    or not record.sent.dead
+                    or now - record.sent.at >= npcCombat.KEEPALIVE
+                then
+                    record.sent = { hull = 0, shield = 0, dead = true, at = now }
                     npcCombat.seq = npcCombat.seq + 1
                     send({
                         'NHP',
                         1,
                         sessionState.client.lease,
                         sessionState.client.lease,
-                        r.id,
-                        r.gen,
+                        record.id,
+                        record.gen,
                         npcCombat.seq,
-                        r.sector,
-                        r.code,
-                        r.macro,
-                        r.owner,
+                        record.sector,
+                        record.code,
+                        record.macro,
+                        record.owner,
                         0,
                         0,
                         0,
@@ -587,55 +611,59 @@ function npcCombat.frame(now)
             end
         end
     end
-    for k, p in pairs(npcCombat.claims) do
-        local state = npcCombat.states[p.id]
+    for k, claim in pairs(npcCombat.claims) do
+        local state = npcCombat.states[claim.id]
         if
             not state
             or not state.alive
-            or state.gen ~= p.gen
-            or not pilot(p.e, p.sg, coopAdapter.owners[p.e])
+            or state.gen ~= claim.gen
+            or not pilot(claim.e, claim.sg, coopAdapter.owners[claim.e])
         then
             npcCombat.claims[k] = nil
         elseif
             now - state.at < 5
-            and p.hits > p.ack
-            and now >= (p.next or 0)
-            and shotAdapter.support[p.e]
+            and claim.hits > claim.ack
+            and now >= (claim.next or 0)
+            and shotAdapter.support[claim.e]
         then
-            p.next = now + 0.25
+            claim.next = now + 0.25
             npcCombat.seq = npcCombat.seq + 1
             send({
                 'NCLAIM',
                 1,
                 sessionState.client.lease,
                 state.epoch,
-                p.id,
-                p.gen,
-                p.e,
-                p.sg,
+                claim.id,
+                claim.gen,
+                claim.e,
+                claim.sg,
                 npcCombat.seq,
-                p.hits,
-                shotAdapter.support[p.e].digest,
+                claim.hits,
+                shotAdapter.support[claim.e].digest,
             })
         end
     end
-    for k, p in pairs(npcCombat.pending) do
-        local r = npcCombat.records[p.id]
-        local sup = shotAdapter.support[p.e]
-        if not r or not pilot(p.e, p.sg, coopAdapter.owners[p.e]) then
+    for k, claim in pairs(npcCombat.pending) do
+        local record = npcCombat.records[claim.id]
+        local weaponSupport = shotAdapter.support[claim.e]
+        if not record or not pilot(claim.e, claim.sg, coopAdapter.owners[claim.e]) then
             npcCombat.pending[k] = nil
         elseif
-            not r.dead
-            and safe(r)
-            and sup
-            and sup.digest == p.digest
-            and p.hits > p.confirmed
-            and now >= p.next
+            not record.dead
+            and safe(record)
+            and weaponSupport
+            and weaponSupport.digest == claim.digest
+            and claim.hits > claim.confirmed
+            and now >= claim.next
         then
-            p.next = now + 0.5
-            local a = args(r)
+            claim.next = now + 0.5
+            local a = args(record)
             a.shooter, a.sgen, a.base, a.count, a.strength =
-                p.e, p.sg, p.confirmed, math.min(p.hits, p.confirmed + 20), p.strength
+                claim.e,
+                claim.sg,
+                claim.confirmed,
+                math.min(claim.hits, claim.confirmed + 20),
+                claim.strength
             a.state = shotAdapter.stateAck
             if a.state and a.state == shotAdapter.stateRevision then
                 call('Apply', a)
@@ -668,15 +696,15 @@ RegisterEvent('X4LAN_NpcCombat.Ready', function()
     npcCombat.ready = true
     log('READY slot=' .. cfg.slot)
 end)
-RegisterEvent('X4LAN_NpcCombat.Read', function(_, p)
-    npcCombat.read(p)
+RegisterEvent('X4LAN_NpcCombat.Read', function(_, claim)
+    npcCombat.read(claim)
 end)
-RegisterEvent('X4LAN_NpcCombat.Count', function(_, p)
-    npcCombat.count(p)
+RegisterEvent('X4LAN_NpcCombat.Count', function(_, claim)
+    npcCombat.count(claim)
 end)
-RegisterEvent('X4LAN_NpcCombat.Applied', function(_, p)
-    npcCombat.applied(p)
+RegisterEvent('X4LAN_NpcCombat.Applied', function(_, claim)
+    npcCombat.applied(claim)
 end)
-RegisterEvent('X4LAN_NpcCombat.Retired', function(_, p)
-    npcCombat.retired(p)
+RegisterEvent('X4LAN_NpcCombat.Retired', function(_, claim)
+    npcCombat.retired(claim)
 end)
