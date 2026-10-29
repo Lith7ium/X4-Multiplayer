@@ -1,125 +1,129 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_Shot" xsi:noNamespaceSchemaLocation="md.xsd">
-  <cues>
-    <cue name="Session" namespace="this">
-      <conditions>
-        <event_ui_triggered screen="'X4LAN_Shot'" control="'Setup'" />
-      </conditions>
-      <actions>
-        <set_value name="$arena" exact="md.X4LAN_Bubble.Arena" />
-        <set_value name="$arena.$shotSGen" exact="[0,0,0,0,0,0,0,0]" />
-        <set_value name="$arena.$shotVGen" exact="[0,0,0,0,0,0,0,0]" />
-        <set_value name="$arena.$shotCount" exact="[0,0,0,0,0,0,0,0]" />
-        <!-- Per shared ship (ships 3+ keep the neutral entry; shot authority is ships 1/2 only). -->
-        <set_value name="$arena.$shotStrength" exact="[]" /><set_value name="$arena.$shotCurrentGen" exact="[]" /><set_value name="$arena.$shotAuthority" exact="[]" />
-        <do_all exact="[$arena.$ships.count,2].max" counter="$i">
-          <append_to_list name="$arena.$shotStrength" exact="0" /><append_to_list name="$arena.$shotCurrentGen" exact="0" /><append_to_list name="$arena.$shotAuthority" exact="false" />
-        </do_all>
-        <raise_lua_event name="'X4LAN_Shot.Ready'" />
-        <debug_text text="'[X4LAN] SHOT_SETUP host=%s'.[$arena.$host]" />
-        <set_value name="$arena.$shotFailed" exact="false" />
-        <set_value name="$arena.$shotState" exact="0" />
-        <set_value name="$arena.$shotStateAt" exact="-10s" />
-        <set_value name="$arena.$shotApplying" exact="false" />
-      </actions>
-      <cues>
-        <cue name="Loadout" instantiate="true" checkinterval="5s">
-          <conditions>
-            <check_value value="true" />
-          </conditions>
-          <actions>
-            <do_all exact="2" counter="$i">
-              <set_value name="$s" exact="$arena.$ships.{$i}" />
-              <do_if value="@$s.isoperational">
-                <set_value name="$weapons" exact="$s.weapons.operational.list" />
-                <set_value name="$list" exact="''" />
-                <do_all exact="$weapons.count" counter="$j">
-                  <set_value name="$list" exact="$list + '%s,%s;'.[$weapons.{$j},$weapons.{$j}.macro.id]" />
+    <cues>
+        <cue name="Session" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Shot'" control="'Setup'"/>
+            </conditions>
+            <actions>
+                <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
+                <set_value name="$arena.$shotSGen" exact="[0,0,0,0,0,0,0,0]"/>
+                <set_value name="$arena.$shotVGen" exact="[0,0,0,0,0,0,0,0]"/>
+                <set_value name="$arena.$shotCount" exact="[0,0,0,0,0,0,0,0]"/>
+                <!-- Per shared ship (ships 3+ keep the neutral entry; shot authority is ships 1/2 only). -->
+                <set_value name="$arena.$shotStrength" exact="[]"/>
+                <set_value name="$arena.$shotCurrentGen" exact="[]"/>
+                <set_value name="$arena.$shotAuthority" exact="[]"/>
+                <do_all exact="[$arena.$ships.count,2].max" counter="$i">
+                    <append_to_list name="$arena.$shotStrength" exact="0"/>
+                    <append_to_list name="$arena.$shotCurrentGen" exact="0"/>
+                    <append_to_list name="$arena.$shotAuthority" exact="false"/>
                 </do_all>
-                <raise_lua_event name="'X4LAN_Shot.Loadout'" param="'%s|%s|%s'.[$i,@$s.turrets.operational.list.count,$list]" />
-              </do_if>
-            </do_all>
-          </actions>
+                <raise_lua_event name="'X4LAN_Shot.Ready'"/>
+                <debug_text text="'[X4LAN] SHOT_SETUP host=%s'.[$arena.$host]"/>
+                <set_value name="$arena.$shotFailed" exact="false"/>
+                <set_value name="$arena.$shotState" exact="0"/>
+                <set_value name="$arena.$shotStateAt" exact="-10s"/>
+                <set_value name="$arena.$shotApplying" exact="false"/>
+            </actions>
+            <cues>
+                <cue name="Loadout" instantiate="true" checkinterval="5s">
+                    <conditions>
+                        <check_value value="true"/>
+                    </conditions>
+                    <actions>
+                        <do_all exact="2" counter="$i">
+                            <set_value name="$s" exact="$arena.$ships.{$i}"/>
+                            <do_if value="@$s.isoperational">
+                                <set_value name="$weapons" exact="$s.weapons.operational.list"/>
+                                <set_value name="$list" exact="''"/>
+                                <do_all exact="$weapons.count" counter="$j">
+                                    <set_value name="$list" exact="$list + '%s,%s;'.[$weapons.{$j},$weapons.{$j}.macro.id]"/>
+                                </do_all>
+                                <raise_lua_event name="'X4LAN_Shot.Loadout'" param="'%s|%s|%s'.[$i,@$s.turrets.operational.list.count,$list]"/>
+                            </do_if>
+                        </do_all>
+                    </actions>
+                </cue>
+                <cue name="Support" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Shot'" control="'Support'"/>
+                    </conditions>
+                    <actions>
+                        <do_if value="not $arena.$shotFailed">
+                            <set_value name="$arena.$shotStrength.{event.param3.$entity}" exact="event.param3.$strength"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Apply" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Shot'" control="'Apply'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <set_value name="$k" exact="($a.$shooter - 1) * 4 + $a.$victim"/>
+                        <set_value name="$attacker" exact="$arena.$ships.{$a.$shooter}"/>
+                        <do_if value="$a.$victim le 2">
+                            <set_value name="$victim" exact="$arena.$ships.{$a.$victim}"/>
+                            <set_value name="$dead" exact="$arena.$dead.{$a.$victim}"/>
+                        </do_if>
+                        <do_else>
+                            <set_value name="$victim" exact="@$arena.$targets.{$a.$victim - 2}"/>
+                            <set_value name="$dead" exact="false"/>
+                        </do_else>
+                        <do_if value="not $arena.$shotFailed and $a.$state == $arena.$shotState and player.age - $arena.$shotStateAt le 0.3s and $a.$sgen == $arena.$shotCurrentGen.{$a.$shooter} and $a.$sgen gt $arena.$healthClosed.{$a.$shooter} and ($a.$victim gt 2 and $arena.$host or $a.$victim le 2 and $a.$vgen == $arena.$shotCurrentGen.{$a.$victim} and $a.$vgen gt $arena.$healthClosed.{$a.$victim} and $arena.$shotAuthority.{$a.$victim} and ($arena.$host and not $arena.$healthLive.{$a.$victim} or not $arena.$host and $arena.$healthOwn.{$a.$victim} and $arena.$healthAuth.{$a.$victim} == $a.$vgen))">
+                            <do_if value="$a.$base == 0 and $a.$sgen ge $arena.$shotSGen.{$k} and $a.$vgen ge $arena.$shotVGen.{$k} and ($a.$sgen gt $arena.$shotSGen.{$k} or $a.$vgen gt $arena.$shotVGen.{$k})">
+                                <set_value name="$arena.$shotSGen.{$k}" exact="$a.$sgen"/>
+                                <set_value name="$arena.$shotVGen.{$k}" exact="$a.$vgen"/>
+                                <set_value name="$arena.$shotCount.{$k}" exact="0"/>
+                            </do_if>
+                            <do_if value="$a.$sgen == $arena.$shotSGen.{$k} and $a.$vgen == $arena.$shotVGen.{$k} and $a.$count le $arena.$shotCount.{$k} and $arena.$shotCount.{$k} gt 0">
+                                <raise_lua_event name="'X4LAN_Shot.Applied'" param="'%s|%s|%s|%s|%s'.[$k,$a.$sgen,$a.$vgen,$arena.$shotCount.{$k},$arena.$shotState]"/>
+                            </do_if>
+                            <do_elseif value="$a.$sgen == $arena.$shotSGen.{$k} and $a.$vgen == $arena.$shotVGen.{$k} and $a.$base == $arena.$shotCount.{$k} and $a.$count gt $a.$base and $a.$count - $a.$base le 20 and $arena.$shotStrength.{$a.$shooter} gt 0 and $a.$strength == $arena.$shotStrength.{$a.$shooter} and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $a.$stamp and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline and @$victim.isoperational and @$attacker.isoperational and not $dead">
+                                <set_value name="$arena.$shotApplying" exact="true"/>
+                                <do_all exact="$a.$count - $a.$base">
+                                    <do_if value="@$victim.isoperational">
+                                        <apply_attackstrength object="$victim" attacker="$attacker" hullshield="$a.$strength" hullonly="0" shieldonly="0" hullnoshield="0"/>
+                                    </do_if>
+                                </do_all>
+                                <set_value name="$arena.$shotApplying" exact="false"/>
+                                <set_value name="$arena.$shotCount.{$k}" exact="$a.$count"/>
+                                <raise_lua_event name="'X4LAN_Shot.Applied'" param="'%s|%s|%s|%s|%s'.[$k,$a.$sgen,$a.$vgen,$a.$count,$arena.$shotState]"/>
+                                <debug_text text="'[X4LAN] SHOT_APPLIED shooter=%s victim=%s gens=%s/%s hits=%s..%s strength=%s readback=%s/%s'.[$a.$shooter,$a.$victim,$a.$sgen,$a.$vgen,$a.$base,$a.$count,$a.$strength,@$victim.hullpercentage,@$victim.shieldpercentage]"/>
+                            </do_elseif>
+                            <do_else>
+                                <debug_text text="'[X4LAN] SHOT_REFUSED shooter=%s victim=%s gens=%s/%s base=%s count=%s accepted=%s/%s/%s'.[$a.$shooter,$a.$victim,$a.$sgen,$a.$vgen,$a.$base,$a.$count,$arena.$shotSGen.{$k},$arena.$shotVGen.{$k},$arena.$shotCount.{$k}]"/>
+                            </do_else>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Stop" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Shot'" control="'Stop'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$arena.$shotFailed" exact="true"/>
+                    </actions>
+                </cue>
+                <cue name="State" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Shot'" control="'State'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <do_if value="not $arena.$shotFailed and $a.$revision ge $arena.$shotState and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $a.$stamp and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline">
+                            <set_value name="$arena.$shotState" exact="$a.$revision"/>
+                            <set_value name="$arena.$shotStateAt" exact="player.age"/>
+                            <set_value name="$arena.$shotCurrentGen.{1}" exact="$a.$g1"/>
+                            <set_value name="$arena.$shotCurrentGen.{2}" exact="$a.$g2"/>
+                            <set_value name="$arena.$shotAuthority.{1}" exact="$a.$a1"/>
+                            <set_value name="$arena.$shotAuthority.{2}" exact="$a.$a2"/>
+                            <raise_lua_event name="'X4LAN_Shot.StateReady'" param="$a.$revision"/>
+                        </do_if>
+                    </actions>
+                </cue>
+            </cues>
         </cue>
-        <cue name="Support" instantiate="true">
-          <conditions>
-            <event_ui_triggered screen="'X4LAN_Shot'" control="'Support'" />
-          </conditions>
-          <actions>
-            <do_if value="not $arena.$shotFailed">
-              <set_value name="$arena.$shotStrength.{event.param3.$entity}" exact="event.param3.$strength" />
-            </do_if>
-          </actions>
-        </cue>
-        <cue name="Apply" instantiate="true">
-          <conditions>
-            <event_ui_triggered screen="'X4LAN_Shot'" control="'Apply'" />
-          </conditions>
-          <actions>
-            <set_value name="$a" exact="event.param3" />
-            <set_value name="$k" exact="($a.$shooter - 1) * 4 + $a.$victim" />
-            <set_value name="$attacker" exact="$arena.$ships.{$a.$shooter}" />
-            <do_if value="$a.$victim le 2">
-              <set_value name="$victim" exact="$arena.$ships.{$a.$victim}" />
-              <set_value name="$dead" exact="$arena.$dead.{$a.$victim}" />
-            </do_if>
-            <do_else>
-              <set_value name="$victim" exact="@$arena.$targets.{$a.$victim - 2}" />
-              <set_value name="$dead" exact="false" />
-            </do_else>
-            <do_if value="not $arena.$shotFailed and $a.$state == $arena.$shotState and player.age - $arena.$shotStateAt le 0.3s and $a.$sgen == $arena.$shotCurrentGen.{$a.$shooter} and $a.$sgen gt $arena.$healthClosed.{$a.$shooter} and ($a.$victim gt 2 and $arena.$host or $a.$victim le 2 and $a.$vgen == $arena.$shotCurrentGen.{$a.$victim} and $a.$vgen gt $arena.$healthClosed.{$a.$victim} and $arena.$shotAuthority.{$a.$victim} and ($arena.$host and not $arena.$healthLive.{$a.$victim} or not $arena.$host and $arena.$healthOwn.{$a.$victim} and $arena.$healthAuth.{$a.$victim} == $a.$vgen))">
-              <do_if value="$a.$base == 0 and $a.$sgen ge $arena.$shotSGen.{$k} and $a.$vgen ge $arena.$shotVGen.{$k} and ($a.$sgen gt $arena.$shotSGen.{$k} or $a.$vgen gt $arena.$shotVGen.{$k})">
-                <set_value name="$arena.$shotSGen.{$k}" exact="$a.$sgen" />
-                <set_value name="$arena.$shotVGen.{$k}" exact="$a.$vgen" />
-                <set_value name="$arena.$shotCount.{$k}" exact="0" />
-              </do_if>
-              <do_if value="$a.$sgen == $arena.$shotSGen.{$k} and $a.$vgen == $arena.$shotVGen.{$k} and $a.$count le $arena.$shotCount.{$k} and $arena.$shotCount.{$k} gt 0">
-                <raise_lua_event name="'X4LAN_Shot.Applied'" param="'%s|%s|%s|%s|%s'.[$k,$a.$sgen,$a.$vgen,$arena.$shotCount.{$k},$arena.$shotState]" />
-              </do_if>
-              <do_elseif value="$a.$sgen == $arena.$shotSGen.{$k} and $a.$vgen == $arena.$shotVGen.{$k} and $a.$base == $arena.$shotCount.{$k} and $a.$count gt $a.$base and $a.$count - $a.$base le 20 and $arena.$shotStrength.{$a.$shooter} gt 0 and $a.$strength == $arena.$shotStrength.{$a.$shooter} and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $a.$stamp and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline and @$victim.isoperational and @$attacker.isoperational and not $dead">
-                <set_value name="$arena.$shotApplying" exact="true" />
-                <do_all exact="$a.$count - $a.$base">
-                  <do_if value="@$victim.isoperational">
-                    <apply_attackstrength object="$victim" attacker="$attacker" hullshield="$a.$strength" hullonly="0" shieldonly="0" hullnoshield="0" />
-                  </do_if>
-                </do_all>
-                <set_value name="$arena.$shotApplying" exact="false" />
-                <set_value name="$arena.$shotCount.{$k}" exact="$a.$count" />
-                <raise_lua_event name="'X4LAN_Shot.Applied'" param="'%s|%s|%s|%s|%s'.[$k,$a.$sgen,$a.$vgen,$a.$count,$arena.$shotState]" />
-                <debug_text text="'[X4LAN] SHOT_APPLIED shooter=%s victim=%s gens=%s/%s hits=%s..%s strength=%s readback=%s/%s'.[$a.$shooter,$a.$victim,$a.$sgen,$a.$vgen,$a.$base,$a.$count,$a.$strength,@$victim.hullpercentage,@$victim.shieldpercentage]" />
-              </do_elseif>
-              <do_else>
-                <debug_text text="'[X4LAN] SHOT_REFUSED shooter=%s victim=%s gens=%s/%s base=%s count=%s accepted=%s/%s/%s'.[$a.$shooter,$a.$victim,$a.$sgen,$a.$vgen,$a.$base,$a.$count,$arena.$shotSGen.{$k},$arena.$shotVGen.{$k},$arena.$shotCount.{$k}]" />
-              </do_else>
-            </do_if>
-          </actions>
-        </cue>
-        <cue name="Stop" instantiate="true">
-          <conditions>
-            <event_ui_triggered screen="'X4LAN_Shot'" control="'Stop'" />
-          </conditions>
-          <actions>
-            <set_value name="$arena.$shotFailed" exact="true" />
-          </actions>
-        </cue>
-        <cue name="State" instantiate="true">
-          <conditions>
-            <event_ui_triggered screen="'X4LAN_Shot'" control="'State'" />
-          </conditions>
-          <actions>
-            <set_value name="$a" exact="event.param3" />
-            <do_if value="not $arena.$shotFailed and $a.$revision ge $arena.$shotState and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $a.$stamp and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline">
-              <set_value name="$arena.$shotState" exact="$a.$revision" />
-              <set_value name="$arena.$shotStateAt" exact="player.age" />
-              <set_value name="$arena.$shotCurrentGen.{1}" exact="$a.$g1" />
-              <set_value name="$arena.$shotCurrentGen.{2}" exact="$a.$g2" />
-              <set_value name="$arena.$shotAuthority.{1}" exact="$a.$a1" />
-              <set_value name="$arena.$shotAuthority.{2}" exact="$a.$a2" />
-              <raise_lua_event name="'X4LAN_Shot.StateReady'" param="$a.$revision" />
-            </do_if>
-          </actions>
-        </cue>
-      </cues>
-    </cue>
-  </cues>
+    </cues>
 </mdscript>

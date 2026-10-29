@@ -1,249 +1,391 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mdscript name="X4LAN_Coop" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <cues>
-  <cue name="Session" namespace="this">
-   <conditions><event_ui_triggered screen="'X4LAN_Coop'" control="'Setup'"/></conditions>
-   <actions>
-    <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
-    <set_value name="$arena.$coop" exact="true"/>
-    <!-- One entry per shared ship (two, or one per client in a dedicated N-player session). -->
-    <set_value name="$count" exact="$arena.$ships.count"/>
-    <set_value name="$arena.$fireRemaining" exact="[]"/><set_value name="$arena.$fireManaged" exact="[]"/>
-    <set_value name="$arena.$fireGroup" exact="[]"/><set_value name="$arena.$fireEpoch" exact="[]"/>
-    <set_value name="$velocityGeneration" exact="[]"/><set_value name="$velocitySession" exact="[]"/>
-    <set_value name="$velocityEpoch" exact="[]"/><set_value name="$velocitySequence" exact="[]"/>
-    <set_value name="$velocityEnabled" exact="[]"/><set_value name="$velocityManaged" exact="[]"/>
-    <set_value name="$velocityDeadline" exact="[]"/><set_value name="$velocityParent" exact="[]"/>
-    <set_value name="$velocitySector" exact="[]"/><set_value name="$velocityUnsupported" exact="[]"/>
-    <do_all exact="$count" counter="$i">
-     <append_to_list name="$arena.$fireRemaining" exact="[0,0]"/><append_to_list name="$arena.$fireManaged" exact="false"/>
-     <append_to_list name="$arena.$fireGroup" exact="[0,0]"/><append_to_list name="$arena.$fireEpoch" exact="0"/>
-     <append_to_list name="$velocityGeneration" exact="0"/><append_to_list name="$velocitySession" exact="''"/>
-     <append_to_list name="$velocityEpoch" exact="0"/><append_to_list name="$velocitySequence" exact="0"/>
-     <append_to_list name="$velocityEnabled" exact="false"/><append_to_list name="$velocityManaged" exact="false"/>
-     <append_to_list name="$velocityDeadline" exact="0s"/><append_to_list name="$velocityParent" exact="null"/>
-     <append_to_list name="$velocitySector" exact="null"/><append_to_list name="$velocityUnsupported" exact="false"/>
-     <set_known object="$arena.$ships.{$i}" known="true"/>
-    </do_all>
-    <!-- Guest collisions or delayed shots must not permanently remove a target
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_Coop" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="Session" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Coop'" control="'Setup'"/>
+            </conditions>
+            <actions>
+                <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
+                <set_value name="$arena.$coop" exact="true"/>
+                <!-- One entry per shared ship (two, or one per client in a dedicated N-player session). -->
+                <set_value name="$count" exact="$arena.$ships.count"/>
+                <set_value name="$arena.$fireRemaining" exact="[]"/>
+                <set_value name="$arena.$fireManaged" exact="[]"/>
+                <set_value name="$arena.$fireGroup" exact="[]"/>
+                <set_value name="$arena.$fireEpoch" exact="[]"/>
+                <set_value name="$velocityGeneration" exact="[]"/>
+                <set_value name="$velocitySession" exact="[]"/>
+                <set_value name="$velocityEpoch" exact="[]"/>
+                <set_value name="$velocitySequence" exact="[]"/>
+                <set_value name="$velocityEnabled" exact="[]"/>
+                <set_value name="$velocityManaged" exact="[]"/>
+                <set_value name="$velocityDeadline" exact="[]"/>
+                <set_value name="$velocityParent" exact="[]"/>
+                <set_value name="$velocitySector" exact="[]"/>
+                <set_value name="$velocityUnsupported" exact="[]"/>
+                <do_all exact="$count" counter="$i">
+                    <append_to_list name="$arena.$fireRemaining" exact="[0,0]"/>
+                    <append_to_list name="$arena.$fireManaged" exact="false"/>
+                    <append_to_list name="$arena.$fireGroup" exact="[0,0]"/>
+                    <append_to_list name="$arena.$fireEpoch" exact="0"/>
+                    <append_to_list name="$velocityGeneration" exact="0"/>
+                    <append_to_list name="$velocitySession" exact="''"/>
+                    <append_to_list name="$velocityEpoch" exact="0"/>
+                    <append_to_list name="$velocitySequence" exact="0"/>
+                    <append_to_list name="$velocityEnabled" exact="false"/>
+                    <append_to_list name="$velocityManaged" exact="false"/>
+                    <append_to_list name="$velocityDeadline" exact="0s"/>
+                    <append_to_list name="$velocityParent" exact="null"/>
+                    <append_to_list name="$velocitySector" exact="null"/>
+                    <append_to_list name="$velocityUnsupported" exact="false"/>
+                    <set_known object="$arena.$ships.{$i}" known="true"/>
+                </do_all>
+                <!-- Guest collisions or delayed shots must not permanently remove a target
          before the authoritative host reports its destruction. -->
-    <do_if value="not $arena.$host"><do_all exact="2" counter="$i"><set_object_min_hull object="$arena.$targets.{$i}" exact="1"/></do_all></do_if>
-    <raise_lua_event name="'X4LAN_Coop.Ready'"/>
-    <debug_text text="'[X4LAN] COOP_READY: sector-aware fleet, shared treasury, exclusive pilot authority'"/>
-   </actions>
-   <cues>
-    <!-- Monotonic local generations fence queued commands across authority,
+                <do_if value="not $arena.$host">
+                    <do_all exact="2" counter="$i">
+                        <set_object_min_hull object="$arena.$targets.{$i}" exact="1"/>
+                    </do_all>
+                </do_if>
+                <raise_lua_event name="'X4LAN_Coop.Ready'"/>
+                <debug_text text="'[X4LAN] COOP_READY: sector-aware fleet, shared treasury, exclusive pilot authority'"/>
+            </actions>
+            <cues>
+                <!-- Monotonic local generations fence queued commands across authority,
          connection, parent and sector transitions. No session token is logged. -->
-    <cue name="VelocityFence" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Coop'" control="'VelocityFence'"/></conditions><actions>
-     <set_value name="$v" exact="event.param3"/><set_value name="$i" exact="$v.$ship"/>
-     <do_if value="$i ge 1 and $i le $count and $v.$generation gt $velocityGeneration.{$i}">
-      <set_value name="$ship" exact="$arena.$ships.{$i}"/>
-      <do_if value="$velocityManaged.{$i} and $ship.isoperational and not $ship.parent.isclass.highway"><set_object_velocity object="$ship" constantvel="false"><linear x="0" y="0" z="0"/></set_object_velocity></do_if>
-      <set_value name="$velocityManaged.{$i}" exact="false"/>
-      <set_value name="$velocityGeneration.{$i}" exact="$v.$generation"/>
-      <set_value name="$velocitySession.{$i}" exact="$v.$session"/>
-      <set_value name="$velocityEpoch.{$i}" exact="$v.$epoch"/>
-      <set_value name="$velocitySequence.{$i}" exact="0"/>
-      <set_value name="$velocityEnabled.{$i}" exact="$v.$enabled"/>
-     </do_if>
-    </actions></cue>
-    <cue name="Velocity" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Coop'" control="'Velocity'"/></conditions><actions>
-     <set_value name="$v" exact="event.param3"/><set_value name="$i" exact="$v.$ship"/>
-     <do_if value="$i ge 1 and $i le $count and $velocityEnabled.{$i} and $v.$generation == $velocityGeneration.{$i} and $v.$session == $velocitySession.{$i} and $v.$epoch == $velocityEpoch.{$i} and $v.$sequence gt $velocitySequence.{$i}">
-      <set_value name="$velocitySequence.{$i}" exact="$v.$sequence"/>
-      <set_value name="$ship" exact="$arena.$ships.{$i}"/>
-      <set_value name="$valid" exact="false"/>
-      <include_actions ref="DockExecutionWindow"/>
-      <!-- A closed dock window is a stale capability, not a physical boundary. Its
+                <cue name="VelocityFence" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Coop'" control="'VelocityFence'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$v" exact="event.param3"/>
+                        <set_value name="$i" exact="$v.$ship"/>
+                        <do_if value="$i ge 1 and $i le $count and $v.$generation gt $velocityGeneration.{$i}">
+                            <set_value name="$ship" exact="$arena.$ships.{$i}"/>
+                            <do_if value="$velocityManaged.{$i} and $ship.isoperational and not $ship.parent.isclass.highway">
+                                <set_object_velocity object="$ship" constantvel="false">
+                                    <linear x="0" y="0" z="0"/>
+                                </set_object_velocity>
+                            </do_if>
+                            <set_value name="$velocityManaged.{$i}" exact="false"/>
+                            <set_value name="$velocityGeneration.{$i}" exact="$v.$generation"/>
+                            <set_value name="$velocitySession.{$i}" exact="$v.$session"/>
+                            <set_value name="$velocityEpoch.{$i}" exact="$v.$epoch"/>
+                            <set_value name="$velocitySequence.{$i}" exact="0"/>
+                            <set_value name="$velocityEnabled.{$i}" exact="$v.$enabled"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Velocity" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Coop'" control="'Velocity'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$v" exact="event.param3"/>
+                        <set_value name="$i" exact="$v.$ship"/>
+                        <do_if value="$i ge 1 and $i le $count and $velocityEnabled.{$i} and $v.$generation == $velocityGeneration.{$i} and $v.$session == $velocitySession.{$i} and $v.$epoch == $velocityEpoch.{$i} and $v.$sequence gt $velocitySequence.{$i}">
+                            <set_value name="$velocitySequence.{$i}" exact="$v.$sequence"/>
+                            <set_value name="$ship" exact="$arena.$ships.{$i}"/>
+                            <set_value name="$valid" exact="false"/>
+                            <include_actions ref="DockExecutionWindow"/>
+                            <!-- A closed dock window is a stale capability, not a physical boundary. Its
            systemtime stamp has one-second resolution, so a vector read before and
            executed after a wall-clock second closes it about once a second. Skip the
            command and keep the running vector: zeroing it showed the moving replica at
            speed 0 (target speed readout, lead reticle) until the next vector. The 0.3 s
            deadline, the watchdog and the Lua velocity fence still end it. -->
-      <do_if value="$dockWindow">
-       <do_if value="$ship.isoperational and not $ship.dock and player.occupiedship != $ship and $ship.sector == $v.$sector and $ship.parent == $v.$parent and player.age le $v.$expires * 1s and $v.$expires * 1s le player.age + 0.31s">
-        <!-- Evidence covers a free ship in an aligned zone/sector/cluster only.
+                            <do_if value="$dockWindow">
+                                <do_if value="$ship.isoperational and not $ship.dock and player.occupiedship != $ship and $ship.sector == $v.$sector and $ship.parent == $v.$parent and player.age le $v.$expires * 1s and $v.$expires * 1s le player.age + 0.31s">
+                                    <!-- Evidence covers a free ship in an aligned zone/sector/cluster only.
              Moving containers and differently rotated spaces fail closed. -->
-        <include_actions ref="AlignedZoneSpace"/>
-        <do_if value="not $valid and not $velocityUnsupported.{$i}"><debug_text text="'[X4LAN] NATIVE_VELOCITY_UNSUPPORTED_SPACE ship=%s'.[$i]"/></do_if>
-        <set_value name="$velocityUnsupported.{$i}" exact="not $valid"/>
-       </do_if>
-       <do_if value="$valid">
-        <set_object_velocity object="$ship" constantvel="true"><linear x="$v.$x" y="$v.$y" z="$v.$z"/></set_object_velocity>
-        <set_value name="$velocityManaged.{$i}" exact="true"/>
-        <set_value name="$velocityDeadline.{$i}" exact="$v.$expires * 1s"/>
-        <set_value name="$velocityParent.{$i}" exact="$ship.parent"/>
-        <set_value name="$velocitySector.{$i}" exact="$ship.sector"/>
-       </do_if>
-       <do_else>
-        <do_if value="$velocityManaged.{$i} and $ship.isoperational and not $ship.parent.isclass.highway"><set_object_velocity object="$ship" constantvel="false"><linear x="0" y="0" z="0"/></set_object_velocity></do_if>
-        <set_value name="$velocityManaged.{$i}" exact="false"/>
-       </do_else>
-      </do_if>
-     </do_if>
-    </actions></cue>
-    <cue name="VelocityWatchdog" instantiate="true" checkinterval="0.05s"><conditions><check_value value="$velocityManaged.{1} or $velocityManaged.{2} or @$velocityManaged.{3} or @$velocityManaged.{4} or @$velocityManaged.{5} or @$velocityManaged.{6} or @$velocityManaged.{7}"/></conditions><actions>
-     <do_all exact="$count" counter="$i"><do_if value="$velocityManaged.{$i}">
-      <set_value name="$ship" exact="$arena.$ships.{$i}"/>
-      <!-- A pose write moves a fast free replica into another zone of the same sector
+                                    <include_actions ref="AlignedZoneSpace"/>
+                                    <do_if value="not $valid and not $velocityUnsupported.{$i}">
+                                        <debug_text text="'[X4LAN] NATIVE_VELOCITY_UNSUPPORTED_SPACE ship=%s'.[$i]"/>
+                                    </do_if>
+                                    <set_value name="$velocityUnsupported.{$i}" exact="not $valid"/>
+                                </do_if>
+                                <do_if value="$valid">
+                                    <set_object_velocity object="$ship" constantvel="true">
+                                        <linear x="$v.$x" y="$v.$y" z="$v.$z"/>
+                                    </set_object_velocity>
+                                    <set_value name="$velocityManaged.{$i}" exact="true"/>
+                                    <set_value name="$velocityDeadline.{$i}" exact="$v.$expires * 1s"/>
+                                    <set_value name="$velocityParent.{$i}" exact="$ship.parent"/>
+                                    <set_value name="$velocitySector.{$i}" exact="$ship.sector"/>
+                                </do_if>
+                                <do_else>
+                                    <do_if value="$velocityManaged.{$i} and $ship.isoperational and not $ship.parent.isclass.highway">
+                                        <set_object_velocity object="$ship" constantvel="false">
+                                            <linear x="0" y="0" z="0"/>
+                                        </set_object_velocity>
+                                    </do_if>
+                                    <set_value name="$velocityManaged.{$i}" exact="false"/>
+                                </do_else>
+                            </do_if>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="VelocityWatchdog" instantiate="true" checkinterval="0.05s">
+                    <conditions>
+                        <check_value value="$velocityManaged.{1} or $velocityManaged.{2} or @$velocityManaged.{3} or @$velocityManaged.{4} or @$velocityManaged.{5} or @$velocityManaged.{6} or @$velocityManaged.{7}"/>
+                    </conditions>
+                    <actions>
+                        <do_all exact="$count" counter="$i">
+                            <do_if value="$velocityManaged.{$i}">
+                                <set_value name="$ship" exact="$arena.$ships.{$i}"/>
+                                <!-- A pose write moves a fast free replica into another zone of the same sector
            (temp zones every few frames at highway speed). That is no boundary: keep the
            vector when the new zone is aligned; any other parent still stops it below. -->
-      <do_if value="$ship.isoperational and not $ship.dock and $ship.parent != $velocityParent.{$i} and $ship.sector == $velocitySector.{$i}">
-       <set_value name="$valid" exact="false"/>
-       <include_actions ref="AlignedZoneSpace"/>
-       <do_if value="$valid"><set_value name="$velocityParent.{$i}" exact="$ship.parent"/></do_if>
-      </do_if>
-      <do_if value="not $ship.isoperational or $ship.dock or player.occupiedship == $ship or $ship.parent != $velocityParent.{$i} or $ship.sector != $velocitySector.{$i} or player.age gt $velocityDeadline.{$i}">
-       <do_if value="$ship.isoperational and not $ship.parent.isclass.highway"><set_object_velocity object="$ship" constantvel="false"><linear x="0" y="0" z="0"/></set_object_velocity></do_if>
-       <set_value name="$velocityManaged.{$i}" exact="false"/>
-      </do_if>
-     </do_if></do_all>
-    </actions></cue>
-    <cue name="Docks" instantiate="true" checkinterval="0.2s">
-     <conditions><check_value value="md.X4LAN_Trade.Market.$markets?"/></conditions>
-     <actions>
-      <set_value name="$docks" exact="[0,0]"/>
-      <do_all exact="2" counter="$i"><set_value name="$ship" exact="$arena.$ships.{$i}"/>
-       <do_if value="$ship.isoperational and $ship.dock">
-        <do_all exact="2" counter="$m"><do_if value="$ship.dock.container == md.X4LAN_Trade.Market.$markets.{$m}"><set_value name="$docks.{$i}" exact="$m"/></do_if></do_all>
-       </do_if>
-      </do_all>
-      <raise_lua_event name="'X4LAN_Coop.Docks'" param="'%s|%s'.[$docks.{1},$docks.{2}]"/>
-     </actions>
-    </cue>
-    <cue name="Fire" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Coop'" control="'Fire'"/></conditions><actions>
-     <set_value name="$ship" exact="$arena.$ships.{event.param3.$ship}"/>
-     <do_if value="$ship.isoperational"><do_if value="event.param3.$on"><do_if value="not @$arena.$projectileVisualEnabled"><shoot object="$ship"/></do_if></do_if><do_elseif value="not @$arena.$projectileVisualEnabled or player.controlled != $ship"><stop_shooting object="$ship"/></do_elseif></do_if>
-    </actions></cue>
-    <!-- FIRE2 grants finite native shot counts. Weapon events stop each trigger at zero. -->
-    <cue name="Fire2" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Coop'" control="'Fire2'"/></conditions><actions>
-     <set_value name="$v" exact="event.param3"/><set_value name="$ship" exact="$arena.$ships.{$v.$ship}"/>
-     <do_if value="$ship.isoperational and (not @$arena.$projectileVisualEnabled or player.controlled != $ship)">
-      <!-- Recheck after the queue: Prepare may have stopped fire and changed projectile mode. -->
-      <do_if value="not (@$arena.$shotVisualEnabled or @$v.$visual or @$arena.$projectileVisualEnabled) or not ($v.$primary or $v.$secondary) or (not @$arena.$projectileVisualEnabled and not @$arena.$shotFailed and @$arena.$shotVisualMode.{$v.$ship} == 2 and @$v.$visualGen gt 0 and $v.$visualGen == $arena.$shotVisualGen.{$v.$ship} and $v.$visualGen == $arena.$shotCurrentGen.{$v.$ship} and $v.$visualGen gt $arena.$healthClosed.{$v.$ship} and player.age - $arena.$shotVisualAt.{$v.$ship} le 0.3s and player.age - $arena.$shotStateAt le 0.3s and player.controlled != $ship)">
-      <do_if value="$arena.$fireEpoch.{$v.$ship} != $v.$epoch">
-       <stop_shooting object="$ship"/>
-       <set_value name="$arena.$fireRemaining.{$v.$ship}" exact="[0,0]"/>
-       <set_value name="$arena.$fireEpoch.{$v.$ship}" exact="$v.$epoch"/>
-      </do_if>
-      <set_value name="$arena.$fireManaged.{$v.$ship}" exact="$v.$primary or $v.$secondary"/>
-      <do_all exact="2" counter="$trigger">
-       <set_value name="$group" exact="if $trigger == 1 then $v.$primaryGroup else $v.$secondaryGroup"/>
-       <do_if value="$arena.$fireGroup.{$v.$ship}.{$trigger} != $group">
-        <stop_shooting object="$ship" primary="$trigger == 1" secondary="$trigger == 2"/>
-        <set_value name="$arena.$fireRemaining.{$v.$ship}.{$trigger}" exact="0"/>
-        <set_value name="$arena.$fireGroup.{$v.$ship}.{$trigger}" exact="$group"/>
-        <!-- C API/wire groups are 1..4; native MD groups are 0..3. -->
-        <activate_weapongroup object="$ship" weapongroup="$group - 1" primary="$trigger == 1"/>
-       </do_if>
-       <do_elseif value="if $trigger == 1 then @$v.$resetPrimary else @$v.$resetSecondary">
-        <stop_shooting object="$ship" primary="$trigger == 1" secondary="$trigger == 2"/>
-        <do_if value="$arena.$fireRemaining.{$v.$ship}.{$trigger} gt 0"><set_value name="$arena.$fireRemaining.{$v.$ship}.{$trigger}" exact="0"/></do_if>
-       </do_elseif>
-       <set_value name="$before" exact="$arena.$fireRemaining.{$v.$ship}.{$trigger}"/>
-       <do_if value="if $trigger == 1 then $v.$primary else $v.$secondary">
-        <set_value name="$arena.$fireRemaining.{$v.$ship}.{$trigger}" exact="[256, $before + (if $trigger == 1 then $v.$primaryShots else $v.$secondaryShots)].min"/>
-        <do_if value="$before le 0 and $arena.$fireRemaining.{$v.$ship}.{$trigger} gt 0">
-         <shoot object="$ship" primary="$trigger == 1" secondary="$trigger == 2"/>
-        </do_if>
-       </do_if>
-       <do_else>
-        <stop_shooting object="$ship" primary="$trigger == 1" secondary="$trigger == 2"/>
-        <!-- Retain overrun debt if simultaneous barrels fired before the stop.
+                                <do_if value="$ship.isoperational and not $ship.dock and $ship.parent != $velocityParent.{$i} and $ship.sector == $velocitySector.{$i}">
+                                    <set_value name="$valid" exact="false"/>
+                                    <include_actions ref="AlignedZoneSpace"/>
+                                    <do_if value="$valid">
+                                        <set_value name="$velocityParent.{$i}" exact="$ship.parent"/>
+                                    </do_if>
+                                </do_if>
+                                <do_if value="not $ship.isoperational or $ship.dock or player.occupiedship == $ship or $ship.parent != $velocityParent.{$i} or $ship.sector != $velocitySector.{$i} or player.age gt $velocityDeadline.{$i}">
+                                    <do_if value="$ship.isoperational and not $ship.parent.isclass.highway">
+                                        <set_object_velocity object="$ship" constantvel="false">
+                                            <linear x="0" y="0" z="0"/>
+                                        </set_object_velocity>
+                                    </do_if>
+                                    <set_value name="$velocityManaged.{$i}" exact="false"/>
+                                </do_if>
+                            </do_if>
+                        </do_all>
+                    </actions>
+                </cue>
+                <cue name="Docks" instantiate="true" checkinterval="0.2s">
+                    <conditions>
+                        <check_value value="md.X4LAN_Trade.Market.$markets?"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$docks" exact="[0,0]"/>
+                        <do_all exact="2" counter="$i">
+                            <set_value name="$ship" exact="$arena.$ships.{$i}"/>
+                            <do_if value="$ship.isoperational and $ship.dock">
+                                <do_all exact="2" counter="$m">
+                                    <do_if value="$ship.dock.container == md.X4LAN_Trade.Market.$markets.{$m}">
+                                        <set_value name="$docks.{$i}" exact="$m"/>
+                                    </do_if>
+                                </do_all>
+                            </do_if>
+                        </do_all>
+                        <raise_lua_event name="'X4LAN_Coop.Docks'" param="'%s|%s'.[$docks.{1},$docks.{2}]"/>
+                    </actions>
+                </cue>
+                <cue name="Fire" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Coop'" control="'Fire'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$ship" exact="$arena.$ships.{event.param3.$ship}"/>
+                        <do_if value="$ship.isoperational">
+                            <do_if value="event.param3.$on">
+                                <do_if value="not @$arena.$projectileVisualEnabled">
+                                    <shoot object="$ship"/>
+                                </do_if>
+                            </do_if>
+                            <do_elseif value="not @$arena.$projectileVisualEnabled or player.controlled != $ship">
+                                <stop_shooting object="$ship"/>
+                            </do_elseif>
+                        </do_if>
+                    </actions>
+                </cue>
+                <!-- FIRE2 grants finite native shot counts. Weapon events stop each trigger at zero. -->
+                <cue name="Fire2" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Coop'" control="'Fire2'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$v" exact="event.param3"/>
+                        <set_value name="$ship" exact="$arena.$ships.{$v.$ship}"/>
+                        <do_if value="$ship.isoperational and (not @$arena.$projectileVisualEnabled or player.controlled != $ship)">
+                            <!-- Recheck after the queue: Prepare may have stopped fire and changed projectile mode. -->
+                            <do_if value="not (@$arena.$shotVisualEnabled or @$v.$visual or @$arena.$projectileVisualEnabled) or not ($v.$primary or $v.$secondary) or (not @$arena.$projectileVisualEnabled and not @$arena.$shotFailed and @$arena.$shotVisualMode.{$v.$ship} == 2 and @$v.$visualGen gt 0 and $v.$visualGen == $arena.$shotVisualGen.{$v.$ship} and $v.$visualGen == $arena.$shotCurrentGen.{$v.$ship} and $v.$visualGen gt $arena.$healthClosed.{$v.$ship} and player.age - $arena.$shotVisualAt.{$v.$ship} le 0.3s and player.age - $arena.$shotStateAt le 0.3s and player.controlled != $ship)">
+                                <do_if value="$arena.$fireEpoch.{$v.$ship} != $v.$epoch">
+                                    <stop_shooting object="$ship"/>
+                                    <set_value name="$arena.$fireRemaining.{$v.$ship}" exact="[0,0]"/>
+                                    <set_value name="$arena.$fireEpoch.{$v.$ship}" exact="$v.$epoch"/>
+                                </do_if>
+                                <set_value name="$arena.$fireManaged.{$v.$ship}" exact="$v.$primary or $v.$secondary"/>
+                                <do_all exact="2" counter="$trigger">
+                                    <set_value name="$group" exact="if $trigger == 1 then $v.$primaryGroup else $v.$secondaryGroup"/>
+                                    <do_if value="$arena.$fireGroup.{$v.$ship}.{$trigger} != $group">
+                                        <stop_shooting object="$ship" primary="$trigger == 1" secondary="$trigger == 2"/>
+                                        <set_value name="$arena.$fireRemaining.{$v.$ship}.{$trigger}" exact="0"/>
+                                        <set_value name="$arena.$fireGroup.{$v.$ship}.{$trigger}" exact="$group"/>
+                                        <!-- C API/wire groups are 1..4; native MD groups are 0..3. -->
+                                        <activate_weapongroup object="$ship" weapongroup="$group - 1" primary="$trigger == 1"/>
+                                    </do_if>
+                                    <do_elseif value="if $trigger == 1 then @$v.$resetPrimary else @$v.$resetSecondary">
+                                        <stop_shooting object="$ship" primary="$trigger == 1" secondary="$trigger == 2"/>
+                                        <do_if value="$arena.$fireRemaining.{$v.$ship}.{$trigger} gt 0">
+                                            <set_value name="$arena.$fireRemaining.{$v.$ship}.{$trigger}" exact="0"/>
+                                        </do_if>
+                                    </do_elseif>
+                                    <set_value name="$before" exact="$arena.$fireRemaining.{$v.$ship}.{$trigger}"/>
+                                    <do_if value="if $trigger == 1 then $v.$primary else $v.$secondary">
+                                        <set_value name="$arena.$fireRemaining.{$v.$ship}.{$trigger}" exact="[256, $before + (if $trigger == 1 then $v.$primaryShots else $v.$secondaryShots)].min"/>
+                                        <do_if value="$before le 0 and $arena.$fireRemaining.{$v.$ship}.{$trigger} gt 0">
+                                            <shoot object="$ship" primary="$trigger == 1" secondary="$trigger == 2"/>
+                                        </do_if>
+                                    </do_if>
+                                    <do_else>
+                                        <stop_shooting object="$ship" primary="$trigger == 1" secondary="$trigger == 2"/>
+                                        <!-- Retain overrun debt if simultaneous barrels fired before the stop.
              Later counter fragments must not authorize those same shots again. -->
-        <do_if value="$arena.$fireRemaining.{$v.$ship}.{$trigger} gt 0"><set_value name="$arena.$fireRemaining.{$v.$ship}.{$trigger}" exact="0"/></do_if>
-       </do_else>
-      </do_all>
-      </do_if><do_else>
-       <stop_shooting object="$ship"/>
-       <set_value name="$arena.$fireRemaining.{$v.$ship}" exact="[0,0]"/>
-       <set_value name="$arena.$fireManaged.{$v.$ship}" exact="false"/>
-      </do_else>
-     </do_if><do_else>
-      <!-- Clear stale replay bookkeeping even when manual input must survive. -->
-      <set_value name="$arena.$fireRemaining.{$v.$ship}" exact="[0,0]"/>
-      <set_value name="$arena.$fireManaged.{$v.$ship}" exact="false"/>
-     </do_else>
-    </actions></cue>
-    <cue name="LeaveControls" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Coop'" control="'LeaveControls'"/></conditions><actions>
-     <set_value name="$ship" exact="$arena.$ships.{event.param3}"/>
-     <do_if value="$ship.isoperational and player.occupiedship == $ship">
-      <teleport_player object="$ship" control="false" instant="true" force="true"/>
-      <show_notification text="'The ship is already piloted, trading or unavailable. Wait for the other pilot to leave the controls.'" timeout="6s" priority="8"/>
-     </do_if>
-    </actions></cue>
-    <cue name="SectorMove" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Coop'" control="'SectorMove'"/></conditions><actions>
-     <set_value name="$v" exact="event.param3"/><set_value name="$ship" exact="$arena.$ships.{$v.$ship}"/>
-     <!-- Recheck after the Lua/MD queue: the ship can have docked or acquired
+                                        <do_if value="$arena.$fireRemaining.{$v.$ship}.{$trigger} gt 0">
+                                            <set_value name="$arena.$fireRemaining.{$v.$ship}.{$trigger}" exact="0"/>
+                                        </do_if>
+                                    </do_else>
+                                </do_all>
+                            </do_if>
+                            <do_else>
+                                <stop_shooting object="$ship"/>
+                                <set_value name="$arena.$fireRemaining.{$v.$ship}" exact="[0,0]"/>
+                                <set_value name="$arena.$fireManaged.{$v.$ship}" exact="false"/>
+                            </do_else>
+                        </do_if>
+                        <do_else>
+                            <!-- Clear stale replay bookkeeping even when manual input must survive. -->
+                            <set_value name="$arena.$fireRemaining.{$v.$ship}" exact="[0,0]"/>
+                            <set_value name="$arena.$fireManaged.{$v.$ship}" exact="false"/>
+                        </do_else>
+                    </actions>
+                </cue>
+                <cue name="LeaveControls" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Coop'" control="'LeaveControls'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$ship" exact="$arena.$ships.{event.param3}"/>
+                        <do_if value="$ship.isoperational and player.occupiedship == $ship">
+                            <teleport_player object="$ship" control="false" instant="true" force="true"/>
+                            <show_notification text="'The ship is already piloted, trading or unavailable. Wait for the other pilot to leave the controls.'" timeout="6s" priority="8"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="SectorMove" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Coop'" control="'SectorMove'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$v" exact="event.param3"/>
+                        <set_value name="$ship" exact="$arena.$ships.{$v.$ship}"/>
+                        <!-- Recheck after the Lua/MD queue: the ship can have docked or acquired
           a local pilot since the sector move was requested. -->
-     <include_actions ref="DockExecutionWindow"/>
-     <do_if value="$dockWindow and $ship.isoperational and $v.$sector.exists and not $ship.dock and not $ship.isinternallystored and player.occupiedship != $ship">
-      <warp object="$ship" sector="$v.$sector"><position x="$v.$x * 1m" y="$v.$y * 1m" z="$v.$z * 1m"/><rotation yaw="$v.$yaw * 1deg" pitch="$v.$pitch * 1deg" roll="$v.$roll * 1deg"/></warp>
-      <debug_text text="'[X4LAN] COOP_SECTOR ship=%s sector=%s position=%s'.[$v.$ship,$ship.sector.macro.id,$ship.position]"/>
-     </do_if>
-    </actions></cue>
-    <cue name="Dock" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Coop'" control="'Dock'"/></conditions><actions>
-     <set_value name="$v" exact="event.param3"/><set_value name="$m" exact="$v.$market"/><set_value name="$ship" exact="$arena.$ships.{$v.$ship}"/>
-     <do_if value="$ship.isoperational and not $arena.$dead.{event.param3.$ship}">
-      <do_if value="$m == 0">
-       <do_if value="$ship.dock"><undock ship="$ship"/></do_if>
-       <do_if value="$ship.assigneddock"><remove_docking_request ship="$ship" container="$ship.assigneddock.container" immediate="true"/></do_if>
-       <!-- Undock alone can leave the empty replica attached to its old pad. Move
+                        <include_actions ref="DockExecutionWindow"/>
+                        <do_if value="$dockWindow and $ship.isoperational and $v.$sector.exists and not $ship.dock and not $ship.isinternallystored and player.occupiedship != $ship">
+                            <warp object="$ship" sector="$v.$sector">
+                                <position x="$v.$x * 1m" y="$v.$y * 1m" z="$v.$z * 1m"/>
+                                <rotation yaw="$v.$yaw * 1deg" pitch="$v.$pitch * 1deg" roll="$v.$roll * 1deg"/>
+                            </warp>
+                            <debug_text text="'[X4LAN] COOP_SECTOR ship=%s sector=%s position=%s'.[$v.$ship,$ship.sector.macro.id,$ship.position]"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Dock" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Coop'" control="'Dock'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$v" exact="event.param3"/>
+                        <set_value name="$m" exact="$v.$market"/>
+                        <set_value name="$ship" exact="$arena.$ships.{$v.$ship}"/>
+                        <do_if value="$ship.isoperational and not $arena.$dead.{event.param3.$ship}">
+                            <do_if value="$m == 0">
+                                <do_if value="$ship.dock">
+                                    <undock ship="$ship"/>
+                                </do_if>
+                                <do_if value="$ship.assigneddock">
+                                    <remove_docking_request ship="$ship" container="$ship.assigneddock.container" immediate="true"/>
+                                </do_if>
+                                <!-- Undock alone can leave the empty replica attached to its old pad. Move
             it into the received sector frame to finish the remote transition. -->
-       <warp object="$ship" sector="$v.$sector"><position x="$v.$x * 1m" y="$v.$y * 1m" z="$v.$z * 1m"/><rotation yaw="$v.$yaw * 1deg" pitch="$v.$pitch * 1deg" roll="$v.$roll * 1deg"/></warp>
-      </do_if>
-      <!-- Navigation can arrive before the trading stations finish setup.
+                                <warp object="$ship" sector="$v.$sector">
+                                    <position x="$v.$x * 1m" y="$v.$y * 1m" z="$v.$z * 1m"/>
+                                    <rotation yaw="$v.$yaw * 1deg" pitch="$v.$pitch * 1deg" roll="$v.$roll * 1deg"/>
+                                </warp>
+                            </do_if>
+                            <!-- Navigation can arrive before the trading stations finish setup.
            Lua retries docking, so defer this request until both markets exist. -->
-      <do_elseif value="md.X4LAN_Trade.Market.$markets?">
-       <set_value name="$station" exact="md.X4LAN_Trade.Market.$markets.{$m}"/>
-       <do_if value="$v.$sector == $station.sector and $ship.dock and $ship.dock.container != $station">
-        <undock ship="$ship"/>
-        <do_if value="$ship.assigneddock"><remove_docking_request ship="$ship" container="$ship.assigneddock.container" immediate="true"/></do_if>
-        <warp object="$ship" sector="$station.sector"><position object="$station" space="$station.sector" y="2km"/></warp>
-       </do_if>
-       <do_elseif value="$v.$sector == $station.sector and not $ship.dock and ($ship.sector != $station.sector or $ship.distanceto.{$station} ge 8km)">
-        <!-- A lost approach packet must not strand a replica far from the dock.
+                            <do_elseif value="md.X4LAN_Trade.Market.$markets?">
+                                <set_value name="$station" exact="md.X4LAN_Trade.Market.$markets.{$m}"/>
+                                <do_if value="$v.$sector == $station.sector and $ship.dock and $ship.dock.container != $station">
+                                    <undock ship="$ship"/>
+                                    <do_if value="$ship.assigneddock">
+                                        <remove_docking_request ship="$ship" container="$ship.assigneddock.container" immediate="true"/>
+                                    </do_if>
+                                    <warp object="$ship" sector="$station.sector">
+                                        <position object="$station" space="$station.sector" y="2km"/>
+                                    </warp>
+                                </do_if>
+                                <do_elseif value="$v.$sector == $station.sector and not $ship.dock and ($ship.sector != $station.sector or $ship.distanceto.{$station} ge 8km)">
+                                    <!-- A lost approach packet must not strand a replica far from the dock.
              Arrive outside the station, then let X4 select a free local pad. -->
-        <warp object="$ship" sector="$station.sector"><position object="$station" space="$station.sector" y="2km"/></warp>
-       </do_elseif>
-       <do_if value="$ship.assigneddock and $ship.assigneddock.container != $station"><remove_docking_request ship="$ship" container="$ship.assigneddock.container" immediate="true"/></do_if>
-       <do_if value="$ship.sector == $station.sector and $ship.distanceto.{$station} lt 8km and not $ship.dock">
-        <do_if value="$ship.owner != faction.player"><set_owner object="$ship" faction="faction.player" /></do_if><do_if value="not $ship.assigneddock"><request_docking ship="$ship" container="$station" requiretrading="true" allowplayeronly="true" queuedresult="$queued" grantedresult="$granted"/></do_if>
-        <do_if value="$ship.assigneddock"><dock ship="$ship"/></do_if>
-       </do_if>
-      </do_elseif>
-     </do_if>
-    </actions></cue>
-   </cues>
-  </cue>
-  <cue name="ResolveSector" instantiate="true" namespace="this"><conditions><event_ui_triggered screen="'X4LAN_Coop'" control="'ResolveSector'"/></conditions><actions>
-   <find_sector name="$sector" macro="macro.{event.param3}" required="false"/>
-   <do_if value="$sector.exists"><raise_lua_event name="'X4LAN_Coop.Sector.' + event.param3" param="$sector"/></do_if>
-  </actions></cue>
- <!-- $valid: $ship is free in a zone of its sector (a highway is a zone class and is
+                                    <warp object="$ship" sector="$station.sector">
+                                        <position object="$station" space="$station.sector" y="2km"/>
+                                    </warp>
+                                </do_elseif>
+                                <do_if value="$ship.assigneddock and $ship.assigneddock.container != $station">
+                                    <remove_docking_request ship="$ship" container="$ship.assigneddock.container" immediate="true"/>
+                                </do_if>
+                                <do_if value="$ship.sector == $station.sector and $ship.distanceto.{$station} lt 8km and not $ship.dock">
+                                    <do_if value="$ship.owner != faction.player">
+                                        <set_owner object="$ship" faction="faction.player"/>
+                                    </do_if>
+                                    <do_if value="not $ship.assigneddock">
+                                        <request_docking ship="$ship" container="$station" requiretrading="true" allowplayeronly="true" queuedresult="$queued" grantedresult="$granted"/>
+                                    </do_if>
+                                    <do_if value="$ship.assigneddock">
+                                        <dock ship="$ship"/>
+                                    </do_if>
+                                </do_if>
+                            </do_elseif>
+                        </do_if>
+                    </actions>
+                </cue>
+            </cues>
+        </cue>
+        <cue name="ResolveSector" instantiate="true" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Coop'" control="'ResolveSector'"/>
+            </conditions>
+            <actions>
+                <find_sector name="$sector" macro="macro.{event.param3}" required="false"/>
+                <do_if value="$sector.exists">
+                    <raise_lua_event name="'X4LAN_Coop.Sector.' + event.param3" param="$sector"/>
+                </do_if>
+            </actions>
+        </cue>
+        <!-- $valid: $ship is free in a zone of its sector (a highway is a zone class and is
       excluded: the highway moves an attached ship), and zone and sector are unrotated.
       Evidence covers that space only; moving containers and rotated spaces fail closed. -->
- <library name="AlignedZoneSpace" purpose="include_actions">
-  <actions>
-   <do_if value="$ship.parent.isclass.zone and not $ship.parent.isclass.highway and $ship.parent.parent == $ship.sector and $ship.sector.parent == $ship.cluster">
-    <set_value name="$p" exact="$ship.parent.relativerotation.{$ship.sector}"/>
-    <set_value name="$s" exact="$ship.sector.relativerotation.{$ship.cluster}"/>
-    <set_value name="$basisError" exact="$p.forward.x^2 + $p.forward.y^2 + ($p.forward.z - 1)^2 + $p.up.x^2 + ($p.up.y - 1)^2 + $p.up.z^2 + $s.forward.x^2 + $s.forward.y^2 + ($s.forward.z - 1)^2 + $s.up.x^2 + ($s.up.y - 1)^2 + $s.up.z^2"/>
-    <set_value name="$valid" exact="$basisError lt 0.00000001"/>
-   </do_if>
-  </actions>
- </library>
- <library name="DockExecutionWindow" purpose="include_actions">
-  <actions>
-   <set_value name="$dockWindow" exact="not $arena.$coopDocks?"/>
-   <do_if value="$arena.$coopDocks?">
-    <!-- Dock attachment manages ships 1/2 only; ships 3.. use the legacy pose window. -->
-    <do_if value="$v.$ship gt 2"><set_value name="$dockWindow" exact="true"/></do_if>
-    <do_elseif value="md.X4LAN_CoopAttachment.State.$active? and md.X4LAN_CoopAttachment.State.$active and $v.$ship ge 1 and $v.$ship le 2">
-     <set_value name="$dockWindow" exact="$v.$dockGeneration? and $v.$dockStamp? and $v.$dockAge? and md.X4LAN_CoopAttachment.State.$enabled.{$v.$ship} and $v.$dockGeneration == md.X4LAN_CoopAttachment.State.$generations.{$v.$ship} and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $v.$dockStamp and player.age / 1s ge $v.$dockAge and player.age / 1s le $v.$dockAge + 0.3"/>
-    </do_elseif>
-   </do_if>
-  </actions>
- </library>
- </cues>
+        <library name="AlignedZoneSpace" purpose="include_actions">
+            <actions>
+                <do_if value="$ship.parent.isclass.zone and not $ship.parent.isclass.highway and $ship.parent.parent == $ship.sector and $ship.sector.parent == $ship.cluster">
+                    <set_value name="$p" exact="$ship.parent.relativerotation.{$ship.sector}"/>
+                    <set_value name="$s" exact="$ship.sector.relativerotation.{$ship.cluster}"/>
+                    <set_value name="$basisError" exact="$p.forward.x^2 + $p.forward.y^2 + ($p.forward.z - 1)^2 + $p.up.x^2 + ($p.up.y - 1)^2 + $p.up.z^2 + $s.forward.x^2 + $s.forward.y^2 + ($s.forward.z - 1)^2 + $s.up.x^2 + ($s.up.y - 1)^2 + $s.up.z^2"/>
+                    <set_value name="$valid" exact="$basisError lt 0.00000001"/>
+                </do_if>
+            </actions>
+        </library>
+        <library name="DockExecutionWindow" purpose="include_actions">
+            <actions>
+                <set_value name="$dockWindow" exact="not $arena.$coopDocks?"/>
+                <do_if value="$arena.$coopDocks?">
+                    <!-- Dock attachment manages ships 1/2 only; ships 3.. use the legacy pose window. -->
+                    <do_if value="$v.$ship gt 2">
+                        <set_value name="$dockWindow" exact="true"/>
+                    </do_if>
+                    <do_elseif value="md.X4LAN_CoopAttachment.State.$active? and md.X4LAN_CoopAttachment.State.$active and $v.$ship ge 1 and $v.$ship le 2">
+                        <set_value name="$dockWindow" exact="$v.$dockGeneration? and $v.$dockStamp? and $v.$dockAge? and md.X4LAN_CoopAttachment.State.$enabled.{$v.$ship} and $v.$dockGeneration == md.X4LAN_CoopAttachment.State.$generations.{$v.$ship} and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $v.$dockStamp and player.age / 1s ge $v.$dockAge and player.age / 1s le $v.$dockAge + 0.3"/>
+                    </do_elseif>
+                </do_if>
+            </actions>
+        </library>
+    </cues>
 </mdscript>

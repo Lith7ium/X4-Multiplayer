@@ -1,193 +1,193 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_Life" xsi:noNamespaceSchemaLocation="md.xsd">
-  <cues>
-    <cue name="Session" namespace="this">
-      <conditions>
-        <event_ui_triggered screen="'X4LAN_Life'" control="'Setup'" />
-      </conditions>
-      <actions>
-        <set_value name="$arena" exact="md.X4LAN_Bubble.Arena" />
-        <set_value name="$suit" exact="null" />
-        <set_value name="$generation" exact="0" />
-        <set_value name="$remoteSuit" exact="null" />
-        <set_value name="$remoteGeneration" exact="0" />
-        <set_value name="$suitDeath" exact="false" />
-        <set_value name="$respawning" exact="false" />
-        <set_value name="$nextEject" exact="0s" />
-        <set_value name="$nextRespawn" exact="0s" />
-        <set_value name="$mode" exact="'ship'" />
-        <set_value name="$lastState" exact="''" />
-        <debug_text text="'[X4LAN] LIFE_READY: protected transition before lethal ship/suit damage'" />
-      </actions>
-      <cues>
-        <cue name="Tick" instantiate="true" checkinterval="0.05s">
-          <conditions>
-            <check_value value="true" />
-          </conditions>
-          <actions>
-            <do_all exact="$arena.$ships.count" counter="$i">
-              <set_value name="$ship" exact="$arena.$ships.{$i}" />
-              <do_if value="$arena.$host and not $arena.$dead.{$i}">
-                <!-- While a pilot value is live (x4lan_health.xml) it alone decides death; the proxy is
+    <cues>
+        <cue name="Session" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Life'" control="'Setup'"/>
+            </conditions>
+            <actions>
+                <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
+                <set_value name="$suit" exact="null"/>
+                <set_value name="$generation" exact="0"/>
+                <set_value name="$remoteSuit" exact="null"/>
+                <set_value name="$remoteGeneration" exact="0"/>
+                <set_value name="$suitDeath" exact="false"/>
+                <set_value name="$respawning" exact="false"/>
+                <set_value name="$nextEject" exact="0s"/>
+                <set_value name="$nextRespawn" exact="0s"/>
+                <set_value name="$mode" exact="'ship'"/>
+                <set_value name="$lastState" exact="''"/>
+                <debug_text text="'[X4LAN] LIFE_READY: protected transition before lethal ship/suit damage'"/>
+            </actions>
+            <cues>
+                <cue name="Tick" instantiate="true" checkinterval="0.05s">
+                    <conditions>
+                        <check_value value="true"/>
+                    </conditions>
+                    <actions>
+                        <do_all exact="$arena.$ships.count" counter="$i">
+                            <set_value name="$ship" exact="$arena.$ships.{$i}"/>
+                            <do_if value="$arena.$host and not $arena.$dead.{$i}">
+                                <!-- While a pilot value is live (x4lan_health.xml) it alone decides death; the proxy is
                      only a view, neither its hull nor its loss counts. A lost proxy is latched and
                      logged once ($healthProxyLost) and never recreated (no silent resurrection).
                      The health Apply keeps accepting canonical values without physical writes, so
                      the pilot stays authoritative; the latch also keeps the ordinary branch from
                      ever turning that local loss into a death later. Only a canonical value at or
                      below 1.01% kills such a ship. -->
-                <do_if value="@$arena.$healthLive.{$i}">
-                  <do_if value="$arena.$healthValue.{$i}.{1} le 1.01">
-                    <set_value name="$arena.$dead.{$i}" exact="true" />
-                    <debug_text text="'[X4LAN] SHIP_LETHAL slot=%s canonical=%s'.[$i,$arena.$healthValue.{$i}.{1}]" />
-                  </do_if>
-                  <do_elseif value="not $ship.isoperational and not @$arena.$healthProxyLost.{$i}">
-                    <set_value name="$arena.$healthProxyLost.{$i}" exact="true" />
-                    <debug_text text="'[X4LAN] HEALTH_PROXY_LOST slot=%s canonical=%s'.[$i,$arena.$healthValue.{$i}.{1}]" />
-                  </do_elseif>
-                </do_if>
-                <do_elseif value="(not $ship.isoperational and not @$arena.$healthProxyLost.{$i}) or ($ship.isoperational and @$ship.hullpercentage le 1.01)">
-                  <set_value name="$arena.$dead.{$i}" exact="true" />
-                  <debug_text text="'[X4LAN] SHIP_LETHAL slot=%s'.[$i]" />
-                </do_elseif>
-              </do_if>
-              <do_elseif value="not $arena.$host and not $arena.$coop and $i == $arena.$localSlot and $ship.isoperational and $ship.hullpercentage le 1.01">
-                <set_value name="$arena.$dead.{$i}" exact="true" />
-              </do_elseif>
-              <do_if value="$arena.$dead.{$i} and $ship.isoperational">
-                <do_if value="player.container == $ship">
-                  <do_if value="player.age ge $nextEject">
-                    <set_value name="$nextEject" exact="player.age + 1s" />
-                    <teleport_player_to_spacesuit emergency="true" instant="true" />
-                    <debug_text text="'[X4LAN] EMERGENCY_EJECT slot=%s'.[$i]" />
-                  </do_if>
+                                <do_if value="@$arena.$healthLive.{$i}">
+                                    <do_if value="$arena.$healthValue.{$i}.{1} le 1.01">
+                                        <set_value name="$arena.$dead.{$i}" exact="true"/>
+                                        <debug_text text="'[X4LAN] SHIP_LETHAL slot=%s canonical=%s'.[$i,$arena.$healthValue.{$i}.{1}]"/>
+                                    </do_if>
+                                    <do_elseif value="not $ship.isoperational and not @$arena.$healthProxyLost.{$i}">
+                                        <set_value name="$arena.$healthProxyLost.{$i}" exact="true"/>
+                                        <debug_text text="'[X4LAN] HEALTH_PROXY_LOST slot=%s canonical=%s'.[$i,$arena.$healthValue.{$i}.{1}]"/>
+                                    </do_elseif>
+                                </do_if>
+                                <do_elseif value="(not $ship.isoperational and not @$arena.$healthProxyLost.{$i}) or ($ship.isoperational and @$ship.hullpercentage le 1.01)">
+                                    <set_value name="$arena.$dead.{$i}" exact="true"/>
+                                    <debug_text text="'[X4LAN] SHIP_LETHAL slot=%s'.[$i]"/>
+                                </do_elseif>
+                            </do_if>
+                            <do_elseif value="not $arena.$host and not $arena.$coop and $i == $arena.$localSlot and $ship.isoperational and $ship.hullpercentage le 1.01">
+                                <set_value name="$arena.$dead.{$i}" exact="true"/>
+                            </do_elseif>
+                            <do_if value="$arena.$dead.{$i} and $ship.isoperational">
+                                <do_if value="player.container == $ship">
+                                    <do_if value="player.age ge $nextEject">
+                                        <set_value name="$nextEject" exact="player.age + 1s"/>
+                                        <teleport_player_to_spacesuit emergency="true" instant="true"/>
+                                        <debug_text text="'[X4LAN] EMERGENCY_EJECT slot=%s'.[$i]"/>
+                                    </do_if>
+                                </do_if>
+                                <do_else>
+                                    <do_if value="$ship == $arena.$proxy and $arena.$economy">
+                                        <set_value name="$arena.$remoteBalance" exact="$ship.money"/>
+                                        <transfer_money from="$ship" to="$arena.$donor" amount="$ship.money"/>
+                                    </do_if>
+                                    <set_object_min_hull object="$ship" exact="0"/>
+                                    <destroy_object object="$ship" explosion="true"/>
+                                    <debug_text text="'[X4LAN] SHIP_DESTROYED slot=%s'.[$i]"/>
+                                </do_else>
+                            </do_if>
+                        </do_all>
+                        <set_value name="$mode" exact="if player.occupiedship and $arena.$ships.indexof.{player.occupiedship} gt 0 then 'ship' else 'foot'"/>
+                        <do_if value="player.spacesuit.isoperational">
+                            <set_value name="$mode" exact="'suit'"/>
+                            <!-- A one-time hull guard was insufficient in native testing; maintain it until the occupant has left. -->
+                            <set_object_min_hull object="player.spacesuit" exact="100"/>
+                            <do_if value="$suit != player.spacesuit">
+                                <set_value name="$suit" exact="player.spacesuit"/>
+                                <set_value name="$generation" operation="add" exact="1"/>
+                                <set_value name="$suitDeath" exact="false"/>
+                                <set_value name="$respawning" exact="false"/>
+                                <set_object_min_hull object="$suit" exact="100"/>
+                                <debug_text text="'[X4LAN] SPACESUIT_ACTIVE generation=%s'.[$generation]"/>
+                            </do_if>
+                            <do_if value="($suitDeath or $suit.oxygenpercentage le 1) and player.age ge $nextRespawn and not $respawning">
+                                <include_actions ref="md.X4LAN_Life.Respawn"/>
+                            </do_if>
+                        </do_if>
+                        <do_elseif value="$respawning">
+                            <do_if value="$suit.exists">
+                                <set_object_min_hull object="$suit" exact="0"/>
+                                <destroy_object object="$suit" explosion="false"/>
+                            </do_if>
+                            <set_value name="$respawning" exact="false"/>
+                            <set_value name="$suitDeath" exact="false"/>
+                            <debug_text text="'[X4LAN] STATION_RESPAWN complete=%s'.[player.container.knownname]"/>
+                        </do_elseif>
+                        <do_if value="$arena.$host and $remoteSuit.isoperational and $remoteSuit.hullpercentage le 1.01">
+                            <raise_lua_event name="'X4LAN_Life.RemoteSuitKilled'" param="$remoteGeneration"/>
+                        </do_if>
+                        <set_value name="$state" exact="'%s|%s|%s'.[$mode,if $arena.$dead.{$arena.$localSlot} then 1 else 0,$generation]"/>
+                        <do_if value="$state != $lastState">
+                            <set_value name="$lastState" exact="$state"/>
+                            <raise_lua_event name="'X4LAN_Life.State'" param="$state"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="ShipDeath" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Life'" control="'ShipDeath'"/>
+                        <check_value value="event.param3 == 1 or event.param3 == 2"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$arena.$dead.{event.param3}" exact="true"/>
+                    </actions>
+                </cue>
+                <cue name="SuitDeath" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Life'" control="'SuitDeath'"/>
+                        <check_value value="event.param3 == $generation and $mode == 'suit'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$suitDeath" exact="true"/>
+                        <do_if value="not $respawning">
+                            <include_actions ref="md.X4LAN_Life.Respawn"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="SuitHit" instantiate="true">
+                    <conditions>
+                        <event_player_owned_attacked/>
+                        <check_value value="event.object == $suit or event.object == $remoteSuit"/>
+                    </conditions>
+                    <actions>
+                        <do_if value="event.object == $suit and $mode == 'suit'">
+                            <set_value name="$suitDeath" exact="true"/>
+                            <debug_text text="'[X4LAN] SPACESUIT_HIT local generation=%s method=%s'.[$generation,event.param2]"/>
+                            <do_if value="not $respawning">
+                                <include_actions ref="md.X4LAN_Life.Respawn"/>
+                            </do_if>
+                        </do_if>
+                        <do_elseif value="$arena.$host and event.object == $remoteSuit">
+                            <raise_lua_event name="'X4LAN_Life.RemoteSuitKilled'" param="$remoteGeneration"/>
+                            <debug_text text="'[X4LAN] SPACESUIT_HIT remote generation=%s method=%s'.[$remoteGeneration,event.param2]"/>
+                        </do_elseif>
+                    </actions>
+                </cue>
+                <cue name="RemoteSuit" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Life'" control="'RemoteSuit'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$remoteSuit" exact="event.param3.$object"/>
+                        <set_value name="$remoteGeneration" exact="event.param3.$generation"/>
+                        <set_object_min_hull object="$remoteSuit" exact="100"/>
+                        <set_object_name object="$remoteSuit" name="if $arena.$ships.count gt 2 then 'LAN Player - Spacesuit' else 'LAN Player %s - Spacesuit'.[3 - $arena.$localSlot]"/>
+                    </actions>
+                </cue>
+            </cues>
+        </cue>
+        <library name="Respawn" purpose="include_actions">
+            <actions>
+                <set_value name="$nextRespawn" exact="player.age + 2s"/>
+                <set_spacesuit_oxygen object="$suit" percent="100"/>
+                <set_value name="$destination" exact="null"/>
+                <find_station name="$stations" space="player.sector" multiple="true" sortbydistanceto="$suit">
+                    <match_relation_to faction="faction.player" relation="neutral" comparison="ge"/>
+                </find_station>
+                <do_for_each in="$stations" name="$candidate">
+                    <do_if value="not $destination.exists and $candidate.isoperational and $candidate.dockingenabled and $candidate.dockingallowed.{$suit} and not $candidate.ishostileto.{faction.player}">
+                        <find_room name="$rooms" object="$candidate" multiple="true"/>
+                        <do_for_each in="$rooms" name="$room">
+                            <do_if value="$room.haswalkableroom">
+                                <set_value name="$destination" exact="$candidate"/>
+                            </do_if>
+                        </do_for_each>
+                    </do_if>
+                </do_for_each>
+                <do_if value="$destination.exists">
+                    <set_value name="$respawning" exact="true"/>
+                    <teleport_player object="$destination" control="false" instant="true" force="true"/>
+                    <debug_text text="'[X4LAN] STATION_RESPAWN requested=%s distance=%s'.[$destination.knownname,$suit.distanceto.{$destination}]"/>
                 </do_if>
                 <do_else>
-                  <do_if value="$ship == $arena.$proxy and $arena.$economy">
-                    <set_value name="$arena.$remoteBalance" exact="$ship.money" />
-                    <transfer_money from="$ship" to="$arena.$donor" amount="$ship.money" />
-                  </do_if>
-                  <set_object_min_hull object="$ship" exact="0" />
-                  <destroy_object object="$ship" explosion="true" />
-                  <debug_text text="'[X4LAN] SHIP_DESTROYED slot=%s'.[$i]" />
+                    <debug_text text="'[X4LAN] RESPAWN_WAIT: no accessible friendly station in this sector'"/>
                 </do_else>
-              </do_if>
-            </do_all>
-            <set_value name="$mode" exact="if player.occupiedship and $arena.$ships.indexof.{player.occupiedship} gt 0 then 'ship' else 'foot'" />
-            <do_if value="player.spacesuit.isoperational">
-              <set_value name="$mode" exact="'suit'" />
-              <!-- A one-time hull guard was insufficient in native testing; maintain it until the occupant has left. -->
-              <set_object_min_hull object="player.spacesuit" exact="100" />
-              <do_if value="$suit != player.spacesuit">
-                <set_value name="$suit" exact="player.spacesuit" />
-                <set_value name="$generation" operation="add" exact="1" />
-                <set_value name="$suitDeath" exact="false" />
-                <set_value name="$respawning" exact="false" />
-                <set_object_min_hull object="$suit" exact="100" />
-                <debug_text text="'[X4LAN] SPACESUIT_ACTIVE generation=%s'.[$generation]" />
-              </do_if>
-              <do_if value="($suitDeath or $suit.oxygenpercentage le 1) and player.age ge $nextRespawn and not $respawning">
-                <include_actions ref="md.X4LAN_Life.Respawn" />
-              </do_if>
-            </do_if>
-            <do_elseif value="$respawning">
-              <do_if value="$suit.exists">
-                <set_object_min_hull object="$suit" exact="0" />
-                <destroy_object object="$suit" explosion="false" />
-              </do_if>
-              <set_value name="$respawning" exact="false" />
-              <set_value name="$suitDeath" exact="false" />
-              <debug_text text="'[X4LAN] STATION_RESPAWN complete=%s'.[player.container.knownname]" />
-            </do_elseif>
-            <do_if value="$arena.$host and $remoteSuit.isoperational and $remoteSuit.hullpercentage le 1.01">
-              <raise_lua_event name="'X4LAN_Life.RemoteSuitKilled'" param="$remoteGeneration" />
-            </do_if>
-            <set_value name="$state" exact="'%s|%s|%s'.[$mode,if $arena.$dead.{$arena.$localSlot} then 1 else 0,$generation]" />
-            <do_if value="$state != $lastState">
-              <set_value name="$lastState" exact="$state" />
-              <raise_lua_event name="'X4LAN_Life.State'" param="$state" />
-            </do_if>
-          </actions>
-        </cue>
-        <cue name="ShipDeath" instantiate="true">
-          <conditions>
-            <event_ui_triggered screen="'X4LAN_Life'" control="'ShipDeath'" />
-            <check_value value="event.param3 == 1 or event.param3 == 2" />
-          </conditions>
-          <actions>
-            <set_value name="$arena.$dead.{event.param3}" exact="true" />
-          </actions>
-        </cue>
-        <cue name="SuitDeath" instantiate="true">
-          <conditions>
-            <event_ui_triggered screen="'X4LAN_Life'" control="'SuitDeath'" />
-            <check_value value="event.param3 == $generation and $mode == 'suit'" />
-          </conditions>
-          <actions>
-            <set_value name="$suitDeath" exact="true" />
-            <do_if value="not $respawning">
-              <include_actions ref="md.X4LAN_Life.Respawn" />
-            </do_if>
-          </actions>
-        </cue>
-        <cue name="SuitHit" instantiate="true">
-          <conditions>
-            <event_player_owned_attacked />
-            <check_value value="event.object == $suit or event.object == $remoteSuit" />
-          </conditions>
-          <actions>
-            <do_if value="event.object == $suit and $mode == 'suit'">
-              <set_value name="$suitDeath" exact="true" />
-              <debug_text text="'[X4LAN] SPACESUIT_HIT local generation=%s method=%s'.[$generation,event.param2]" />
-              <do_if value="not $respawning">
-                <include_actions ref="md.X4LAN_Life.Respawn" />
-              </do_if>
-            </do_if>
-            <do_elseif value="$arena.$host and event.object == $remoteSuit">
-              <raise_lua_event name="'X4LAN_Life.RemoteSuitKilled'" param="$remoteGeneration" />
-              <debug_text text="'[X4LAN] SPACESUIT_HIT remote generation=%s method=%s'.[$remoteGeneration,event.param2]" />
-            </do_elseif>
-          </actions>
-        </cue>
-        <cue name="RemoteSuit" instantiate="true">
-          <conditions>
-            <event_ui_triggered screen="'X4LAN_Life'" control="'RemoteSuit'" />
-          </conditions>
-          <actions>
-            <set_value name="$remoteSuit" exact="event.param3.$object" />
-            <set_value name="$remoteGeneration" exact="event.param3.$generation" />
-            <set_object_min_hull object="$remoteSuit" exact="100" />
-            <set_object_name object="$remoteSuit" name="if $arena.$ships.count gt 2 then 'LAN Player - Spacesuit' else 'LAN Player %s - Spacesuit'.[3 - $arena.$localSlot]" />
-          </actions>
-        </cue>
-      </cues>
-    </cue>
-    <library name="Respawn" purpose="include_actions">
-      <actions>
-        <set_value name="$nextRespawn" exact="player.age + 2s" />
-        <set_spacesuit_oxygen object="$suit" percent="100" />
-        <set_value name="$destination" exact="null" />
-        <find_station name="$stations" space="player.sector" multiple="true" sortbydistanceto="$suit">
-          <match_relation_to faction="faction.player" relation="neutral" comparison="ge" />
-        </find_station>
-        <do_for_each in="$stations" name="$candidate">
-          <do_if value="not $destination.exists and $candidate.isoperational and $candidate.dockingenabled and $candidate.dockingallowed.{$suit} and not $candidate.ishostileto.{faction.player}">
-            <find_room name="$rooms" object="$candidate" multiple="true" />
-            <do_for_each in="$rooms" name="$room">
-              <do_if value="$room.haswalkableroom">
-                <set_value name="$destination" exact="$candidate" />
-              </do_if>
-            </do_for_each>
-          </do_if>
-        </do_for_each>
-        <do_if value="$destination.exists">
-          <set_value name="$respawning" exact="true" />
-          <teleport_player object="$destination" control="false" instant="true" force="true" />
-          <debug_text text="'[X4LAN] STATION_RESPAWN requested=%s distance=%s'.[$destination.knownname,$suit.distanceto.{$destination}]" />
-        </do_if>
-        <do_else>
-          <debug_text text="'[X4LAN] RESPAWN_WAIT: no accessible friendly station in this sector'" />
-        </do_else>
-      </actions>
-    </library>
-  </cues>
+            </actions>
+        </library>
+    </cues>
 </mdscript>

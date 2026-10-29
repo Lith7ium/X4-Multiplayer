@@ -1,143 +1,212 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Ordinary cargo is authoritative on the host. Guest native predictions are rolled back. -->
-<mdscript name="X4LAN_Cargo" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
-<cues><cue name="Setup" namespace="this">
-<conditions><event_ui_triggered screen="'X4LAN_Cargo'" control="'Setup'"/></conditions>
-<actions>
- <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
- <set_value name="$host" exact="$arena.$host"/><set_value name="$ships" exact="$arena.$ships"/>
- <set_value name="$wares" exact="[]"/><set_value name="$drops" exact="[]"/>
- <set_value name="$network" exact="table[]"/><set_value name="$replicas" exact="table[]"/><set_value name="$replicaGenerations" exact="table[]"/><set_value name="$executed" exact="table[]"/>
- <!-- Native cargo transactions cover the fixture ships 1/2 only (also in N-player sessions). -->
- <create_group groupname="$players"/><add_to_group groupname="$players" object="$ships.{1}"/><add_to_group groupname="$players" object="$ships.{2}"/>
- <raise_lua_event name="'X4LAN_Cargo.Ready'"/>
-</actions>
-<cues>
- <cue name="Dropped" instantiate="true" namespace="this">
-  <conditions><event_object_dropped_objects group="Setup.$players"/></conditions>
-  <actions>
-   <set_value name="$slot" exact="if event.object == Setup.$ships.{1} then 1 else 2"/>
-   <do_for_each name="$drop" in="event.param">
-    <do_if value="$drop.exists">
-     <do_if value="Setup.$host"><append_to_list name="Setup.$drops" exact="$drop"/></do_if>
-     <do_for_each name="$ware" in="$drop.wares.list">
-      <do_if value="not Setup.$wares.indexof.{$ware}"><append_to_list name="Setup.$wares" exact="$ware"/></do_if>
-      <do_if value="not Setup.$host">
-       <set_value name="$amount" exact="$drop.wares.{$ware}.count"/>
-       <add_cargo object="event.object" ware="$ware" exact="$amount" result="$restored"/>
-       <raise_lua_event name="'X4LAN_Cargo.GuestDrop'" param="'%s|%s|%s|%s'.[$slot,$ware.id,$amount,$restored]"/>
-      </do_if>
-     </do_for_each>
-     <do_if value="not Setup.$host"><destroy_object object="$drop" explosion="false"/></do_if>
-    </do_if>
-   </do_for_each>
-  </actions>
- </cue>
- <cue name="Collected" instantiate="true" namespace="this">
-  <conditions><event_object_collected_ware group="Setup.$players"/></conditions>
-  <actions>
-   <do_if value="not Setup.$host and @Setup.$replicas.{event.param3}">
-    <set_value name="$slot" exact="if event.object == Setup.$ships.{1} then 1 else 2"/>
-    <remove_cargo object="event.object" ware="event.param" exact="event.param2" result="$removed"/>
-    <raise_lua_event name="'X4LAN_Cargo.GuestPickup'" param="'%s|%s|%s|%s|%s|%s|%s'.[Setup.$replicas.{event.param3},Setup.$replicaGenerations.{event.param3},event.param3,$slot,event.param.id,event.param2,$removed]"/>
-   </do_if>
-  </actions>
- </cue>
- <cue name="Publish" instantiate="true" checkinterval="0.2s" namespace="this">
-  <conditions><check_value value="Setup.$host"/></conditions>
-  <actions>
-   <do_all exact="Setup.$drops.count" counter="$i" reverse="true">
-    <set_value name="$drop" exact="Setup.$drops.{$i}"/>
-    <do_if value="$drop.exists and $drop.wares.list.count == 1">
-     <set_value name="$ware" exact="$drop.wares.list.{1}"/>
-     <raise_lua_event name="'X4LAN_Cargo.HostDrop'" param="'%s|%s|%s'.[$drop,$ware.id,$drop.wares.{$ware}.count]"/>
-    </do_if>
-    <do_elseif value="not $drop.exists"><remove_value name="Setup.$drops.{$i}"/></do_elseif>
-   </do_all>
-   <do_for_each name="$ware" in="Setup.$wares">
-    <raise_lua_event name="'X4LAN_Cargo.Inventory'" param="'%s|%s|%s'.[$ware.id,(if Setup.$ships.{1}.isoperational then Setup.$ships.{1}.cargo.{$ware}.count else 0),(if Setup.$ships.{2}.isoperational then Setup.$ships.{2}.cargo.{$ware}.count else 0)]"/>
-   </do_for_each>
-  </actions>
- </cue>
- <cue name="Register" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_Cargo'" control="'Register'"/></conditions><actions>
-  <set_value name="$network.{event.param3.$id}" exact="event.param3.$object"/>
- </actions></cue>
- <cue name="Create" instantiate="true" namespace="this">
-  <conditions><event_ui_triggered screen="'X4LAN_Cargo'" control="'Create'"/><check_value value="not Setup.$host"/></conditions>
-  <actions>
-   <set_value name="$a" exact="event.param3"/><set_value name="$ware" exact="ware.{$a.$ware}"/>
-   <do_if value="not Setup.$wares.indexof.{$ware}"><append_to_list name="Setup.$wares" exact="$ware"/></do_if>
-   <!-- A generic create_object with a pickup macro is visible but has no native
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_Cargo" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="Setup" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Cargo'" control="'Setup'"/>
+            </conditions>
+            <actions>
+                <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
+                <set_value name="$host" exact="$arena.$host"/>
+                <set_value name="$ships" exact="$arena.$ships"/>
+                <set_value name="$wares" exact="[]"/>
+                <set_value name="$drops" exact="[]"/>
+                <set_value name="$network" exact="table[]"/>
+                <set_value name="$replicas" exact="table[]"/>
+                <set_value name="$replicaGenerations" exact="table[]"/>
+                <set_value name="$executed" exact="table[]"/>
+                <!-- Native cargo transactions cover the fixture ships 1/2 only (also in N-player sessions). -->
+                <create_group groupname="$players"/>
+                <add_to_group groupname="$players" object="$ships.{1}"/>
+                <add_to_group groupname="$players" object="$ships.{2}"/>
+                <raise_lua_event name="'X4LAN_Cargo.Ready'"/>
+            </actions>
+            <cues>
+                <cue name="Dropped" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_object_dropped_objects group="Setup.$players"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$slot" exact="if event.object == Setup.$ships.{1} then 1 else 2"/>
+                        <do_for_each name="$drop" in="event.param">
+                            <do_if value="$drop.exists">
+                                <do_if value="Setup.$host">
+                                    <append_to_list name="Setup.$drops" exact="$drop"/>
+                                </do_if>
+                                <do_for_each name="$ware" in="$drop.wares.list">
+                                    <do_if value="not Setup.$wares.indexof.{$ware}">
+                                        <append_to_list name="Setup.$wares" exact="$ware"/>
+                                    </do_if>
+                                    <do_if value="not Setup.$host">
+                                        <set_value name="$amount" exact="$drop.wares.{$ware}.count"/>
+                                        <add_cargo object="event.object" ware="$ware" exact="$amount" result="$restored"/>
+                                        <raise_lua_event name="'X4LAN_Cargo.GuestDrop'" param="'%s|%s|%s|%s'.[$slot,$ware.id,$amount,$restored]"/>
+                                    </do_if>
+                                </do_for_each>
+                                <do_if value="not Setup.$host">
+                                    <destroy_object object="$drop" explosion="false"/>
+                                </do_if>
+                            </do_if>
+                        </do_for_each>
+                    </actions>
+                </cue>
+                <cue name="Collected" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_object_collected_ware group="Setup.$players"/>
+                    </conditions>
+                    <actions>
+                        <do_if value="not Setup.$host and @Setup.$replicas.{event.param3}">
+                            <set_value name="$slot" exact="if event.object == Setup.$ships.{1} then 1 else 2"/>
+                            <remove_cargo object="event.object" ware="event.param" exact="event.param2" result="$removed"/>
+                            <raise_lua_event name="'X4LAN_Cargo.GuestPickup'" param="'%s|%s|%s|%s|%s|%s|%s'.[Setup.$replicas.{event.param3},Setup.$replicaGenerations.{event.param3},event.param3,$slot,event.param.id,event.param2,$removed]"/>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Publish" instantiate="true" checkinterval="0.2s" namespace="this">
+                    <conditions>
+                        <check_value value="Setup.$host"/>
+                    </conditions>
+                    <actions>
+                        <do_all exact="Setup.$drops.count" counter="$i" reverse="true">
+                            <set_value name="$drop" exact="Setup.$drops.{$i}"/>
+                            <do_if value="$drop.exists and $drop.wares.list.count == 1">
+                                <set_value name="$ware" exact="$drop.wares.list.{1}"/>
+                                <raise_lua_event name="'X4LAN_Cargo.HostDrop'" param="'%s|%s|%s'.[$drop,$ware.id,$drop.wares.{$ware}.count]"/>
+                            </do_if>
+                            <do_elseif value="not $drop.exists">
+                                <remove_value name="Setup.$drops.{$i}"/>
+                            </do_elseif>
+                        </do_all>
+                        <do_for_each name="$ware" in="Setup.$wares">
+                            <raise_lua_event name="'X4LAN_Cargo.Inventory'" param="'%s|%s|%s'.[$ware.id,(if Setup.$ships.{1}.isoperational then Setup.$ships.{1}.cargo.{$ware}.count else 0),(if Setup.$ships.{2}.isoperational then Setup.$ships.{2}.cargo.{$ware}.count else 0)]"/>
+                        </do_for_each>
+                    </actions>
+                </cue>
+                <cue name="Register" instantiate="true">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Cargo'" control="'Register'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$network.{event.param3.$id}" exact="event.param3.$object"/>
+                    </actions>
+                </cue>
+                <cue name="Create" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Cargo'" control="'Create'"/>
+                        <check_value value="not Setup.$host"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <set_value name="$ware" exact="ware.{$a.$ware}"/>
+                        <do_if value="not Setup.$wares.indexof.{$ware}">
+                            <append_to_list name="Setup.$wares" exact="$ware"/>
+                        </do_if>
+                        <!-- A generic create_object with a pickup macro is visible but has no native
         loot registration. Obtain a real drop from the existing test donor. -->
-   <set_value name="$donor" exact="Setup.$arena.$donor"/>
-   <add_cargo object="$donor" ware="$ware" exact="$a.$amount" result="$added"/>
-   <do_if value="$added == $a.$amount">
-    <drop_cargo object="$donor" ware="$ware" exact="$a.$amount" groupname="$created"/>
-    <set_value name="$drop" exact="$created.{1}"/>
-    <warp object="$drop" sector="$a.$sector">
-     <position x="$a.$x" y="$a.$y" z="$a.$z"/>
-     <rotation yaw="$a.$yaw * 1rad" pitch="$a.$pitch * 1rad" roll="$a.$roll * 1rad"/>
-    </warp>
-    <set_object_velocity object="$drop"><linear x="0" y="0" z="0"/></set_object_velocity>
-   <set_drop_persistence object="$drop" persistent="true"/><set_known object="$drop" known="true"/>
-   <set_value name="Setup.$replicas.{$drop}" exact="$a.$id"/>
-   <set_value name="Setup.$replicaGenerations.{$drop}" exact="$a.$generation"/>
-   <raise_lua_event name="'X4LAN_Cargo.Created'" param="'%s|%s|%s'.[$a.$id,$a.$generation,$drop]"/>
-   </do_if>
-   <do_else>
-    <remove_cargo object="$donor" ware="$ware" exact="$added"/>
-    <raise_lua_event name="'X4LAN_Cargo.CreateFailed'" param="'%s|%s|%s|%s'.[$a.$id,$a.$generation,$ware.id,$a.$amount]"/>
-   </do_else>
-  </actions>
- </cue>
- <cue name="Inventory" instantiate="true" namespace="this">
-  <conditions><event_ui_triggered screen="'X4LAN_Cargo'" control="'Inventory'"/><check_value value="not Setup.$host"/></conditions>
-  <actions>
-   <set_value name="$a" exact="event.param3"/><set_value name="$ware" exact="ware.{$a.$ware}"/>
-   <do_if value="not Setup.$wares.indexof.{$ware}"><append_to_list name="Setup.$wares" exact="$ware"/></do_if>
-   <do_all exact="2" counter="$i">
-    <set_value name="$ship" exact="Setup.$ships.{$i}"/>
-    <do_if value="$ship.isoperational and not Setup.$arena.$dead.{$i}">
-     <set_value name="$delta" exact="$a.$counts.{$i} - $ship.cargo.{$ware}.count"/>
-     <do_if value="$delta gt 0"><add_cargo object="$ship" ware="$ware" exact="$delta"/></do_if>
-     <do_elseif value="$delta lt 0"><remove_cargo object="$ship" ware="$ware" exact="-$delta"/></do_elseif>
-    </do_if>
-   </do_all>
-  </actions>
- </cue>
- <cue name="Order" instantiate="true" namespace="this">
-  <conditions><event_ui_triggered screen="'X4LAN_Cargo'" control="'Order'"/><check_value value="Setup.$host"/></conditions>
-  <actions>
-   <set_value name="$a" exact="event.param3"/><set_value name="$status" exact="'REJECTED'"/>
-   <do_if value="@Setup.$executed.{'$' + $a.$request}"><set_value name="$status" exact="Setup.$executed.{'$' + $a.$request}"/></do_if>
-   <do_else>
-    <!-- Mark before any mutation. Retries cannot issue a second native action. -->
-    <set_value name="Setup.$executed.{'$' + $a.$request}" exact="'UNCERTAIN'"/>
-    <set_value name="$ship" exact="Setup.$ships.{$a.$ship}"/><set_value name="$ware" exact="ware.{$a.$ware}"/>
-    <do_if value="$ship.isoperational and not Setup.$arena.$dead.{$a.$ship} and typeof $ware == datatype.ware">
-     <do_if value="not Setup.$wares.indexof.{$ware}"><append_to_list name="Setup.$wares" exact="$ware"/></do_if>
-     <do_if value="Setup.$arena.$busy"><set_value name="$status" exact="'BUSY'"/></do_if>
-     <do_elseif value="$a.$verb == 'DROP' and $ship.cargo.{$ware}.count ge $a.$amount">
-      <set_value name="$before" exact="$ship.cargo.{$ware}.count"/>
-      <drop_cargo object="$ship" ware="$ware" exact="$a.$amount"/>
-      <do_if value="$ship.cargo.{$ware}.count == $before - $a.$amount"><set_value name="$status" exact="'OK'"/></do_if>
-      <do_else><set_value name="$status" exact="'UNCERTAIN'"/></do_else>
-     </do_elseif>
-     <do_elseif value="$a.$verb == 'PICKUP'">
-      <set_value name="$drop" exact="@Setup.$network.{$a.$drop}"/>
-      <do_if value="$drop.exists and $drop.sector == $ship.sector and $ship.distanceto.{$drop} le 5km and $drop.wares.list.count == 1 and $drop.wares.{$ware}.count ge $a.$amount">
-       <do_if value="$ship.cargo.{$ware}.free ge $a.$amount">
-        <set_value name="$before" exact="$ship.cargo.{$ware}.count"/>
-        <collect_drop object="$ship" drop="$drop"/>
-        <set_value name="$status" exact="if $ship.cargo.{$ware}.count gt $before then 'OK' else 'REJECTED'"/>
-       </do_if><do_else><set_value name="$status" exact="'CAPACITY'"/></do_else>
-      </do_if>
-     </do_elseif>
-    </do_if>
-    <set_value name="Setup.$executed.{'$' + $a.$request}" exact="$status"/>
-   </do_else>
-   <raise_lua_event name="'X4LAN_Cargo.Result'" param="'%s|%s'.[$a.$request,$status]"/>
-   <debug_text text="'[X4LAN] CARGO_ORDER request=%s verb=%s ship=%s status=%s'.[$a.$request,$a.$verb,$a.$ship,$status]"/>
-  </actions>
- </cue>
-</cues></cue></cues></mdscript>
+                        <set_value name="$donor" exact="Setup.$arena.$donor"/>
+                        <add_cargo object="$donor" ware="$ware" exact="$a.$amount" result="$added"/>
+                        <do_if value="$added == $a.$amount">
+                            <drop_cargo object="$donor" ware="$ware" exact="$a.$amount" groupname="$created"/>
+                            <set_value name="$drop" exact="$created.{1}"/>
+                            <warp object="$drop" sector="$a.$sector">
+                                <position x="$a.$x" y="$a.$y" z="$a.$z"/>
+                                <rotation yaw="$a.$yaw * 1rad" pitch="$a.$pitch * 1rad" roll="$a.$roll * 1rad"/>
+                            </warp>
+                            <set_object_velocity object="$drop">
+                                <linear x="0" y="0" z="0"/>
+                            </set_object_velocity>
+                            <set_drop_persistence object="$drop" persistent="true"/>
+                            <set_known object="$drop" known="true"/>
+                            <set_value name="Setup.$replicas.{$drop}" exact="$a.$id"/>
+                            <set_value name="Setup.$replicaGenerations.{$drop}" exact="$a.$generation"/>
+                            <raise_lua_event name="'X4LAN_Cargo.Created'" param="'%s|%s|%s'.[$a.$id,$a.$generation,$drop]"/>
+                        </do_if>
+                        <do_else>
+                            <remove_cargo object="$donor" ware="$ware" exact="$added"/>
+                            <raise_lua_event name="'X4LAN_Cargo.CreateFailed'" param="'%s|%s|%s|%s'.[$a.$id,$a.$generation,$ware.id,$a.$amount]"/>
+                        </do_else>
+                    </actions>
+                </cue>
+                <cue name="Inventory" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Cargo'" control="'Inventory'"/>
+                        <check_value value="not Setup.$host"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <set_value name="$ware" exact="ware.{$a.$ware}"/>
+                        <do_if value="not Setup.$wares.indexof.{$ware}">
+                            <append_to_list name="Setup.$wares" exact="$ware"/>
+                        </do_if>
+                        <do_all exact="2" counter="$i">
+                            <set_value name="$ship" exact="Setup.$ships.{$i}"/>
+                            <do_if value="$ship.isoperational and not Setup.$arena.$dead.{$i}">
+                                <set_value name="$delta" exact="$a.$counts.{$i} - $ship.cargo.{$ware}.count"/>
+                                <do_if value="$delta gt 0">
+                                    <add_cargo object="$ship" ware="$ware" exact="$delta"/>
+                                </do_if>
+                                <do_elseif value="$delta lt 0">
+                                    <remove_cargo object="$ship" ware="$ware" exact="-$delta"/>
+                                </do_elseif>
+                            </do_if>
+                        </do_all>
+                    </actions>
+                </cue>
+                <cue name="Order" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Cargo'" control="'Order'"/>
+                        <check_value value="Setup.$host"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <set_value name="$status" exact="'REJECTED'"/>
+                        <do_if value="@Setup.$executed.{'$' + $a.$request}">
+                            <set_value name="$status" exact="Setup.$executed.{'$' + $a.$request}"/>
+                        </do_if>
+                        <do_else>
+                            <!-- Mark before any mutation. Retries cannot issue a second native action. -->
+                            <set_value name="Setup.$executed.{'$' + $a.$request}" exact="'UNCERTAIN'"/>
+                            <set_value name="$ship" exact="Setup.$ships.{$a.$ship}"/>
+                            <set_value name="$ware" exact="ware.{$a.$ware}"/>
+                            <do_if value="$ship.isoperational and not Setup.$arena.$dead.{$a.$ship} and typeof $ware == datatype.ware">
+                                <do_if value="not Setup.$wares.indexof.{$ware}">
+                                    <append_to_list name="Setup.$wares" exact="$ware"/>
+                                </do_if>
+                                <do_if value="Setup.$arena.$busy">
+                                    <set_value name="$status" exact="'BUSY'"/>
+                                </do_if>
+                                <do_elseif value="$a.$verb == 'DROP' and $ship.cargo.{$ware}.count ge $a.$amount">
+                                    <set_value name="$before" exact="$ship.cargo.{$ware}.count"/>
+                                    <drop_cargo object="$ship" ware="$ware" exact="$a.$amount"/>
+                                    <do_if value="$ship.cargo.{$ware}.count == $before - $a.$amount">
+                                        <set_value name="$status" exact="'OK'"/>
+                                    </do_if>
+                                    <do_else>
+                                        <set_value name="$status" exact="'UNCERTAIN'"/>
+                                    </do_else>
+                                </do_elseif>
+                                <do_elseif value="$a.$verb == 'PICKUP'">
+                                    <set_value name="$drop" exact="@Setup.$network.{$a.$drop}"/>
+                                    <do_if value="$drop.exists and $drop.sector == $ship.sector and $ship.distanceto.{$drop} le 5km and $drop.wares.list.count == 1 and $drop.wares.{$ware}.count ge $a.$amount">
+                                        <do_if value="$ship.cargo.{$ware}.free ge $a.$amount">
+                                            <set_value name="$before" exact="$ship.cargo.{$ware}.count"/>
+                                            <collect_drop object="$ship" drop="$drop"/>
+                                            <set_value name="$status" exact="if $ship.cargo.{$ware}.count gt $before then 'OK' else 'REJECTED'"/>
+                                        </do_if>
+                                        <do_else>
+                                            <set_value name="$status" exact="'CAPACITY'"/>
+                                        </do_else>
+                                    </do_if>
+                                </do_elseif>
+                            </do_if>
+                            <set_value name="Setup.$executed.{'$' + $a.$request}" exact="$status"/>
+                        </do_else>
+                        <raise_lua_event name="'X4LAN_Cargo.Result'" param="'%s|%s'.[$a.$request,$status]"/>
+                        <debug_text text="'[X4LAN] CARGO_ORDER request=%s verb=%s ship=%s status=%s'.[$a.$request,$a.$verb,$a.$ship,$status]"/>
+                    </actions>
+                </cue>
+            </cues>
+        </cue>
+    </cues>
+</mdscript>

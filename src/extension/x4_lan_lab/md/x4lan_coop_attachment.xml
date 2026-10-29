@@ -2,149 +2,207 @@
 <!-- Inert until an explicit local adapter starts a verified saved-seed session.
      Network records never directly name native handles or invoke this consumer.
      Bounded two-ship adaptation; disabled until an adapter starts/fences it. -->
-<mdscript name="X4LAN_CoopAttachment" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <cues>
-  <cue name="State" namespace="this">
-   <actions>
-    <set_value name="$generations" exact="[0,0]"/><set_value name="$enabled" exact="[false,false]"/>
-    <set_value name="$active" exact="false"/><set_value name="$started" exact="false"/><set_value name="$stopped" exact="false"/>
-    <set_value name="$pending" exact="null"/><set_value name="$operation" exact="0"/>
-    <set_value name="$appliedOperation" exact="0"/><set_value name="$appliedOutcome" exact="'unknown'"/><set_value name="$appliedReason" exact="'unknown'"/>
-   </actions>
-  </cue>
-  <cue name="Start" instantiate="true">
-   <conditions><event_ui_triggered screen="'X4LAN_CoopAttachment'" control="'Start'"/></conditions>
-   <actions>
-    <set_value name="$v" exact="event.param3"/>
-    <!-- Invalid early requests cannot consume the only session startup. A valid
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_CoopAttachment" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="State" namespace="this">
+            <actions>
+                <set_value name="$generations" exact="[0,0]"/>
+                <set_value name="$enabled" exact="[false,false]"/>
+                <set_value name="$active" exact="false"/>
+                <set_value name="$started" exact="false"/>
+                <set_value name="$stopped" exact="false"/>
+                <set_value name="$pending" exact="null"/>
+                <set_value name="$operation" exact="0"/>
+                <set_value name="$appliedOperation" exact="0"/>
+                <set_value name="$appliedOutcome" exact="'unknown'"/>
+                <set_value name="$appliedReason" exact="'unknown'"/>
+            </actions>
+        </cue>
+        <cue name="Start" instantiate="true">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_CoopAttachment'" control="'Start'"/>
+            </conditions>
+            <actions>
+                <set_value name="$v" exact="event.param3"/>
+                <!-- Invalid early requests cannot consume the only session startup. A valid
          epoch is still immutable; Stop is terminal until a fresh native load. -->
-    <do_if value="State.$started or State.$stopped">
-     <raise_lua_event name="'X4LAN_CoopAttachment.Error'" param="'native attachment session already started or stopped'"/>
-    </do_if>
-    <do_elseif value="md.X4LAN_Bubble.Arena.$ships? and (if md.X4LAN_Bubble.Arena.$host then $v.$role == 'p1' else $v.$role != 'p1') and md.X4LAN_Seed.State.$id? and $v.$seed == md.X4LAN_Seed.State.$id and md.X4LAN_Seed.State.$loads == 1 and md.X4LAN_SeedDocks.State.$id? and $v.$seed == md.X4LAN_SeedDocks.State.$id and md.X4LAN_SeedDocks.State.$version == 1">
-     <set_value name="State.$seed" exact="$v.$seed"/><set_value name="State.$epoch" exact="$v.$epoch"/>
-     <set_value name="State.$started" exact="true"/><set_value name="State.$active" exact="true"/>
-     <raise_lua_event name="'X4LAN_CoopAttachment.Ready'" param="'%s|%s'.[State.$seed,State.$epoch]"/>
-    </do_elseif>
-    <do_else><raise_lua_event name="'X4LAN_CoopAttachment.Error'" param="'native attachment session requires verified saved references'"/></do_else>
-   </actions>
-  </cue>
-  <cue name="Fence" instantiate="true">
-   <conditions><event_ui_triggered screen="'X4LAN_CoopAttachment'" control="'Fence'"/></conditions>
-   <actions><set_value name="$v" exact="event.param3"/>
-    <do_if value="State.$active and $v.$seed == State.$seed and $v.$epoch == State.$epoch and $v.$ship ge 1 and $v.$ship le 2 and $v.$generation gt State.$generations.{$v.$ship}">
-     <set_value name="State.$generations.{$v.$ship}" exact="$v.$generation"/><set_value name="State.$enabled.{$v.$ship}" exact="$v.$enabled"/><set_value name="State.$pending" exact="null"/>
-     <raise_lua_event name="'X4LAN_CoopAttachment.Fenced'" param="'%s|%s|%s|%s'.[State.$seed,State.$epoch,$v.$ship,$v.$generation]"/>
-    </do_if>
-   </actions>
-  </cue>
-  <cue name="Stop" instantiate="true">
-   <conditions><event_ui_triggered screen="'X4LAN_CoopAttachment'" control="'Stop'"/></conditions>
-   <actions><set_value name="State.$stopped" exact="true"/><set_value name="State.$active" exact="false"/><set_value name="State.$pending" exact="null"/></actions>
-  </cue>
-  <cue name="Prepare" instantiate="true">
-   <conditions><event_ui_triggered screen="'X4LAN_CoopAttachment'" control="'Prepare'"/></conditions>
-   <actions>
-    <set_value name="$v" exact="event.param3"/><set_value name="$accepted" exact="false"/>
-    <do_if value="State.$active? and State.$active and $v.$seed == State.$seed and $v.$epoch == State.$epoch and $v.$operation == State.$operation + 1 and $v.$operation le 2147483647">
-     <set_value name="State.$operation" exact="$v.$operation"/><set_value name="State.$pending" exact="null"/>
-     <include_actions ref="Check"/>
-     <do_if value="$valid and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $v.$stamp and player.age / 1s ge $v.$age and player.age / 1s le $v.$age + 0.3">
-      <set_value name="State.$pending" exact="$v"/>
-      <set_value name="State.$stamp" exact="player.systemtime.{'%Y-%m-%dT%H:%M:%S'}"/>
-      <set_value name="State.$preparedAge" exact="player.age"/><set_value name="$accepted" exact="true"/>
-     </do_if>
-    </do_if>
-    <debug_text text="'[X4LAN] ATTACH_EXEC prepared operation=%s accepted=%s'.[$v.$operation,$accepted]"/>
-    <raise_lua_event name="'X4LAN_CoopAttachment.Window'" param="'%s|%s|%s|%s'.[$v.$seed,$v.$epoch,$v.$operation,if $accepted then 1 else 0]"/>
-   </actions>
-  </cue>
-  <cue name="Apply" instantiate="true">
-   <conditions><event_ui_triggered screen="'X4LAN_CoopAttachment'" control="'Apply'"/></conditions>
-   <actions>
-    <set_value name="$request" exact="event.param3"/><set_value name="$allowed" exact="false"/><set_value name="$outcome" exact="'unknown'"/><set_value name="$reason" exact="'unknown'"/>
-    <do_if value="State.$active? and State.$active and $request.$seed == State.$seed and $request.$epoch == State.$epoch and $request.$operation == State.$appliedOperation">
-     <!-- Replay the known outcome, never reinterpret a consumed success as a
+                <do_if value="State.$started or State.$stopped">
+                    <raise_lua_event name="'X4LAN_CoopAttachment.Error'" param="'native attachment session already started or stopped'"/>
+                </do_if>
+                <do_elseif value="md.X4LAN_Bubble.Arena.$ships? and (if md.X4LAN_Bubble.Arena.$host then $v.$role == 'p1' else $v.$role != 'p1') and md.X4LAN_Seed.State.$id? and $v.$seed == md.X4LAN_Seed.State.$id and md.X4LAN_Seed.State.$loads == 1 and md.X4LAN_SeedDocks.State.$id? and $v.$seed == md.X4LAN_SeedDocks.State.$id and md.X4LAN_SeedDocks.State.$version == 1">
+                    <set_value name="State.$seed" exact="$v.$seed"/>
+                    <set_value name="State.$epoch" exact="$v.$epoch"/>
+                    <set_value name="State.$started" exact="true"/>
+                    <set_value name="State.$active" exact="true"/>
+                    <raise_lua_event name="'X4LAN_CoopAttachment.Ready'" param="'%s|%s'.[State.$seed,State.$epoch]"/>
+                </do_elseif>
+                <do_else>
+                    <raise_lua_event name="'X4LAN_CoopAttachment.Error'" param="'native attachment session requires verified saved references'"/>
+                </do_else>
+            </actions>
+        </cue>
+        <cue name="Fence" instantiate="true">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_CoopAttachment'" control="'Fence'"/>
+            </conditions>
+            <actions>
+                <set_value name="$v" exact="event.param3"/>
+                <do_if value="State.$active and $v.$seed == State.$seed and $v.$epoch == State.$epoch and $v.$ship ge 1 and $v.$ship le 2 and $v.$generation gt State.$generations.{$v.$ship}">
+                    <set_value name="State.$generations.{$v.$ship}" exact="$v.$generation"/>
+                    <set_value name="State.$enabled.{$v.$ship}" exact="$v.$enabled"/>
+                    <set_value name="State.$pending" exact="null"/>
+                    <raise_lua_event name="'X4LAN_CoopAttachment.Fenced'" param="'%s|%s|%s|%s'.[State.$seed,State.$epoch,$v.$ship,$v.$generation]"/>
+                </do_if>
+            </actions>
+        </cue>
+        <cue name="Stop" instantiate="true">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_CoopAttachment'" control="'Stop'"/>
+            </conditions>
+            <actions>
+                <set_value name="State.$stopped" exact="true"/>
+                <set_value name="State.$active" exact="false"/>
+                <set_value name="State.$pending" exact="null"/>
+            </actions>
+        </cue>
+        <cue name="Prepare" instantiate="true">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_CoopAttachment'" control="'Prepare'"/>
+            </conditions>
+            <actions>
+                <set_value name="$v" exact="event.param3"/>
+                <set_value name="$accepted" exact="false"/>
+                <do_if value="State.$active? and State.$active and $v.$seed == State.$seed and $v.$epoch == State.$epoch and $v.$operation == State.$operation + 1 and $v.$operation le 2147483647">
+                    <set_value name="State.$operation" exact="$v.$operation"/>
+                    <set_value name="State.$pending" exact="null"/>
+                    <include_actions ref="Check"/>
+                    <do_if value="$valid and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $v.$stamp and player.age / 1s ge $v.$age and player.age / 1s le $v.$age + 0.3">
+                        <set_value name="State.$pending" exact="$v"/>
+                        <set_value name="State.$stamp" exact="player.systemtime.{'%Y-%m-%dT%H:%M:%S'}"/>
+                        <set_value name="State.$preparedAge" exact="player.age"/>
+                        <set_value name="$accepted" exact="true"/>
+                    </do_if>
+                </do_if>
+                <debug_text text="'[X4LAN] ATTACH_EXEC prepared operation=%s accepted=%s'.[$v.$operation,$accepted]"/>
+                <raise_lua_event name="'X4LAN_CoopAttachment.Window'" param="'%s|%s|%s|%s'.[$v.$seed,$v.$epoch,$v.$operation,if $accepted then 1 else 0]"/>
+            </actions>
+        </cue>
+        <cue name="Apply" instantiate="true">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_CoopAttachment'" control="'Apply'"/>
+            </conditions>
+            <actions>
+                <set_value name="$request" exact="event.param3"/>
+                <set_value name="$allowed" exact="false"/>
+                <set_value name="$outcome" exact="'unknown'"/>
+                <set_value name="$reason" exact="'unknown'"/>
+                <do_if value="State.$active? and State.$active and $request.$seed == State.$seed and $request.$epoch == State.$epoch and $request.$operation == State.$appliedOperation">
+                    <!-- Replay the known outcome, never reinterpret a consumed success as a
           no-mutation rejection that could release an inflight Lua fence. -->
-     <set_value name="$outcome" exact="State.$appliedOutcome"/><set_value name="$reason" exact="State.$appliedReason"/>
-    </do_if>
-    <do_elseif value="State.$active? and State.$active and State.$pending and $request.$seed == State.$seed and $request.$epoch == State.$epoch and $request.$operation == State.$operation">
-     <set_value name="$v" exact="State.$pending"/>
-     <!-- Consume first. A rejection cannot leave a capability usable later. -->
-     <set_value name="State.$pending" exact="null"/>
-     <set_value name="$reason" exact="'expired'"/>
-     <do_if value="player.timewarp.factor le 0s"><set_value name="$reason" exact="'paused'"/></do_if>
-     <do_elseif value="player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == State.$stamp and player.age ge State.$preparedAge and player.age le State.$preparedAge + 1s">
-      <include_actions ref="Check"/><set_value name="$reason" exact="'revalidation'"/>
-      <do_if value="$valid">
-       <do_if value="$v.$action == 'UNDOCK' or $v.$action == 'CANCEL'">
-        <do_if value="$ship.assigneddock"><remove_docking_request ship="$ship" container="$ship.assigneddock.container" immediate="true"/></do_if>
-        <do_if value="$v.$action == 'UNDOCK'"><undock ship="$ship"/></do_if>
-       </do_if>
-       <do_elseif value="$v.$action == 'RESERVE'"><do_if value="$ship.owner != faction.player"><set_owner object="$ship" faction="faction.player" /></do_if><request_docking_at_dock ship="$ship" dockingbay="$dock" queuedresult="$queued" grantedresult="$granted"/></do_elseif>
-       <do_else><spawn_docked ship="$ship" dock="$dock"/></do_else>
-       <set_value name="$allowed" exact="true"/>
-       <do_if value="$v.$action == 'RESERVE'"><set_value name="$allowed" exact="$queued or $granted"/></do_if>
-       <set_value name="$reason" exact="'invoked'"/>
-      </do_if>
-     </do_elseif>
-     <set_value name="$outcome" exact="if $allowed then 'applied' else 'rejected'"/>
-     <set_value name="State.$appliedOperation" exact="$request.$operation"/><set_value name="State.$appliedOutcome" exact="$outcome"/><set_value name="State.$appliedReason" exact="$reason"/>
-    </do_elseif>
-    <debug_text text="'[X4LAN] ATTACH_EXEC applied operation=%s outcome=%s reason=%s'.[$request.$operation,$outcome,$reason]"/>
-    <do_if value="$allowed">
-     <debug_text text="'[X4LAN] ATTACH_EXEC action operation=%s action=%s state=%s dock=%s shipIndex=%s code=%s'.[$request.$operation,$v.$action,$v.$state,$v.$dock,$v.$ship,$ship.idcode]"/>
-    </do_if>
-    <raise_lua_event name="'X4LAN_CoopAttachment.Applied'" param="'%s|%s|%s|%s'.[$request.$seed,$request.$epoch,$request.$operation,$outcome]"/>
-   </actions>
-  </cue>
-  <library name="Check" purpose="include_actions">
-   <actions>
-    <set_value name="$valid" exact="false"/>
-    <do_if value="md.X4LAN_Seed.State.$loads == 1 and $v.$ship ge 1 and $v.$ship le 2 and State.$enabled.{$v.$ship} and $v.$generation == State.$generations.{$v.$ship}">
-     <set_value name="$ship" exact="md.X4LAN_Bubble.Arena.$ships.{$v.$ship}"/>
-     <do_if value="$ship.isoperational and $ship == $v.$native">
-      <set_value name="$actualState" exact="if $ship.isinternallystored then 'STORED' else if $ship.dock.exists and $ship.dock.external then 'EXTERNAL' else if $ship.assigneddock.exists then 'APPROACH' else if not $ship.dock.exists then 'FREE' else 'TRANSIT'"/>
-      <set_value name="$actualDock" exact="if $ship.dock.exists and md.X4LAN_SeedDocks.State.$indices.{$ship.dock}? then md.X4LAN_SeedDocks.State.$indices.{$ship.dock} else if $ship.assigneddock.exists and md.X4LAN_SeedDocks.State.$indices.{$ship.assigneddock}? then md.X4LAN_SeedDocks.State.$indices.{$ship.assigneddock} else 0"/>
-      <set_value name="$container" exact="if $ship.dock.exists then $ship.dock.container else if $ship.assigneddock.exists then $ship.assigneddock.container else null"/>
-      <do_if value="$actualState == $v.$fromState and $actualDock == $v.$fromDock">
-       <do_if value="($v.$action == 'UNDOCK' and ($actualState == 'EXTERNAL' or $actualState == 'STORED') or $v.$action == 'CANCEL' and $actualState == 'APPROACH') and $v.$state == 'FREE' and $v.$dock == 0 and $actualDock gt 0 and $container.isoperational and (if $actualState == 'APPROACH' then $ship.assigneddock else $ship.dock) == md.X4LAN_SeedDocks.State.$docks.{$actualDock} and md.X4LAN_SeedDocks.State.$docks.{$actualDock}.parent == md.X4LAN_SeedDocks.State.$parents.{$actualDock} and $container == md.X4LAN_SeedDocks.State.$containers.{$actualDock} ">
-        <set_value name="$valid" exact="true"/>
-       </do_if>
-       <do_elseif value="($v.$action == 'ATTACH' and ($v.$state == 'STORED' or $v.$state == 'EXTERNAL') or $v.$action == 'RESERVE' and $v.$state == 'APPROACH') and ($actualState == 'FREE' or $actualState == 'APPROACH' and $actualDock == $v.$dock) and $v.$dock ge 1 and $v.$dock le md.X4LAN_SeedDocks.State.$docks.count">
-        <set_value name="$dock" exact="md.X4LAN_SeedDocks.State.$docks.{$v.$dock}"/>
-        <do_if value="$dock.exists"><do_if value="$dock.isclass.dockingbay">
-        <set_value name="$container" exact="$dock.container"/>
-        <do_if value="$dock.exists and $container.isoperational and $container != $ship and $dock.parent == md.X4LAN_SeedDocks.State.$parents.{$v.$dock} and $container == md.X4LAN_SeedDocks.State.$containers.{$v.$dock} and $dock.macro.id == md.X4LAN_SeedDocks.State.$macros.{$v.$dock} and $container.macro.id == md.X4LAN_SeedDocks.State.$containerMacros.{$v.$dock} and md.X4LAN_SeedDocks.State.$indices.{$dock} == $v.$dock and $dock.external == md.X4LAN_SeedDocks.State.$external.{$v.$dock} and $dock.isstorage == md.X4LAN_SeedDocks.State.$storage.{$v.$dock} and $dock.shipstorage.capacity == md.X4LAN_SeedDocks.State.$capacities.{$v.$dock} and $dock.docksize.indexof.{$ship.docksize} and $dock.distanceto.[$container,md.X4LAN_SeedDocks.State.$positions.{$v.$dock}] le 0.05m">
-         <!-- Bounded first adapter: do not attach through another docked carrier. -->
-         <do_if value="$container.dockingallowed.{$ship} and (not $container.isclass.ship or not $container.dock.exists)">
-          <do_if value="($v.$state == 'STORED' and $dock.isstorage and $dock.shipstorage.free gt 0) or (($v.$state == 'EXTERNAL' or $v.$state == 'APPROACH') and $dock.external and not $dock.islaunchtube and (not $dock.assignedship.exists or $dock.assignedship == $ship) and $dock.docked.count == 0)">
-           <set_value name="$valid" exact="true"/>
-          </do_if>
-         </do_if>
-        </do_if>
-        </do_if></do_if>
-       </do_elseif>
-      </do_if>
-      <do_if value="$valid">
-       <!-- Physical presence matters here: player.ship can remain the previous
+                    <set_value name="$outcome" exact="State.$appliedOutcome"/>
+                    <set_value name="$reason" exact="State.$appliedReason"/>
+                </do_if>
+                <do_elseif value="State.$active? and State.$active and State.$pending and $request.$seed == State.$seed and $request.$epoch == State.$epoch and $request.$operation == State.$operation">
+                    <set_value name="$v" exact="State.$pending"/>
+                    <!-- Consume first. A rejection cannot leave a capability usable later. -->
+                    <set_value name="State.$pending" exact="null"/>
+                    <set_value name="$reason" exact="'expired'"/>
+                    <do_if value="player.timewarp.factor le 0s">
+                        <set_value name="$reason" exact="'paused'"/>
+                    </do_if>
+                    <do_elseif value="player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == State.$stamp and player.age ge State.$preparedAge and player.age le State.$preparedAge + 1s">
+                        <include_actions ref="Check"/>
+                        <set_value name="$reason" exact="'revalidation'"/>
+                        <do_if value="$valid">
+                            <do_if value="$v.$action == 'UNDOCK' or $v.$action == 'CANCEL'">
+                                <do_if value="$ship.assigneddock">
+                                    <remove_docking_request ship="$ship" container="$ship.assigneddock.container" immediate="true"/>
+                                </do_if>
+                                <do_if value="$v.$action == 'UNDOCK'">
+                                    <undock ship="$ship"/>
+                                </do_if>
+                            </do_if>
+                            <do_elseif value="$v.$action == 'RESERVE'">
+                                <do_if value="$ship.owner != faction.player">
+                                    <set_owner object="$ship" faction="faction.player"/>
+                                </do_if>
+                                <request_docking_at_dock ship="$ship" dockingbay="$dock" queuedresult="$queued" grantedresult="$granted"/>
+                            </do_elseif>
+                            <do_else>
+                                <spawn_docked ship="$ship" dock="$dock"/>
+                            </do_else>
+                            <set_value name="$allowed" exact="true"/>
+                            <do_if value="$v.$action == 'RESERVE'">
+                                <set_value name="$allowed" exact="$queued or $granted"/>
+                            </do_if>
+                            <set_value name="$reason" exact="'invoked'"/>
+                        </do_if>
+                    </do_elseif>
+                    <set_value name="$outcome" exact="if $allowed then 'applied' else 'rejected'"/>
+                    <set_value name="State.$appliedOperation" exact="$request.$operation"/>
+                    <set_value name="State.$appliedOutcome" exact="$outcome"/>
+                    <set_value name="State.$appliedReason" exact="$reason"/>
+                </do_elseif>
+                <debug_text text="'[X4LAN] ATTACH_EXEC applied operation=%s outcome=%s reason=%s'.[$request.$operation,$outcome,$reason]"/>
+                <do_if value="$allowed">
+                    <debug_text text="'[X4LAN] ATTACH_EXEC action operation=%s action=%s state=%s dock=%s shipIndex=%s code=%s'.[$request.$operation,$v.$action,$v.$state,$v.$dock,$v.$ship,$ship.idcode]"/>
+                </do_if>
+                <raise_lua_event name="'X4LAN_CoopAttachment.Applied'" param="'%s|%s|%s|%s'.[$request.$seed,$request.$epoch,$request.$operation,$outcome]"/>
+            </actions>
+        </cue>
+        <library name="Check" purpose="include_actions">
+            <actions>
+                <set_value name="$valid" exact="false"/>
+                <do_if value="md.X4LAN_Seed.State.$loads == 1 and $v.$ship ge 1 and $v.$ship le 2 and State.$enabled.{$v.$ship} and $v.$generation == State.$generations.{$v.$ship}">
+                    <set_value name="$ship" exact="md.X4LAN_Bubble.Arena.$ships.{$v.$ship}"/>
+                    <do_if value="$ship.isoperational and $ship == $v.$native">
+                        <set_value name="$actualState" exact="if $ship.isinternallystored then 'STORED' else if $ship.dock.exists and $ship.dock.external then 'EXTERNAL' else if $ship.assigneddock.exists then 'APPROACH' else if not $ship.dock.exists then 'FREE' else 'TRANSIT'"/>
+                        <set_value name="$actualDock" exact="if $ship.dock.exists and md.X4LAN_SeedDocks.State.$indices.{$ship.dock}? then md.X4LAN_SeedDocks.State.$indices.{$ship.dock} else if $ship.assigneddock.exists and md.X4LAN_SeedDocks.State.$indices.{$ship.assigneddock}? then md.X4LAN_SeedDocks.State.$indices.{$ship.assigneddock} else 0"/>
+                        <set_value name="$container" exact="if $ship.dock.exists then $ship.dock.container else if $ship.assigneddock.exists then $ship.assigneddock.container else null"/>
+                        <do_if value="$actualState == $v.$fromState and $actualDock == $v.$fromDock">
+                            <do_if value="($v.$action == 'UNDOCK' and ($actualState == 'EXTERNAL' or $actualState == 'STORED') or $v.$action == 'CANCEL' and $actualState == 'APPROACH') and $v.$state == 'FREE' and $v.$dock == 0 and $actualDock gt 0 and $container.isoperational and (if $actualState == 'APPROACH' then $ship.assigneddock else $ship.dock) == md.X4LAN_SeedDocks.State.$docks.{$actualDock} and md.X4LAN_SeedDocks.State.$docks.{$actualDock}.parent == md.X4LAN_SeedDocks.State.$parents.{$actualDock} and $container == md.X4LAN_SeedDocks.State.$containers.{$actualDock} ">
+                                <set_value name="$valid" exact="true"/>
+                            </do_if>
+                            <do_elseif value="($v.$action == 'ATTACH' and ($v.$state == 'STORED' or $v.$state == 'EXTERNAL') or $v.$action == 'RESERVE' and $v.$state == 'APPROACH') and ($actualState == 'FREE' or $actualState == 'APPROACH' and $actualDock == $v.$dock) and $v.$dock ge 1 and $v.$dock le md.X4LAN_SeedDocks.State.$docks.count">
+                                <set_value name="$dock" exact="md.X4LAN_SeedDocks.State.$docks.{$v.$dock}"/>
+                                <do_if value="$dock.exists">
+                                    <do_if value="$dock.isclass.dockingbay">
+                                        <set_value name="$container" exact="$dock.container"/>
+                                        <do_if value="$dock.exists and $container.isoperational and $container != $ship and $dock.parent == md.X4LAN_SeedDocks.State.$parents.{$v.$dock} and $container == md.X4LAN_SeedDocks.State.$containers.{$v.$dock} and $dock.macro.id == md.X4LAN_SeedDocks.State.$macros.{$v.$dock} and $container.macro.id == md.X4LAN_SeedDocks.State.$containerMacros.{$v.$dock} and md.X4LAN_SeedDocks.State.$indices.{$dock} == $v.$dock and $dock.external == md.X4LAN_SeedDocks.State.$external.{$v.$dock} and $dock.isstorage == md.X4LAN_SeedDocks.State.$storage.{$v.$dock} and $dock.shipstorage.capacity == md.X4LAN_SeedDocks.State.$capacities.{$v.$dock} and $dock.docksize.indexof.{$ship.docksize} and $dock.distanceto.[$container,md.X4LAN_SeedDocks.State.$positions.{$v.$dock}] le 0.05m">
+                                            <!-- Bounded first adapter: do not attach through another docked carrier. -->
+                                            <do_if value="$container.dockingallowed.{$ship} and (not $container.isclass.ship or not $container.dock.exists)">
+                                                <do_if value="($v.$state == 'STORED' and $dock.isstorage and $dock.shipstorage.free gt 0) or (($v.$state == 'EXTERNAL' or $v.$state == 'APPROACH') and $dock.external and not $dock.islaunchtube and (not $dock.assignedship.exists or $dock.assignedship == $ship) and $dock.docked.count == 0)">
+                                                    <set_value name="$valid" exact="true"/>
+                                                </do_if>
+                                            </do_if>
+                                        </do_if>
+                                    </do_if>
+                                </do_if>
+                            </do_elseif>
+                        </do_if>
+                        <do_if value="$valid">
+                            <!-- Physical presence matters here: player.ship can remain the previous
             ship after its player has left and handed it to the other pilot. -->
-       <set_value name="$players" exact="[player.occupiedship,player.container]"/>
-       <do_all exact="$players.count" counter="$p">
-        <set_value name="$ancestor" exact="$players.{$p}"/>
-        <do_all exact="64">
-         <do_if value="$ancestor.exists">
-          <do_if value="$ancestor == $ship or ($container.isclass.ship and $ancestor == $container)"><set_value name="$valid" exact="false"/></do_if>
-          <set_value name="$next" exact="$ancestor.parent"/>
-          <set_value name="$ancestor" exact="if $next == $ancestor then null else $next"/>
-         </do_if>
-        </do_all>
-        <do_if value="$ancestor.exists"><set_value name="$valid" exact="false"/></do_if>
-       </do_all>
-      </do_if>
-     </do_if>
-    </do_if>
-   </actions>
-  </library>
- </cues>
+                            <set_value name="$players" exact="[player.occupiedship,player.container]"/>
+                            <do_all exact="$players.count" counter="$p">
+                                <set_value name="$ancestor" exact="$players.{$p}"/>
+                                <do_all exact="64">
+                                    <do_if value="$ancestor.exists">
+                                        <do_if value="$ancestor == $ship or ($container.isclass.ship and $ancestor == $container)">
+                                            <set_value name="$valid" exact="false"/>
+                                        </do_if>
+                                        <set_value name="$next" exact="$ancestor.parent"/>
+                                        <set_value name="$ancestor" exact="if $next == $ancestor then null else $next"/>
+                                    </do_if>
+                                </do_all>
+                                <do_if value="$ancestor.exists">
+                                    <set_value name="$valid" exact="false"/>
+                                </do_if>
+                            </do_all>
+                        </do_if>
+                    </do_if>
+                </do_if>
+            </actions>
+        </library>
+    </cues>
 </mdscript>

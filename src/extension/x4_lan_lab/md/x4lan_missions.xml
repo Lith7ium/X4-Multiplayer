@@ -1,132 +1,209 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mdscript name="X4LAN_Missions" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
- <cues>
-  <cue name="Session" namespace="this">
-   <conditions><event_ui_triggered screen="'X4LAN_Missions'" control="'Setup'"/><check_value value="player.module == 'x4lan_internal'"/></conditions>
-   <actions>
-    <set_value name="$active" exact="true"/><set_value name="$host" exact="md.X4LAN_Bubble.Arena.$host"/>
-    <set_value name="$epoch" exact="event.param3.$epoch"/><set_value name="$rows" exact="table[]"/><set_value name="$next" exact="0"/>
-    <raise_lua_event name="'X4LAN_Missions.Ready'" param="$epoch"/>
-    <debug_text text="'[X4LAN] MISSIONS_READY host=%s'.[$host]"/>
-   </actions>
-   <cues>
-    <cue name="Command" instantiate="true" namespace="this">
-     <conditions><event_ui_triggered screen="'X4LAN_Missions'" control="'Command'"/></conditions>
-     <actions>
-      <set_value name="$a" exact="event.param3"/><include_actions ref="Fence"/><set_value name="$r" exact="@Session.$rows.{$a.$id}"/>
-      <do_if value="$ok and Session.$host and $r and $r.$revision == $a.$revision and $r.$mission.exists">
-       <do_if value="$a.$action == 'ACCEPT' and $r.$state == 'O' and $r.$mission.hasmissionoffer and $r.$client">
-        <!-- Use the stock offer handler, including its additional checks. Never force its completion cue. -->
-        <signal_objects object="$r.$client" param="'accept'" param2="$r.$mission"/>
-       </do_if>
-       <do_elseif value="$a.$action == 'ABORT' and $r.$state == 'A' and $r.$mission.hasmission and $r.$abort.exists">
-        <signal_cue cue="$r.$abort"/>
-       </do_elseif>
-      </do_if>
-     </actions>
-    </cue>
-    <cue name="Mirror" instantiate="true" namespace="this">
-     <conditions><event_ui_triggered screen="'X4LAN_Missions'" control="'Mirror'"/></conditions>
-     <actions>
-      <set_value name="$a" exact="event.param3"/><include_actions ref="Fence"/>
-      <do_if value="$ok and not Session.$host and $a.$id ge 1 and $a.$id le 256">
-       <set_value name="$r" exact="@Session.$rows.{$a.$id}"/>
-       <do_if value="not $r">
-        <set_value name="$r" exact="$a.clone"/><set_value name="$r.$revision" exact="0"/><set_value name="$r.$mission" exact="this"/>
-        <create_cue_actor cue="this" name="$actor"><select faction="faction.argon" tags="tag.crew"/><owner exact="faction.argon"/></create_cue_actor>
-        <set_value name="$r.$client" exact="$actor"/><set_value name="Session.$rows.{$a.$id}" exact="$r"/>
-       </do_if>
-       <do_if value="$a.$revision gt $r.$revision">
-        <set_value name="$r.$revision" exact="$a.$revision"/><set_value name="$r.$state" exact="$a.$state"/><set_value name="$r.$done" exact="$a.$done"/>
-        <include_actions ref="Present"/>
-        <debug_text text="'[X4LAN] MISSION_MIRROR id=%s revision=%s state=%s progress=%s/%s'.[$r.$id,$r.$revision,$r.$state,$r.$done,$r.$total]"/>
-       </do_if>
-       <raise_lua_event name="'X4LAN_Missions.Mirrored'" param="'%s|%s'.[$r.$id,$r.$revision]"/>
-       <do_if value="$r.$mission != this"><cancel_cue cue="this"/></do_if>
-      </do_if>
-      <do_else><cancel_cue cue="this"/></do_else>
-     </actions>
-     <cues>
-      <cue name="Briefing" instantiate="true" namespace="this">
-       <conditions><event_offer_accepted cue="parent"/></conditions>
-       <actions><open_menu menu="MissionBriefingMenu" param="[0, 0, parent, true]"/></actions>
-      </cue>
-      <cue name="Accept" instantiate="true" namespace="this">
-       <conditions><event_object_signalled object="parent.$actor" param="'accept'"/></conditions>
-       <actions><do_if value="parent.$r.$state == 'O'"><raise_lua_event name="'X4LAN_Missions.Request'" param="'%s|%s|ACCEPT'.[parent.$r.$id,parent.$r.$revision]"/></do_if></actions>
-      </cue>
-      <cue name="Abort" instantiate="true" namespace="this">
-       <conditions><event_mission_aborted cue="parent"/></conditions>
-       <actions><do_if value="parent.$r.$state == 'A'"><raise_lua_event name="'X4LAN_Missions.Request'" param="'%s|%s|ABORT'.[parent.$r.$id,parent.$r.$revision]"/></do_if></actions>
-      </cue>
-     </cues>
-    </cue>
-   </cues>
-  </cue>
-  <library name="Fence" purpose="include_actions"><actions>
-   <set_value name="$ok" exact="Session.$active and $a.$epoch == Session.$epoch and $a.$stamp == player.systemtime.{'%Y-%m-%dT%H:%M:%S'} and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline and player.timewarp.factor == 1"/>
-  </actions></library>
-  <library name="RegisterQuota" purpose="include_actions"><actions>
-   <!-- Called in the stock GM namespace. Preserve its objectives, rewards and failure conditions. -->
-   <do_if value="@md.X4LAN_Missions.Session.$active and md.X4LAN_Missions.Session.$host and not $MissionThread and not $HideFromBBS and not $RewardObj and $TargetCount ge 1 and $TargetCount le 1000000">
-    <set_value name="$x4lanRecord" exact="@$MissionCue.$x4lanMission"/>
-    <do_if value="not $x4lanRecord and md.X4LAN_Missions.Session.$next lt 256">
-     <set_value name="md.X4LAN_Missions.Session.$next" operation="add"/>
-     <set_value name="$x4lanRecord" exact="table[$id=md.X4LAN_Missions.Session.$next, $mission=$MissionCue, $client=$Client, $abort=Aborted, $revision=1, $state=if $MissionCue.hasmission then 'A' else 'O', $done=0, $total=$TargetCount, $reward=$RewardCr / 1ct, $faction=$ClientOwner.id, $title=$TextTable.$missionname, $description=$TextTable.$description, $objective=$TextTable.$objective]"/>
-     <set_value name="$MissionCue.$x4lanMission" exact="$x4lanRecord"/>
-     <set_value name="md.X4LAN_Missions.Session.$rows.{$x4lanRecord.$id}" exact="$x4lanRecord"/>
-     <run_actions ref="md.X4LAN_Missions.Publish"><param name="Record" value="$x4lanRecord"/></run_actions>
-    </do_if>
-    <do_elseif value="$x4lanRecord and $MissionCue.hasmission and $x4lanRecord.$state == 'O'">
-     <run_actions ref="md.X4LAN_Missions.Change"><param name="Mission" value="$MissionCue"/><param name="State" value="'A'"/></run_actions>
-    </do_elseif>
-   </do_if>
-  </actions></library>
-  <library name="Change" purpose="run_actions">
-   <params><param name="Mission"/><param name="State"/><param name="Done" default="null"/></params>
-   <actions>
-    <set_value name="$r" exact="@$Mission.$x4lanMission"/>
-    <do_if value="@Session.$active and Session.$host and $r and ($r.$state == 'O' or $r.$state == 'A')">
-     <do_if value="$State != $r.$state or ($Done != null and $Done gt $r.$done)">
-      <set_value name="$r.$state" exact="$State"/>
-      <do_if value="$Done != null"><set_value name="$r.$done" exact="[$Done,$r.$total].min"/></do_if>
-      <do_if value="$State == 'C'"><set_value name="$r.$done" exact="$r.$total"/></do_if>
-      <set_value name="$r.$revision" operation="add"/>
-      <run_actions ref="Publish"><param name="Record" value="$r"/></run_actions>
-     </do_if>
-    </do_if>
-   </actions>
-  </library>
-  <library name="Publish" purpose="run_actions"><params><param name="Record"/></params><actions>
-   <raise_lua_event name="'X4LAN_Missions.Header'" param="'%s|%s|%s|%s|%s|%s|%s'.[$Record.$id,$Record.$revision,$Record.$state,$Record.$done,$Record.$total,$Record.$reward,$Record.$faction]"/>
-   <raise_lua_event name="'X4LAN_Missions.Title'" param="'%s|%s'.[$Record.$id,$Record.$title]"/>
-   <raise_lua_event name="'X4LAN_Missions.Description'" param="'%s|%s'.[$Record.$id,$Record.$description]"/>
-   <raise_lua_event name="'X4LAN_Missions.Objective'" param="'%s|%s'.[$Record.$id,$Record.$objective]"/>
-   <raise_lua_event name="'X4LAN_Missions.Commit'" param="$Record.$id"/>
-   <debug_text text="'[X4LAN] MISSION_NATIVE id=%s revision=%s state=%s progress=%s/%s'.[$Record.$id,$Record.$revision,$Record.$state,$Record.$done,$Record.$total]"/>
-  </actions></library>
-  <library name="Present" purpose="include_actions"><actions>
-   <do_if value="$r.$state != 'O' and $r.$mission.hasmissionoffer"><remove_offer cue="$r.$mission"/></do_if>
-   <do_if value="($r.$state == 'C' or $r.$state == 'F' or $r.$state == 'X') and not $r.$mission.hasmission">
-    <create_mission cue="$r.$mission" name="'[Shared] ' + $r.$title" description="$r.$description" faction="faction.{$r.$faction}" type="missiontype.kill" reward="$r.$reward * 1ct" activate="false" abortable="false"/>
-   </do_if>
-   <do_if value="$r.$state == 'O' and not $r.$mission.hasmissionoffer">
-    <create_offer cue="$r.$mission" actor="$r.$client" name="'[Shared] ' + $r.$title" description="$r.$description" faction="faction.{$r.$faction}" type="missiontype.kill" reward="$r.$reward * 1ct" hidden="false">
-     <briefing><objective step="1" action="objective.destroy" text="$r.$objective"/></briefing>
-    </create_offer>
-   </do_if>
-   <do_elseif value="$r.$state == 'A'">
-    <do_if value="not $r.$mission.hasmission">
-     <create_mission cue="$r.$mission" name="'[Shared] ' + $r.$title" description="$r.$description" faction="faction.{$r.$faction}" type="missiontype.kill" reward="$r.$reward * 1ct" activate="false" abortable="true"/>
-    </do_if>
-    <set_objective cue="$r.$mission" action="objective.custom" customaction="'Shared faction objective'" text="$r.$objective" silent="true">
-     <progress max="$r.$total" progress="$r.$done" text="'Targets destroyed by the faction'"/>
-    </set_objective>
-   </do_elseif>
-   <do_elseif value="$r.$state == 'C' and $r.$mission.hasmission"><remove_mission cue="$r.$mission" type="completed"/></do_elseif>
-   <do_elseif value="$r.$state == 'F' and $r.$mission.hasmission"><remove_mission cue="$r.$mission" type="failed"/></do_elseif>
-   <do_elseif value="$r.$state == 'X' and $r.$mission.hasmission"><remove_mission cue="$r.$mission" type="aborted"/></do_elseif>
-   <!-- No reward action: stock host GM pays once; existing treasury replication carries credits. -->
-  </actions></library>
- </cues>
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="X4LAN_Missions" xsi:noNamespaceSchemaLocation="md.xsd">
+    <cues>
+        <cue name="Session" namespace="this">
+            <conditions>
+                <event_ui_triggered screen="'X4LAN_Missions'" control="'Setup'"/>
+                <check_value value="player.module == 'x4lan_internal'"/>
+            </conditions>
+            <actions>
+                <set_value name="$active" exact="true"/>
+                <set_value name="$host" exact="md.X4LAN_Bubble.Arena.$host"/>
+                <set_value name="$epoch" exact="event.param3.$epoch"/>
+                <set_value name="$rows" exact="table[]"/>
+                <set_value name="$next" exact="0"/>
+                <raise_lua_event name="'X4LAN_Missions.Ready'" param="$epoch"/>
+                <debug_text text="'[X4LAN] MISSIONS_READY host=%s'.[$host]"/>
+            </actions>
+            <cues>
+                <cue name="Command" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Missions'" control="'Command'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <include_actions ref="Fence"/>
+                        <set_value name="$r" exact="@Session.$rows.{$a.$id}"/>
+                        <do_if value="$ok and Session.$host and $r and $r.$revision == $a.$revision and $r.$mission.exists">
+                            <do_if value="$a.$action == 'ACCEPT' and $r.$state == 'O' and $r.$mission.hasmissionoffer and $r.$client">
+                                <!-- Use the stock offer handler, including its additional checks. Never force its completion cue. -->
+                                <signal_objects object="$r.$client" param="'accept'" param2="$r.$mission"/>
+                            </do_if>
+                            <do_elseif value="$a.$action == 'ABORT' and $r.$state == 'A' and $r.$mission.hasmission and $r.$abort.exists">
+                                <signal_cue cue="$r.$abort"/>
+                            </do_elseif>
+                        </do_if>
+                    </actions>
+                </cue>
+                <cue name="Mirror" instantiate="true" namespace="this">
+                    <conditions>
+                        <event_ui_triggered screen="'X4LAN_Missions'" control="'Mirror'"/>
+                    </conditions>
+                    <actions>
+                        <set_value name="$a" exact="event.param3"/>
+                        <include_actions ref="Fence"/>
+                        <do_if value="$ok and not Session.$host and $a.$id ge 1 and $a.$id le 256">
+                            <set_value name="$r" exact="@Session.$rows.{$a.$id}"/>
+                            <do_if value="not $r">
+                                <set_value name="$r" exact="$a.clone"/>
+                                <set_value name="$r.$revision" exact="0"/>
+                                <set_value name="$r.$mission" exact="this"/>
+                                <create_cue_actor cue="this" name="$actor">
+                                    <select faction="faction.argon" tags="tag.crew"/>
+                                    <owner exact="faction.argon"/>
+                                </create_cue_actor>
+                                <set_value name="$r.$client" exact="$actor"/>
+                                <set_value name="Session.$rows.{$a.$id}" exact="$r"/>
+                            </do_if>
+                            <do_if value="$a.$revision gt $r.$revision">
+                                <set_value name="$r.$revision" exact="$a.$revision"/>
+                                <set_value name="$r.$state" exact="$a.$state"/>
+                                <set_value name="$r.$done" exact="$a.$done"/>
+                                <include_actions ref="Present"/>
+                                <debug_text text="'[X4LAN] MISSION_MIRROR id=%s revision=%s state=%s progress=%s/%s'.[$r.$id,$r.$revision,$r.$state,$r.$done,$r.$total]"/>
+                            </do_if>
+                            <raise_lua_event name="'X4LAN_Missions.Mirrored'" param="'%s|%s'.[$r.$id,$r.$revision]"/>
+                            <do_if value="$r.$mission != this">
+                                <cancel_cue cue="this"/>
+                            </do_if>
+                        </do_if>
+                        <do_else>
+                            <cancel_cue cue="this"/>
+                        </do_else>
+                    </actions>
+                    <cues>
+                        <cue name="Briefing" instantiate="true" namespace="this">
+                            <conditions>
+                                <event_offer_accepted cue="parent"/>
+                            </conditions>
+                            <actions>
+                                <open_menu menu="MissionBriefingMenu" param="[0, 0, parent, true]"/>
+                            </actions>
+                        </cue>
+                        <cue name="Accept" instantiate="true" namespace="this">
+                            <conditions>
+                                <event_object_signalled object="parent.$actor" param="'accept'"/>
+                            </conditions>
+                            <actions>
+                                <do_if value="parent.$r.$state == 'O'">
+                                    <raise_lua_event name="'X4LAN_Missions.Request'" param="'%s|%s|ACCEPT'.[parent.$r.$id,parent.$r.$revision]"/>
+                                </do_if>
+                            </actions>
+                        </cue>
+                        <cue name="Abort" instantiate="true" namespace="this">
+                            <conditions>
+                                <event_mission_aborted cue="parent"/>
+                            </conditions>
+                            <actions>
+                                <do_if value="parent.$r.$state == 'A'">
+                                    <raise_lua_event name="'X4LAN_Missions.Request'" param="'%s|%s|ABORT'.[parent.$r.$id,parent.$r.$revision]"/>
+                                </do_if>
+                            </actions>
+                        </cue>
+                    </cues>
+                </cue>
+            </cues>
+        </cue>
+        <library name="Fence" purpose="include_actions">
+            <actions>
+                <set_value name="$ok" exact="Session.$active and $a.$epoch == Session.$epoch and $a.$stamp == player.systemtime.{'%Y-%m-%dT%H:%M:%S'} and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline and player.timewarp.factor == 1"/>
+            </actions>
+        </library>
+        <library name="RegisterQuota" purpose="include_actions">
+            <actions>
+                <!-- Called in the stock GM namespace. Preserve its objectives, rewards and failure conditions. -->
+                <do_if value="@md.X4LAN_Missions.Session.$active and md.X4LAN_Missions.Session.$host and not $MissionThread and not $HideFromBBS and not $RewardObj and $TargetCount ge 1 and $TargetCount le 1000000">
+                    <set_value name="$x4lanRecord" exact="@$MissionCue.$x4lanMission"/>
+                    <do_if value="not $x4lanRecord and md.X4LAN_Missions.Session.$next lt 256">
+                        <set_value name="md.X4LAN_Missions.Session.$next" operation="add"/>
+                        <set_value name="$x4lanRecord" exact="table[$id=md.X4LAN_Missions.Session.$next, $mission=$MissionCue, $client=$Client, $abort=Aborted, $revision=1, $state=if $MissionCue.hasmission then 'A' else 'O', $done=0, $total=$TargetCount, $reward=$RewardCr / 1ct, $faction=$ClientOwner.id, $title=$TextTable.$missionname, $description=$TextTable.$description, $objective=$TextTable.$objective]"/>
+                        <set_value name="$MissionCue.$x4lanMission" exact="$x4lanRecord"/>
+                        <set_value name="md.X4LAN_Missions.Session.$rows.{$x4lanRecord.$id}" exact="$x4lanRecord"/>
+                        <run_actions ref="md.X4LAN_Missions.Publish">
+                            <param name="Record" value="$x4lanRecord"/>
+                        </run_actions>
+                    </do_if>
+                    <do_elseif value="$x4lanRecord and $MissionCue.hasmission and $x4lanRecord.$state == 'O'">
+                        <run_actions ref="md.X4LAN_Missions.Change">
+                            <param name="Mission" value="$MissionCue"/>
+                            <param name="State" value="'A'"/>
+                        </run_actions>
+                    </do_elseif>
+                </do_if>
+            </actions>
+        </library>
+        <library name="Change" purpose="run_actions">
+            <params>
+                <param name="Mission"/>
+                <param name="State"/>
+                <param name="Done" default="null"/>
+            </params>
+            <actions>
+                <set_value name="$r" exact="@$Mission.$x4lanMission"/>
+                <do_if value="@Session.$active and Session.$host and $r and ($r.$state == 'O' or $r.$state == 'A')">
+                    <do_if value="$State != $r.$state or ($Done != null and $Done gt $r.$done)">
+                        <set_value name="$r.$state" exact="$State"/>
+                        <do_if value="$Done != null">
+                            <set_value name="$r.$done" exact="[$Done,$r.$total].min"/>
+                        </do_if>
+                        <do_if value="$State == 'C'">
+                            <set_value name="$r.$done" exact="$r.$total"/>
+                        </do_if>
+                        <set_value name="$r.$revision" operation="add"/>
+                        <run_actions ref="Publish">
+                            <param name="Record" value="$r"/>
+                        </run_actions>
+                    </do_if>
+                </do_if>
+            </actions>
+        </library>
+        <library name="Publish" purpose="run_actions">
+            <params>
+                <param name="Record"/>
+            </params>
+            <actions>
+                <raise_lua_event name="'X4LAN_Missions.Header'" param="'%s|%s|%s|%s|%s|%s|%s'.[$Record.$id,$Record.$revision,$Record.$state,$Record.$done,$Record.$total,$Record.$reward,$Record.$faction]"/>
+                <raise_lua_event name="'X4LAN_Missions.Title'" param="'%s|%s'.[$Record.$id,$Record.$title]"/>
+                <raise_lua_event name="'X4LAN_Missions.Description'" param="'%s|%s'.[$Record.$id,$Record.$description]"/>
+                <raise_lua_event name="'X4LAN_Missions.Objective'" param="'%s|%s'.[$Record.$id,$Record.$objective]"/>
+                <raise_lua_event name="'X4LAN_Missions.Commit'" param="$Record.$id"/>
+                <debug_text text="'[X4LAN] MISSION_NATIVE id=%s revision=%s state=%s progress=%s/%s'.[$Record.$id,$Record.$revision,$Record.$state,$Record.$done,$Record.$total]"/>
+            </actions>
+        </library>
+        <library name="Present" purpose="include_actions">
+            <actions>
+                <do_if value="$r.$state != 'O' and $r.$mission.hasmissionoffer">
+                    <remove_offer cue="$r.$mission"/>
+                </do_if>
+                <do_if value="($r.$state == 'C' or $r.$state == 'F' or $r.$state == 'X') and not $r.$mission.hasmission">
+                    <create_mission cue="$r.$mission" name="'[Shared] ' + $r.$title" description="$r.$description" faction="faction.{$r.$faction}" type="missiontype.kill" reward="$r.$reward * 1ct" activate="false" abortable="false"/>
+                </do_if>
+                <do_if value="$r.$state == 'O' and not $r.$mission.hasmissionoffer">
+                    <create_offer cue="$r.$mission" actor="$r.$client" name="'[Shared] ' + $r.$title" description="$r.$description" faction="faction.{$r.$faction}" type="missiontype.kill" reward="$r.$reward * 1ct" hidden="false">
+                        <briefing>
+                            <objective step="1" action="objective.destroy" text="$r.$objective"/>
+                        </briefing>
+                    </create_offer>
+                </do_if>
+                <do_elseif value="$r.$state == 'A'">
+                    <do_if value="not $r.$mission.hasmission">
+                        <create_mission cue="$r.$mission" name="'[Shared] ' + $r.$title" description="$r.$description" faction="faction.{$r.$faction}" type="missiontype.kill" reward="$r.$reward * 1ct" activate="false" abortable="true"/>
+                    </do_if>
+                    <set_objective cue="$r.$mission" action="objective.custom" customaction="'Shared faction objective'" text="$r.$objective" silent="true">
+                        <progress max="$r.$total" progress="$r.$done" text="'Targets destroyed by the faction'"/>
+                    </set_objective>
+                </do_elseif>
+                <do_elseif value="$r.$state == 'C' and $r.$mission.hasmission">
+                    <remove_mission cue="$r.$mission" type="completed"/>
+                </do_elseif>
+                <do_elseif value="$r.$state == 'F' and $r.$mission.hasmission">
+                    <remove_mission cue="$r.$mission" type="failed"/>
+                </do_elseif>
+                <do_elseif value="$r.$state == 'X' and $r.$mission.hasmission">
+                    <remove_mission cue="$r.$mission" type="aborted"/>
+                </do_elseif>
+                <!-- No reward action: stock host GM pays once; existing treasury replication carries credits. -->
+            </actions>
+        </library>
+    </cues>
 </mdscript>
