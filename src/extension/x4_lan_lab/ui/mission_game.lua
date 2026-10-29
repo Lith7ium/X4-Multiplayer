@@ -21,14 +21,17 @@ api.missions = missions
 local function log(text)
     DebugError('[X4LAN] MISSIONS ' .. text)
 end
+
 local function fresh(now)
     return not api.paused() and health.mdStamp and now - (health.mdAt or 0) <= 0.5
 end
+
 local function call(action, request)
     request.stamp, request.from, request.deadline = health.mdStamp, health.mdAge, health.mdAge + 1
     request.epoch = missions.epoch
     AddUITriggeredEvent('X4LAN_Missions', action, request)
 end
+
 function missions.receive(fields, now)
     if fields[1] ~= 'MSTATE' and fields[1] ~= 'MREQ' then
         return false
@@ -67,6 +70,7 @@ function missions.receive(fields, now)
     end
     return true
 end
+
 function missions.frame(now)
     if
         missions.failed

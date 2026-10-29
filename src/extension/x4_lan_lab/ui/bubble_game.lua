@@ -28,6 +28,7 @@ void RemoveComponent(UniverseID);
 local function log(message)
     DebugError('[X4LAN] ' .. tostring(message))
 end
+
 -- Player roster shared by every co-op adapter (relay rules): slots p1..p<players>,
 -- shared ships 1..<ships>. Two players/ships outside a dedicated session; a dedicated
 -- session gives every client one ship (the server's observer takes none), at least 2.
@@ -74,6 +75,7 @@ local bubbleState = {
 local function id(n)
     return ConvertStringToLuaID((tostring(n):gsub('ULL$', '')))
 end
+
 local function nonce()
     local p = {}
     for i = 1, 8 do
@@ -81,12 +83,14 @@ local function nonce()
     end
     return table.concat(p)
 end
+
 local function stopRemoteFire()
     if bubbleState.firing then
         AddUITriggeredEvent('X4LAN_Bubble', 'FireOff')
         bubbleState.firing = false
     end
 end
+
 local function closeNetwork()
     stopRemoteFire()
     if X4LAN_BUBBLE_API.coop then
@@ -115,6 +119,7 @@ local function closeNetwork()
     bubbleState.client, bubbleState.transport = nil, nil
     bubbleState.retry = GetCurRealTime() + 1
 end
+
 local function receiveExtension(client, fields, now)
     if X4LAN_BUBBLE_API.universe and X4LAN_BUBBLE_API.universe.receive(fields, now) then
         return true
@@ -583,6 +588,7 @@ local function frame()
         bubbleState.lastLog = now
     end
 end
+
 -- Looked up per frame so the opt-in frame profiler can wrap it; nothing else replaces it.
 X4LAN_BUBBLE_API.frame = frame
 local function safeFrame()

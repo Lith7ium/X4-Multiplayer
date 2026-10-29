@@ -22,6 +22,7 @@ identity.FRESH = 4
 local function key(object)
     return tostring(object):gsub('ULL$', '')
 end
+
 local function log(text)
     DebugError('[X4LAN] IDENTITY ' .. text)
 end
@@ -30,6 +31,7 @@ function identity.display(object)
     local entry = identity.bound[key(object)]
     return entry and entry.code or nativeCode(object)
 end
+
 -- X4 menus retain ffi.C itself, not individual GetObjectIDCode functions. A narrow
 -- lookup override reaches those callers while preserving all unrelated C lookups.
 -- Each char array remains owned by I.bound for its full native component lifetime.
@@ -48,6 +50,7 @@ if cfg.slot ~= 'p1' then
         log('DISPLAY_HOOK_UNAVAILABLE; native codes remain visible')
     end
 end
+
 function identity.bind(object, code, name)
     if
         not object
@@ -72,6 +75,7 @@ function identity.bind(object, code, name)
     AddUITriggeredEvent('X4LAN_Universe', 'Describe', { object = api.id(object), name = name })
     return true
 end
+
 function identity.unbind(object)
     local objectKey = key(object)
     local old = identity.bound[objectKey]
@@ -80,6 +84,7 @@ function identity.unbind(object)
     end
     identity.bound[objectKey] = nil
 end
+
 local function encode(text)
     return (
         text:gsub('.', function(character)
@@ -87,6 +92,7 @@ local function encode(text)
         end)
     )
 end
+
 local function decode(text)
     if
         type(text) ~= 'string'
@@ -103,6 +109,7 @@ local function decode(text)
         end)
     )
 end
+
 local function fixture(id)
     if id <= 2 then
         return identity.fixtures[id]
@@ -116,6 +123,7 @@ for i = 1, 2 do
         identity.fixtures[i] = ConvertIDTo64Bit(object)
     end)
 end
+
 local function observe(object, row)
     if not identity.bind(object, row.code, row.name) then
         return
@@ -182,6 +190,7 @@ function universe.receive(fields, now)
     }
     return true
 end
+
 local function sensors()
     local list = {}
     for _, ship in ipairs(api.coop.ships) do
@@ -199,6 +208,7 @@ local function sensors()
     end
     return list
 end
+
 local function publish(entry, radars)
     local object = entry.object
     if not engine.IsComponentOperational(object) then
@@ -257,6 +267,7 @@ local function publish(entry, radars)
         flags:sub(2, 2),
     }, '|'))
 end
+
 local function frame(now)
     if
         not universe.ready

@@ -61,6 +61,7 @@ bubbleApi.universe = universeState
 local function log(text)
     DebugError('[X4LAN] UNIVERSE ' .. text)
 end
+
 -- NPC replica motion. Replicas are pose-only (AI off): the engine holds a replica still
 -- between two SetObjectSectorPos calls, so moving replicas are written every frame.
 -- Server (send on divergence): every NPC is read every motion tick; its velocity is the
@@ -112,6 +113,7 @@ local diagEvery = cfg.npc_motion_diagnostics == true and 1 or tonumber(cfg.npc_m
 if diagEvery and diagEvery <= 0 then
     diagEvery = nil
 end
+
 local function feature(name, reason)
     DebugError('[X4LAN] FEATURE ' .. name .. ' DISABLED reason=' .. reason)
 end
@@ -124,11 +126,13 @@ local function count(name, amount)
         diag[name] = (diag[name] or 0) + (amount or 1)
     end
 end
+
 local function peak(name, value)
     if diagEvery and value > (diag[name] or 0) then
         diag[name] = value
     end
 end
+
 local function sample(list, value)
     if diagEvery and #list < 4096 then
         list[#list + 1] = value
@@ -177,6 +181,7 @@ local function percentile(list, q)
     table.sort(list)
     return list[math.max(1, math.ceil(q * #list))]
 end
+
 -- Guest rows add correction error percentiles (m, at sample arrival), snaps/s, sample rate per
 -- hot/cold replica (Hz), arrival delay beyond the least-delayed sample (p95, s) and the
 -- estimated server clock rate (server seconds per local second).
@@ -269,6 +274,7 @@ local function diagFlush(now, role, extra)
     delays = {}
     universeState.gaps = {}
 end
+
 -- One NPC_SNAP row at most every 2 s, with the snaps since the last row.
 local snapLog = { n = 0, next = 0 }
 local function logSnap(id, err, reason, now)
@@ -287,12 +293,15 @@ local function logSnap(id, err, reason, now)
         snapLog.next = now + 2
     end
 end
+
 local function key(object)
     return tostring(object):gsub('ULL$', '')
 end
+
 local function send(packet)
     bubbleState.transport:send(packet)
 end
+
 local function protected(object)
     local objectKey = key(object)
     return universeState.excluded[objectKey]
@@ -302,6 +311,7 @@ local function protected(object)
         or object == engineApi.GetPlayerOccupiedShipID()
         or object == engineApi.GetPlayerContainerID()
 end
+
 local function currentSector()
     local object = engineApi.GetPlayerContainerID()
     if object == 0 then
@@ -318,6 +328,7 @@ local function currentSector()
     bubbleApi.coop.sectors[name] = sector
     return name, sector
 end
+
 local function beginScan(name, sector)
     local factions = ffi.new('const char*[256]')
     local count = tonumber(engineApi.GetAllFactions(factions, 256, true))
@@ -340,6 +351,7 @@ local function beginScan(name, sector)
         total = 0,
     }
 end
+
 -- Capture filter, shared by the faction enumeration and the sector sweep: an operational
 -- ship in the scanned sector that is not protected (replica, shared co-op ship, player
 -- occupant, excluded fixture) and not owned by the player faction. There is no class,
@@ -382,6 +394,7 @@ local function considerObject(scan, object)
         'sector object limit exceeded; refusing a truncated baseline'
     )
 end
+
 -- Per-frame enumeration budget (objects; a faction fleet read costs 16). The live server
 -- enumerated 512 objects and at most one faction per 20 Hz frame: a capture took 25-30 s
 -- of server time, so baselines were 35-40 s old on clients. The enumeration walks every
@@ -422,6 +435,7 @@ local function scanStep(scan)
     end
     return false
 end
+
 -- Guest local-NPC suppression: an MD sweep (find_ship in the player's sector, engine side)
 -- instead of walking every faction's fleet in the galaxy. Live clients walked about 200,000
 -- entries per pass at 1,024 per frame, so the client's own NPCs (freighters docking, ships
@@ -449,6 +463,7 @@ local function beginSweep(name, sectorId, now)
         total = 0,
     }
 end
+
 local function sweepStep(scan, now)
     if sweep.token ~= scan.token then
         scan.retry = true
@@ -500,10 +515,12 @@ local function captureStep(scan, now)
     scan.retry = nil -- a silent sweep only disables the sweep; the walk's capture stands
     return true
 end
+
 local function pose(object)
     local position = engineApi.GetObjectPositionInSector(object)
     return { position.x, position.y, position.z, position.yaw, position.pitch, position.roll }
 end
+
 local function poseFields(pose)
     local out = {}
     for _, value in ipairs(pose) do
@@ -511,6 +528,7 @@ local function poseFields(pose)
     end
     return table.concat(out, ',')
 end
+
 local function captured(scan)
     local rows = {}
     local objects = {}
@@ -590,6 +608,7 @@ local function captured(scan)
             .. #ordered
     )
 end
+
 local function removeReplica(replica)
     local object = replica.object
     if object then
@@ -611,6 +630,7 @@ local function removeReplica(replica)
         universeState.replicaKeys[key(object)] = nil
     end
 end
+
 local function accept(b, now)
     local name = currentSector()
     if b.sector ~= name then
@@ -669,6 +689,7 @@ local function accept(b, now)
     count('commits')
     log('COMMITTED revision=' .. b.revision .. ' sector=' .. b.sector .. ' objects=' .. #b.rows)
 end
+
 function universeState.receive(fields, now)
     if fields[1] == 'UINTEREST' then
         if
@@ -827,6 +848,7 @@ function universeState.receive(fields, now)
     end
     return false
 end
+
 -- Engine pose writes. SetObjectSectorPos runs on the client's main thread and is the
 -- expensive part of a replica: live clients drew about 1,700 replica writes per second and
 -- fell from about 40 fps (before the replicas loaded) to 13-16 fps, about 0.3-0.4 ms per
@@ -879,6 +901,7 @@ local function writeClock()
     end
     return nil
 end
+
 -- Budget use per diagnostic window (NPC_DIAG budget_ms, used_ms, used_ms_max, near_ms).
 local writeStats = { frames = 0, usedMs = 0, usedMaxMs = 0, nearMs = 0 }
 universeState.writeStats = writeStats
@@ -901,6 +924,7 @@ local slipLog = { rows = 0, next = 0, zone = 0, rewrite = 0, respawn = 0 }
 local function zoneOf(object)
     return engineApi.GetContextByClass(object, 'zone', false)
 end
+
 local function logSlipAction(replica, slip, action, now)
     count('slips')
     slipLog.rows = slipLog.rows + 1
@@ -926,6 +950,7 @@ local function logSlipAction(replica, slip, action, now)
     slipLog.respawn = 0
     slipLog.next = now + SLIP_LOG_INTERVAL
 end
+
 -- Remembers the zone offset of the last write if that write re-parented and slipped.
 local function learnZoneOffset(replica, slipOffset)
     local previousOffset = replica.lastWriteOffset
@@ -944,6 +969,7 @@ local function learnZoneOffset(replica, slipOffset)
         },
     }
 end
+
 -- One engine write of `enginePose` (UIPosRot, degrees) for the predicted `pose` (radians).
 -- slip/slipOffset: how far the engine moved the replica since the last write (0 if none).
 local function writePose(replica, sectorId, enginePose, pose, slip, slipOffset, now, trackZones)
@@ -1001,9 +1027,11 @@ local function writePose(replica, sectorId, enginePose, pose, slip, slipOffset, 
         logSlipAction(replica, slip, action, now)
     end
 end
+
 local function distanceSquared(a, b)
     return (a[1] - b[1]) ^ 2 + (a[2] - b[2]) ^ 2 + (a[3] - b[3]) ^ 2
 end
+
 -- The predicted pose (radians) and speed (m/s) of a replica now.
 local function predictedPose(replica, now)
     local pose = replica.entity.pose
@@ -1024,6 +1052,7 @@ local function predictedPose(replica, now)
     end
     return pose, speed
 end
+
 -- Write class and the time until the next visit.
 local function writeClass(replica, pose, speed)
     if replica.track and not replica.modern then
@@ -1046,6 +1075,7 @@ local function writeClass(replica, pose, speed)
     end
     return 'far', REPLICA_WRITE.farInterval
 end
+
 local function poseChanged(pose, applied)
     for i = 1, 3 do
         if math.abs(pose[i] - applied[i]) > REPLICA_WRITE.minMove then
@@ -1059,6 +1089,7 @@ local function poseChanged(pose, applied)
     end
     return false
 end
+
 -- Far replicas are written only when the predicted pose left the written one by more than
 -- farError m, or after farRefresh s.
 local function needsWrite(replica, pose, class, now)
@@ -1075,6 +1106,7 @@ local function needsWrite(replica, pose, class, now)
     return moved2 > REPLICA_WRITE.farError ^ 2
         or now - (replica.appliedAt or 0) >= REPLICA_WRITE.farRefresh
 end
+
 -- Engine pose minus the last written pose (zone-frame slip), or 0 when within the limit.
 local function measureSlip(replica, speed, now)
     if not replica.applied then
@@ -1095,6 +1127,7 @@ local function measureSlip(replica, speed, now)
     replica.zoneTrackUntil = now + NPC.slipTrack
     return slip, offset
 end
+
 local function countJump(replica, pose, speed, now)
     if not diagEvery or not replica.applied or not replica.appliedAt then
         return
@@ -1106,6 +1139,7 @@ local function countJump(replica, pose, speed, now)
         peak('max_jump', moved)
     end
 end
+
 local function ensureObject(replica, sectorId, enginePose)
     if replica.object and engineApi.IsComponentOperational(replica.object) then
         return
@@ -1122,6 +1156,7 @@ local function ensureObject(replica, sectorId, enginePose)
     engineApi.ActivateObject(replica.object, false)
     replica.applied = nil
 end
+
 -- One visit: predict, classify, and write the engine pose when the class asks for it.
 function universeState.writeReplica(replica, now, sectorId)
     if replica.entity.kind == 'drop' then
@@ -1176,6 +1211,7 @@ function universeState.writeReplica(replica, now, sectorId)
     count(class == 'near' and 'near_writes' or 'writes')
     return true
 end
+
 -- Visit order: never-written replicas first, then near ones, then the most overdue.
 local function visitBefore(a, b)
     local rankA = a.object and (a.writeClass == 'near' and 1 or 2) or 0
@@ -1190,6 +1226,7 @@ local function visitBefore(a, b)
     end
     return a.entity.id < b.entity.id
 end
+
 local function playerPosition(sectorId)
     local own = engineApi.GetPlayerContainerID()
     if own == 0 or engineApi.GetContextByClass(own, 'sector', false) ~= sectorId then
@@ -1198,6 +1235,7 @@ local function playerPosition(sectorId)
     local position = engineApi.GetObjectPositionInSector(own)
     return { position.x, position.y, position.z }
 end
+
 local function isNear(replica)
     return replica.object
         and (replica.writeClass == 'near' or universeState.focusId == replica.entity.id)
@@ -1267,6 +1305,7 @@ function universeState.renderReplicas(now, sectorId)
     writeStats.usedMaxMs = math.max(writeStats.usedMaxMs, usedMs)
     writeStats.measured = clock ~= nil
 end
+
 -- Server: player ship positions per sector, keyed by key(sector): engine IDs are 64-bit
 -- cdata, and two cdata values that compare equal are still different table keys (live:
 -- every NPC was cold). The dedicated server counts only shared ships a client owns (its
@@ -1298,6 +1337,7 @@ local function playerShips()
     end
     return out, n
 end
+
 local function relevance(id, p, players, focus)
     if focus[id] then
         return NPC.tiers.hot
@@ -1317,6 +1357,7 @@ local function relevance(id, p, players, focus)
     end
     return NPC.tiers.cold
 end
+
 -- Velocity over the last velWindow s of motion ticks (a single tick amplifies an engine
 -- position that updates in steps). A tick displacement above 100 km/s (gate, teleport)
 -- restarts the history and carries no velocity. Euler rates above maxRate rad/s are angle
@@ -1340,6 +1381,7 @@ local function headingBranch(pose, velocity)
     end
     return 0
 end
+
 local function velocityOf(identity, pose, now)
     local history = identity.hist or {}
     identity.hist = history
@@ -1406,6 +1448,7 @@ local function velocityOf(identity, pose, now)
     end
     return velocity
 end
+
 -- Why and how urgently an NPC is due: never sent, diverged from the shared prediction of its
 -- last sent sample (position, heading or velocity beyond the tier threshold), or keepalive.
 local function due(identity, pose, velocity, tier, now)
@@ -1447,6 +1490,7 @@ local function due(identity, pose, velocity, tier, now)
     end
     return nil
 end
+
 function universeState.publishMotion(now)
     local players, shipCount = playerShips()
     local focus = {}
@@ -1536,6 +1580,7 @@ function universeState.publishMotion(now)
     end
     peak('focus', n)
 end
+
 -- Guest: removes the client's own NPCs in the replicated sector (every ship the server
 -- would capture, which is not a replica). Sweeps every sweepEvery s; the faction
 -- enumeration fallback every suppressEvery s.
@@ -1592,6 +1637,7 @@ local function suppressLocalNpcs(name, sectorId, now)
     end
     universeState.nextScan = now + (scan.sweep and NPC.sweepEvery or NPC.suppressEvery)
 end
+
 local function frame(now)
     if
         universeState.failed
@@ -1775,6 +1821,7 @@ local function frame(now)
             .. #universeState.publish
     )
 end
+
 function universeState.frame(now)
     local ok, err = pcall(frame, now)
     if not ok then

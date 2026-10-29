@@ -44,22 +44,27 @@ local DELAY = 0.15
 local function log(message)
     DebugError('[X4LAN] PROJECTILE ' .. message)
 end
+
 local function liveBullet(id)
     -- The engine logs an error if IsComponentClass sees an already expired ID.
     return IsValidComponent(API.id(id)) and C.IsComponentClass(id, 'bullet')
 end
+
 local function event(control, args)
     AddUITriggeredEvent('X4LAN_Projectile', control, args or {})
 end
+
 local function serial()
     projectiles.serial = projectiles.serial + 1
     assert(projectiles.serial <= 2147483647, 'operation exhausted')
     return projectiles.serial
 end
+
 local function closePosition(actual, wanted)
     -- Sector = zone + local can round again after the float-native command.
     return math.abs(actual - wanted) <= math.max(0.01, math.abs(wanted) * 2 ^ -21)
 end
+
 local function window(a)
     a.revision, a.stamp, a.from, a.deadline =
         shotAdapter.stateRevision,
@@ -68,11 +73,13 @@ local function window(a)
         healthAdapter.mdAge + 0.3
     return a
 end
+
 local function send(packet)
     if packet and sessionState.client and sessionState.client.lease then
         sessionState.transport:send(packet)
     end
 end
+
 local function fresh(now)
     return not projectiles.failed
         and not sessionState.failed
@@ -85,6 +92,7 @@ local function fresh(now)
         and now - (healthAdapter.mdAt or -100) <= 0.3
         and not API.paused()
 end
+
 local function wanted(entity, now)
     if not fresh(now) then
         return nil
@@ -164,6 +172,7 @@ local function wanted(entity, now)
         sourceNow = sourceNow,
     }
 end
+
 local function remove(slot)
     local remoteRecord = projectiles.slots[slot]
     if not remoteRecord then
@@ -172,6 +181,7 @@ local function remove(slot)
     event('Remove', { slot = slot, operation = remoteRecord.operation })
     projectiles.slots[slot] = nil
 end
+
 local function revoke(context)
     if not context.enabled then
         return
@@ -187,9 +197,11 @@ local function revoke(context)
         end
     end
 end
+
 local function ready(context, now)
     return context and context.enabled and context.ackAt and now - context.ackAt <= 0.3
 end
+
 function projectiles.contextsFrame(now)
     for entity = 1, 2 do
         local cur = wanted(entity, now)
@@ -245,6 +257,7 @@ function projectiles.contextsFrame(now)
         end
     end
 end
+
 function projectiles.state(payload)
     local entity, ticket = tostring(payload):match('^(%d)|(%d+)$')
     entity, ticket = tonumber(entity), tonumber(ticket)
@@ -260,6 +273,7 @@ function projectiles.state(payload)
         context.ackAt = projectiles.now
     end
 end
+
 function projectiles.born(payload)
     local entity, generation, ticket, id, sector, kind, vx, vy, vz =
         tostring(payload):match('^(%d)|(%d+)|(%d+)|([^|]+)|([^|]+)|(%d)|([^|]+)|([^|]+)|([^|]+)$')
@@ -308,6 +322,7 @@ function projectiles.born(payload)
         velocity = velocity,
     }
 end
+
 local function message(bullet, kind, time)
     local context = bullet.q
     return {
@@ -321,6 +336,7 @@ local function message(bullet, kind, time)
         time = time,
     }
 end
+
 function projectiles.captureFrame(now)
     for key, bullet in pairs(projectiles.captures) do
         local context = bullet.q
@@ -397,6 +413,7 @@ function projectiles.captureFrame(now)
         end
     end
 end
+
 function projectiles.receive(fields, now)
     if fields[1] ~= 'BOLT' and fields[1] ~= 'BEND' then
         return false
@@ -456,6 +473,7 @@ function projectiles.receive(fields, now)
     end
     return true
 end
+
 function projectiles.created(payload)
     local entity, ticket, slot, op, id, sector =
         tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d+)|([^|]+)|([^|]+)$')
@@ -486,6 +504,7 @@ function projectiles.created(payload)
     end
     remoteRecord.object = object
 end
+
 function projectiles.rejected(payload)
     local entity, ticket, slot, op = tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d+)$')
     entity, ticket, slot, op = tonumber(entity), tonumber(ticket), tonumber(slot), tonumber(op)
@@ -502,6 +521,7 @@ function projectiles.rejected(payload)
         remoteRecord.retryAt = projectiles.now + 0.05
     end
 end
+
 function projectiles.renderFrame(now)
     local wantedSlots = {}
     for entity, context in pairs(projectiles.contexts) do
@@ -619,6 +639,7 @@ function projectiles.renderFrame(now)
         end
     end
 end
+
 function projectiles.fail(err)
     if projectiles.failed then
         return
@@ -651,6 +672,7 @@ function coopAdapter.frame(now)
         end
     end
 end
+
 function coopAdapter.receive(fields, now)
     local ok, handled = pcall(projectiles.receive, fields, now)
     if not ok then
@@ -662,6 +684,7 @@ function coopAdapter.receive(fields, now)
     end
     return receive(fields, now)
 end
+
 local function guard(fn)
     return function(_, p)
         local ok, err = pcall(fn, p)

@@ -1,7 +1,11 @@
 """Send a bounded bubble action, retaining its ID across timeouts/retries."""
 
 from pathlib import Path
-import argparse, json, secrets, socket, time
+import argparse
+import json
+import secrets
+import socket
+import time
 
 ROOT = Path(__file__).resolve().parent
 

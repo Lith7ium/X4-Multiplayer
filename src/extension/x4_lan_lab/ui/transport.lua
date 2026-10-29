@@ -24,9 +24,11 @@ local function load_native()
     end
     return native
 end
+
 function X4LAN_TRANSPORT.open(host, port)
     return load_native().open(host, port)
 end
+
 -- Dedicated authority control record: found, firstLine (see x4lan_net read_control).
 function X4LAN_TRANSPORT.read_control(path)
     local module = load_native()

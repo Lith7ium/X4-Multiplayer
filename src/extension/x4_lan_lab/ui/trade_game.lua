@@ -20,10 +20,12 @@ local trade = {
 local function log(text)
     DebugError('[X4LAN] ' .. text)
 end
+
 local function notice(text)
     AddUITriggeredEvent('X4LAN_Trade', 'Notice', text)
     log('TRADE_NOTICE ' .. text)
 end
+
 local function key(value)
     if value == nil or value == 0 then
         return ''
@@ -53,6 +55,7 @@ local function send(packet)
         return true
     end
 end
+
 local function result(request, status)
     trade.executed[request] = status
     AddUITriggeredEvent('X4LAN_Trade', 'Finished')
@@ -61,6 +64,7 @@ local function result(request, status)
     end
     log('ORDER_DONE ' .. request .. ' ' .. status)
 end
+
 local function submit(market, lines)
     if cfg.coop then
         local i = api.coop and api.coop.controlled or 0
@@ -151,6 +155,7 @@ if nativeTradeList then
         return result
     end
 end
+
 local function hook()
     if trade.menu then
         return
@@ -326,6 +331,7 @@ function api.trade.receive(client, fields, now)
     end
     return false
 end
+
 function api.trade.frame(now)
     hook()
     if cfg.coop and (not api.coop or not api.coop.ready) then

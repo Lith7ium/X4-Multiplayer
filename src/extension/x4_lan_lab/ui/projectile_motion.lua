@@ -6,9 +6,11 @@ local motion = X4LAN_PROJECTILE_MOTION
 local function finite(value, limit)
     return type(value) == 'number' and value == value and math.abs(value) <= limit
 end
+
 local function integer(value)
     return finite(value, 2147483647) and value >= 1 and value % 1 == 0
 end
+
 local function vector(values, length, limit)
     if type(values) ~= 'table' or #values ~= length then
         return false
@@ -20,6 +22,7 @@ local function vector(values, length, limit)
     end
     return true
 end
+
 local function copy(values)
     local result = {}
     for i = 1, #values do
@@ -27,16 +30,19 @@ local function copy(values)
     end
     return result
 end
+
 function motion.new(key, cutoff)
     assert(type(key) == 'string' and #key > 0 and finite(cutoff or 0, 1e12))
     return { key = key, cutoff = cutoff or 0, latest = 0, seen = {}, active = {}, count = 0 }
 end
+
 local function remove(buffer, id)
     if buffer.active[id] then
         buffer.active[id] = nil
         buffer.count = buffer.count - 1
     end
 end
+
 -- Keep replay rejection bounded even after a long session. IDs below the window
 -- remain rejected without retaining a tombstone for every historical projectile.
 local function mark(buffer, id)
@@ -61,6 +67,7 @@ local function mark(buffer, id)
     buffer.seen[id] = true
     return true
 end
+
 local function purge(buffer, renderNow)
     for id, projectile in pairs(buffer.active) do
         if
@@ -70,6 +77,7 @@ local function purge(buffer, renderNow)
         end
     end
 end
+
 -- Admission uses the UNDELAYED NAV2 source estimate. renderNow may be delayed;
 -- purge against that cursor so the last interpolation tail is not removed early.
 function motion.birth(buffer, key, projectile, sourceNow, renderNow)
@@ -123,6 +131,7 @@ function motion.birth(buffer, key, projectile, sourceNow, renderNow)
     buffer.count = buffer.count + 1
     return true
 end
+
 function motion.finish(buffer, key, id, time)
     if key ~= buffer.key or not integer(id) or not finite(time, 1e12) or time < 0 then
         return false
@@ -138,6 +147,7 @@ function motion.finish(buffer, key, id, time)
     end
     return mark(buffer, id) -- End-before-birth tombstone, including after expiry.
 end
+
 function motion.clear(buffer, sourceNow)
     assert(finite(sourceNow, 1e12))
     buffer.active = {}
@@ -145,6 +155,7 @@ function motion.clear(buffer, sourceNow)
     buffer.cutoff = math.max(buffer.cutoff, sourceNow)
     -- Retain seen IDs and watermark until the caller binds a different authority key.
 end
+
 function motion.sample(buffer, sourceNow)
     assert(finite(sourceNow, 1e12))
     local samples = {}
@@ -171,6 +182,7 @@ function motion.sample(buffer, sourceNow)
     end
     return samples
 end
+
 -- Actual native position differences retain inherited ship motion, slew and spread.
 -- Do not substitute ship forward direction or a selected target for this velocity.
 function motion.velocity(earlier, later)

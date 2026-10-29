@@ -37,9 +37,11 @@ local MARGIN = 1.5
 local function log(v)
     DebugError('[X4LAN] ' .. v)
 end
+
 local function paused()
     return API.paused and API.paused()
 end
+
 local function writable()
     return health.mdStamp and (health.now or 0) - health.mdAt <= READING and not paused()
 end
@@ -47,8 +49,7 @@ end
 -- MD 'entity|range' (metres, native runtime value); anything else clears it.
 function capture.ranged(payload)
     local entity, range = tostring(payload):match('^(%d)|(.*)$')
-    entity = tonumber(entity)
-    range = tonumber(range)
+    entity, range = tonumber(entity), tonumber(range)
     if entity == 1 or entity == 2 then
         capture.range[entity] = range and range > 0 and range or nil
     end
@@ -79,6 +80,7 @@ local function piloted()
     end
     return 0
 end
+
 -- A co-op ship the OTHER player owns and flies: its shots are FIRE2 replays in my world.
 local function remote(entity)
     return coop.owners[entity] ~= nil
@@ -98,8 +100,7 @@ function capture.frame(now)
     local me = piloted()
     local life = me > 0 and capture.lifetime(me)
     if not life then
-        me = 0
-        life = 0
+        me, life = 0, 0
     end
     capture.revision = capture.revision + 1
     AddUITriggeredEvent('X4LAN_ShotCapture', 'State', {

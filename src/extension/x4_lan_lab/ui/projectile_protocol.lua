@@ -31,6 +31,7 @@ local function split(packet)
     end
     return fields
 end
+
 local function integer(text)
     if #text > 10 or not text:match('^[1-9]%d*$') then
         return nil
@@ -38,9 +39,11 @@ local function integer(text)
     local value = tonumber(text)
     return value <= protocol.MAX_SEQ and value or nil
 end
+
 local function finite(value)
     return type(value) == 'number' and value == value and value ~= math.huge and value ~= -math.huge
 end
+
 local function number(text, limit)
     if
         not (
@@ -58,9 +61,11 @@ local function number(text, limit)
     end
     return value
 end
+
 local function lease(value)
     return type(value) == 'string' and #value == 32 and value:match('^[a-f0-9]+$') ~= nil
 end
+
 local function whole(value)
     return finite(value) and value == math.floor(value) and value >= 1 and value <= protocol.MAX_SEQ
 end

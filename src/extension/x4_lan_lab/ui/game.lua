@@ -47,6 +47,7 @@ local function removeProxy()
     end
     state.proxy, state.lastWritten = nil, nil
 end
+
 local function reset(oldWorld, preserveFrame)
     local origin, ship, sector = state.origin, state.ship, state.sector
     if not oldWorld and cfg.mode == 'proxy' then
@@ -60,6 +61,7 @@ local function reset(oldWorld, preserveFrame)
         state.origin, state.ship, state.sector = origin, ship, sector
     end
 end
+
 local function nonce()
     -- Does not reseed the game's global RNG. Session identifier, not a secret.
     local parts = {}
@@ -68,10 +70,12 @@ local function nonce()
     end
     return table.concat(parts)
 end
+
 local function componentData(id, key)
     -- Keep the full 64-bit ID; tonumber() would lose precision.
     return GetComponentData(ConvertStringToLuaID((tostring(id):gsub('ULL$', ''))), key)
 end
+
 local function connect(ship, sector, now)
     local sectorMacro = componentData(sector, 'macro')
     assert(type(sectorMacro) == 'string' and #sectorMacro > 0, 'sector macro unavailable')
@@ -102,6 +106,7 @@ local function connect(ship, sector, now)
         )
     )
 end
+
 local function position(pose)
     local deg = 180 / math.pi
     return ffi.new('UIPosRot', {
@@ -113,6 +118,7 @@ local function position(pose)
         roll = pose[6] * deg,
     })
 end
+
 local function mirror(pose, now)
     if not pose then
         removeProxy()
@@ -195,6 +201,7 @@ local function mirror(pose, now)
         state.lastRotationLog = now
     end
 end
+
 local function frame()
     local now = GetCurRealTime()
     if state.failed or now < state.nextTry then
@@ -270,6 +277,7 @@ local function frame()
         state.lastLog = now
     end
 end
+
 local function safeFrame()
     local ok, err = pcall(frame)
     if not ok then

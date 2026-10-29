@@ -47,9 +47,11 @@ local function split(packet)
     end
     return fields
 end
+
 local function hex(value)
     return value and #value == 32 and not value:find('[^a-f0-9]')
 end
+
 local function seq(value)
     if not value or not value:match('^%d+$') then
         return nil
@@ -60,6 +62,7 @@ local function seq(value)
     end
     return number
 end
+
 local function finite(value, bound)
     local number = tonumber(value)
     if not number or number ~= number or math.abs(number) > bound then
@@ -67,10 +70,12 @@ local function finite(value, bound)
     end
     return number
 end
+
 local function angle(startAngle, endAngle, fraction)
     local delta = (endAngle - startAngle + math.pi) % (2 * math.pi) - math.pi
     return startAngle + delta * fraction
 end
+
 -- Slot admission shared with the relay: p1..p<max_players>. Two players outside a
 -- dedicated session; a dedicated session without max_players is the legacy p1..p3.
 function X4LAN_CLIENT.players(config)
@@ -84,6 +89,7 @@ function X4LAN_CLIENT.players(config)
     assert(slot and slot <= players, 'slot must be p1..p' .. players)
     return players, slot
 end
+
 local function interpolate(samples, now)
     if #samples == 0 or now - samples[#samples].time > 0.75 then
         return nil
@@ -108,6 +114,7 @@ local function interpolate(samples, now)
     end
     return pose
 end
+
 function X4LAN_CLIENT.new(config, transport, nonce, log, resume)
     assert(hex(config.token) and hex(nonce), 'token/nonce must be 32 hex characters')
     X4LAN_CLIENT.players(config)

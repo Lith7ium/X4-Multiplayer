@@ -21,6 +21,7 @@ function missionProtocol.encode(text)
         end)
     )
 end
+
 local function utf8(text)
     local i = 1
     while i <= #text do
@@ -51,6 +52,7 @@ local function utf8(text)
     end
     return true
 end
+
 function missionProtocol.text(encoded, max)
     if
         type(encoded) ~= 'string'
@@ -69,6 +71,7 @@ function missionProtocol.text(encoded, max)
     end
     return decoded
 end
+
 function missionProtocol.parse(payload)
     local fields = universeProtocol.split(payload, ',')
     if
@@ -115,6 +118,7 @@ function missionProtocol.parse(payload)
         objective = objective,
     }
 end
+
 function missionProtocol.advances(old, new)
     if not old then
         return true
@@ -141,6 +145,7 @@ function missionProtocol.advances(old, new)
     end
     return true
 end
+
 function missionProtocol.assembly()
     local assembly = { records = {}, pending = {} }
     function assembly:add(fields, now)
@@ -232,6 +237,7 @@ function missionProtocol.assembly()
     end
     return assembly
 end
+
 function missionProtocol.packets(lease, epoch, record)
     local packets = {}
     local total = math.ceil(#record.payload / missionProtocol.partSize)

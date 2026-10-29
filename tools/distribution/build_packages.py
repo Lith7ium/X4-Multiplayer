@@ -1,7 +1,16 @@
 """Build INTERNAL Windows/Linux host-or-guest packages without session secrets."""
 
 from pathlib import Path
-import argparse, hashlib, json, re, secrets, shutil, subprocess, tarfile, tempfile, zipfile
+import argparse
+import hashlib
+import json
+import re
+import secrets
+import shutil
+import subprocess
+import tarfile
+import tempfile
+import zipfile
 import importlib.util
 
 SOURCE = Path(__file__).resolve().parents[2]

@@ -23,14 +23,17 @@ API.cargo = cargo
 local function log(v)
     DebugError('[X4LAN] CARGO ' .. v)
 end
+
 local function key(v)
     return tostring(v):gsub('ULL$', '')
 end
+
 local function send(v)
     if state.client and state.client.lease then
         state.transport:send(v)
     end
 end
+
 local function event(name, args)
     AddUITriggeredEvent('X4LAN_Cargo', name, args)
 end
@@ -52,10 +55,12 @@ function cargo.object(text)
     end
     return value
 end
+
 local function finish(request, status, fence)
     cargo.executed[request] = { status = status, fence = fence }
     send('CARGODONE|1|' .. state.client.lease .. '|' .. request .. '|' .. status .. '|' .. fence)
 end
+
 local function enqueue(ship, verb, id, ware, amount)
     local b = universe.latest
     if
@@ -89,6 +94,7 @@ local function enqueue(ship, verb, id, ware, amount)
     end
     return true
 end
+
 function cargo.rows(sector)
     local rows = {}
     for k, d in pairs(cargo.drops) do
@@ -115,6 +121,7 @@ function cargo.rows(sector)
     end
     return rows
 end
+
 function cargo.ensure(r, sector)
     local id = r.entity.id
     local h = cargo.held[id]
@@ -254,6 +261,7 @@ function universe.receive(packetFields, now)
     end
     return receive(packetFields, now)
 end
+
 local function frame(now)
     if not state.client or not state.client.lease or not API.coop.ready or API.paused() then
         return

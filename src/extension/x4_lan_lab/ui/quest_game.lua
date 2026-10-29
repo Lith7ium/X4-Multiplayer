@@ -14,6 +14,7 @@ local function integer(value, max)
     end
     return number
 end
+
 function quest.receive(fields)
     if fields[1] ~= 'QUEST' then
         return false
@@ -63,6 +64,7 @@ function quest.receive(fields)
     end
     return true
 end
+
 function quest.frame(now)
     if not api.trade or not api.trade.state.ready then
         return

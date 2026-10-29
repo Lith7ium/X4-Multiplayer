@@ -15,11 +15,13 @@ void ReloadSaveList(void);const char* GetSaveFolderPath(void);
 local function log(text)
     DebugError('[X4LAN] SEED_GATE ' .. text)
 end
+
 local function fail(reason)
     gate.failed = reason
     gate.ready = false
     log('STOPPED ' .. reason)
 end
+
 local function valid()
     if cfg.seed_content then
         X4LAN_SEED_CONTENT(cfg.seed_content)

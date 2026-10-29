@@ -11,6 +11,7 @@ function protocol.split(text, separator)
     end
     return fields
 end
+
 function protocol.integer(text, limit)
     if type(text) ~= 'string' or not text:match('^%d+$') then
         return nil
@@ -21,6 +22,7 @@ function protocol.integer(text, limit)
     end
     return number
 end
+
 function protocol.atom(text, macro)
     return type(text) == 'string'
         and #text > 0
@@ -28,9 +30,11 @@ function protocol.atom(text, macro)
         and not text:find('[^a-zA-Z0-9_.-]')
         and (not macro or text:sub(-6) == '_macro')
 end
+
 function protocol.hex(text)
     return type(text) == 'string' and #text == 32 and not text:find('[^a-f0-9]')
 end
+
 function protocol.record(row)
     if type(row) ~= 'string' or #row > 512 or row:find('[^%g]') then
         return nil
@@ -84,6 +88,7 @@ function protocol.record(row)
         amount = amount,
     }
 end
+
 function protocol.checksum(rows)
     local low = 1
     local high = 0
@@ -99,6 +104,7 @@ function protocol.checksum(rows)
     end
     return high * 65536 + low
 end
+
 function protocol.baseline(epoch, revision, sector, rows)
     assert(
         protocol.hex(epoch) and revision > 0 and revision % 1 == 0 and revision <= 2147483647,
@@ -121,6 +127,7 @@ function protocol.baseline(epoch, revision, sector, rows)
         digest = protocol.checksum(owned),
     }
 end
+
 function protocol.packet(baseline, lease, index)
     local header = '|1|' .. lease .. '|' .. baseline.epoch .. '|' .. baseline.revision
     if index == 0 then
@@ -138,6 +145,7 @@ function protocol.packet(baseline, lease, index)
     end
     return 'UOBJECT' .. header .. '|' .. index .. '|' .. baseline.rows[index]
 end
+
 function protocol.receiver()
     local self = {}
     function self:receive(fields, now)
@@ -229,6 +237,7 @@ function protocol.receiver()
     end
     return self
 end
+
 function protocol.sender(baseline)
     local self = { baseline = baseline, acked = {}, sent = {}, done = false }
     function self:ack(epoch, revision, index)

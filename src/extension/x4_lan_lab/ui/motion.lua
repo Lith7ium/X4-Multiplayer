@@ -35,6 +35,7 @@ motionBuffer.excessHalfLife, motionBuffer.maxDelay, motionBuffer.excessMargin, m
 function motionBuffer.angle(angle)
     return (angle + math.pi) % (2 * math.pi) - math.pi
 end
+
 function motionBuffer.valid(pose, velocity)
     if type(pose) ~= 'table' or #pose ~= 6 or type(velocity) ~= 'table' or #velocity ~= 6 then
         return false
@@ -54,6 +55,7 @@ function motionBuffer.valid(pose, velocity)
     end
     return true
 end
+
 -- `stale` (optional) widens the sample gap over which a velocity is still estimated;
 -- sparse NPC publication uses it. Absent, the original motionBuffer.stale bound applies.
 function motionBuffer.velocity(previous, pose, time, stale)
@@ -73,12 +75,14 @@ function motionBuffer.velocity(previous, pose, time, stale)
     end
     return velocity
 end
+
 function motionBuffer.speed(velocity)
     if type(velocity) ~= 'table' then
         return 0
     end
     return math.sqrt((velocity[1] or 0) ^ 2 + (velocity[2] or 0) ^ 2 + (velocity[3] or 0) ^ 2)
 end
+
 -- Optional track fields (all absent by default, preserving the original behaviour):
 --  retainClock: a discontinuity resets samples but keeps the clock offset (both peers use
 --   real time, so the mapping survives pauses and teleports of the same source process).
@@ -155,6 +159,7 @@ function motionBuffer.push(track, time, pose, velocity, arrival)
     track.arrival = arrival
     return true
 end
+
 -- Source time to render at `now`: the observer-clock lag (offset + delay) moves toward
 -- its wanted value at no more than `rate` seconds per second, so a delay or offset change
 -- slows or speeds the replica slightly instead of making it hop by speed * change.
@@ -178,6 +183,7 @@ function motionBuffer.clock(track, now, delay, rate)
     track.lag, track.lagAt = lag, now
     return now - lag
 end
+
 -- Interpolation delay for a track: the profile delay, widened by the observed excess.
 function motionBuffer.delayFor(track, base)
     if not track.adaptive or not track.excess then
@@ -185,6 +191,7 @@ function motionBuffer.delayFor(track, base)
     end
     return math.max(base, math.min(motionBuffer.maxDelay, track.excess + motionBuffer.excessMargin))
 end
+
 function motionBuffer.renderAt(track, target, horizon)
     local samples = track.samples
     if not samples or #samples == 0 or not target then
@@ -233,6 +240,7 @@ function motionBuffer.renderAt(track, target, horizon)
     end
     return pose, velocity
 end
+
 function motionBuffer.render(track, now, delay)
     if not track.samples or #track.samples == 0 then
         return nil
@@ -243,6 +251,7 @@ function motionBuffer.render(track, now, delay)
         motionBuffer.horizon
     )
 end
+
 -- Dead reckoning for server-owned replicas (NPC UMOVE; see universe_game.lua). The rendered
 -- pose is the latest authoritative sample (source time, pose, velocity) extrapolated to the
 -- source clock every frame, plus a correction offset that decays with time constant tau:
@@ -275,6 +284,7 @@ motionBuffer.dr = {
 function motionBuffer.drClock()
     return { points = {}, rate = 1 }
 end
+
 function motionBuffer.drObserve(clock, time, arrival)
     local settings = motionBuffer.dr
     local points = clock.points
@@ -325,6 +335,7 @@ function motionBuffer.drObserve(clock, time, arrival)
     end
     clock.base = base
 end
+
 -- Source time rendered at local `now`: advances at the estimated rate and moves toward the
 -- envelope at no more than `slew` source seconds per second (a step above clockSnap snaps).
 function motionBuffer.drTime(clock, now)
@@ -350,6 +361,7 @@ function motionBuffer.drTime(clock, now)
     clock.T, clock.at = renderTime, now
     return renderTime
 end
+
 -- Arrival delay of a sample beyond the least-delayed one, in local seconds.
 function motionBuffer.drExcess(clock, time, arrival)
     if not clock.base then
@@ -357,6 +369,7 @@ function motionBuffer.drExcess(clock, time, arrival)
     end
     return math.max(0, (clock.rate * arrival + clock.base - time) / clock.rate)
 end
+
 -- Shared prediction: the server evaluates exactly this function on the last sample it sent
 -- to decide whether clients still show an NPC in the right place, and clients render it, so
 -- without new packets both sides agree. Pure math on the sample (pose, velocity) and the
@@ -364,6 +377,7 @@ end
 -- Constant turn rate: when the horizontal velocity heading matches the ship's yaw (under
 -- either sign convention, within headingMatch rad), the velocity turns with the yaw rate and
 -- the position follows the arc. Every angular change is capped at turnCap rad (ships end
+
 -- their turns; the course then continues straight). Sideways drift or a mismatched heading
 -- predicts a straight line.
 motionBuffer.dr.headingMatch, motionBuffer.dr.turnCap = 0.5, math.pi / 2
@@ -414,6 +428,7 @@ function motionBuffer.drPredict(pose, velocity, dt)
     predictedPose[2] = pose[2] + predictedVelocity[2] * dt
     return predictedPose, predictedVelocity
 end
+
 local function project(track, renderTime)
     local elapsed =
         math.max(-motionBuffer.dr.back, math.min(motionBuffer.dr.coast, renderTime - track.time))
@@ -423,6 +438,7 @@ local function project(track, renderTime)
     end
     return pose, velocity
 end
+
 -- Rendered pose and translation velocity (m per local second; `rate` converts source
 -- seconds) at source time T and local time now.
 function motionBuffer.drRender(track, renderTime, now, rate)
@@ -453,6 +469,7 @@ function motionBuffer.drRender(track, renderTime, now, rate)
     end
     return pose, velocity
 end
+
 -- Accepts a sample: returns accepted, correction error (m) and whether the replica snapped.
 -- `from` is the pose rendered now for a replica without a live track (a baseline pose), so
 -- its first sample blends or snaps like any other. The clock observes every sample.
@@ -514,6 +531,7 @@ function motionBuffer.drPush(track, clock, time, pose, velocity, arrival, from)
     track.err, track.errAt = error, arrival
     return true, err, false
 end
+
 -- Effective render mode from the declared mode (nil for legacy senders) and sampled
 -- speed. `state` keeps hysteresis: any non-normal indication holds for motionBuffer.modeHold s.
 function motionBuffer.classify(state, declared, speed, now)

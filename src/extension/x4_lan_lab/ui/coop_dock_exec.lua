@@ -11,9 +11,11 @@ dockAdapter.execution = execution
 local function log(inputValue)
     DebugError('[X4LAN] COOP_DOCK_EXEC ' .. inputValue)
 end
+
 local function event(control, value)
     AddUITriggeredEvent('X4LAN_CoopAttachment', control, value)
 end
+
 local function key(entity, now)
     -- Separate datagrams can temporarily be unpaired. This blocks pose/new
     -- preparation, but must not repeatedly cancel an already invoked undock.
@@ -33,6 +35,7 @@ local function key(entity, now)
     ),
         intent
 end
+
 local function fence(entity, authorityKey, intent)
     if execution.keys[entity] == authorityKey then
         return
@@ -50,6 +53,7 @@ local function fence(entity, authorityKey, intent)
         enabled = intent ~= nil,
     })
 end
+
 function dockAdapter.authorized(entity, now)
     local authorityKey, intent = key(entity, now)
     return execution.ready
@@ -57,20 +61,24 @@ function dockAdapter.authorized(entity, now)
         and execution.keys[entity] == authorityKey
         and execution.ack[entity] == execution.generation[entity]
 end
+
 function coopAdapter.attachmentGeneration(entity)
     return execution.generation[entity]
 end
+
 function coopAdapter.attachmentWindow(entity, now)
     local localRowState = dockAdapter.localRow(entity, now)
     if localRowState then
         return localRowState.stamp, localRowState.age
     end
 end
+
 local function current(pendingOperation, now)
     return pendingOperation
         and dockAdapter.authorized(pendingOperation.entity, now)
         and pendingOperation.generation == execution.generation[pendingOperation.entity]
 end
+
 local function outcome(reason)
     if execution.lastOutcome ~= reason then
         execution.lastOutcome = reason
@@ -79,6 +87,7 @@ local function outcome(reason)
     execution.pending = nil
     execution.nextAttempt = GetCurRealTime() + 0.5
 end
+
 local function choose(intent, localRowState)
     if localRowState.mode == 'UNKNOWN' then
         return nil
@@ -108,6 +117,7 @@ local function choose(intent, localRowState)
         return 'ATTACH', intent.mode, intent.dock
     end
 end
+
 function dockAdapter.executeFrame(now)
     if dockAdapter.closed then
         if execution.started and not execution.stopped then

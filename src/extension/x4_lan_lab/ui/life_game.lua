@@ -17,12 +17,14 @@ local MAX_REMOTES = 7
 local function log(text)
     DebugError('[X4LAN] ' .. text)
 end
+
 local function send(value)
     if state.client and state.client.lease then
         state.transport:send(value)
         return true
     end
 end
+
 local function number(value, bound)
     local number = tonumber(value)
     if not number or number ~= number or math.abs(number) > bound then
@@ -30,6 +32,7 @@ local function number(value, bound)
     end
     return number
 end
+
 function life.receive(client, fields, now)
     if api.walk and api.walk.receive(fields, now) then
         return true
@@ -134,6 +137,7 @@ function life.receive(client, fields, now)
     end
     return false
 end
+
 function life.frame(now)
     if api.walk then
         api.walk.frame(now)
@@ -237,6 +241,7 @@ function life.frame(now)
     life.remoteSuit, life.remoteKilled =
         latest and latest.suit or nil, latest and latest.killed or nil
 end
+
 function life.frameRemote(entry, now)
     local remote = entry.remote
     if not remote then

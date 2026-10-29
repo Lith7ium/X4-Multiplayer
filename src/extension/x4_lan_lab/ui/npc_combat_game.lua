@@ -17,6 +17,7 @@ API.npcCombat = npcCombat
 local function log(v)
     DebugError('[X4LAN] NPC_COMBAT ' .. v)
 end
+
 -- Host NHP cadence. A record is read every poll, but NHP is sent only when its health or
 -- death changes, and otherwise repeated with a new sequence every KEEPALIVE seconds. The
 -- relay forwards new sequences only; a guest binds health while its newest sequence is
@@ -27,20 +28,25 @@ local function integer(v, max)
     local i = protocol.integer(tostring(v))
     return i and i <= (max or 2147483647) and i
 end
+
 local function percent(v)
     local x = tonumber(v)
     return x and x == x and x >= 0 and x <= 100 and x
 end
+
 local function key(id, generation, shooterEntity, shooterGeneration)
     return table.concat({ id, generation, shooterEntity, shooterGeneration }, '|')
 end
+
 local function fresh(now)
     return not API.paused() and healthAdapter.mdStamp and now - healthAdapter.mdAt <= 0.5
 end
+
 local function validGen(shooterEntity)
     local g = healthAdapter.valid[shooterEntity]
     return g and g > (healthAdapter.closed[shooterEntity] or 0) and g
 end
+
 local function pilot(shooterEntity, shooterGeneration, slot)
     return coopAdapter.owners[shooterEntity] == slot
         and coopAdapter.pilots[shooterEntity] == slot
@@ -53,17 +59,21 @@ local function pilot(shooterEntity, shooterGeneration, slot)
                 and healthAdapter.remote[shooterEntity].gen == shooterGeneration
         )
 end
+
 local function send(fields)
     sessionState.transport:send(table.concat(fields, '|'))
 end
+
 local function call(action, args)
     args.stamp, args.from, args.deadline =
         healthAdapter.mdStamp, healthAdapter.mdAge, healthAdapter.mdAge + 1
     AddUITriggeredEvent('X4LAN_NpcCombat', action, args)
 end
+
 function npcCombat.code(object)
     return ffi.string(nativeCode(object))
 end
+
 function npcCombat.fail(reason)
     if npcCombat.failed then
         return
@@ -72,6 +82,7 @@ function npcCombat.fail(reason)
     log('STOPPED ' .. tostring(reason))
     AddUITriggeredEvent('X4LAN_NpcCombat', 'Stop', {})
 end
+
 local function safe(record)
     if record.retired then
         return false
@@ -100,6 +111,7 @@ local function safe(record)
         and C.GetContextByClass(record.object, 'sector', false)
             == coopAdapter.sectorId(record.sector)
 end
+
 local function make(id, object, sector, macro, owner, generation)
     if npcCombat.serial >= 32768 then
         npcCombat.fail('binding limit; reconnect required')
@@ -126,6 +138,7 @@ local function make(id, object, sector, macro, owner, generation)
     npcCombat.records[id] = record
     return record
 end
+
 local function args(record)
     return {
         id = record.id,
@@ -138,6 +151,7 @@ local function args(record)
         owner = record.owner,
     }
 end
+
 -- Called before a replica may respawn. A native local death is not host permission.
 function npcCombat.hidden(record)
     local state = npcCombat.states[record.entity.id]
@@ -150,6 +164,7 @@ function npcCombat.hidden(record)
     end
     return false
 end
+
 function npcCombat.hide(replica, now)
     local state = npcCombat.states[replica.entity.id]
     local record = npcCombat.records[replica.entity.id]
@@ -187,6 +202,7 @@ function npcCombat.hide(replica, now)
         call('Destroy', a)
     end
 end
+
 function npcCombat.receive(packetFields, now)
     if packetFields[1] ~= 'NHP' and packetFields[1] ~= 'NCLAIM' and packetFields[1] ~= 'NACK' then
         return false
@@ -327,6 +343,7 @@ function npcCombat.receive(packetFields, now)
     end
     return true
 end
+
 function npcCombat.count(payload)
     local packetFields = protocol.split(tostring(payload), '|')
     if #packetFields ~= 6 or npcCombat.failed or cfg.slot == 'p1' then
@@ -373,6 +390,7 @@ function npcCombat.count(payload)
     end
     claim.hits = math.max(claim.hits, hits)
 end
+
 function npcCombat.read(payload)
     local packetFields = protocol.split(tostring(payload), '|')
     if #packetFields ~= 6 or npcCombat.failed or cfg.slot ~= 'p1' then
@@ -427,6 +445,7 @@ function npcCombat.read(payload)
         record.dead and 0 or 1,
     })
 end
+
 function npcCombat.applied(payload)
     local packetFields = protocol.split(tostring(payload), '|')
     if #packetFields ~= 6 or npcCombat.failed or cfg.slot ~= 'p1' then
@@ -474,6 +493,7 @@ function npcCombat.applied(payload)
         claim.confirmed,
     })
 end
+
 function npcCombat.retired(payload)
     local packetFields = protocol.split(tostring(payload), '|')
     if #packetFields ~= 3 or cfg.slot ~= 'p1' then
@@ -493,6 +513,7 @@ function npcCombat.retired(payload)
         identity.retired = true
     end
 end
+
 function npcCombat.frame(now)
     if npcCombat.failed then
         return
@@ -685,6 +706,7 @@ function universe.receive(packetFields, now)
     end
     return receive(packetFields, now)
 end
+
 function universe.frame(now)
     frame(now)
     local ok, err = pcall(npcCombat.frame, now)

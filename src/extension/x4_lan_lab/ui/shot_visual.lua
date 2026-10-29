@@ -44,16 +44,19 @@ local BULLETS = {
 local function log(s)
     DebugError('[X4LAN] SHOT_VISUAL ' .. s)
 end
+
 local function fresh()
     return healthAdapter.mdStamp
         and shotVisual.now - (healthAdapter.mdAt or -100) <= 0.3
         and not API.paused()
 end
+
 local function serial()
     shotVisual.serial = shotVisual.serial + 1
     assert(shotVisual.serial < 2147483647, 'serial exhausted')
     return shotVisual.serial
 end
+
 local function wanted(entity)
     local generation = healthAdapter.valid[entity]
     if
@@ -68,6 +71,7 @@ local function wanted(entity)
     end
     return generation, coopAdapter.owners[entity] == cfg.slot and 1 or 2, coopAdapter.ships[entity]
 end
+
 local function current(entity, row)
     local generation, mode, ship = wanted(entity)
     return not shotVisual.failed
@@ -78,6 +82,7 @@ local function current(entity, row)
         and row.mode == mode
         and row.ship == ship
 end
+
 local function ready(entity, generation, mode, now)
     local row = shotVisual.rows[entity]
     return current(entity, row)
@@ -87,17 +92,21 @@ local function ready(entity, generation, mode, now)
         and (now or healthAdapter.now or shotVisual.now) - (row.ackAt or -100) <= 0.3
         and not API.paused()
 end
+
 function shotVisual.readyOriginal(entity, generation, now)
     return ready(entity, generation, 1, now)
 end
+
 function shotVisual.readyReplay(entity, generation, now)
     return ready(entity, generation, 2, now)
 end
+
 local function event(control, args)
     args.stamp, args.from, args.deadline =
         healthAdapter.mdStamp, healthAdapter.mdAge, healthAdapter.mdAge + 1
     AddUITriggeredEvent('X4LAN_ShotVisual', control, args)
 end
+
 -- Read every actual installed slot (empty slots are retained, not compacted into fake IDs).
 local function guns(entity, ship)
     local support = assert(shotAdapter.support[entity], 'unadmitted loadout')
@@ -123,6 +132,7 @@ local function guns(entity, ship)
     assert(#out > 0, 'no installed weapons')
     return out, pair
 end
+
 local function verify(entity, row)
     local list, pair = guns(entity, row.ship)
     assert(#list == #row.guns, 'weapon count changed')
@@ -134,6 +144,7 @@ local function verify(entity, row)
         )
     end
 end
+
 local function proof(entity, row)
     verify(entity, row)
     local seq = serial()
@@ -148,6 +159,7 @@ local function proof(entity, row)
         revision = shotAdapter.stateRevision,
     })
 end
+
 function shotVisual.prepared(payload)
     local entity, generation, ticket, mode, id =
         tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d)|([^|]+)$')
@@ -191,6 +203,7 @@ function shotVisual.prepared(payload)
             .. #list
     )
 end
+
 function shotVisual.proven(payload)
     local entity, generation, ticket, mode, seq =
         tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d)|(%d+)$')
@@ -209,6 +222,7 @@ function shotVisual.proven(payload)
         row.ackAt = shotVisual.now
     end
 end
+
 function shotVisual.fail(err)
     if shotVisual.failed then
         return
@@ -218,6 +232,7 @@ function shotVisual.fail(err)
     pcall(AddUITriggeredEvent, 'X4LAN_ShotVisual', 'Stop', {})
     shotAdapter.fail('visual proof stopped')
 end
+
 function shotVisual.frame(now)
     shotVisual.now = now
     if shotAdapter.failed or healthAdapter.failed then
@@ -274,6 +289,7 @@ function coopAdapter.frame(now)
         end
     end
 end
+
 local function guard(fn)
     return function(_, payload)
         local ok, err = pcall(fn, payload)

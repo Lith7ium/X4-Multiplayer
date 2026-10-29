@@ -22,6 +22,7 @@ local function integer(value, max)
         return parsedNumber
     end
 end
+
 local function valid(mode, dock)
     return modes[mode]
         and dock
@@ -30,14 +31,17 @@ local function valid(mode, dock)
             or (mode == 'APPROACH' or mode == 'EXTERNAL' or mode == 'STORED') and dock > 0
         )
 end
+
 local function log(value)
     DebugError('[X4LAN] COOP_DOCK ' .. value)
 end
+
 local function send(value)
     if sessionState.client and sessionState.client.lease then
         sessionState.transport:send(value)
     end
 end
+
 local function stop(reason)
     dockAdapter.closed = true
     dockAdapter.ready = false
@@ -46,6 +50,7 @@ local function stop(reason)
     coopAdapter.stopVelocity(false)
     log('STOPPED ' .. tostring(reason))
 end
+
 local function localRow(entity, now)
     local row = dockAdapter.localRows[entity]
     if
@@ -91,12 +96,14 @@ function dockAdapter.intent(entity, now)
     end
     return intent
 end
+
 function dockAdapter.goal(entity, now)
     local intent = dockAdapter.intent(entity, now)
     if intent and intent.seq == coopAdapter.remote[entity].seq then
         return intent
     end
 end
+
 function coopAdapter.publishDock(entity, seq, now)
     if not sessionState.client or not sessionState.client.lease then
         return
@@ -129,6 +136,7 @@ function coopAdapter.publishDock(entity, seq, now)
         )
     )
 end
+
 function coopAdapter.dockPoseAllowed(entity, row, now)
     local intent, own = dockAdapter.goal(entity, now), localRow(entity, now)
     if
@@ -229,6 +237,7 @@ function coopAdapter.receive(fields, now)
         { epoch = epoch, seq = seq, lease = fields[4], mode = fields[8], dock = dock, at = now }
     return true
 end
+
 local function cancelDenied(now)
     local value = dockAdapter.denied
     local x = dockAdapter.execution
@@ -269,6 +278,7 @@ local function cancelDenied(now)
         age = own.age,
     })
 end
+
 function coopAdapter.frame(now)
     if coopAdapter.ready and not dockAdapter.setup and not dockAdapter.closed then
         dockAdapter.setup = true

@@ -65,6 +65,7 @@ local RESEND, RETRY, BATCH, READING = 0.25, 0.5, 20, 0.5
 local function log(v)
     DebugError('[X4LAN] ' .. v)
 end
+
 local function number(v, max)
     local n = tonumber(v)
     if not n or n ~= n or n < 0 or n > max then
@@ -72,36 +73,44 @@ local function number(v, max)
     end
     return n
 end
+
 local function integer(v, max)
     local n = number(v, max)
     if n and n % 1 == 0 then
         return n
     end
 end
+
 local function hex(v)
     return type(v) == 'string' and #v == 32 and v:match('^[a-f0-9]+$') ~= nil
 end
+
 local function send(v)
     if sessionState.client and sessionState.client.lease then
         sessionState.transport:send(v)
     end
 end
+
 local function paused()
     return API.paused and API.paused()
 end
+
 local function key(entity, generation, v, victimGeneration)
     return entity .. '|' .. generation .. '|' .. v .. '|' .. victimGeneration
 end
+
 local function validGen(entity)
     local g = healthAdapter.valid[entity]
     return g and g > (healthAdapter.closed[entity] or 0) and g or nil
 end
+
 local function victimGen(v)
     if v <= 2 then
         return validGen(v)
     end
     return 0
 end
+
 -- Only from a fresh MD readback of health_game.lua, never while paused (HEALTH's window).
 local function writable()
     return healthAdapter.mdStamp
@@ -247,6 +256,7 @@ local function shooter()
         end
     end
 end
+
 -- Incremental capture entry: n native hits of my own ship on victim v.
 function shotAdapter.hit(v, n)
     local entity, generation = shooter()
@@ -433,6 +443,7 @@ local function state(now)
         })
     end
 end
+
 function shotAdapter.stateReady(payload)
     local revision = integer(tostring(payload), 2147483647)
     if not shotAdapter.failed and revision == shotAdapter.stateRevision then
@@ -548,6 +559,7 @@ function coopAdapter.receive(fields, now)
     end
     return receive(fields, now)
 end
+
 function coopAdapter.frame(now)
     frame(now)
     if coopAdapter.ready and healthAdapter.ready and not shotAdapter.setup then

@@ -13,6 +13,7 @@ protocol.index = {}
 for i, ware in ipairs(protocol.wares) do
     protocol.index[ware] = i
 end
+
 function protocol.split(text, separator)
     local fields = {}
     for value in (text .. separator):gmatch('(.-)' .. separator) do
@@ -20,6 +21,7 @@ function protocol.split(text, separator)
     end
     return fields
 end
+
 function protocol.integer(text, limit, signed)
     if type(text) ~= 'string' or not text:match(signed and '^%-?%d+$' or '^%d+$') then
         return nil
@@ -30,6 +32,7 @@ function protocol.integer(text, limit, signed)
     end
     return number
 end
+
 function protocol.snapshot(payload)
     if #payload > 4000 then
         return nil
@@ -86,6 +89,7 @@ function protocol.snapshot(payload)
     end
     return result
 end
+
 function protocol.lines(payload)
     local rows = protocol.split(payload, ';')
     if #rows < 1 or #rows > #protocol.wares then
@@ -114,6 +118,7 @@ function protocol.lines(payload)
     end
     return result
 end
+
 function protocol.assembler()
     return {
         revision = -1,

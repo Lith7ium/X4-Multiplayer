@@ -15,6 +15,7 @@ X4LAN_SEED_CAPTURE = capture
 local function log(text)
     DebugError('[X4LAN] WORLD_CAPTURE ' .. text)
 end
+
 local function fail(reason)
     capture.failed = tostring(reason)
     log('STOPPED ' .. capture.failed)

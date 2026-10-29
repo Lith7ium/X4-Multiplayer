@@ -99,9 +99,11 @@ local function admittedSlot(slot)
     local slotNumber = tonumber(tostring(slot):match('^p([1-8])$'))
     return slotNumber and slotNumber <= shipRoster.players
 end
+
 local function log(text)
     DebugError('[X4LAN] ' .. text)
 end
+
 -- Rate-limited drop diagnostics for remote weapon visuals: one REMOTE_FIRE_DROP row per
 -- (kind, reason) at most every 5 s, with the number of drops since the last row.
 coopState.drops = {}
@@ -125,6 +127,7 @@ function coopState.dropped(kind, entity, reason, now)
         d.next = now + 5
     end
 end
+
 local function integer(value, limit)
     local number = tonumber(value)
     if
@@ -138,6 +141,7 @@ local function integer(value, limit)
     end
     return number
 end
+
 local function numeric(value, bound)
     local number = tonumber(value)
     if not number or number ~= number or math.abs(number) > bound then
@@ -145,11 +149,13 @@ local function numeric(value, bound)
     end
     return number
 end
+
 local function send(packet)
     if bubbleState.client and bubbleState.client.lease then
         bubbleState.transport:send(packet)
     end
 end
+
 -- Rate-limited: one COOP_FRAME_SLIP row at most every 5 s, with the repairs since the last.
 local slipLog = { n = 0, next = 0 }
 local function logSlip(i, slip, action, now)
@@ -168,6 +174,7 @@ local function logSlip(i, slip, action, now)
         slipLog.next = now + 5
     end
 end
+
 local function clearVelocity(i)
     local v = coopState.velocity[i]
     if not v then
@@ -184,6 +191,7 @@ local function clearVelocity(i)
     })
     coopState.velocity[i] = nil
 end
+
 function coopState.stopVelocity(discardTracks)
     for i = 1, coopState.count do
         clearVelocity(i)
@@ -192,6 +200,7 @@ function coopState.stopVelocity(discardTracks)
         coopState.remote = {}
     end
 end
+
 local function applyVelocity(i, sector, linear, now)
     if not linear then
         clearVelocity(i)
@@ -280,6 +289,7 @@ local function applyVelocity(i, sector, linear, now)
         })
     end
 end
+
 -- A replica the engine has attached to a highway (its highway context differs from its
 -- sector) is moved by the highway itself. No pose write, warp or native vector may touch
 -- it then: the mod never puts a replica on a highway, so this only guards an engine capture
@@ -288,6 +298,7 @@ local function replicaOnHighway(ship)
     local highway = engineApi.GetContextByClass(ship, 'highway', false)
     return highway ~= 0 and highway ~= engineApi.GetContextByClass(ship, 'sector', false)
 end
+
 -- Local motion mode of an owned ship. Only the piloted ship exposes boost/travel state.
 -- A highway context equal to the sector is not a highway (engine doubles return one id).
 local function localMode(ship, sector)
@@ -337,6 +348,7 @@ local function stopFire2(i)
         q.events = {}
     end
 end
+
 -- Freeze source-clock boundaries before NAV2 can reset its motion offset. They
 -- belong to an authority epoch, independently of FIRE2 baselines and motion tracks.
 local function pauseBoundary(now)
@@ -362,6 +374,7 @@ local function pauseBoundary(now)
     end
     return false
 end
+
 local function resumeCutoff(i)
     if not coopState.resumeAt then
         return nil
@@ -383,6 +396,7 @@ local function resumeCutoff(i)
     end
     return b.cutoff or math.huge
 end
+
 function coopState.stopFire()
     for i, r in pairs(coopState.remote) do
         if r.firing then
@@ -395,6 +409,7 @@ function coopState.stopFire()
         stopFire2(i)
     end
 end
+
 function coopState.entity(object)
     for i = 1, coopState.count do
         if coopState.ships[i] and object == coopState.ships[i] then
@@ -403,6 +418,7 @@ function coopState.entity(object)
     end
     return 0
 end
+
 function coopState.sectorId(name)
     if coopState.sectors[name] then
         return coopState.sectors[name]
@@ -417,6 +433,7 @@ function coopState.sectorId(name)
     end
     return nil
 end
+
 function coopState.prepare(now)
     if not coopState.setup then
         if bubbleState.ships then
@@ -446,6 +463,7 @@ function coopState.prepare(now)
     end
     coopState.lastFrame = now
 end
+
 function coopState.receive(fields, now)
     pauseBoundary(now) -- Client packets arrive before coop.frame, including NAV2.
     if fields[1] == 'AUTH' then
@@ -731,6 +749,7 @@ function coopState.receive(fields, now)
     end
     return false
 end
+
 local function declaredMode(i, remote)
     local modeState = coopState.modes[i]
     if
@@ -744,6 +763,7 @@ local function declaredMode(i, remote)
     end
     return nil
 end
+
 local function render(remote, now, i)
     if not remote or #remote.samples == 0 then
         return nil
@@ -795,6 +815,7 @@ local function render(remote, now, i)
     end
     return pose
 end
+
 -- Play FIRE2 trigger evidence back at the same source time as the rendered NAV2 pose.
 local function fire2Frame(i, remote, ship, now)
     -- Observed-projectile mode never aims/fires a native replay gun.
@@ -902,6 +923,7 @@ local function fire2Frame(i, remote, ship, now)
         })
     end
 end
+
 local function publishMetrics(now)
     if now >= (coopState.nextMetric or 0) then
         coopState.nextMetric = now + 1
@@ -927,6 +949,7 @@ local function publishMetrics(now)
         coopState.metrics = { n = 0, sum = 0, max = 0 }
     end
 end
+
 -- Opt-in (cfg.motion_diagnostics = seconds between rows, or true for 0.5 s): requested
 -- vs actual replica motion. Inert and unallocated by default; no session data is logged.
 local diagnose
@@ -995,6 +1018,7 @@ if cfg.motion_diagnostics then
         end
     end
 end
+
 -- MD warp of a remote replica into the received sector pose, at most once per second.
 local function warp(i, remote, sector, value, now)
     if now < (remote.nextWarp or 0) then
@@ -1012,9 +1036,11 @@ local function warp(i, remote, sector, value, now)
     AddUITriggeredEvent('X4LAN_Coop', 'SectorMove', value)
     return true
 end
+
 local function zoneOf(ship)
     return engineApi.GetContextByClass(ship, 'zone', false)
 end
+
 -- One pose write. slip/dx,dy,dz: slip found before this frame's write (0 if none).
 local function writePose(i, remote, ship, sector, value, written, slip, dx, dy, dz, now)
     if slip > 0 and remote.wFrom and remote.wFrom ~= remote.wTo then
@@ -1063,6 +1089,7 @@ local function writePose(i, remote, ship, sector, value, written, slip, dx, dy, 
         logSlip(i, slip, action, now)
     end
 end
+
 function coopState.frame(now)
     if not coopState.ready or not bubbleState.client or not bubbleState.client.lease then
         coopState.stopVelocity(false)

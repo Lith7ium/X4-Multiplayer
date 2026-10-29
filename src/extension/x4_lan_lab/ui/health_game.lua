@@ -52,6 +52,7 @@ local INTERVAL, FRESH, TTL, READING, RETRY =
 local function log(v)
     DebugError('[X4LAN] ' .. v)
 end
+
 local function number(v, max)
     local n = tonumber(v)
     if not n or n ~= n or n < 0 or n > max then
@@ -59,34 +60,41 @@ local function number(v, max)
     end
     return n
 end
+
 local function integer(v, max)
     local n = number(v, max)
     if n and n % 1 == 0 then
         return n
     end
 end
+
 local function hex(v)
     return type(v) == 'string' and #v == 32 and v:match('^[a-f0-9]+$') ~= nil
 end
+
 local function send(v)
     if sessionState.client and sessionState.client.lease then
         sessionState.transport:send(v)
     end
 end
+
 local function paused()
     return API.paused and API.paused()
 end
+
 function healthAdapter.mine(entity)
     return coopAdapter.owners[entity] == cfg.slot
         and coopAdapter.pilots[entity] == cfg.slot
         and coopAdapter.epochs[entity] ~= nil
 end
+
 -- Only from a fresh readback (MD running and unpaused), never while paused here.
 local function writable()
     return healthAdapter.mdStamp
         and (healthAdapter.now or 0) - healthAdapter.mdAt <= READING
         and not paused()
 end
+
 -- The MD freshness window of a queued write: the readback's wall second and game-age window.
 local function window(args)
     args.stamp, args.from, args.deadline =
@@ -454,6 +462,7 @@ local function key(entity)
         .. '|'
         .. tostring(coopAdapter.pilots[entity])
 end
+
 function coopAdapter.receive(fields, now)
     local ok, handled = pcall(healthAdapter.receive, fields, now)
     if not ok then
@@ -487,6 +496,7 @@ function coopAdapter.receive(fields, now)
     end
     return result
 end
+
 function coopAdapter.frame(now)
     frame(now)
     healthAdapter.now = now

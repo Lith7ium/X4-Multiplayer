@@ -44,6 +44,7 @@ local function atom(value)
         and #value <= 96
         and value:match('^[%w_.-]+$') ~= nil
 end
+
 -- Rate-limited diagnostics: one line per key every 5 s, with the suppressed count.
 function walk.diag(key, text, now)
     now = now or GetCurRealTime()
@@ -56,6 +57,7 @@ function walk.diag(key, text, now)
     walk.logAt[key] = { at = now, suppressed = 0 }
     return true
 end
+
 local function drop(reason, now, detail)
     walk.dropped[reason] = (walk.dropped[reason] or 0) + 1
     walk.diag(
@@ -68,6 +70,7 @@ local function drop(reason, now, detail)
         now
     )
 end
+
 -- Context validation shared by local and remote poses. Returns nil, reason when invalid.
 local function context(pose)
     if not KINDS[pose.kind] then
@@ -100,6 +103,7 @@ local function context(pose)
     end
     return pose
 end
+
 local function number(value)
     local numberValue = tonumber(value)
     if
@@ -112,6 +116,7 @@ local function number(value)
     end
     return numberValue
 end
+
 local function integer(value, max)
     local numberValue = number(value)
     if not numberValue or numberValue < 0 or numberValue % 1 ~= 0 or numberValue > max then
@@ -119,6 +124,7 @@ local function integer(value, max)
     end
     return numberValue
 end
+
 -- Identity of the place a pose is relative to; interpolation never crosses it.
 function walk.contextKey(pose)
     return pose.kind
@@ -131,6 +137,7 @@ function walk.contextKey(pose)
         .. '|'
         .. pose.macro
 end
+
 -- Forwarded WALK2 fields (1-based) -> sample, or nil, reason.
 function walk.parseRemote(fields)
     if #fields ~= 20 then
@@ -186,6 +193,7 @@ function walk.parseRemote(fields)
     end
     return context(pose)
 end
+
 -- MD's local payload: state|kind|ship|sector|code|macro|room|x|y|z|yaw|transfers|reason.
 function walk.parseLocal(payload)
     local fields = {}
@@ -234,6 +242,7 @@ function walk.parseLocal(payload)
     end
     return context(pose)
 end
+
 local function yawDelta(a, b)
     local d = (b - a) % 360
     if d > 180 then
@@ -241,9 +250,11 @@ local function yawDelta(a, b)
     end
     return d
 end
+
 local function distance(a, b)
     return math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2 + (a.z - b.z) ^ 2)
 end
+
 -- Interpolated pose at the render time (sender clock), never extrapolated past the newest.
 function walk.sample(remote, now)
     local list = remote.samples
@@ -280,6 +291,7 @@ function walk.sample(remote, now)
     end
     return list[numberValue]
 end
+
 function walk.receive(fields, now)
     if fields[1] == 'WALK' then
         drop('legacy_walk', now)
@@ -339,6 +351,7 @@ function walk.receive(fields, now)
     end
     return true
 end
+
 local function hide(remote, reason, now)
     if remote.visible or reason == 'forget' then
         AddUITriggeredEvent('X4LAN_Walk', 'Hide', { slot = remote.slot, reason = reason })
@@ -351,6 +364,7 @@ local function hide(remote, reason, now)
     remote.visible = false
     remote.applied = nil
 end
+
 local function apply(remote, now)
     local pose = walk.sample(remote, now)
     if not pose then
@@ -423,6 +437,7 @@ local function apply(remote, now)
     remote.appliedAt = now
     remote.visible = true
 end
+
 function walk.frame(now)
     if not walk.setup and sessionState.ready then
         walk.setup = true
