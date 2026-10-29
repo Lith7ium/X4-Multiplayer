@@ -1,6 +1,7 @@
 """HEALTH relay generations and LuaJIT doubles for victim-pilot health; native acceptance remains required."""
 import unittest
 from pathlib import Path
+from xml.etree import ElementTree
 from x4lan.coop import CoopSession
 from test_host import TOKEN, P1, P2, FOREIGN, hello
 from test_game_adapter import MOCK, LuaRuntime
@@ -213,7 +214,17 @@ class HealthAdapterTests(unittest.TestCase):
         self.assertEqual(tuple(out), ('Apply:5,Release:5', 'true'))
         md = (ROOT / 'src/extension/x4_lan_lab/md/x4lan_health.xml').read_text()
         self.assertTrue('$a.$gen gt $arena.$healthClosed.{$e} and $a.$gen ge $arena.$healthGen.{$e} and player.timewarp.factor gt 0s' in md, '$a.$gen gt $arena.$healthClosed.{$e} and $a.$gen ge $arena.$healthGen.{$e} and player.timewarp.factor gt 0s')
-        self.assertTrue('<do_if value="event.param3.$closed"><set_value name="$arena.$healthClosed.{$e}"' in md, '<do_if value="event.param3.$closed"><set_value name="$arena.$healthClosed.{$e}"')
+        health_xml = ElementTree.fromstring(md)
+        closed_guards = [
+            node for node in health_xml.iter('do_if')
+            if node.get('value') == 'event.param3.$closed'
+        ]
+        self.assertTrue(any(
+            len(guard) > 0
+            and guard[0].tag == 'set_value'
+            and guard[0].get('name') == '$arena.$healthClosed.{$e}'
+            for guard in closed_guards
+        ))
         self.assertTrue('exact="$arena.$healthValue.{$e}.{1}"' in md, 'exact="$arena.$healthValue.{$e}.{1}"')  # release restores the canonical value
 
     def test_writes_carry_the_window_of_a_fresh_md_readback(self):
@@ -339,9 +350,23 @@ class HealthAdapterTests(unittest.TestCase):
         self.assertIn('pilot_health = false', (UI / 'config.lua').read_text())
         bubble = (ROOT / 'src/extension/x4_lan_lab/md/x4lan_bubble.xml').read_text()
         self.assertEqual(bubble.count('@$healthLive.{'), 4)       # Publish: hull and shield of both ships
-        own = '<do_if value="not @Arena.$healthOwn.{$i}"><do_if value="($ship.hullpercentage - '
-        self.assertTrue(own in bubble, own)                          # guest skips its own ship; writes only changes
-        self.assertEqual(bubble.count(' gt 0.25"><set_object_'), 6)   # both ships', targets' and ships 3+ (ApplyExtra) hull/shield
+        bubble_xml = ElementTree.fromstring(bubble)
+        own_guards = [
+            node for node in bubble_xml.iter('do_if')
+            if node.get('value') == 'not @Arena.$healthOwn.{$i}'
+        ]
+        self.assertTrue(any(
+            len(guard) > 0
+            and guard[0].tag == 'do_if'
+            and guard[0].get('value', '').startswith('($ship.hullpercentage - ')
+            for guard in own_guards
+        ))  # guest skips its own ship; writes only changes
+        change_guards = [
+            node for node in bubble_xml.iter('do_if')
+            if node.get('value', '').endswith(' gt 0.25')
+            and len(node) > 0 and node[0].tag.startswith('set_object_')
+        ]
+        self.assertEqual(len(change_guards), 6)  # ships, targets and ApplyExtra hull/shield
         self.assertTrue('le (if @Arena.$healthOwn.{$i} then 0 else 1.01)' in bubble, 'le (if @Arena.$healthOwn.{$i} then 0 else 1.01)')
         guards = (ROOT / 'tools/dev/life_guards.py').read_text()          # the generator keeps the same guards
         for text in ('@$healthLive.{%d}', "'not @Arena.$healthOwn.{$i}'", 'le (if @Arena.$healthOwn.{$i} then 0 else 1.01)'):

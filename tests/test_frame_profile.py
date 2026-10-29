@@ -1,5 +1,6 @@
 """Opt-in FRAMECOST profiler with engine doubles; native frame costs still need an X4 run."""
 from pathlib import Path
+import ast
 import re
 import unittest
 from test_game_adapter import MOCK, LuaRuntime
@@ -59,8 +60,24 @@ for _,v in ipairs(logs) do assert(not v:find('FRAMECOST') and not v:find('MEASUR
         text = (UI / 'config.lua').read_text()
         self.assertIn('frame_profile = false', text)
         self.assertIn('net_probe = false', text)
-        launcher = (ROOT / 'tools/distribution/session_launcher.py').read_text()
-        self.assertIn('frame_profile=True, net_probe=True', launcher)  # on by default in internal packages
+        launcher = ast.parse((ROOT / 'tools/distribution/session_launcher.py').read_text())
+        config_function = next(
+            node for node in launcher.body
+            if isinstance(node, ast.FunctionDef) and node.name == 'session_config'
+        )
+        config_assignment = next(
+            node for node in config_function.body
+            if isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == 'cfg' for target in node.targets)
+        )
+        self.assertIsInstance(config_assignment.value, ast.Call)
+        self.assertIsInstance(config_assignment.value.func, ast.Name)
+        self.assertEqual(config_assignment.value.func.id, 'dict')
+        defaults = {keyword.arg: keyword.value for keyword in config_assignment.value.keywords}
+        for flag in ('frame_profile', 'net_probe'):
+            self.assertIsInstance(defaults[flag], ast.Constant)
+            self.assertIs(defaults[flag].value, True)  # Enabled in internal packages.
+
         ui = (ROOT / 'src/extension/x4_lan_lab/ui.xml').read_text()
         order = [ui.index('ui/' + n) for n in ('client.lua', 'measure_clock.lua', 'net_rtt.lua',
                                                   'frame_profile.lua', 'game.lua', 'bubble_game.lua',
