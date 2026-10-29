@@ -155,17 +155,14 @@ local function mirror(pose, now)
     if not state.lastWritten then
         -- A no-op setter would pass a test at the exact spawn position.
         -- Deliberately move ONLY the newly created proxy by 25 metres first.
-        local probe = ffi.new(
-            'UIPosRot',
-            {
-                x = target.x + 25,
-                y = target.y,
-                z = target.z,
-                yaw = target.yaw,
-                pitch = target.pitch,
-                roll = target.roll,
-            }
-        )
+        local probe = ffi.new('UIPosRot', {
+            x = target.x + 25,
+            y = target.y,
+            z = target.z,
+            yaw = target.yaw,
+            pitch = target.pitch,
+            roll = target.roll,
+        })
         C.SetObjectSectorPos(state.proxy, state.sector, probe)
         local actual = C.GetObjectPositionInSector(state.proxy)
         local errorMetres = math.sqrt(
@@ -238,14 +235,14 @@ local function frame()
     end
     local pose
     if not C.IsGamePaused() then
-        local p = C.GetObjectPositionInSector(ship)
+        local sectorPosition = C.GetObjectPositionInSector(ship)
         pose = {
-            p.x - state.origin[1],
-            p.y - state.origin[2],
-            p.z - state.origin[3],
-            p.yaw,
-            p.pitch,
-            p.roll,
+            sectorPosition.x - state.origin[1],
+            sectorPosition.y - state.origin[2],
+            sectorPosition.z - state.origin[3],
+            sectorPosition.yaw,
+            sectorPosition.pitch,
+            sectorPosition.roll,
         }
         if math.max(math.abs(pose[1]), math.abs(pose[2]), math.abs(pose[3])) > 50000 then
             pose = nil
