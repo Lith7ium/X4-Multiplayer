@@ -1,15 +1,15 @@
 -- Original native jettison/magnet bridge. Inventory and drop lifetime belong to host X4.
-local A = X4LAN_BUBBLE_API
+local API = X4LAN_BUBBLE_API
 local cfg = X4LAN_CONFIG
-if not A or not A.universe or not cfg.world_sync then
+if not API or not API.universe or not cfg.world_sync then
     return
 end
 local ffi = require('ffi')
 local C = ffi.C
-local U = A.universe
-local P = X4LAN_UNIVERSE_PROTOCOL
-local s = A.state
-local g = {
+local universe = API.universe
+local protocol = X4LAN_UNIVERSE_PROTOCOL
+local state = API.state
+local cargo = {
     drops = {},
     queue = {},
     held = {},
@@ -19,7 +19,7 @@ local g = {
     counter = 0,
     creationSeq = 0,
 }
-A.cargo = g
+API.cargo = cargo
 local function log(v)
     DebugError('[X4LAN] CARGO ' .. v)
 end
@@ -27,8 +27,8 @@ local function key(v)
     return tostring(v):gsub('ULL$', '')
 end
 local function send(v)
-    if s.client and s.client.lease then
-        s.transport:send(v)
+    if state.client and state.client.lease then
+        state.transport:send(v)
     end
 end
 local function event(name, args)
@@ -42,7 +42,7 @@ local notices = {
     UNCERTAIN = 'Cargo outcome is uncertain. End this internal test and collect diagnostics; do not repeat the transfer.',
 }
 -- MD scalar object strings are hexadecimal. Do not round 64-bit IDs through doubles.
-function g.object(text)
+function cargo.object(text)
     if type(text) ~= 'string' or not text:match('^0x[%da-fA-F]+$') or #text > 18 then
         return nil
     end
@@ -53,45 +53,45 @@ function g.object(text)
     return value
 end
 local function finish(request, status, fence)
-    g.executed[request] = { status = status, fence = fence }
-    send('CARGODONE|1|' .. s.client.lease .. '|' .. request .. '|' .. status .. '|' .. fence)
+    cargo.executed[request] = { status = status, fence = fence }
+    send('CARGODONE|1|' .. state.client.lease .. '|' .. request .. '|' .. status .. '|' .. fence)
 end
 local function enqueue(ship, verb, id, ware, amount)
-    local b = U.latest
+    local b = universe.latest
     if
         not b
-        or not P.atom(ware)
+        or not protocol.atom(ware)
         or not amount
         or amount <= 0
-        or #g.queue >= 64
-        or A.coop.owners[ship] ~= cfg.slot
-        or not A.coop.epochs[ship]
+        or #cargo.queue >= 64
+        or API.coop.owners[ship] ~= cfg.slot
+        or not API.coop.epochs[ship]
     then
         log('REQUEST_REJECTED missing authority or queue full')
         return false
     end
-    g.counter = g.counter + 1
-    local req = s.client.lease:sub(1, 20) .. 'ca00' .. string.format('%08x', g.counter)
-    g.queue[#g.queue + 1] = {
+    cargo.counter = cargo.counter + 1
+    local req = state.client.lease:sub(1, 20) .. 'ca00' .. string.format('%08x', cargo.counter)
+    cargo.queue[#cargo.queue + 1] = {
         request = req,
         host = b.epoch,
         ship = ship,
-        epoch = A.coop.epochs[ship],
+        epoch = API.coop.epochs[ship],
         verb = verb,
         drop = id,
         ware = ware,
         amount = amount,
     }
     if id > 0 then
-        g.held[id] = { request = req }
+        cargo.held[id] = { request = req }
     end
     return true
 end
-function g.rows(sector)
+function cargo.rows(sector)
     local rows = {}
-    for k, d in pairs(g.drops) do
+    for k, d in pairs(cargo.drops) do
         if not C.IsComponentOperational(d.object) then
-            g.drops[k] = nil
+            cargo.drops[k] = nil
         elseif C.GetContextByClass(d.object, 'sector', false) == sector and d.amount > 0 then
             local p = C.GetObjectPositionInSector(d.object)
             local row = string.format(
@@ -107,20 +107,20 @@ function g.rows(sector)
                 d.ware,
                 d.amount
             )
-            assert(P.record(row), 'invalid native drop')
+            assert(protocol.record(row), 'invalid native drop')
             rows[#rows + 1] = { id = d.id, row = row }
         end
     end
     return rows
 end
-function g.ensure(r, sector)
+function cargo.ensure(r, sector)
     local id = r.entity.id
-    local h = g.held[id]
+    local h = cargo.held[id]
     if h then
-        if not h.fence or not U.latest or U.latest.revision < h.fence then
+        if not h.fence or not universe.latest or universe.latest.revision < h.fence then
             return
         end
-        g.held[id] = nil
+        cargo.held[id] = nil
     end
     if r.object and C.IsComponentOperational(r.object) then
         return
@@ -128,37 +128,34 @@ function g.ensure(r, sector)
     if r.creating then
         return
     end
-    g.creationSeq = g.creationSeq + 1
-    assert(g.creationSeq <= 2147483647, 'cargo creation generation exhausted')
-    r.creating = g.creationSeq
+    cargo.creationSeq = cargo.creationSeq + 1
+    assert(cargo.creationSeq <= 2147483647, 'cargo creation generation exhausted')
+    r.creating = cargo.creationSeq
     local e = r.entity
     local p = e.pose
-    event(
-        'Create',
-        {
-            id = id,
-            generation = r.creating,
-            macro = e.macro,
-            ware = e.ware,
-            amount = e.amount,
-            sector = A.id(sector),
-            x = p[1],
-            y = p[2],
-            z = p[3],
-            yaw = p[4],
-            pitch = p[5],
-            roll = p[6],
-        }
-    )
+    event('Create', {
+        id = id,
+        generation = r.creating,
+        macro = e.macro,
+        ware = e.ware,
+        amount = e.amount,
+        sector = API.id(sector),
+        x = p[1],
+        y = p[2],
+        z = p[3],
+        yaw = p[4],
+        pitch = p[5],
+        roll = p[6],
+    })
 end
-local receive = U.receive
-function U.receive(f, now)
+local receive = universe.receive
+function universe.receive(f, now)
     if f[1] == 'CARGOEXEC' then
-        if cfg.slot ~= 'p1' or #f ~= 11 or not P.hex(f[4]) then
+        if cfg.slot ~= 'p1' or #f ~= 11 or not protocol.hex(f[4]) then
             return true
         end
         local req = f[4]
-        local previous = g.executed[req]
+        local previous = cargo.executed[req]
         if previous then
             if previous.fence then
                 finish(req, previous.status, previous.fence)
@@ -166,7 +163,10 @@ function U.receive(f, now)
             return true
         end
         local ship, epoch, id, amount =
-            P.integer(f[5], 2), P.integer(f[6]), P.integer(f[8]), P.integer(f[10], 1000000)
+            protocol.integer(f[5], 2),
+            protocol.integer(f[6]),
+            protocol.integer(f[8]),
+            protocol.integer(f[10], 1000000)
         if
             not ship
             or ship < 1
@@ -174,17 +174,17 @@ function U.receive(f, now)
             or not id
             or not amount
             or amount < 1
-            or not P.atom(f[9])
+            or not protocol.atom(f[9])
             or (f[7] ~= 'DROP' and f[7] ~= 'PICKUP')
         then
             return true
         end
         -- No engine mutation occurred, so the existing committed baseline suffices.
-        if A.coop.epochs[ship] ~= epoch or A.coop.owners[ship] ~= f[11] then
-            finish(req, 'STALE', U.revision)
+        if API.coop.epochs[ship] ~= epoch or API.coop.owners[ship] ~= f[11] then
+            finish(req, 'STALE', universe.revision)
             return true
         end
-        g.executed[req] = { status = 'PENDING' }
+        cargo.executed[req] = { status = 'PENDING' }
         event(
             'Order',
             { request = req, ship = ship, verb = f[7], drop = id, ware = f[9], amount = amount }
@@ -194,29 +194,29 @@ function U.receive(f, now)
         if cfg.slot == 'p1' or #f ~= 6 then
             return true
         end
-        local q = g.queue[1]
+        local q = cargo.queue[1]
         if not q or f[4] ~= q.request or f[5] == 'PENDING' then
             return true
         end
         if f[5] ~= 'OK' and not notices[f[5]] then
             return true
         end
-        local fence = P.integer(f[6])
+        local fence = protocol.integer(f[6])
         if not fence then
             return true
         end
         -- A baseline may overtake its completion. Its committed revision already
         -- satisfies that fence; waiting for an invented next revision strands a
         -- partially collected drop until unrelated world state changes.
-        if q.drop > 0 and g.held[q.drop] then
-            g.held[q.drop].fence = fence
+        if q.drop > 0 and cargo.held[q.drop] then
+            cargo.held[q.drop].fence = fence
         end
-        table.remove(g.queue, 1)
+        table.remove(cargo.queue, 1)
         log('RESULT ' .. q.verb .. ' ' .. f[5] .. ' fence=' .. fence)
         if notices[f[5]] then
-            g.lastNotice = g.lastNotice or {}
-            if now >= (g.lastNotice[f[5]] or -math.huge) + 5 then
-                g.lastNotice[f[5]] = now
+            cargo.lastNotice = cargo.lastNotice or {}
+            if now >= (cargo.lastNotice[f[5]] or -math.huge) + 5 then
+                cargo.lastNotice[f[5]] = now
                 AddUITriggeredEvent('X4LAN_Trade', 'Notice', notices[f[5]])
             end
         end
@@ -225,125 +225,125 @@ function U.receive(f, now)
         if
             cfg.slot == 'p1'
             or #f ~= 8
-            or not U.latest
-            or f[4] ~= U.latest.epoch
-            or not P.atom(f[6])
+            or not universe.latest
+            or f[4] ~= universe.latest.epoch
+            or not protocol.atom(f[6])
         then
             return true
         end
-        local seq, a, b = P.integer(f[5]), P.integer(f[7], 1000000), P.integer(f[8], 1000000)
-        if not seq or not a or not b or (g.inventory[f[6]] or -1) >= seq then
+        local seq, a, b =
+            protocol.integer(f[5]), protocol.integer(f[7], 1000000), protocol.integer(f[8], 1000000)
+        if not seq or not a or not b or (cargo.inventory[f[6]] or -1) >= seq then
             return true
         end
-        g.inventory[f[6]] = seq
+        cargo.inventory[f[6]] = seq
         event('Inventory', { ware = f[6], counts = { a, b } })
         return true
     end
     return receive(f, now)
 end
 local function frame(now)
-    if not s.client or not s.client.lease or not A.coop.ready or A.paused() then
+    if not state.client or not state.client.lease or not API.coop.ready or API.paused() then
         return
     end
-    if not g.setup then
-        g.setup = true
+    if not cargo.setup then
+        cargo.setup = true
         event('Setup')
         return
     end
-    if not g.ready then
+    if not cargo.ready then
         return
     end
     if cfg.slot == 'p1' then
-        for k, d in pairs(g.drops) do
+        for k, d in pairs(cargo.drops) do
             if not C.IsComponentOperational(d.object) then
-                g.drops[k] = nil
-                U.cargoDirty = true
+                cargo.drops[k] = nil
+                universe.cargoDirty = true
             end
         end
-        for request, r in pairs(g.executed) do
+        for request, r in pairs(cargo.executed) do
             if r.after and now >= r.after and not r.fence then
                 if not r.revision then
-                    r.revision = U.revision
-                    U.cargoDirty = true
-                elseif U.revision > r.revision then
-                    finish(request, r.status, U.revision)
+                    r.revision = universe.revision
+                    universe.cargoDirty = true
+                elseif universe.revision > r.revision then
+                    finish(request, r.status, universe.revision)
                 end
             end
         end
     else
-        if U.latest then
-            for id, h in pairs(g.held) do
-                if h.fence and U.latest.revision >= h.fence and not U.replicas[id] then
-                    g.held[id] = nil
+        if universe.latest then
+            for id, h in pairs(cargo.held) do
+                if
+                    h.fence
+                    and universe.latest.revision >= h.fence
+                    and not universe.replicas[id]
+                then
+                    cargo.held[id] = nil
                 end
             end
         end
-        local q = g.queue[1]
+        local q = cargo.queue[1]
         if q and now >= (q.nextSend or 0) then
             q.nextSend = now + 0.25
-            send(
-                table.concat(
-                    {
-                        'CARGOREQ',
-                        '1',
-                        s.client.lease,
-                        q.request,
-                        q.host,
-                        q.ship,
-                        q.epoch,
-                        q.verb,
-                        q.drop,
-                        q.ware,
-                        q.amount,
-                    },
-                    '|'
-                )
-            )
+            send(table.concat({
+                'CARGOREQ',
+                '1',
+                state.client.lease,
+                q.request,
+                q.host,
+                q.ship,
+                q.epoch,
+                q.verb,
+                q.drop,
+                q.ware,
+                q.amount,
+            }, '|'))
         end
     end
 end
-local originalFrame = U.frame
-function U.frame(now)
+local originalFrame = universe.frame
+function universe.frame(now)
     originalFrame(now)
-    if g.failed then
+    if cargo.failed then
         return
     end
     local ok, err = pcall(frame, now)
     if not ok then
-        g.failed = true
+        cargo.failed = true
         log('STOPPED ' .. tostring(err))
     end
 end
 RegisterEvent('X4LAN_Cargo.Ready', function()
-    g.ready = true
+    cargo.ready = true
     log('READY slot=' .. cfg.slot)
 end)
 RegisterEvent('X4LAN_Cargo.HostDrop', function(_, payload)
     if cfg.slot ~= 'p1' or type(payload) ~= 'string' then
         return
     end
-    local f = P.split(payload, '|')
-    local object = g.object(f[1])
-    local amount = P.integer(f[3], 1000000)
-    if #f ~= 3 or not object or not amount or amount == 0 or not P.atom(f[2]) then
+    local f = protocol.split(payload, '|')
+    local object = cargo.object(f[1])
+    local amount = protocol.integer(f[3], 1000000)
+    if #f ~= 3 or not object or not amount or amount == 0 or not protocol.atom(f[2]) then
         return
     end
     local k = key(object)
-    local d = g.drops[k]
+    local d = cargo.drops[k]
     if not d then
-        local macro = GetComponentData(A.id(object), 'macro')
-        if not P.atom(macro, true) then
+        local macro = GetComponentData(API.id(object), 'macro')
+        if not protocol.atom(macro, true) then
             return
         end
-        U.nextId = U.nextId + 1
-        assert(U.nextId <= 2147483647, 'world ID space exhausted')
-        d = { id = U.nextId, object = object, macro = macro }
-        g.drops[k] = d
-        event('Register', { id = d.id, object = A.id(object) })
+        universe.nextId = universe.nextId + 1
+        assert(universe.nextId <= 2147483647, 'world ID space exhausted')
+        d = { id = universe.nextId, object = object, macro = macro }
+        cargo.drops[k] = d
+        event('Register', { id = d.id, object = API.id(object) })
         log('TRACK id=' .. d.id .. ' object=' .. k .. ' ware=' .. f[2] .. ' amount=' .. amount)
     end
     if d.amount ~= amount or d.ware ~= f[2] then
-        U.cargoDirty = true
+        universe.cargoDirty = true
     end
     d.ware = f[2]
     d.amount = amount
@@ -352,11 +352,11 @@ RegisterEvent('X4LAN_Cargo.Created', function(_, payload)
     if type(payload) ~= 'string' then
         return
     end
-    local f = P.split(payload, '|')
-    local id = P.integer(f[1])
-    local generation = P.integer(f[2])
-    local object = g.object(f[3])
-    local r = id and U.replicas[id]
+    local f = protocol.split(payload, '|')
+    local id = protocol.integer(f[1])
+    local generation = protocol.integer(f[2])
+    local object = cargo.object(f[3])
+    local r = id and universe.replicas[id]
     if #f ~= 3 or not generation or not object then
         return
     end
@@ -364,7 +364,7 @@ RegisterEvent('X4LAN_Cargo.Created', function(_, payload)
     if r and r.creation == generation and r.object == object then
         return
     end
-    if not r or r.entity.kind ~= 'drop' or r.creating ~= generation or g.held[id] then
+    if not r or r.entity.kind ~= 'drop' or r.creating ~= generation or cargo.held[id] then
         if C.IsComponentOperational(object) then
             C.RemoveComponent(object)
         end
@@ -376,16 +376,16 @@ RegisterEvent('X4LAN_Cargo.Created', function(_, payload)
     r.object = object
     r.creation = generation
     r.creating = nil
-    U.replicaKeys[key(object)] = true
+    universe.replicaKeys[key(object)] = true
     log('CREATED id=' .. id .. ' generation=' .. generation .. ' object=' .. key(object))
 end)
 RegisterEvent('X4LAN_Cargo.GuestDrop', function(_, payload)
     if type(payload) ~= 'string' then
         return
     end
-    local f = P.split(payload, '|')
-    local ship = P.integer(f[1], 2)
-    local amount = P.integer(f[3], 1000000)
+    local f = protocol.split(payload, '|')
+    local ship = protocol.integer(f[1], 2)
+    local amount = protocol.integer(f[3], 1000000)
     if #f == 4 and ship and ship > 0 and amount and f[3] == f[4] then
         enqueue(ship, 'DROP', 0, f[2], amount)
     else
@@ -396,12 +396,12 @@ RegisterEvent('X4LAN_Cargo.GuestPickup', function(_, payload)
     if type(payload) ~= 'string' then
         return
     end
-    local f = P.split(payload, '|')
-    local id = P.integer(f[1])
-    local generation = P.integer(f[2])
-    local object = g.object(f[3])
-    local ship = P.integer(f[4], 2)
-    local amount = P.integer(f[6], 1000000)
+    local f = protocol.split(payload, '|')
+    local id = protocol.integer(f[1])
+    local generation = protocol.integer(f[2])
+    local object = cargo.object(f[3])
+    local ship = protocol.integer(f[4], 2)
+    local amount = protocol.integer(f[6], 1000000)
     if
         #f == 7
         and id
@@ -412,11 +412,11 @@ RegisterEvent('X4LAN_Cargo.GuestPickup', function(_, payload)
         and amount
         and f[6] == f[7]
     then
-        local r = U.replicas[id]
+        local r = universe.replicas[id]
         -- Rollback can free room for another native partial collection in the same
         -- frame. Its old replica must not enqueue another intention, including after
         -- a newer baseline has recreated the remaining quantity under the same ID.
-        if g.held[id] or not r or r.creation ~= generation or r.object ~= object then
+        if cargo.held[id] or not r or r.creation ~= generation or r.object ~= object then
             return
         end
         if enqueue(ship, 'PICKUP', id, f[5], amount) then
@@ -424,7 +424,7 @@ RegisterEvent('X4LAN_Cargo.GuestPickup', function(_, payload)
                 if C.IsComponentOperational(r.object) then
                     C.RemoveComponent(r.object)
                 end
-                U.replicaKeys[key(r.object)] = nil
+                universe.replicaKeys[key(r.object)] = nil
                 r.object = nil
             end
         end
@@ -433,26 +433,31 @@ RegisterEvent('X4LAN_Cargo.GuestPickup', function(_, payload)
     end
 end)
 RegisterEvent('X4LAN_Cargo.Inventory', function(_, payload)
-    if cfg.slot ~= 'p1' or not s.client or not s.client.lease or type(payload) ~= 'string' then
-        return
-    end
-    local f = P.split(payload, '|')
     if
-        #f ~= 3
-        or not P.atom(f[1])
-        or not P.integer(f[2], 1000000)
-        or not P.integer(f[3], 1000000)
+        cfg.slot ~= 'p1'
+        or not state.client
+        or not state.client.lease
+        or type(payload) ~= 'string'
     then
         return
     end
-    g.inventorySeq = g.inventorySeq + 1
+    local f = protocol.split(payload, '|')
+    if
+        #f ~= 3
+        or not protocol.atom(f[1])
+        or not protocol.integer(f[2], 1000000)
+        or not protocol.integer(f[3], 1000000)
+    then
+        return
+    end
+    cargo.inventorySeq = cargo.inventorySeq + 1
     send(
         'CINV|1|'
-            .. s.client.lease
+            .. state.client.lease
             .. '|'
-            .. s.client.lease
+            .. state.client.lease
             .. '|'
-            .. g.inventorySeq
+            .. cargo.inventorySeq
             .. '|'
             .. payload
     )
@@ -461,8 +466,8 @@ RegisterEvent('X4LAN_Cargo.Result', function(_, payload)
     if cfg.slot ~= 'p1' or type(payload) ~= 'string' then
         return
     end
-    local f = P.split(payload, '|')
-    local r = g.executed[f[1]]
+    local f = protocol.split(payload, '|')
+    local r = cargo.executed[f[1]]
     if #f == 2 and r and r.status == 'PENDING' then
         r.status = f[2]
         r.after = GetCurRealTime() + 0.25
@@ -473,15 +478,15 @@ RegisterEvent('X4LAN_Cargo.CreateFailed', function(_, payload)
     if type(payload) ~= 'string' then
         return
     end
-    local f = P.split(payload, '|')
-    local id = P.integer(f[1])
-    local generation = P.integer(f[2])
-    local r = id and U.replicas[id]
+    local f = protocol.split(payload, '|')
+    local id = protocol.integer(f[1])
+    local generation = protocol.integer(f[2])
+    local r = id and universe.replicas[id]
     if #f ~= 4 or not r or not generation or r.creating ~= generation then
         return
     end
     r.creating = nil
-    g.failed = true
+    cargo.failed = true
     log('STOPPED native donor cannot create cargo: ' .. payload)
     AddUITriggeredEvent(
         'X4LAN_Trade',
