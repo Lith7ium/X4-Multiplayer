@@ -19,6 +19,7 @@ ATOM = re.compile(r'[A-Za-z0-9_.-]{1,128}\Z')
 
 
 def validate(catalog):
+    """Reject malformed catalogs and ambiguous local identities."""
     if (
         not isinstance(catalog, dict)
         or set(catalog) != {'protocol', 'recipe_sha256', 'stations'}
@@ -48,10 +49,12 @@ def validate(catalog):
             or row['object'] in handles
         ):
             raise seed.SeedError('invalid or aliased local station handle')
-        values = [row[k] for k in ('code', 'macro', 'owner', 'sector')]
+        values = [row[field] for field in ('code', 'macro', 'owner', 'sector')]
         if any(
-            not isinstance(v, str) or not ATOM.fullmatch(v) or v in ('nil', 'unknown', 'null')
-            for v in values
+            not isinstance(value, str)
+            or not ATOM.fullmatch(value)
+            or value in ('nil', 'unknown', 'null')
+            for value in values
         ):
             raise seed.SeedError('unresolved station identity')
         identity = tuple(values)
@@ -62,7 +65,8 @@ def validate(catalog):
             not isinstance(pose, list)
             or len(pose) != 6
             or any(
-                type(v) not in (float, int) or not math.isfinite(v) or abs(v) > 1e12 for v in pose
+                type(value) not in (float, int) or not math.isfinite(value) or abs(value) > 1e12
+                for value in pose
             )
         ):
             raise seed.SeedError('invalid station pose')
@@ -72,6 +76,7 @@ def validate(catalog):
 
 
 def create(recipe, stations):
+    """Build and validate a catalog tied to the world recipe."""
     return validate(
         dict(protocol=1, recipe_sha256=world_start.fingerprint(recipe), stations=stations)
     )
@@ -90,7 +95,7 @@ def match(host, guest):
 
     def index(catalog):
         return {
-            tuple(row[k] for k in ('code', 'macro', 'owner', 'sector')): row
+            tuple(row[field] for field in ('code', 'macro', 'owner', 'sector')): row
             for row in catalog['stations']
         }
 
@@ -100,13 +105,15 @@ def match(host, guest):
     extra = sorted(target.keys() - source.keys())
     mismatches = []
     bindings = {}
-    max_position = max_angle = 0.0
+    max_position = 0.0
+    max_angle = 0.0
     for identity in sorted(source.keys() & target.keys()):
-        a, b = source[identity], target[identity]
-        position = math.dist(a['pose'][:3], b['pose'][:3])
+        host_station = source[identity]
+        guest_station = target[identity]
+        position = math.dist(host_station['pose'][:3], guest_station['pose'][:3])
         angle = max(
-            abs((x - y + math.pi) % (2 * math.pi) - math.pi)
-            for x, y in zip(a['pose'][3:], b['pose'][3:])
+            abs((host_angle - guest_angle + math.pi) % (2 * math.pi) - math.pi)
+            for host_angle, guest_angle in zip(host_station['pose'][3:], guest_station['pose'][3:])
         )
         max_position = max(max_position, position)
         max_angle = max(max_angle, angle)
@@ -114,14 +121,14 @@ def match(host, guest):
             mismatches.append(
                 dict(identity=list(identity), position_error_m=position, angle_error_rad=angle)
             )
-        bindings[str(a['object'])] = b['object']
+        bindings[str(host_station['object'])] = guest_station['object']
     accepted = not (missing or extra or mismatches)
     return dict(
         station_layout_matches=accepted,
         host_count=len(source),
         guest_count=len(target),
-        missing=[list(k) for k in missing],
-        extra=[list(k) for k in extra],
+        missing=[list(identity) for identity in missing],
+        extra=[list(identity) for identity in extra],
         pose_mismatches=mismatches,
         max_position_error_m=max_position,
         max_angle_error_rad=max_angle,

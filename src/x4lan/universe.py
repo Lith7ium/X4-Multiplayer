@@ -43,26 +43,30 @@ def atom(value, macro=False):
 
 def record(value):
     """id,kind,macro,owner,x,y,z,yaw,pitch,roll,ware,amount (all ASCII)."""
-    if len(value) > MAX_RECORD or not value.isascii() or any(c.isspace() for c in value):
+    if (
+        len(value) > MAX_RECORD
+        or not value.isascii()
+        or any(character.isspace() for character in value)
+    ):
         raise ValueError('record size/encoding')
-    f = value.split(',')
-    if len(f) != 12 or not sequence(f[0]):
+    fields = value.split(',')
+    if len(fields) != 12 or not sequence(fields[0]):
         raise ValueError('record fields/id')
-    if f[1] not in ('ship', 'drop'):
+    if fields[1] not in ('ship', 'drop'):
         raise ValueError('object kind')
-    atom(f[2], True)
-    atom(f[3])
-    atom(f[10])
-    for i, text in enumerate(f[4:10]):
-        v = float(text)
-        if not math.isfinite(v) or abs(v) > (50_000_000 if i < 3 else math.tau):
+    atom(fields[2], True)
+    atom(fields[3])
+    atom(fields[10])
+    for i, text in enumerate(fields[4:10]):
+        coordinate = float(text)
+        if not math.isfinite(coordinate) or abs(coordinate) > (50_000_000 if i < 3 else math.tau):
             raise ValueError('object pose')
-    amount = sequence(f[11])
-    if amount > 1_000_000 or (f[1] == 'ship' and (f[10] != 'none' or amount)):
+    amount = sequence(fields[11])
+    if amount > 1_000_000 or (fields[1] == 'ship' and (fields[10] != 'none' or amount)):
         raise ValueError('object cargo')
-    if f[1] == 'drop' and (f[10] == 'none' or not amount):
+    if fields[1] == 'drop' and (fields[10] == 'none' or not amount):
         raise ValueError('empty drop')
-    return int(f[0])
+    return int(fields[0])
 
 
 def checksum(rows):
@@ -187,10 +191,10 @@ class Sender:
         self.done = False
 
     def acknowledge(self, epoch, revision, index):
-        b = self.baseline
-        if epoch != b.epoch or revision != b.revision:
+        baseline = self.baseline
+        if epoch != baseline.epoch or revision != baseline.revision:
             return
-        end = len(b.rows) + 1
+        end = len(baseline.rows) + 1
         if index == -1:
             self.acked.clear()
             self.sent_at.clear()
@@ -202,17 +206,19 @@ class Sender:
     def packets(self, lease, now):
         if self.done:
             return []
-        b = self.baseline
+        baseline = self.baseline
         if 0 not in self.acked:
             indices = [0]
         else:
-            outstanding = [i for i in range(1, len(b.rows) + 1) if i not in self.acked]
-            indices = outstanding[:WINDOW] or [len(b.rows) + 1]
+            outstanding = [
+                index for index in range(1, len(baseline.rows) + 1) if index not in self.acked
+            ]
+            indices = outstanding[:WINDOW] or [len(baseline.rows) + 1]
         result = []
-        for i in indices:
-            if now - self.sent_at.get(i, -math.inf) >= RETRY:
-                self.sent_at[i] = now
-                result.append(b.packet(lease, i))
+        for index in indices:
+            if now - self.sent_at.get(index, -math.inf) >= RETRY:
+                self.sent_at[index] = now
+                result.append(baseline.packet(lease, index))
         return result
 
 

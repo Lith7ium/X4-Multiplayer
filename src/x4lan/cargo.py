@@ -30,14 +30,24 @@ class CargoTransactions:
         if len(raw) > 768:
             return []
         try:
-            f = raw.decode('ascii').split('|')
-            if len(f) < 4 or f[1] != '1':
+            fields = raw.decode('ascii').split('|')
+            if len(fields) < 4 or fields[1] != '1':
                 return []
-            slot, peer = s._peer(f[2], address)
+            slot, peer = s._peer(fields[2], address)
             if not peer:
                 return []
-            if f[0] == 'CINV' and len(f) == 8 and slot == 'p1' and f[3] == peer.lease:
-                seq, ware, first, second = sequence(f[4]), f[5], sequence(f[6]), sequence(f[7])
+            if (
+                fields[0] == 'CINV'
+                and len(fields) == 8
+                and slot == 'p1'
+                and fields[3] == peer.lease
+            ):
+                seq, ware, first, second = (
+                    sequence(fields[4]),
+                    fields[5],
+                    sequence(fields[6]),
+                    sequence(fields[7]),
+                )
                 if not WARE.fullmatch(ware) or max(first, second) > 1000000:
                     return []
                 old = self.inventory.get(ware)
@@ -45,21 +55,26 @@ class CargoTransactions:
                     return []
                 if not old and len(self.inventory) >= 256:
                     return []
-                self.inventory[ware] = (seq, now, f[3:])
+                self.inventory[ware] = (seq, now, fields[3:])
                 return []
-            if not HEX.fullmatch(f[3]):
+            if not HEX.fullmatch(fields[3]):
                 return []
-            request = f[3]
-            if f[0] == 'CARGODONE' and len(f) == 6 and slot == 'p1' and f[4] in RESULTS:
-                fence = sequence(f[5])
+            request = fields[3]
+            if (
+                fields[0] == 'CARGODONE'
+                and len(fields) == 6
+                and slot == 'p1'
+                and fields[4] in RESULTS
+            ):
+                fence = sequence(fields[5])
                 old = self.requests.get(request)
                 if old and old['host'] == peer.lease and old['result'] == 'PENDING':
-                    old['result'] = f[4]
+                    old['result'] = fields[4]
                     old['fence'] = fence
                 return []
-            if f[0] != 'CARGOREQ' or len(f) != 11:
+            if fields[0] != 'CARGOREQ' or len(fields) != 11:
                 return []
-            host, ship, epoch, verb, obj, ware, amount = f[4:]
+            host, ship, epoch, verb, obj, ware, amount = fields[4:]
             ship, epoch, obj, amount = map(sequence, (ship, epoch, obj, amount))
             if (
                 not HEX.fullmatch(host)

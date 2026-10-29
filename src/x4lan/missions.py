@@ -29,28 +29,28 @@ def text_field(value, maximum):
 
 
 def parse_record(payload):
-    f = payload.split(',')
-    if len(f) != 9 or f[0] != 'quota' or f[1] not in {'O', 'A'} | TERMINAL:
+    fields = payload.split(',')
+    if len(fields) != 9 or fields[0] != 'quota' or fields[1] not in {'O', 'A'} | TERMINAL:
         raise ValueError('mission record')
-    done, total, reward = map(sequence, f[2:5])
+    done, total, reward = map(sequence, fields[2:5])
     if (
         not 0 <= done <= total <= 1000000
         or not total
-        or not re.fullmatch('[a-z][a-z0-9_]{0,63}', f[5])
+        or not re.fullmatch('[a-z][a-z0-9_]{0,63}', fields[5])
     ):
         raise ValueError('mission bounds')
-    if f[1] == 'O' and done or f[1] == 'C' and done != total:
+    if fields[1] == 'O' and done or fields[1] == 'C' and done != total:
         raise ValueError('mission state')
     return dict(
-        kind=f[0],
-        state=f[1],
+        kind=fields[0],
+        state=fields[1],
         done=done,
         total=total,
         reward=reward,
-        faction=f[5],
-        title=text_field(f[6], 256),
-        description=text_field(f[7], 4096),
-        objective=text_field(f[8], 512),
+        faction=fields[5],
+        title=text_field(fields[6], 256),
+        description=text_field(fields[7], 4096),
+        objective=text_field(fields[8], 512),
     )
 
 
@@ -92,35 +92,35 @@ class MissionJournal:
         if len(raw) > MAX_PACKET:
             return []
         try:
-            f = raw.decode('ascii').split('|')
-            if len(f) < 7 or f[1] != '1':
+            fields = raw.decode('ascii').split('|')
+            if len(fields) < 7 or fields[1] != '1':
                 return []
             host = self.current_host()
-            slot, peer = s._peer(f[2], address)
-            if not host or not peer or f[3] != host.lease:
+            slot, peer = s._peer(fields[2], address)
+            if not host or not peer or fields[3] != host.lease:
                 return []
-            ident, rev = sequence(f[4]), sequence(f[5])
+            ident, rev = sequence(fields[4]), sequence(fields[5])
             if not 1 <= ident <= LIMIT or not rev:
                 return []
             old = self.records.get(ident)
-            if f[0] == 'MREQ' and len(f) == 7 and slot == 'p2':
+            if fields[0] == 'MREQ' and len(fields) == 7 and slot == 'p2':
                 if (
                     old
                     and old['rev'] == rev
-                    and (old['row']['state'], f[6]) in {('O', 'ACCEPT'), ('A', 'ABORT')}
+                    and (old['row']['state'], fields[6]) in {('O', 'ACCEPT'), ('A', 'ABORT')}
                 ):
-                    self.requests[ident] = (peer.lease, rev, f[6])
-            elif f[0] == 'MSTATE' and len(f) == 10 and slot == 'p1':
+                    self.requests[ident] = (peer.lease, rev, fields[6])
+            elif fields[0] == 'MSTATE' and len(fields) == 10 and slot == 'p1':
                 if old and rev <= old['rev']:
                     return []
-                part, total, digest = int(f[6]), int(f[7]), int(f[8])
+                part, total, digest = int(fields[6]), int(fields[7]), int(fields[8])
                 if (
                     not 1 <= part <= total <= MAX_PARTS
                     or not 0 <= digest <= 0xFFFFFFFF
-                    or not 1 <= len(f[9]) <= PART_SIZE
+                    or not 1 <= len(fields[9]) <= PART_SIZE
                 ):
                     return []
-                if not re.fullmatch('[a-zA-Z0-9_,]+', f[9]):
+                if not re.fullmatch('[a-zA-Z0-9_,]+', fields[9]):
                     return []
                 p = self.pending.get(ident)
                 if p and rev < p['rev']:
@@ -130,9 +130,9 @@ class MissionJournal:
                     self.pending[ident] = p
                 if (total, digest) != (p['total'], p['digest']):
                     return []
-                if part in p['parts'] and p['parts'][part] != f[9]:
+                if part in p['parts'] and p['parts'][part] != fields[9]:
                     return []
-                p['parts'][part] = f[9]
+                p['parts'][part] = fields[9]
                 if len(p['parts']) != total:
                     return []
                 payload = ''.join(p['parts'][i] for i in range(1, total + 1))

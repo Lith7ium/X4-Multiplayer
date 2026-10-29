@@ -157,37 +157,37 @@ def parse(raw, direction):
         raw = raw.encode('ascii')
     if not isinstance(raw, bytes) or len(raw) > MAX_PACKET or not _PRINTABLE.fullmatch(raw):
         _fail('invalid packet')
-    f = raw.decode('ascii').split('|')
+    fields = raw.decode('ascii').split('|')
     forwarded = direction == 'forwarded'
     head = 4 if forwarded else 3
-    kind = f[0]
-    if len(f) < 2 or f[1] != '1' or kind not in ('BOLT', 'BEND'):
+    kind = fields[0]
+    if len(fields) < 2 or fields[1] != '1' or kind not in ('BOLT', 'BEND'):
         _fail('unknown message')
-    if len(f) != (head + 17 if kind == 'BOLT' else head + 5):
+    if len(fields) != (head + 17 if kind == 'BOLT' else head + 5):
         _fail('field count')
     common = dict(
         direction=direction,
-        lease=f[2],
-        source_lease=f[3] if forwarded else None,
-        entity=_integer(f[head], 'entity'),
-        epoch=_integer(f[head + 1], 'epoch'),
-        gen=_integer(f[head + 2], 'gen'),
-        id=_integer(f[head + 3], 'id'),
-        time=_number(f[head + 4], 'time', MAX_TIME),
+        lease=fields[2],
+        source_lease=fields[3] if forwarded else None,
+        entity=_integer(fields[head], 'entity'),
+        epoch=_integer(fields[head + 1], 'epoch'),
+        gen=_integer(fields[head + 2], 'gen'),
+        id=_integer(fields[head + 3], 'id'),
+        time=_number(fields[head + 4], 'time', MAX_TIME),
     )
     if kind == 'BEND':
         message = End(**common)
     else:
         values = {
-            name: _number(f[head + 7 + i], name, limit)
+            name: _number(fields[head + 7 + i], name, limit)
             for i, (name, limit) in enumerate(BOLT_NUMBERS)
         }
         message = Bolt(
             **common,
-            sector=f[head + 5],
-            kind=_integer(f[head + 6], 'kind'),
+            sector=fields[head + 5],
+            kind=_integer(fields[head + 6], 'kind'),
             **values,
-            ttl=_number(f[head + 16], 'ttl', MAX_TTL),
+            ttl=_number(fields[head + 16], 'ttl', MAX_TTL),
         )
     _check(message)
     return message
@@ -202,10 +202,10 @@ def serialize(message):
     if not isinstance(message, (Bolt, End)):
         _fail('not a projectile message')
     _check(message)
-    f = ['BOLT' if isinstance(message, Bolt) else 'BEND', '1', message.lease]
+    fields = ['BOLT' if isinstance(message, Bolt) else 'BEND', '1', message.lease]
     if message.direction == 'forwarded':
-        f.append(message.source_lease)
-    f += [
+        fields.append(message.source_lease)
+    fields += [
         str(message.entity),
         str(message.epoch),
         str(message.gen),
@@ -213,12 +213,12 @@ def serialize(message):
         _text(message.time),
     ]
     if isinstance(message, Bolt):
-        f += (
+        fields += (
             [message.sector, str(message.kind)]
             + [_text(getattr(message, n)) for n, _ in BOLT_NUMBERS]
             + [_text(message.ttl)]
         )
-    raw = '|'.join(f).encode('ascii')
+    raw = '|'.join(fields).encode('ascii')
     if len(raw) > MAX_PACKET:
         _fail('packet too long')
     return raw

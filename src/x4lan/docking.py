@@ -34,14 +34,14 @@ class DockSession(CoopSession):
         if len(raw) > 768:
             return []
         try:
-            f = raw.decode('ascii').split('|')
-            if len(f) != 8 or f[1] != '1':
+            fields = raw.decode('ascii').split('|')
+            if len(fields) != 8 or fields[1] != '1':
                 return []
-            slot, peer = self._peer(f[2], address)
+            slot, peer = self._peer(fields[2], address)
             if peer is None:
                 return []
-            entity, epoch, seq = integer(f[3], 2), sequence(f[4]), sequence(f[5])
-            mode, dock = f[6], integer(f[7], MAX_DOCK)
+            entity, epoch, seq = integer(fields[3], 2), sequence(fields[4]), sequence(fields[5])
+            mode, dock = fields[6], integer(fields[7], MAX_DOCK)
             if (
                 entity not in (1, 2)
                 or self.owners[entity] != slot

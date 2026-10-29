@@ -44,22 +44,22 @@ def main():
                     raw = sock.recv(769)
                 except (BlockingIOError, ConnectionRefusedError, ConnectionResetError):
                     break
-                f = raw.decode("ascii", errors="replace").split("|")
-                if len(f) == 5 and f[:3] == ["WELCOME", "1", nonce]:
+                fields = raw.decode("ascii", errors="replace").split("|")
+                if len(fields) == 5 and fields[:3] == ["WELCOME", "1", nonce]:
                     if lease is None:
-                        lease = f[3]
+                        lease = fields[3]
                         print("Connected to relay", flush=True)
-                    if lease == f[3]:
+                    if lease == fields[3]:
                         last_host = now
                 if (
                     lease
-                    and len(f) in (4, 12)
-                    and f[0] in ("EMPTY", "PEER")
-                    and f[1:3] == ["1", lease]
+                    and len(fields) in (4, 12)
+                    and fields[0] in ("EMPTY", "PEER")
+                    and fields[1:3] == ["1", lease]
                 ):
                     last_host = now
-                    if f[0] == "PEER" and now - last_print >= 2:
-                        print("X4 pose received: " + ", ".join(f[6:9]), flush=True)
+                    if fields[0] == "PEER" and now - last_print >= 2:
+                        print("X4 pose received: " + ", ".join(fields[6:9]), flush=True)
                         last_print = now
             if lease and now - last_send >= 0.05:
                 seq += 1

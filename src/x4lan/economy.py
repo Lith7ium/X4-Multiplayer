@@ -30,53 +30,60 @@ RESULTS = {
 def integer(value, limit=MAX_MONEY, signed=False):
     if not re.fullmatch(r'-?[0-9]+' if signed else r'[0-9]+', value):
         raise ValueError('integer')
-    n = int(value)
-    if abs(n) > limit or (not signed and n < 0):
+    number = int(value)
+    if abs(number) > limit or (not signed and number < 0):
         raise ValueError('range')
-    return n
+    return number
 
 
 def parse_snapshot(payload):
+    """Validate a complete market snapshot and return balances and ware rows."""
     rows = payload.split(';')
     funds = rows[0].split(',')
     if len(funds) != 5 or funds[0] != 'M':
         raise ValueError('balances')
-    balances = [integer(v) for v in funds[1:]]
+    balances = [integer(value) for value in funds[1:]]
     wares = {}
     if not 2 <= len(rows) <= 17:
         raise ValueError('ware count')
     for row in rows[1:]:
-        f = row.split(',')
-        if len(f) != 13 or f[0] != 'W' or not WARE.fullmatch(f[1]) or f[1] in wares:
+        fields = row.split(',')
+        if (
+            len(fields) != 13
+            or fields[0] != 'W'
+            or not WARE.fullmatch(fields[1])
+            or fields[1] in wares
+        ):
             raise ValueError('ware')
         # volume, p1, p2, market1, market2, bid1, ask1, limit1, bid2, ask2, limit2
-        values = [integer(v) for v in f[2:]]
+        values = [integer(value) for value in fields[2:]]
         if not 1 <= values[0] <= 100000:
             raise ValueError('volume')
         if any(values[i] > MAX_AMOUNT for i in (1, 2, 3, 4, 7, 10)):
             raise ValueError('quantity')
         if any(values[i] < 1 for i in (5, 6, 8, 9)):
             raise ValueError('price')
-        wares[f[1]] = values
+        wares[fields[1]] = values
     return balances, wares
 
 
 def parse_lines(payload):
+    """Validate basket lines, including signed quantities and total cost."""
     rows = payload.split(';')
     result = []
     seen = set()
     if not 1 <= len(rows) <= 16:
         raise ValueError('basket size')
     for row in rows:
-        f = row.split(',')
-        if len(f) != 3 or not WARE.fullmatch(f[0]) or f[0] in seen:
+        fields = row.split(',')
+        if len(fields) != 3 or not WARE.fullmatch(fields[0]) or fields[0] in seen:
             raise ValueError('line')
-        qty = integer(f[1], MAX_AMOUNT, True)
-        price = integer(f[2])
-        if qty == 0 or price == 0 or abs(qty) * price > MAX_MONEY:
+        quantity = integer(fields[1], MAX_AMOUNT, True)
+        price = integer(fields[2])
+        if quantity == 0 or price == 0 or abs(quantity) * price > MAX_MONEY:
             raise ValueError('cost')
-        seen.add(f[0])
-        result.append((f[0], qty, price))
+        seen.add(fields[0])
+        result.append((fields[0], quantity, price))
     return result
 
 
@@ -150,28 +157,32 @@ class EconomySession(BubbleSession):
         if len(raw) > 768:
             return []
         try:
-            f = raw.decode('ascii').split('|')
+            fields = raw.decode('ascii').split('|')
         except UnicodeError:
             return []
-        if len(f) < 2 or f[1] != '1':
+        if len(fields) < 2 or fields[1] != '1':
             return []
-        if f[0] not in ('ECON', 'ORDER', 'ORDER_DONE', 'DOCKSTATE'):
+        if fields[0] not in ('ECON', 'ORDER', 'ORDER_DONE', 'DOCKSTATE'):
             return super().receive(raw, address, now)
         try:
-            slot, peer = self._peer(f[2], address)
+            slot, peer = self._peer(fields[2], address)
             if peer is None:
                 return []
-            if f[0] == 'ECON' and slot == 'p1' and len(f) == 7:
+            if fields[0] == 'ECON' and slot == 'p1' and len(fields) == 7:
                 if self.economy_owner != peer.lease:
                     self.economy_owner = peer.lease
                     self.assembly = Assembly()
                 payload = self.assembly.add(
-                    sequence(f[3]), integer(f[4], 8), integer(f[5], 8), f[6], now
+                    sequence(fields[3]),
+                    integer(fields[4], 8),
+                    integer(fields[5], 8),
+                    fields[6],
+                    now,
                 )
                 if payload is not None:
                     self.economy = payload
-            elif f[0] == 'ORDER' and len(f) == 7:
-                request, owner, market, lines = f[3:]
+            elif fields[0] == 'ORDER' and len(fields) == 7:
+                request, owner, market, lines = fields[3:]
                 if (
                     not HEX.fullmatch(request)
                     or not HEX.fullmatch(owner)
@@ -206,15 +217,22 @@ class EconomySession(BubbleSession):
                     'result': 'PENDING',
                 }
                 return [self.reply(peer, request, 'PENDING')]
-            elif f[0] == 'ORDER_DONE' and slot == 'p1' and len(f) == 5 and f[4] in RESULTS:
-                command = self.orders.get(f[3])
+            elif (
+                fields[0] == 'ORDER_DONE'
+                and slot == 'p1'
+                and len(fields) == 5
+                and fields[4] in RESULTS
+            ):
+                command = self.orders.get(fields[3])
                 if command and command['result'] == 'PENDING' and command['owner'] == peer.lease:
-                    command['result'] = f[4]
-            elif f[0] == 'DOCKSTATE' and len(f) == 5 and f[4] in ('none', 'm1', 'm2'):
-                seq = sequence(f[3])
+                    command['result'] = fields[4]
+            elif (
+                fields[0] == 'DOCKSTATE' and len(fields) == 5 and fields[4] in ('none', 'm1', 'm2')
+            ):
+                seq = sequence(fields[3])
                 old = self.docks.get(peer.lease, (-1, None))
                 if seq > old[0]:
-                    self.docks[peer.lease] = (seq, f[4])
+                    self.docks[peer.lease] = (seq, fields[4])
         except (ValueError, IndexError, OverflowError):
             return []
         return []

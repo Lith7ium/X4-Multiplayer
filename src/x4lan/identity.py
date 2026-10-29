@@ -24,22 +24,22 @@ class Identities:
         if len(raw) > 768:
             return []
         try:
-            f = raw.decode('ascii').split('|')
-            if len(f) != 11 or f[:2] != ['IDENT', '1']:
+            fields = raw.decode('ascii').split('|')
+            if len(fields) != 11 or fields[:2] != ['IDENT', '1']:
                 return []
-            slot, peer = s._peer(f[2], address)
-            if slot != 'p1' or not peer or f[3] != peer.lease:
+            slot, peer = s._peer(fields[2], address)
+            if slot != 'p1' or not peer or fields[3] != peer.lease:
                 return []
             if s.universe_epoch and s.universe_epoch != peer.lease:
                 return []
             seq, scope, entity, code, name, known, contact = (
-                sequence(f[4]),
-                f[5],
-                sequence(f[6]),
-                f[7],
-                f[8],
-                f[9],
-                f[10],
+                sequence(fields[4]),
+                fields[5],
+                sequence(fields[6]),
+                fields[7],
+                fields[8],
+                fields[9],
+                fields[10],
             )
             if scope == 'P':
                 if entity not in (1, 2):
@@ -66,7 +66,7 @@ class Identities:
             old = self.rows.get(key)
             if old and seq <= old[0]:
                 return []
-            self.rows[key] = seq, now, f[3:]
+            self.rows[key] = seq, now, fields[3:]
         except (ValueError, UnicodeError, OverflowError):
             pass
         return []

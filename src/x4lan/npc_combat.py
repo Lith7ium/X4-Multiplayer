@@ -34,14 +34,14 @@ class NpcCombat:
             if value['sector'] == baseline.sector:
                 value['active'] = False
         for row in baseline.rows:
-            f = row.split(',')
-            if f[1] != 'ship':
+            fields = row.split(',')
+            if fields[1] != 'ship':
                 continue
-            entity = int(f[0])
+            entity = int(fields[0])
             if entity not in self.descriptors and len(self.descriptors) >= LIMIT:
                 continue
             self.descriptors[entity] = dict(
-                sector=baseline.sector, macro=f[2], owner=f[3], active=True
+                sector=baseline.sector, macro=fields[2], owner=fields[3], active=True
             )
 
     def current(self, entity, gen, now, live=True):
@@ -71,17 +71,17 @@ class NpcCombat:
         if len(raw) > MAX_PACKET:
             return []
         try:
-            f = raw.decode('ascii').split('|')
-            if len(f) < 4 or f[1] != '1':
+            fields = raw.decode('ascii').split('|')
+            if len(fields) < 4 or fields[1] != '1':
                 return []
-            slot, peer = s._peer(f[2], address)
+            slot, peer = s._peer(fields[2], address)
             host = s.peers.get('p1')
-            if not peer or not host or f[3] != host.lease or s.universe_epoch != host.lease:
+            if not peer or not host or fields[3] != host.lease or s.universe_epoch != host.lease:
                 return []
-            if f[0] == 'NHP' and slot == 'p1' and len(f) == 14:
-                entity, gen, seq = map(sequence, f[4:7])
-                sector, code, macro, owner = f[7:11]
-                hull, shield = map(float, f[11:13])
+            if fields[0] == 'NHP' and slot == 'p1' and len(fields) == 14:
+                entity, gen, seq = map(sequence, fields[4:7])
+                sector, code, macro, owner = fields[7:11]
+                hull, shield = map(float, fields[11:13])
                 d, old = self.descriptors.get(entity), self.states.get(entity)
                 if (
                     not entity
@@ -93,9 +93,9 @@ class NpcCombat:
                     or not ATOM.fullmatch(macro)
                     or (sector, macro, owner) != (d['sector'], d['macro'], d['owner'])
                     or not all(math.isfinite(v) and 0 <= v <= 100 for v in (hull, shield))
-                    or f[13] not in ('0', '1')
-                    or (f[13] == '0' and hull != 0)
-                    or (f[13] == '1' and (hull <= 0 or not d['active']))
+                    or fields[13] not in ('0', '1')
+                    or (fields[13] == '0' and hull != 0)
+                    or (fields[13] == '1' and (hull <= 0 or not d['active']))
                 ):
                     return []
                 identity = (sector, code, macro, owner)
@@ -104,7 +104,7 @@ class NpcCombat:
                     or gen != old['gen']
                     or identity != old['identity']
                     or not old['alive']
-                    and f[13] == '1'
+                    and fields[13] == '1'
                 ):
                     return []
                 self.states[entity] = dict(
@@ -112,18 +112,18 @@ class NpcCombat:
                     seq=seq,
                     identity=identity,
                     descriptor=(sector, macro, owner),
-                    alive=f[13] == '1',
+                    alive=fields[13] == '1',
                     at=now,
-                    fields=f[3:],
+                    fields=fields[3:],
                 )
-            elif f[0] == 'NCLAIM' and slot == 'p2' and len(f) == 11:
-                entity, gen, shooter, sg, seq, hits = map(sequence, f[4:10])
+            elif fields[0] == 'NCLAIM' and slot == 'p2' and len(fields) == 11:
+                entity, gen, shooter, sg, seq, hits = map(sequence, fields[4:10])
                 if (
                     not seq
                     or not 0 < hits <= 1000000
                     or not self.current(entity, gen, now)
                     or not self.pilot(shooter, sg)
-                    or not SHOT_DIGEST.fullmatch(f[10])
+                    or not SHOT_DIGEST.fullmatch(fields[10])
                     or not s.interest
                     or s.interest[0] != peer.lease
                     or s.interest[2] != self.states[entity]['descriptor'][0]
@@ -131,16 +131,20 @@ class NpcCombat:
                     return []
                 key = (peer.lease, entity, gen, shooter, sg)
                 old = self.claims.get(key)
-                if old and (seq <= old['seq'] or hits < old['hits'] or f[10] != old['digest']):
+                if old and (seq <= old['seq'] or hits < old['hits'] or fields[10] != old['digest']):
                     return []
                 if not old and len(self.claims) >= LIMIT:
                     return []
                 self.claims[key] = dict(
-                    seq=seq, hits=hits, digest=f[10], fields=f[3:], ack=old['ack'] if old else 0
+                    seq=seq,
+                    hits=hits,
+                    digest=fields[10],
+                    fields=fields[3:],
+                    ack=old['ack'] if old else 0,
                 )
-            elif f[0] == 'NACK' and slot == 'p1' and len(f) == 10:
-                entity, gen, shooter, sg, count = map(sequence, f[5:])
-                claim = self.claims.get((f[4], entity, gen, shooter, sg))
+            elif fields[0] == 'NACK' and slot == 'p1' and len(fields) == 10:
+                entity, gen, shooter, sg, count = map(sequence, fields[5:])
+                claim = self.claims.get((fields[4], entity, gen, shooter, sg))
                 if claim and claim['ack'] <= count <= claim['hits']:
                     claim['ack'] = count
         except (ValueError, OverflowError, UnicodeError):
