@@ -1,17 +1,17 @@
 -- Inert, opt-in projectile macro proof. Native preparation ACK precedes switching.
 -- Legacy replay is stopped; observed mode excludes scripted replay before Prepare.
 -- Original installed guns, equipment mods and weapon groups are never replaced.
-local A, cfg = X4LAN_BUBBLE_API, X4LAN_CONFIG
+local API, cfg = X4LAN_BUBBLE_API, X4LAN_CONFIG
 if
     not cfg
     or not cfg.shot_visual
     or not cfg.fire2
     or not cfg.shot_claims
     or not cfg.pilot_health
-    or not A
-    or not A.shot
-    or not A.health
-    or not A.coop
+    or not API
+    or not API.shot
+    or not API.health
+    or not API.coop
 then
     return
 end
@@ -24,9 +24,9 @@ void SetWeaponLaunchedMacro(UniverseID,const char*);
 size_t GetNumUpgradeSlots(UniverseID,const char*,const char*);
 UniverseID GetUpgradeSlotCurrentComponent(UniverseID,const char*,size_t);]]
 )
-local c, h, d = A.coop, A.health, A.shot
-local v = { rows = {}, serial = 0, now = 0 }
-A.shotVisual = v
+local coopAdapter, healthAdapter, shotAdapter = API.coop, API.health, API.shot
+local shotVisual = { rows = {}, serial = 0, now = 0 }
+API.shotVisual = shotVisual
 local BULLETS = {
     weapon_ter_s_plasma_01_mk1_macro = {
         'bullet_ter_s_plasma_01_mk1_macro',
@@ -45,60 +45,63 @@ local function log(s)
     DebugError('[X4LAN] SHOT_VISUAL ' .. s)
 end
 local function fresh()
-    return h.mdStamp and v.now - (h.mdAt or -100) <= 0.3 and not A.paused()
+    return healthAdapter.mdStamp
+        and shotVisual.now - (healthAdapter.mdAt or -100) <= 0.3
+        and not API.paused()
 end
 local function serial()
-    v.serial = v.serial + 1
-    assert(v.serial < 2147483647, 'serial exhausted')
-    return v.serial
+    shotVisual.serial = shotVisual.serial + 1
+    assert(shotVisual.serial < 2147483647, 'serial exhausted')
+    return shotVisual.serial
 end
-local function wanted(e)
-    local g = h.valid[e]
+local function wanted(entity)
+    local generation = healthAdapter.valid[entity]
     if
-        not g
-        or g <= (h.closed[e] or 0)
-        or not c.owners[e]
-        or not c.ships[e]
-        or c.ships[e] == 0
-        or not C.IsComponentOperational(c.ships[e])
+        not generation
+        or generation <= (healthAdapter.closed[entity] or 0)
+        or not coopAdapter.owners[entity]
+        or not coopAdapter.ships[entity]
+        or coopAdapter.ships[entity] == 0
+        or not C.IsComponentOperational(coopAdapter.ships[entity])
     then
         return nil
     end
-    return g, c.owners[e] == cfg.slot and 1 or 2, c.ships[e]
+    return generation, coopAdapter.owners[entity] == cfg.slot and 1 or 2, coopAdapter.ships[entity]
 end
-local function current(e, r)
-    local g, mode, ship = wanted(e)
-    return not v.failed
-        and not d.failed
-        and not h.failed
-        and r
-        and r.gen == g
-        and r.mode == mode
-        and r.ship == ship
+local function current(entity, row)
+    local generation, mode, ship = wanted(entity)
+    return not shotVisual.failed
+        and not shotAdapter.failed
+        and not healthAdapter.failed
+        and row
+        and row.gen == generation
+        and row.mode == mode
+        and row.ship == ship
 end
-local function ready(e, g, mode, now)
-    local r = v.rows[e]
-    return current(e, r)
-        and r.gen == g
-        and r.mode == mode
-        and r.phase == 'ready'
-        and (now or h.now or v.now) - (r.ackAt or -100) <= 0.3
-        and not A.paused()
+local function ready(entity, generation, mode, now)
+    local row = shotVisual.rows[entity]
+    return current(entity, row)
+        and row.gen == generation
+        and row.mode == mode
+        and row.phase == 'ready'
+        and (now or healthAdapter.now or shotVisual.now) - (row.ackAt or -100) <= 0.3
+        and not API.paused()
 end
-function v.readyOriginal(e, g, now)
-    return ready(e, g, 1, now)
+function shotVisual.readyOriginal(entity, generation, now)
+    return ready(entity, generation, 1, now)
 end
-function v.readyReplay(e, g, now)
-    return ready(e, g, 2, now)
+function shotVisual.readyReplay(entity, generation, now)
+    return ready(entity, generation, 2, now)
 end
 local function event(control, args)
-    args.stamp, args.from, args.deadline = h.mdStamp, h.mdAge, h.mdAge + 1
+    args.stamp, args.from, args.deadline =
+        healthAdapter.mdStamp, healthAdapter.mdAge, healthAdapter.mdAge + 1
     AddUITriggeredEvent('X4LAN_ShotVisual', control, args)
 end
 -- Read every actual installed slot (empty slots are retained, not compacted into fake IDs).
-local function guns(e, ship)
-    local sup = assert(d.support[e], 'unadmitted loadout')
-    local pair = assert(BULLETS[sup.macro], 'unsupported loadout')
+local function guns(entity, ship)
+    local support = assert(shotAdapter.support[entity], 'unadmitted loadout')
+    local pair = assert(BULLETS[support.macro], 'unsupported loadout')
     assert(ship ~= 0 and C.IsComponentOperational(ship), 'ship unavailable')
     local n = tonumber(C.GetNumUpgradeSlots(ship, '', 'weapon'))
     assert(n and n >= 1 and n <= 32 and n % 1 == 0, 'slot bounds')
@@ -107,7 +110,10 @@ local function guns(e, ship)
         local id = C.GetUpgradeSlotCurrentComponent(ship, 'weapon', slot)
         if id ~= 0 then
             assert(C.IsComponentOperational(id), 'weapon unavailable')
-            assert(GetComponentData(A.id(id), 'macro') == sup.macro, 'installed loadout changed')
+            assert(
+                GetComponentData(API.id(id), 'macro') == support.macro,
+                'installed loadout changed'
+            )
             assert(not C.GetInstalledWeaponMod(id, ffi.new('UIWeaponMod', {})), 'modified weapon')
             local macro = ffi.string(C.GetWeaponLaunchedMacro(id))
             assert(macro == pair[1] or macro == pair[2], 'foreign launched macro')
@@ -117,44 +123,53 @@ local function guns(e, ship)
     assert(#out > 0, 'no installed weapons')
     return out, pair
 end
-local function verify(e, r)
-    local list, pair = guns(e, r.ship)
-    assert(#list == #r.guns, 'weapon count changed')
+local function verify(entity, row)
+    local list, pair = guns(entity, row.ship)
+    assert(#list == #row.guns, 'weapon count changed')
     for i, w in ipairs(list) do
-        local previous = r.guns[i]
+        local previous = row.guns[i]
         assert(
-            w.slot == previous.slot and w.id == previous.id and w.macro == pair[r.mode],
+            w.slot == previous.slot and w.id == previous.id and w.macro == pair[row.mode],
             'weapon proof changed'
         )
     end
 end
-local function proof(e, r)
-    verify(e, r)
+local function proof(entity, row)
+    verify(entity, row)
     local seq = serial()
-    r.pendingProof = seq
-    r.nextProof = v.now + 0.1
+    row.pendingProof = seq
+    row.nextProof = shotVisual.now + 0.1
     event(
         'Proof',
-        { entity = e, gen = r.gen, ticket = r.ticket, mode = r.mode, sequence = seq, revision = d.stateRevision }
+        {
+            entity = entity,
+            gen = row.gen,
+            ticket = row.ticket,
+            mode = row.mode,
+            sequence = seq,
+            revision = shotAdapter.stateRevision,
+        }
     )
 end
-function v.prepared(payload)
-    local e, g, ticket, mode, id = tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d)|([^|]+)$')
-    e, g, ticket, mode = tonumber(e), tonumber(g), tonumber(ticket), tonumber(mode)
-    local r = e and v.rows[e]
+function shotVisual.prepared(payload)
+    local entity, generation, ticket, mode, id =
+        tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d)|([^|]+)$')
+    entity, generation, ticket, mode =
+        tonumber(entity), tonumber(generation), tonumber(ticket), tonumber(mode)
+    local row = entity and shotVisual.rows[entity]
     if
-        not current(e, r)
-        or r.phase ~= 'preparing'
-        or ticket ~= r.ticket
-        or g ~= r.gen
-        or mode ~= r.mode
+        not current(entity, row)
+        or row.phase ~= 'preparing'
+        or ticket ~= row.ticket
+        or generation ~= row.gen
+        or mode ~= row.mode
         or not fresh()
-        or v.now - r.started > 0.3
-        or ConvertIDTo64Bit(id) ~= r.ship
+        or shotVisual.now - row.started > 0.3
+        or ConvertIDTo64Bit(id) ~= row.ship
     then
         return
     end
-    local list, pair = guns(e, r.ship)
+    local list, pair = guns(entity, row.ship)
     -- Native scripted replay is stopped or excluded, budgets cleared; verify each write.
     for _, w in ipairs(list) do
         if w.macro ~= pair[mode] then
@@ -165,81 +180,103 @@ function v.prepared(payload)
             'projectile switch refused'
         )
     end
-    r.guns = list
-    r.phase = 'proving'
-    proof(e, r)
-    log('switched entity=' .. e .. ' gen=' .. g .. ' mode=' .. mode .. ' guns=' .. #list)
+    row.guns = list
+    row.phase = 'proving'
+    proof(entity, row)
+    log(
+        'switched entity='
+            .. entity
+            .. ' gen='
+            .. generation
+            .. ' mode='
+            .. mode
+            .. ' guns='
+            .. #list
+    )
 end
-function v.proven(payload)
-    local e, g, ticket, mode, seq = tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d)|(%d+)$')
-    e, g, ticket, mode, seq =
-        tonumber(e), tonumber(g), tonumber(ticket), tonumber(mode), tonumber(seq)
-    local r = e and v.rows[e]
+function shotVisual.proven(payload)
+    local entity, generation, ticket, mode, seq =
+        tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d)|(%d+)$')
+    entity, generation, ticket, mode, seq =
+        tonumber(entity), tonumber(generation), tonumber(ticket), tonumber(mode), tonumber(seq)
+    local row = entity and shotVisual.rows[entity]
     if
-        current(e, r)
+        current(entity, row)
         and fresh()
-        and g == r.gen
-        and mode == r.mode
-        and ticket == r.ticket
-        and seq == r.pendingProof
+        and generation == row.gen
+        and mode == row.mode
+        and ticket == row.ticket
+        and seq == row.pendingProof
     then
-        r.phase = 'ready'
-        r.ackAt = v.now
+        row.phase = 'ready'
+        row.ackAt = shotVisual.now
     end
 end
-function v.fail(err)
-    if v.failed then
+function shotVisual.fail(err)
+    if shotVisual.failed then
         return
     end
-    v.failed = true
+    shotVisual.failed = true
     log('STOPPED ' .. tostring(err))
     pcall(AddUITriggeredEvent, 'X4LAN_ShotVisual', 'Stop', {})
-    d.fail('visual proof stopped')
+    shotAdapter.fail('visual proof stopped')
 end
-function v.frame(now)
-    v.now = now
-    if d.failed or h.failed then
-        v.fail('authority stopped')
+function shotVisual.frame(now)
+    shotVisual.now = now
+    if shotAdapter.failed or healthAdapter.failed then
+        shotVisual.fail('authority stopped')
         return
     end
     if not fresh() then
         return
     end
-    for e = 1, 2 do
-        local g, mode, ship = wanted(e)
-        local r = v.rows[e]
-        if not g or not d.support[e] then
-            v.rows[e] = nil
-        elseif not current(e, r) or r.phase == 'preparing' and now - r.started > 0.3 then
+    for entity = 1, 2 do
+        local generation, mode, ship = wanted(entity)
+        local row = shotVisual.rows[entity]
+        if not generation or not shotAdapter.support[entity] then
+            shotVisual.rows[entity] = nil
+        elseif not current(entity, row) or row.phase == 'preparing' and now - row.started > 0.3 then
             local ticket = serial()
-            r =
-                { gen = g, mode = mode, ship = ship, ticket = ticket, started = now, phase = 'preparing' }
-            v.rows[e] = r
+            row = {
+                gen = generation,
+                mode = mode,
+                ship = ship,
+                ticket = ticket,
+                started = now,
+                phase = 'preparing',
+            }
+            shotVisual.rows[entity] = row
             event(
                 'Prepare',
-                { entity = e, gen = g, ticket = ticket, mode = mode, revision = d.stateRevision }
+                {
+                    entity = entity,
+                    gen = generation,
+                    ticket = ticket,
+                    mode = mode,
+                    revision = shotAdapter.stateRevision,
+                }
             )
-        elseif r.phase ~= 'preparing' and now >= (r.nextProof or 0) then
-            proof(e, r)
+        elseif row.phase ~= 'preparing' and now >= (row.nextProof or 0) then
+            proof(entity, row)
         end
     end
 end
-local frame = c.frame
-function c.frame(now)
+local frame = coopAdapter.frame
+function coopAdapter.frame(now)
     frame(now)
-    v.now = now
-    if d.ready and not v.setup then
-        v.setup = true
+    shotVisual.now = now
+    if shotAdapter.ready and not shotVisual.setup then
+        shotVisual.setup = true
         AddUITriggeredEvent(
             'X4LAN_ShotVisual',
             'Setup',
             { observed = cfg.projectile_visuals == true }
         )
     end
-    if v.ready and not v.failed then
-        local ok, err = pcall(v.frame, now)
+    if shotVisual.ready and not shotVisual.failed then
+        local ok, err = pcall(shotVisual.frame, now)
         if not ok then
-            v.fail(err)
+            shotVisual.fail(err)
         end
     end
 end
@@ -247,13 +284,13 @@ local function guard(fn)
     return function(_, payload)
         local ok, err = pcall(fn, payload)
         if not ok then
-            v.fail(err)
+            shotVisual.fail(err)
         end
     end
 end
 RegisterEvent('X4LAN_ShotVisual.Ready', function()
-    v.ready = true
+    shotVisual.ready = true
     log('READY')
 end)
-RegisterEvent('X4LAN_ShotVisual.Prepared', guard(v.prepared))
-RegisterEvent('X4LAN_ShotVisual.Proven', guard(v.proven))
+RegisterEvent('X4LAN_ShotVisual.Prepared', guard(shotVisual.prepared))
+RegisterEvent('X4LAN_ShotVisual.Proven', guard(shotVisual.proven))

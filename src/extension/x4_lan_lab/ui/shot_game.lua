@@ -9,17 +9,17 @@
 --  SHOT|1|lease|shooter|shooterGen|victim|victimGen|seq|hits|macro:strength   shooter -> relay
 --  forwarded to the victim's authority with the source lease after the recipient lease.
 -- Generations are the relay's health generations (HGEN, health_game.lua); LAN targets use 0.
-local A = X4LAN_BUBBLE_API
+local API = X4LAN_BUBBLE_API
 local cfg = X4LAN_CONFIG
 if
     not cfg
     or not cfg.coop
     or not cfg.shot_claims
     or not cfg.pilot_health
-    or not A
-    or not A.coop
-    or not A.health
-    or not A.state.active
+    or not API
+    or not API.coop
+    or not API.health
+    or not API.state.active
 then
     return
 end
@@ -35,10 +35,18 @@ pcall(
 } UIWeaponMod;
 bool GetInstalledWeaponMod(UniverseID weaponid, UIWeaponMod* weaponmod);]]
 )
-local c, s, h = A.coop, A.state, A.health
-local d =
-    { seq = 0, totals = {}, sentAt = {}, support = {}, refusals = {}, confirmed = {}, pending = {}, inflight = {} }
-A.shot = d
+local coopAdapter, sessionState, healthAdapter = API.coop, API.state, API.health
+local shotAdapter = {
+    seq = 0,
+    totals = {},
+    sentAt = {},
+    support = {},
+    refusals = {},
+    confirmed = {},
+    pending = {},
+    inflight = {},
+}
+API.shot = shotAdapter
 local STOCK = {
     weapon_ter_s_plasma_01_mk1_macro = 40,
     weapon_gen_s_laser_01_mk1_macro = 36,
@@ -74,19 +82,19 @@ local function hex(v)
     return type(v) == 'string' and #v == 32 and v:match('^[a-f0-9]+$') ~= nil
 end
 local function send(v)
-    if s.client and s.client.lease then
-        s.transport:send(v)
+    if sessionState.client and sessionState.client.lease then
+        sessionState.transport:send(v)
     end
 end
 local function paused()
-    return A.paused and A.paused()
+    return API.paused and API.paused()
 end
-local function key(e, gen, v, vg)
-    return e .. '|' .. gen .. '|' .. v .. '|' .. vg
+local function key(entity, generation, v, victimGeneration)
+    return entity .. '|' .. generation .. '|' .. v .. '|' .. victimGeneration
 end
-local function validGen(e)
-    local g = h.valid[e]
-    return g and g > (h.closed[e] or 0) and g or nil
+local function validGen(entity)
+    local g = healthAdapter.valid[entity]
+    return g and g > (healthAdapter.closed[entity] or 0) and g or nil
 end
 local function victimGen(v)
     if v <= 2 then
@@ -96,15 +104,17 @@ local function victimGen(v)
 end
 -- Only from a fresh MD readback of health_game.lua, never while paused (HEALTH's window).
 local function writable()
-    return h.mdStamp and (h.now or 0) - h.mdAt <= READING and not paused()
+    return healthAdapter.mdStamp
+        and (healthAdapter.now or 0) - healthAdapter.mdAt <= READING
+        and not paused()
 end
 
 -- MD loadout report 'entity|turrets|weapon,macro;...': one macro, no mods, no turrets, and a library
 -- entry whose only per-shot channel is hullshield; anything else refuses that shooter.
-function d.loadout(payload)
-    local e, turrets, list = tostring(payload):match('^(%d)|([^|]*)|(.*)$')
-    e = tonumber(e)
-    if not e or e < 1 or e > 2 then
+function shotAdapter.loadout(payload)
+    local entity, turrets, list = tostring(payload):match('^(%d)|([^|]*)|(.*)$')
+    entity = tonumber(entity)
+    if not entity or entity < 1 or entity > 2 then
         return
     end
     local macro, ok, n = nil, turrets == '0', 0
@@ -160,32 +170,36 @@ function d.loadout(payload)
         ok = false
         reason = reason or (n == 0 and 'no-operational-weapons' or 'unsupported-weapon')
     end
-    local v = ok and { macro = macro, strength = strength, digest = string.format(
-        '%s:%.3f',
-        macro,
-        strength
-    ) } or false
-    local old = d.support[e]
+    local v = ok
+            and {
+                macro = macro,
+                strength = strength,
+                digest = string.format('%s:%.3f', macro, strength),
+            }
+        or false
+    local old = shotAdapter.support[entity]
     if old and (not v or old.digest ~= v.digest) then
-        d.fail('admitted loadout changed; reconnect required; ' .. (reason or 'weapon-changed'))
+        shotAdapter.fail(
+            'admitted loadout changed; reconnect required; ' .. (reason or 'weapon-changed')
+        )
         return
     end
     local changed = old == nil or (old and old.digest) ~= (v and v.digest)
     if changed then
-        d.support[e] = v
+        shotAdapter.support[entity] = v
         AddUITriggeredEvent(
             'X4LAN_Shot',
             'Support',
-            { entity = e, strength = v and v.strength or 0 }
+            { entity = entity, strength = v and v.strength or 0 }
         )
     end
     -- Report a reason once, and again only if it changes. Never expose exception
     -- contents or repeat native writes merely to refresh an unchanged refusal.
-    if changed or d.refusals[e] ~= reason then
+    if changed or shotAdapter.refusals[entity] ~= reason then
         log(
             string.format(
                 'SHOT_SUPPORT entity=%d %s',
-                e,
+                entity,
                 v and v.digest
                     or (
                         'refused reason='
@@ -198,162 +212,200 @@ function d.loadout(payload)
             )
         )
     end
-    d.refusals[e] = reason
+    shotAdapter.refusals[entity] = reason
 end
 
 -- Authority: am I the machine whose world decides victim v of generation vg?
-local function authority(v, vg)
+local function authority(v, victimGeneration)
     if v >= 3 then
-        return cfg.slot == 'p1' and vg == 0
+        return cfg.slot == 'p1' and victimGeneration == 0
     end
-    local live = h.live
+    local live = healthAdapter.live
     -- The host decides a co-op ship unless its remote pilot holds a live health generation (as the relay).
     if cfg.slot == 'p1' then
-        return not (h.remote[v] and h.remote[v].gen == vg)
+        return not (healthAdapter.remote[v] and healthAdapter.remote[v].gen == victimGeneration)
     end
-    return live ~= nil and live.entity == v and live.gen == vg
+    return live ~= nil and live.entity == v and live.gen == victimGeneration
 end
 
 -- Shooter: my piloted co-op ship with its valid generation.
 local function shooter()
-    for e = 1, 2 do
+    for entity = 1, 2 do
         if
-            not h.failed
-            and c.owners[e] == cfg.slot
-            and c.pilots[e] == cfg.slot
-            and validGen(e)
-            and (cfg.slot == 'p1' or h.live and h.live.entity == e and h.live.gen == validGen(e))
+            not healthAdapter.failed
+            and coopAdapter.owners[entity] == cfg.slot
+            and coopAdapter.pilots[entity] == cfg.slot
+            and validGen(entity)
+            and (
+                cfg.slot == 'p1'
+                or healthAdapter.live
+                    and healthAdapter.live.entity == entity
+                    and healthAdapter.live.gen == validGen(entity)
+            )
         then
-            return e, validGen(e)
+            return entity, validGen(entity)
         end
     end
 end
 -- Incremental capture entry: n native hits of my own ship on victim v.
-function d.hit(v, n)
-    local e, gen = shooter()
-    local vg = v and v >= 1 and v <= 4 and victimGen(v)
+function shotAdapter.hit(v, n)
+    local entity, generation = shooter()
+    local victimGeneration = v and v >= 1 and v <= 4 and victimGen(v)
     n = integer(n or 1, 1000000)
-    if cfg.shot_visual and (not A.shotVisual or not A.shotVisual.readyOriginal(e, gen)) then
-        return false
-    end
     if
-        d.failed
-        or not e
-        or not d.support[e]
-        or v == e
-        or not vg
-        or not n
-        or n < 1
-        or authority(v, vg)
+        cfg.shot_visual
+        and (not API.shotVisual or not API.shotVisual.readyOriginal(entity, generation))
     then
         return false
     end
-    local k = key(e, gen, v, vg)
-    d.totals[k] = math.min(1000000, (d.totals[k] or 0) + n)
-    d.dirty = true
+    if
+        shotAdapter.failed
+        or not entity
+        or not shotAdapter.support[entity]
+        or v == entity
+        or not victimGeneration
+        or not n
+        or n < 1
+        or authority(v, victimGeneration)
+    then
+        return false
+    end
+    local k = key(entity, generation, v, victimGeneration)
+    shotAdapter.totals[k] = math.min(1000000, (shotAdapter.totals[k] or 0) + n)
+    shotAdapter.dirty = true
     return true
 end
 
 -- Capture entry (shot_capture.lua): the NATIVE cumulative count of my own ship's hits on victim v
 -- by shooter entity `from` under (sgen, vgen); it only raises the total of the current key, never
 -- reinterprets it, and refuses a count admitted for another shooter.
-function d.cumulative(v, sgen, vgen, total, from)
-    local e, gen = shooter()
-    local vg = v and v >= 1 and v <= 4 and victimGen(v)
+function shotAdapter.cumulative(v, sgen, vgen, total, from)
+    local entity, generation = shooter()
+    local victimGeneration = v and v >= 1 and v <= 4 and victimGen(v)
     total = integer(total, 1000000)
     if
-        d.failed
-        or not e
-        or e ~= from
-        or not d.support[e]
-        or v == e
-        or not vg
-        or gen ~= sgen
-        or vg ~= vgen
+        shotAdapter.failed
+        or not entity
+        or entity ~= from
+        or not shotAdapter.support[entity]
+        or v == entity
+        or not victimGeneration
+        or generation ~= sgen
+        or victimGeneration ~= vgen
         or not total
-        or authority(v, vg)
+        or authority(v, victimGeneration)
     then
         return false
     end
-    local k = key(e, gen, v, vg)
-    if total > (d.totals[k] or 0) then
-        d.totals[k] = total
-        d.dirty = true
+    local k = key(entity, generation, v, victimGeneration)
+    if total > (shotAdapter.totals[k] or 0) then
+        shotAdapter.totals[k] = total
+        shotAdapter.dirty = true
     end
     return true
 end
 
 -- SHOT|1|myLease|sourceLease|shooter|sgen|victim|vgen|seq|hits|digest
-function d.receive(f)
-    if f[1] ~= 'SHOT' then
+function shotAdapter.receive(fields)
+    if fields[1] ~= 'SHOT' then
         return false
     end
-    if d.failed or #f ~= 11 or not s.client or f[3] ~= s.client.lease or not hex(f[4]) then
-        return true
-    end
-    local e, gen, v, vg =
-        integer(f[5], 2), integer(f[6], 2147483647), integer(f[7], 4), integer(f[8], 2147483647)
-    local seq, hits = integer(f[9], 2147483647), integer(f[10], 1000000)
-    if not e or e < 1 or not v or v < 1 or v == e or not gen or not vg or not seq or not hits then
-        return true
-    end
     if
-        c.owners[e] == cfg.slot
-        or c.pilots[e] ~= c.owners[e]
-        or validGen(e) ~= gen
-        or victimGen(v) ~= vg
-        or not authority(v, vg)
+        shotAdapter.failed
+        or #fields ~= 11
+        or not sessionState.client
+        or fields[3] ~= sessionState.client.lease
+        or not hex(fields[4])
     then
         return true
     end
-    local sup = d.support[e]
-    if not sup or f[11] ~= sup.digest then
+    local entity, generation, v, victimGeneration =
+        integer(fields[5], 2),
+        integer(fields[6], 2147483647),
+        integer(fields[7], 4),
+        integer(fields[8], 2147483647)
+    local seq, hits = integer(fields[9], 2147483647), integer(fields[10], 1000000)
+    if
+        not entity
+        or entity < 1
+        or not v
+        or v < 1
+        or v == entity
+        or not generation
+        or not victimGeneration
+        or not seq
+        or not hits
+    then
+        return true
+    end
+    if
+        coopAdapter.owners[entity] == cfg.slot
+        or coopAdapter.pilots[entity] ~= coopAdapter.owners[entity]
+        or validGen(entity) ~= generation
+        or victimGen(v) ~= victimGeneration
+        or not authority(v, victimGeneration)
+    then
+        return true
+    end
+    local support = shotAdapter.support[entity]
+    if not support or fields[11] ~= support.digest then
         return true
     end -- unsupported or different loadout
-    local k = key(e, gen, v, vg)
-    local p = d.pending[k]
+    local k = key(entity, generation, v, victimGeneration)
+    local p = shotAdapter.pending[k]
     if p and (seq <= p.seq or hits < p.hits) then
         return true
     end
-    d.pending[k] = {
+    shotAdapter.pending[k] = {
         seq = seq,
         hits = hits,
-        shooter = e,
-        sgen = gen,
+        shooter = entity,
+        sgen = generation,
         victim = v,
-        vgen = vg,
-        digest = sup.digest,
-        strength = sup.strength,
+        vgen = victimGeneration,
+        digest = support.digest,
+        strength = support.strength,
     }
     return true
 end
 
 -- MD 'slot|sgen|vgen|count|state' after a compare-and-set apply: only now does the accepted count move.
-function d.applied(payload)
-    local slot, gen, vg, count, state = tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d+)|(%d+)$')
-    slot, gen, vg, count, state =
-        tonumber(slot), tonumber(gen), tonumber(vg), tonumber(count), tonumber(state)
-    if d.failed or not slot or slot < 1 or slot > 8 or state ~= d.stateRevision then
-        return
-    end
-    local e, v = math.floor((slot - 1) / 4) + 1, (slot - 1) % 4 + 1
-    local k = key(e, gen, v, vg)
-    local p = d.pending[k]
+function shotAdapter.applied(payload)
+    local slot, generation, victimGeneration, count, state =
+        tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d+)|(%d+)$')
+    slot, generation, victimGeneration, count, state =
+        tonumber(slot),
+        tonumber(generation),
+        tonumber(victimGeneration),
+        tonumber(count),
+        tonumber(state)
     if
-        not p
-        or count > p.hits
-        or validGen(e) ~= gen
-        or victimGen(v) ~= vg
-        or not authority(v, vg)
+        shotAdapter.failed
+        or not slot
+        or slot < 1
+        or slot > 8
+        or state ~= shotAdapter.stateRevision
     then
         return
     end
-    if count > (d.confirmed[k] or 0) then
-        d.confirmed[k] = count
+    local entity, v = math.floor((slot - 1) / 4) + 1, (slot - 1) % 4 + 1
+    local k = key(entity, generation, v, victimGeneration)
+    local p = shotAdapter.pending[k]
+    if
+        not p
+        or count > p.hits
+        or validGen(entity) ~= generation
+        or victimGen(v) ~= victimGeneration
+        or not authority(v, victimGeneration)
+    then
+        return
     end
-    local fl = d.inflight[k]
+    if count > (shotAdapter.confirmed[k] or 0) then
+        shotAdapter.confirmed[k] = count
+    end
+    local fl = shotAdapter.inflight[k]
     if fl and fl.count <= count then
-        d.inflight[k] = nil
+        shotAdapter.inflight[k] = nil
     end
 end
 
@@ -363,112 +415,107 @@ local function state(now)
     local g1, g2 = validGen(1) or 0, validGen(2) or 0
     local a1, a2 = authority(1, g1), authority(2, g2)
     local sig = table.concat({ g1, g2, tostring(a1), tostring(a2) }, '|')
-    if sig ~= d.stateKey then
-        d.stateKey, d.stateRevision, d.stateAck = sig, (d.stateRevision or 0) + 1, nil
+    if sig ~= shotAdapter.stateKey then
+        shotAdapter.stateKey, shotAdapter.stateRevision, shotAdapter.stateAck =
+            sig, (shotAdapter.stateRevision or 0) + 1, nil
     end
-    if writable() and (not d.nextState or now >= d.nextState) then
-        d.nextState = now + 0.1
-        AddUITriggeredEvent(
-            'X4LAN_Shot',
-            'State',
-            {
-                revision = d.stateRevision,
-                g1 = g1,
-                g2 = g2,
-                a1 = a1,
-                a2 = a2,
-                stamp = h.mdStamp,
-                from = h.mdAge,
-                deadline = h.mdAge + 1,
-            }
-        )
+    if writable() and (not shotAdapter.nextState or now >= shotAdapter.nextState) then
+        shotAdapter.nextState = now + 0.1
+        AddUITriggeredEvent('X4LAN_Shot', 'State', {
+            revision = shotAdapter.stateRevision,
+            g1 = g1,
+            g2 = g2,
+            a1 = a1,
+            a2 = a2,
+            stamp = healthAdapter.mdStamp,
+            from = healthAdapter.mdAge,
+            deadline = healthAdapter.mdAge + 1,
+        })
     end
 end
-function d.stateReady(payload)
+function shotAdapter.stateReady(payload)
     local revision = integer(tostring(payload), 2147483647)
-    if not d.failed and revision == d.stateRevision then
-        d.stateAck = revision
+    if not shotAdapter.failed and revision == shotAdapter.stateRevision then
+        shotAdapter.stateAck = revision
     end
 end
 
-function d.frame(now)
-    if h.failed then
-        d.fail('health authority stopped')
+function shotAdapter.frame(now)
+    if healthAdapter.failed then
+        shotAdapter.fail('health authority stopped')
         return
     end
     state(now)
     -- Shooter: cumulative counts of current generations only, at once on change, else every RESEND.
     local cur, curGen = shooter()
-    local lease = s.client and s.client.lease
-    for k, total in pairs(d.totals) do
-        local e, gen, v, vg = k:match('^(%d)|(%d+)|(%d)|(%d+)$')
-        e, gen, v, vg = tonumber(e), tonumber(gen), tonumber(v), tonumber(vg)
+    local lease = sessionState.client and sessionState.client.lease
+    for k, total in pairs(shotAdapter.totals) do
+        local entity, generation, v, victimGeneration = k:match('^(%d)|(%d+)|(%d)|(%d+)$')
+        entity, generation, v, victimGeneration =
+            tonumber(entity), tonumber(generation), tonumber(v), tonumber(victimGeneration)
         if
-            cur ~= e
-            or curGen ~= gen
-            or victimGen(v) ~= vg
-            or not d.support[e]
-            or authority(v, vg)
+            cur ~= entity
+            or curGen ~= generation
+            or victimGen(v) ~= victimGeneration
+            or not shotAdapter.support[entity]
+            or authority(v, victimGeneration)
         then
-            d.totals[k], d.sentAt[k] = nil, nil
-        elseif lease and (d.dirty or now >= (d.sentAt[k] or 0)) then
-            d.seq, d.sentAt[k] = d.seq + 1, now + RESEND
+            shotAdapter.totals[k], shotAdapter.sentAt[k] = nil, nil
+        elseif lease and (shotAdapter.dirty or now >= (shotAdapter.sentAt[k] or 0)) then
+            shotAdapter.seq, shotAdapter.sentAt[k] = shotAdapter.seq + 1, now + RESEND
             send(
                 string.format(
                     'SHOT|1|%s|%d|%d|%d|%d|%d|%d|%s',
                     lease,
-                    e,
-                    gen,
+                    entity,
+                    generation,
                     v,
-                    vg,
-                    d.seq,
+                    victimGeneration,
+                    shotAdapter.seq,
                     total,
-                    d.support[e].digest
+                    shotAdapter.support[entity].digest
                 )
             )
         end
     end
-    d.dirty = false
+    shotAdapter.dirty = false
     -- Authority: issue the next increase (at most BATCH hits), retried until MD confirms it.
-    for k, p in pairs(d.pending) do
+    for k, p in pairs(shotAdapter.pending) do
         if
             validGen(p.shooter) ~= p.sgen
             or victimGen(p.victim) ~= p.vgen
             or not authority(p.victim, p.vgen)
         then
-            d.pending[k], d.confirmed[k], d.inflight[k] = nil, nil, nil
+            shotAdapter.pending[k], shotAdapter.confirmed[k], shotAdapter.inflight[k] =
+                nil, nil, nil
         else
-            local base = d.confirmed[k] or 0
-            local fl = d.inflight[k]
-            local sup = d.support[p.shooter]
+            local base = shotAdapter.confirmed[k] or 0
+            local fl = shotAdapter.inflight[k]
+            local support = shotAdapter.support[p.shooter]
             if
                 p.hits > base
-                and sup
-                and sup.digest == p.digest
-                and sup.strength == p.strength
+                and support
+                and support.digest == p.digest
+                and support.strength == p.strength
                 and (not fl or now - fl.at >= RETRY)
                 and writable()
-                and d.stateAck == d.stateRevision
+                and shotAdapter.stateAck == shotAdapter.stateRevision
             then
                 local count = math.min(p.hits, base + BATCH)
-                d.inflight[k] = { at = now, count = count }
-                AddUITriggeredEvent(
-                    'X4LAN_Shot',
-                    'Apply',
-                    {
-                        shooter = p.shooter,
-                        sgen = p.sgen,
-                        victim = p.victim,
-                        vgen = p.vgen,
-                        base = base,
-                        count = count,
-                        strength = p.strength,
-                        state = d.stateAck,
-                        stamp = h.mdStamp,
-                        from = h.mdAge,
-                        deadline = h.mdAge + 1,
-                    }
-                )
+                shotAdapter.inflight[k] = { at = now, count = count }
+                AddUITriggeredEvent('X4LAN_Shot', 'Apply', {
+                    shooter = p.shooter,
+                    sgen = p.sgen,
+                    victim = p.victim,
+                    vgen = p.vgen,
+                    base = base,
+                    count = count,
+                    strength = p.strength,
+                    state = shotAdapter.stateAck,
+                    stamp = healthAdapter.mdStamp,
+                    from = healthAdapter.mdAge,
+                    deadline = healthAdapter.mdAge + 1,
+                })
             end
         end
     end
@@ -476,58 +523,58 @@ end
 
 -- A failure ends this module for the session: nothing is sent or applied again; strengths go to
 -- 0 in MD so no queued Apply can pass either.
-function d.fail(err)
-    if d.failed then
+function shotAdapter.fail(err)
+    if shotAdapter.failed then
         return
     end
-    d.failed = true
+    shotAdapter.failed = true
     log('SHOT STOPPED ' .. tostring(err))
-    d.totals, d.pending, d.inflight = {}, {}, {}
+    shotAdapter.totals, shotAdapter.pending, shotAdapter.inflight = {}, {}, {}
     pcall(AddUITriggeredEvent, 'X4LAN_Shot', 'Stop')
-    for e = 1, 2 do
-        pcall(AddUITriggeredEvent, 'X4LAN_Shot', 'Support', { entity = e, strength = 0 })
+    for entity = 1, 2 do
+        pcall(AddUITriggeredEvent, 'X4LAN_Shot', 'Support', { entity = entity, strength = 0 })
     end
 end
 
-local receive, frame = c.receive, c.frame
-function c.receive(f, now)
-    local ok, handled = pcall(d.receive, f)
+local receive, frame = coopAdapter.receive, coopAdapter.frame
+function coopAdapter.receive(fields, now)
+    local ok, handled = pcall(shotAdapter.receive, fields)
     if not ok then
-        d.fail(handled)
-        handled = f[1] == 'SHOT'
+        shotAdapter.fail(handled)
+        handled = fields[1] == 'SHOT'
     end
     if handled then
         return true
     end
-    return receive(f, now)
+    return receive(fields, now)
 end
-function c.frame(now)
+function coopAdapter.frame(now)
     frame(now)
-    if c.ready and h.ready and not d.setup then
-        d.setup = true
+    if coopAdapter.ready and healthAdapter.ready and not shotAdapter.setup then
+        shotAdapter.setup = true
         AddUITriggeredEvent('X4LAN_Shot', 'Setup')
     end
-    if d.ready and not d.failed then
-        local ok, err = pcall(d.frame, now)
+    if shotAdapter.ready and not shotAdapter.failed then
+        local ok, err = pcall(shotAdapter.frame, now)
         if not ok then
-            d.fail(err)
+            shotAdapter.fail(err)
         end
     end
 end
 RegisterEvent('X4LAN_Shot.Ready', function()
-    d.ready = true
+    shotAdapter.ready = true
     log('SHOT_READY slot=' .. cfg.slot)
 end)
 RegisterEvent('X4LAN_Shot.Loadout', function(_, payload)
-    if d.ready and not d.failed then
-        d.loadout(payload)
+    if shotAdapter.ready and not shotAdapter.failed then
+        shotAdapter.loadout(payload)
     end
 end)
 RegisterEvent('X4LAN_Shot.StateReady', function(_, payload)
-    d.stateReady(payload)
+    shotAdapter.stateReady(payload)
 end)
 RegisterEvent('X4LAN_Shot.Applied', function(_, payload)
-    if d.ready then
-        d.applied(payload)
+    if shotAdapter.ready then
+        shotAdapter.applied(payload)
     end
 end)

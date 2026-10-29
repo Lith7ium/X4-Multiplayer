@@ -1,6 +1,6 @@
 -- Guarded observed shots. No native or network
 -- work occurs without the complete damage/proof/capture stack and explicit flag.
-local A, cfg = X4LAN_BUBBLE_API, X4LAN_CONFIG
+local API, cfg = X4LAN_BUBBLE_API, X4LAN_CONFIG
 if
     not cfg
     or not cfg.projectile_visuals
@@ -9,15 +9,15 @@ if
     or not cfg.shot_claims
     or not cfg.pilot_health
     or not cfg.fire2
-    or not A
-    or not A.coop
-    or not A.health
-    or not A.shot
-    or not A.shotVisual
+    or not API
+    or not API.coop
+    or not API.health
+    or not API.shot
+    or not API.shotVisual
 then
     return
 end
-local P, W = assert(X4LAN_PROJECTILE_MOTION), assert(X4LAN_PROJECTILE_PROTOCOL)
+local motion, wireProtocol = assert(X4LAN_PROJECTILE_MOTION), assert(X4LAN_PROJECTILE_PROTOCOL)
 local ffi = require('ffi')
 local C = ffi.C
 pcall(ffi.cdef, 'typedef uint64_t UniverseID;')
@@ -30,9 +30,10 @@ for _, definition in ipairs({
 }) do
     pcall(ffi.cdef, definition)
 end
-local c, h, d, v, s = A.coop, A.health, A.shot, A.shotVisual, A.state
-local x = { contexts = {}, slots = {}, captures = {}, serial = 0, shotId = 0, now = 0 }
-A.projectiles = x
+local coopAdapter, healthAdapter, shotAdapter, shotVisual, sessionState =
+    API.coop, API.health, API.shot, API.shotVisual, API.state
+local projectiles = { contexts = {}, slots = {}, captures = {}, serial = 0, shotId = 0, now = 0 }
+API.projectiles = projectiles
 local KINDS = {
     weapon_ter_s_plasma_01_mk1_macro = 1,
     weapon_gen_s_laser_01_mk1_macro = 2,
@@ -45,53 +46,58 @@ local function log(t)
 end
 local function liveBullet(id)
     -- The engine logs an error if IsComponentClass sees an already expired ID.
-    return IsValidComponent(A.id(id)) and C.IsComponentClass(id, 'bullet')
+    return IsValidComponent(API.id(id)) and C.IsComponentClass(id, 'bullet')
 end
 local function event(control, args)
     AddUITriggeredEvent('X4LAN_Projectile', control, args or {})
 end
 local function serial()
-    x.serial = x.serial + 1
-    assert(x.serial <= 2147483647, 'operation exhausted')
-    return x.serial
+    projectiles.serial = projectiles.serial + 1
+    assert(projectiles.serial <= 2147483647, 'operation exhausted')
+    return projectiles.serial
 end
 local function closePosition(actual, wanted)
     -- Sector = zone + local can round again after the float-native command.
     return math.abs(actual - wanted) <= math.max(0.01, math.abs(wanted) * 2 ^ -21)
 end
 local function window(a)
-    a.revision, a.stamp, a.from, a.deadline = d.stateRevision, h.mdStamp, h.mdAge, h.mdAge + 0.3
+    a.revision, a.stamp, a.from, a.deadline =
+        shotAdapter.stateRevision,
+        healthAdapter.mdStamp,
+        healthAdapter.mdAge,
+        healthAdapter.mdAge + 0.3
     return a
 end
 local function send(packet)
-    if packet and s.client and s.client.lease then
-        s.transport:send(packet)
+    if packet and sessionState.client and sessionState.client.lease then
+        sessionState.transport:send(packet)
     end
 end
 local function fresh(now)
-    return not x.failed
-        and not s.failed
-        and not d.failed
-        and not h.failed
-        and not v.failed
-        and s.client
-        and s.client.lease
-        and h.mdStamp
-        and now - (h.mdAt or -100) <= 0.3
-        and not A.paused()
+    return not projectiles.failed
+        and not sessionState.failed
+        and not shotAdapter.failed
+        and not healthAdapter.failed
+        and not shotVisual.failed
+        and sessionState.client
+        and sessionState.client.lease
+        and healthAdapter.mdStamp
+        and now - (healthAdapter.mdAt or -100) <= 0.3
+        and not API.paused()
 end
-local function wanted(e, now)
+local function wanted(entity, now)
     if not fresh(now) then
         return nil
     end
-    local gen, ship, owner = h.valid[e], c.ships[e], c.owners[e]
-    local kind = d.support[e] and KINDS[d.support[e].macro]
+    local gen, ship, owner =
+        healthAdapter.valid[entity], coopAdapter.ships[entity], coopAdapter.owners[entity]
+    local kind = shotAdapter.support[entity] and KINDS[shotAdapter.support[entity].macro]
     if
         not kind
         or not gen
-        or gen <= (h.closed[e] or 0)
+        or gen <= (healthAdapter.closed[entity] or 0)
         or not owner
-        or c.pilots[e] ~= owner
+        or coopAdapter.pilots[entity] ~= owner
         or not ship
         or ship == 0
         or not C.IsComponentOperational(ship)
@@ -103,13 +109,15 @@ local function wanted(e, now)
         return nil
     end
     local mode = owner == cfg.slot and 1 or 2
-    local lease, sourceNow = s.client.lease, now
+    local lease, sourceNow = sessionState.client.lease, now
     if mode == 1 then
-        if C.GetPlayerControlledShipID() ~= ship or not v.readyOriginal(e, gen, now) then
+        if
+            C.GetPlayerControlledShipID() ~= ship or not shotVisual.readyOriginal(entity, gen, now)
+        then
             return nil
         end
     else
-        local r = c.remote[e]
+        local r = coopAdapter.remote[entity]
         local player = C.GetPlayerContainerID()
         if
             not r
@@ -119,27 +127,37 @@ local function wanted(e, now)
             or not r.sourceLease
             or player == 0
             or C.GetContextByClass(player, 'sector', false) ~= sector
-            or not v.readyReplay(e, gen, now)
+            or not shotVisual.readyReplay(entity, gen, now)
         then
             return nil
         end
-        if r.sector ~= GetComponentData(A.id(sector), 'macro') then
+        if r.sector ~= GetComponentData(API.id(sector), 'macro') then
             return nil
         end
         lease, sourceNow = r.sourceLease, now - r.track.offset
     end
-    local name = GetComponentData(A.id(sector), 'macro')
+    local name = GetComponentData(API.id(sector), 'macro')
     -- A.id creates engine LuaID userdata for MD/API arguments. It is not a string
     -- and may be a new wrapper on every call; key the stable native numeric IDs.
     local key = table.concat(
-        { s.client.lease, lease, e, c.epochs[e], gen, tostring(ship), tostring(sector), mode, kind },
+        {
+            sessionState.client.lease,
+            lease,
+            entity,
+            coopAdapter.epochs[entity],
+            gen,
+            tostring(ship),
+            tostring(sector),
+            mode,
+            kind,
+        },
         '|'
     )
     return {
         key = key,
-        entity = e,
+        entity = entity,
         gen = gen,
-        epoch = c.epochs[e],
+        epoch = coopAdapter.epochs[entity],
         kind = kind,
         mode = mode,
         ship = ship,
@@ -150,170 +168,182 @@ local function wanted(e, now)
     }
 end
 local function remove(slot)
-    local r = x.slots[slot]
+    local r = projectiles.slots[slot]
     if not r then
         return
     end
     event('Remove', { slot = slot, operation = r.operation })
-    x.slots[slot] = nil
+    projectiles.slots[slot] = nil
 end
-local function revoke(q)
-    if not q.enabled then
+local function revoke(context)
+    if not context.enabled then
         return
     end
-    q.enabled = false
-    q.ticket = serial()
-    q.ackAt = nil
-    event('Revoke', { entity = q.entity, ticket = q.ticket })
-    P.clear(q.buffer, q.sourceNow)
-    for slot, r in pairs(x.slots) do
-        if r.entity == q.entity then
+    context.enabled = false
+    context.ticket = serial()
+    context.ackAt = nil
+    event('Revoke', { entity = context.entity, ticket = context.ticket })
+    motion.clear(context.buffer, context.sourceNow)
+    for slot, r in pairs(projectiles.slots) do
+        if r.entity == context.entity then
             remove(slot)
         end
     end
 end
-local function ready(q, now)
-    return q and q.enabled and q.ackAt and now - q.ackAt <= 0.3
+local function ready(context, now)
+    return context and context.enabled and context.ackAt and now - context.ackAt <= 0.3
 end
-function x.contextsFrame(now)
-    for e = 1, 2 do
-        local cur = wanted(e, now)
-        local q = x.contexts[e]
+function projectiles.contextsFrame(now)
+    for entity = 1, 2 do
+        local cur = wanted(entity, now)
+        local context = projectiles.contexts[entity]
         if not cur then
-            if q then
-                local track = c.remote[e] and c.remote[e].track
+            if context then
+                local track = coopAdapter.remote[entity] and coopAdapter.remote[entity].track
                 if track and track.offset then
-                    q.sourceNow = math.max(q.sourceNow, now - track.offset)
+                    context.sourceNow = math.max(context.sourceNow, now - track.offset)
                 end
-                revoke(q)
+                revoke(context)
             end
         else
-            if not q or q.key ~= cur.key then
-                if q then
-                    revoke(q)
+            if not context or context.key ~= cur.key then
+                if context then
+                    revoke(context)
                 end
-                q = cur
-                q.buffer = P.new(q.key, 0)
-                q.ticket = serial()
-                q.enabled = true
-                q.started = now
-                x.contexts[e] = q
+                context = cur
+                context.buffer = motion.new(context.key, 0)
+                context.ticket = serial()
+                context.enabled = true
+                context.started = now
+                projectiles.contexts[entity] = context
             else
-                q.sourceNow = cur.sourceNow
+                context.sourceNow = cur.sourceNow
                 if
-                    not q.enabled
-                    or not q.ackAt and now - q.started > 0.3
-                    or q.ackAt and now - q.ackAt > 0.3
+                    not context.enabled
+                    or not context.ackAt and now - context.started > 0.3
+                    or context.ackAt and now - context.ackAt > 0.3
                 then
-                    revoke(q)
-                    q.ticket = serial()
-                    q.enabled = true
-                    q.ackAt = nil
-                    q.started = now
-                    q.nextState = 0
+                    revoke(context)
+                    context.ticket = serial()
+                    context.enabled = true
+                    context.ackAt = nil
+                    context.started = now
+                    context.nextState = 0
                 end
             end
-            if now >= (q.nextState or 0) then
-                q.nextState = now + 0.1
+            if now >= (context.nextState or 0) then
+                context.nextState = now + 0.1
                 event(
                     'State',
                     window({
-                        entity = e,
-                        gen = q.gen,
-                        ticket = q.ticket,
-                        mode = q.mode,
-                        kind = q.kind,
-                        sector = A.id(q.sector),
+                        entity = entity,
+                        gen = context.gen,
+                        ticket = context.ticket,
+                        mode = context.mode,
+                        kind = context.kind,
+                        sector = API.id(context.sector),
                     })
                 )
             end
         end
     end
 end
-function x.state(payload)
-    local e, t = tostring(payload):match('^(%d)|(%d+)$')
-    e, t = tonumber(e), tonumber(t)
-    local q = e and x.contexts[e]
-    local cur = e and wanted(e, x.now)
-    if q and cur and cur.key == q.key and q.enabled and q.ticket == t then
-        q.ackAt = x.now
+function projectiles.state(payload)
+    local entity, t = tostring(payload):match('^(%d)|(%d+)$')
+    entity, t = tonumber(entity), tonumber(t)
+    local context = entity and projectiles.contexts[entity]
+    local cur = entity and wanted(entity, projectiles.now)
+    if context and cur and cur.key == context.key and context.enabled and context.ticket == t then
+        context.ackAt = projectiles.now
     end
 end
-function x.born(payload)
-    local e, g, t, id, sector, kind, vx, vy, vz =
+function projectiles.born(payload)
+    local entity, generation, t, id, sector, kind, vx, vy, vz =
         tostring(payload):match('^(%d)|(%d+)|(%d+)|([^|]+)|([^|]+)|(%d)|([^|]+)|([^|]+)|([^|]+)$')
-    e, g, t, kind = tonumber(e), tonumber(g), tonumber(t), tonumber(kind)
+    entity, generation, t, kind =
+        tonumber(entity), tonumber(generation), tonumber(t), tonumber(kind)
     local velocity = { tonumber(vx), tonumber(vy), tonumber(vz) }
     for i = 1, 3 do
         local n = velocity[i]
-        if not n or n ~= n or math.abs(n) > W.MAX_VELOCITY then
+        if not n or n ~= n or math.abs(n) > wireProtocol.MAX_VELOCITY then
             return
         end
     end
-    local q = e and x.contexts[e]
-    local cur = e and wanted(e, x.now)
+    local context = entity and projectiles.contexts[entity]
+    local cur = entity and wanted(entity, projectiles.now)
     if
-        not ready(q, x.now)
+        not ready(context, projectiles.now)
         or not cur
-        or cur.key ~= q.key
-        or q.mode ~= 1
-        or q.gen ~= g
-        or q.ticket ~= t
-        or q.kind ~= kind
+        or cur.key ~= context.key
+        or context.mode ~= 1
+        or context.gen ~= generation
+        or context.ticket ~= t
+        or context.kind ~= kind
     then
         return
     end
     local native, space = ConvertIDTo64Bit(id), ConvertIDTo64Bit(sector)
-    if space ~= q.sector or not liveBullet(native) then
+    if space ~= context.sector or not liveBullet(native) then
         return
     end
-    local key = q.key .. '|' .. id
+    local key = context.key .. '|' .. id
     local n = 0
-    for _ in pairs(x.captures) do
+    for _ in pairs(projectiles.captures) do
         n = n + 1
     end
-    if x.captures[key] or n >= P.capacity then
+    if projectiles.captures[key] or n >= motion.capacity then
         return
     end
-    x.shotId = x.shotId + 1
-    assert(x.shotId <= 2147483647, 'shot IDs exhausted')
-    x.captures[key] =
-        { native = native, space = space, q = q, ticket = q.ticket, id = x.shotId, velocity = velocity }
+    projectiles.shotId = projectiles.shotId + 1
+    assert(projectiles.shotId <= 2147483647, 'shot IDs exhausted')
+    projectiles.captures[key] = {
+        native = native,
+        space = space,
+        q = context,
+        ticket = context.ticket,
+        id = projectiles.shotId,
+        velocity = velocity,
+    }
 end
-local function message(b, kind, time)
-    local q = b.q
+local function message(bullet, kind, time)
+    local context = bullet.q
     return {
         type = kind,
         direction = 'client',
-        lease = s.client.lease,
-        entity = q.entity,
-        epoch = q.epoch,
-        gen = q.gen,
-        id = b.id,
+        lease = sessionState.client.lease,
+        entity = context.entity,
+        epoch = context.epoch,
+        gen = context.gen,
+        id = bullet.id,
         time = time,
     }
 end
-function x.captureFrame(now)
-    for key, b in pairs(x.captures) do
-        local q = b.q
-        local cur = wanted(q.entity, now)
-        if not cur or cur.key ~= q.key or not ready(q, now) or b.ticket ~= q.ticket then
-            x.captures[key] = nil
+function projectiles.captureFrame(now)
+    for key, bullet in pairs(projectiles.captures) do
+        local context = bullet.q
+        local cur = wanted(context.entity, now)
+        if
+            not cur
+            or cur.key ~= context.key
+            or not ready(context, now)
+            or bullet.ticket ~= context.ticket
+        then
+            projectiles.captures[key] = nil
         else
-            if not b.ended then
-                if liveBullet(b.native) then
-                    local p = C.GetPositionalOffset(b.native, b.space)
+            if not bullet.ended then
+                if liveBullet(bullet.native) then
+                    local p = C.GetPositionalOffset(bullet.native, bullet.space)
                     local sample = { time = now, pose = { p.x, p.y, p.z, p.yaw, p.pitch, p.roll } }
-                    b.first = b.first or sample
-                    if not b.birth then
+                    bullet.first = bullet.first or sample
+                    if not bullet.birth then
                         -- Native velocity includes inherited motion and actual barrel spread.
                         -- Differencing float sector positions amplifies rounding far from origin.
-                        local velocity = b.velocity
-                        local m = message(b, 'BOLT', b.first.time)
-                        local a = b.first.pose
+                        local velocity = bullet.velocity
+                        local m = message(bullet, 'BOLT', bullet.first.time)
+                        local a = bullet.first.pose
                         m.sector, m.kind, m.x, m.y, m.z, m.vx, m.vy, m.vz, m.yaw, m.pitch, m.roll, m.ttl =
-                            q.sectorName,
-                            q.kind,
+                            context.sectorName,
+                            context.kind,
                             a[1],
                             a[2],
                             a[3],
@@ -323,165 +353,164 @@ function x.captureFrame(now)
                             a[4],
                             a[5],
                             a[6],
-                            TTL[q.kind]
-                        b.birth = assert(W.serialize(m))
-                        b.birthAt = now
-                        b.nextBirth = now
-                        b.repeats = 0
+                            TTL[context.kind]
+                        bullet.birth = assert(wireProtocol.serialize(m))
+                        bullet.birthAt = now
+                        bullet.nextBirth = now
+                        bullet.repeats = 0
                     end
                 else
-                    b.ended = now
-                    if b.birth then
-                        b.finish = assert(W.serialize(message(b, 'BEND', now)))
-                        b.nextEnd = now
-                        b.endRepeats = 0
+                    bullet.ended = now
+                    if bullet.birth then
+                        bullet.finish = assert(wireProtocol.serialize(message(bullet, 'BEND', now)))
+                        bullet.nextEnd = now
+                        bullet.endRepeats = 0
                     else
-                        x.captures[key] = nil
+                        projectiles.captures[key] = nil
                     end
                 end
             end
-            if b.birth and not b.ended and b.repeats < 3 and now >= b.nextBirth then
-                send(b.birth)
-                b.repeats = b.repeats + 1
-                b.nextBirth = now + 0.05
+            if
+                bullet.birth
+                and not bullet.ended
+                and bullet.repeats < 3
+                and now >= bullet.nextBirth
+            then
+                send(bullet.birth)
+                bullet.repeats = bullet.repeats + 1
+                bullet.nextBirth = now + 0.05
             end
-            if b.finish and now >= b.nextEnd then
-                send(b.finish)
-                b.endRepeats = b.endRepeats + 1
-                b.nextEnd = now + 0.05
-                if b.endRepeats >= 3 then
-                    x.captures[key] = nil
+            if bullet.finish and now >= bullet.nextEnd then
+                send(bullet.finish)
+                bullet.endRepeats = bullet.endRepeats + 1
+                bullet.nextEnd = now + 0.05
+                if bullet.endRepeats >= 3 then
+                    projectiles.captures[key] = nil
                 end
             end
-            if b.first and now - b.first.time > 3.1 then
-                x.captures[key] = nil
+            if bullet.first and now - bullet.first.time > 3.1 then
+                projectiles.captures[key] = nil
             end
         end
     end
 end
-function x.receive(f, now)
-    if f[1] ~= 'BOLT' and f[1] ~= 'BEND' then
+function projectiles.receive(fields, now)
+    if fields[1] ~= 'BOLT' and fields[1] ~= 'BEND' then
         return false
     end
-    local m = W.parse(table.concat(f, '|'), 'forwarded')
+    local m = wireProtocol.parse(table.concat(fields, '|'), 'forwarded')
     local function drop(reason)
-        if c.dropped then
-            c.dropped(f[1], m and m.entity or '?', reason, now)
+        if coopAdapter.dropped then
+            coopAdapter.dropped(fields[1], m and m.entity or '?', reason, now)
         end
         return true
     end
     if not m then
         return drop('malformed')
     end
-    if m.lease ~= s.client.lease then
+    if m.lease ~= sessionState.client.lease then
         return drop('lease')
     end
     if not fresh(now) then
         return drop('not-fresh(md/health/paused)')
     end
-    local q = x.contexts[m.entity]
+    local context = projectiles.contexts[m.entity]
     local cur = wanted(m.entity, now)
     if not cur then
         return drop('no-replay-context(gen/support/track/sector)')
     end
-    if not ready(q, now) then
+    if not ready(context, now) then
         return drop('md-context-not-acknowledged')
     end
-    if cur.key ~= q.key then
+    if cur.key ~= context.key then
         return drop('context-changed')
     end
-    if q.mode ~= 2 then
+    if context.mode ~= 2 then
         return drop('own-ship')
     end
-    if m.source_lease ~= q.sourceLease then
+    if m.source_lease ~= context.sourceLease then
         return drop('source-lease')
     end
-    if m.epoch ~= q.epoch then
+    if m.epoch ~= context.epoch then
         return drop('epoch')
     end
-    if m.gen ~= q.gen then
-        return drop('health-generation ' .. tostring(q.gen) .. '~=' .. tostring(m.gen))
+    if m.gen ~= context.gen then
+        return drop('health-generation ' .. tostring(context.gen) .. '~=' .. tostring(m.gen))
     end
     if m.type == 'BOLT' then
-        if m.sector == q.sectorName and m.kind == q.kind then
-            P.birth(
-                q.buffer,
-                q.key,
-                {
-                    id = m.id,
-                    time = m.time,
-                    ttl = m.ttl,
-                    kind = m.kind,
-                    pose = { m.x, m.y, m.z, m.yaw, m.pitch, m.roll },
-                    velocity = { m.vx, m.vy, m.vz },
-                },
-                cur.sourceNow,
-                cur.sourceNow - DELAY
-            )
+        if m.sector == context.sectorName and m.kind == context.kind then
+            motion.birth(context.buffer, context.key, {
+                id = m.id,
+                time = m.time,
+                ttl = m.ttl,
+                kind = m.kind,
+                pose = { m.x, m.y, m.z, m.yaw, m.pitch, m.roll },
+                velocity = { m.vx, m.vy, m.vz },
+            }, cur.sourceNow, cur.sourceNow - DELAY)
         end
     else
-        P.finish(q.buffer, q.key, m.id, m.time)
+        motion.finish(context.buffer, context.key, m.id, m.time)
     end
     return true
 end
-function x.created(payload)
-    local e, t, slot, op, id, sector =
+function projectiles.created(payload)
+    local entity, t, slot, op, id, sector =
         tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d+)|([^|]+)|([^|]+)$')
-    e, t, slot, op = tonumber(e), tonumber(t), tonumber(slot), tonumber(op)
-    if not e or not slot or slot < 1 or slot > P.capacity then
+    entity, t, slot, op = tonumber(entity), tonumber(t), tonumber(slot), tonumber(op)
+    if not entity or not slot or slot < 1 or slot > motion.capacity then
         return
     end
-    local q = x.contexts[e]
-    local r = x.slots[slot]
-    local cur = wanted(e, x.now)
+    local context = projectiles.contexts[entity]
+    local r = projectiles.slots[slot]
+    local cur = wanted(entity, projectiles.now)
     if
         not r
         or r.operation ~= op
-        or r.entity ~= e
-        or not ready(q, x.now)
+        or r.entity ~= entity
+        or not ready(context, projectiles.now)
         or not cur
-        or cur.key ~= q.key
-        or q.ticket ~= t
+        or cur.key ~= context.key
+        or context.ticket ~= t
         or r.ticket ~= t
     then
         event('Remove', { slot = slot, operation = op })
         return
     end
     local object, space = ConvertIDTo64Bit(id), ConvertIDTo64Bit(sector)
-    if space ~= q.sector or not C.IsComponentClass(object, 'object') then
+    if space ~= context.sector or not C.IsComponentClass(object, 'object') then
         remove(slot)
         return
     end
     r.object = object
 end
-function x.rejected(payload)
-    local e, t, slot, op = tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d+)$')
-    e, t, slot, op = tonumber(e), tonumber(t), tonumber(slot), tonumber(op)
-    local r = slot and x.slots[slot]
-    if r and r.entity == e and r.ticket == t and r.operation == op and not r.object then
+function projectiles.rejected(payload)
+    local entity, t, slot, op = tostring(payload):match('^(%d)|(%d+)|(%d+)|(%d+)$')
+    entity, t, slot, op = tonumber(entity), tonumber(t), tonumber(slot), tonumber(op)
+    local r = slot and projectiles.slots[slot]
+    if r and r.entity == entity and r.ticket == t and r.operation == op and not r.object then
         -- A queued request can cross a freshness boundary. Retry while this exact
         -- observation is still live, without spending most of a short pulse's TTL.
-        r.retryAt = x.now + 0.05
+        r.retryAt = projectiles.now + 0.05
     end
 end
-function x.renderFrame(now)
+function projectiles.renderFrame(now)
     local wantedSlots = {}
-    for e, q in pairs(x.contexts) do
-        if q.mode == 2 and ready(q, now) then
-            local cur = wanted(e, now)
-            if cur and cur.key == q.key then
-                local samples = P.sample(q.buffer, cur.sourceNow - DELAY)
+    for entity, context in pairs(projectiles.contexts) do
+        if context.mode == 2 and ready(context, now) then
+            local cur = wanted(entity, now)
+            if cur and cur.key == context.key then
+                local samples = motion.sample(context.buffer, cur.sourceNow - DELAY)
                 for id, sample in pairs(samples) do
                     local slot
-                    for i, r in pairs(x.slots) do
-                        if r.entity == e and r.id == id and r.ticket == q.ticket then
+                    for i, r in pairs(projectiles.slots) do
+                        if r.entity == entity and r.id == id and r.ticket == context.ticket then
                             slot = i
                             break
                         end
                     end
                     if not slot then
-                        for i = 1, P.capacity do
-                            if not x.slots[i] then
+                        for i = 1, motion.capacity do
+                            if not projectiles.slots[i] then
                                 slot = i
                                 break
                             end
@@ -489,18 +518,23 @@ function x.renderFrame(now)
                         if slot then
                             local op = serial()
                             local p = sample.pose
-                            local record = q.buffer.active[id]
-                            x.slots[slot] =
-                                { entity = e, id = id, ticket = q.ticket, operation = op, at = now }
+                            local record = context.buffer.active[id]
+                            projectiles.slots[slot] = {
+                                entity = entity,
+                                id = id,
+                                ticket = context.ticket,
+                                operation = op,
+                                at = now,
+                            }
                             event(
                                 'Create',
                                 window({
-                                    entity = e,
-                                    gen = q.gen,
-                                    ticket = q.ticket,
+                                    entity = entity,
+                                    gen = context.gen,
+                                    ticket = context.ticket,
                                     slot = slot,
                                     operation = op,
-                                    kind = q.kind,
+                                    kind = context.kind,
                                     ttl = math.min(
                                         3,
                                         record.time + record.ttl - (cur.sourceNow - DELAY)
@@ -516,31 +550,29 @@ function x.renderFrame(now)
                         end
                     end
                     if slot then
-                        local r = x.slots[slot]
+                        local r = projectiles.slots[slot]
                         wantedSlots[slot] = true
                         if r.object then
                             if
                                 C.IsComponentClass(r.object, 'object')
-                                and C.GetContextByClass(r.object, 'sector', false) == q.sector
+                                and C.GetContextByClass(r.object, 'sector', false)
+                                    == context.sector
                             then
                                 local p = sample.pose
-                                local pose = ffi.new(
-                                    'UIPosRot',
-                                    {
-                                        x = p[1],
-                                        y = p[2],
-                                        z = p[3],
-                                        yaw = p[4] * 180 / math.pi,
-                                        pitch = p[5] * 180 / math.pi,
-                                        roll = p[6] * 180 / math.pi,
-                                    }
-                                )
+                                local pose = ffi.new('UIPosRot', {
+                                    x = p[1],
+                                    y = p[2],
+                                    z = p[3],
+                                    yaw = p[4] * 180 / math.pi,
+                                    pitch = p[5] * 180 / math.pi,
+                                    roll = p[6] * 180 / math.pi,
+                                })
                                 -- A zone reparent can retain the previous zone's local coordinates on
                                 -- the first write. Correct once within this frame, then remove a carrier
                                 -- that still disagrees. Never apply this repair to ships or projectiles.
                                 local placed = false
                                 for attempt = 1, 2 do
-                                    C.SetObjectSectorPos(r.object, q.sector, pose)
+                                    C.SetObjectSectorPos(r.object, context.sector, pose)
                                     local actual = C.GetObjectPositionInSector(r.object)
                                     if
                                         closePosition(actual.x, pose.x)
@@ -567,68 +599,68 @@ function x.renderFrame(now)
             end
         end
     end
-    for slot in pairs(x.slots) do
+    for slot in pairs(projectiles.slots) do
         if not wantedSlots[slot] then
             remove(slot)
         end
     end
 end
-function x.fail(err)
-    if x.failed then
+function projectiles.fail(err)
+    if projectiles.failed then
         return
     end
-    x.failed = true
+    projectiles.failed = true
     log('STOPPED ' .. tostring(err))
-    x.captures = {}
+    projectiles.captures = {}
     pcall(event, 'Stop')
-    for _, q in pairs(x.contexts) do
-        q.enabled = false
+    for _, context in pairs(projectiles.contexts) do
+        context.enabled = false
     end
-    x.slots = {}
+    projectiles.slots = {}
 end
-local frame, receive = c.frame, c.receive
-function c.frame(now)
+local frame, receive = coopAdapter.frame, coopAdapter.receive
+function coopAdapter.frame(now)
     frame(now)
-    x.now = now
-    if d.ready and v.ready and not x.setup then
-        x.setup = true
+    projectiles.now = now
+    if shotAdapter.ready and shotVisual.ready and not projectiles.setup then
+        projectiles.setup = true
         event('Setup')
     end
-    if x.ready and not x.failed then
+    if projectiles.ready and not projectiles.failed then
         local ok, err = pcall(function()
-            x.contextsFrame(now)
-            x.captureFrame(now)
-            x.renderFrame(now)
+            projectiles.contextsFrame(now)
+            projectiles.captureFrame(now)
+            projectiles.renderFrame(now)
         end)
         if not ok then
-            x.fail(err)
+            projectiles.fail(err)
         end
     end
 end
-function c.receive(f, now)
-    local ok, handled = pcall(x.receive, f, now)
+function coopAdapter.receive(fields, now)
+    local ok, handled = pcall(projectiles.receive, fields, now)
     if not ok then
-        x.fail(handled)
-        handled = f[1] == 'BOLT' or f[1] == 'BEND'
+        projectiles.fail(handled)
+        handled = fields[1] == 'BOLT' or fields[1] == 'BEND'
     end
     if handled then
         return true
     end
-    return receive(f, now)
+    return receive(fields, now)
 end
 local function guard(fn)
     return function(_, p)
         local ok, err = pcall(fn, p)
         if not ok then
-            x.fail(err)
+            projectiles.fail(err)
         end
     end
 end
 RegisterEvent('X4LAN_Projectile.Ready', function()
-    x.ready = true
+    projectiles.ready = true
     log('READY')
 end)
-RegisterEvent('X4LAN_Projectile.State', guard(x.state))
-RegisterEvent('X4LAN_Projectile.Born', guard(x.born))
-RegisterEvent('X4LAN_Projectile.Created', guard(x.created))
-RegisterEvent('X4LAN_Projectile.Rejected', guard(x.rejected))
+RegisterEvent('X4LAN_Projectile.State', guard(projectiles.state))
+RegisterEvent('X4LAN_Projectile.Born', guard(projectiles.born))
+RegisterEvent('X4LAN_Projectile.Created', guard(projectiles.created))
+RegisterEvent('X4LAN_Projectile.Rejected', guard(projectiles.rejected))
