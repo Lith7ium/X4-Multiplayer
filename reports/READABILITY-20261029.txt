@@ -1,0 +1,92 @@
+Legacy source readability review - 29 October 2026
+================================================
+
+Base: dev 397beed788730e899bb9dd8e340962e606a7ce60
+Branch: contrib/astra-readability
+Owner: Astra; bounded Terra subagents assisted with local renaming and review.
+
+Purpose and scope
+-----------------
+Make the earlier relay, game adapters and distribution tools understandable to
+human reviewers while preserving their behavior. The newer Rust/dedicated
+implementation and engine hooks remain outside this cleanup.
+
+Changes:
+- Four-space indentation, expanded control flow, one statement per line and
+  predictable formatting across the adopted Python/Lua/MD XML files.
+- Domain names for local packet fields, poses, claims, generations, engine
+  adapters, state tables and file operations. Public compatibility names remain.
+- Comments/docstrings explain responsibility, units, authority and engine
+  constraints. No new protocol or state model is introduced.
+- Expanded C and PowerShell control flow and descriptive local variables.
+- Optional formatter configuration, an explicit file manifest, a check/fix
+  command and docs/CODE-STYLE.md with a module map and primary references.
+
+Review the pure-format commits separately from the subsequent name changes.
+The formatter manifest intentionally excludes experiments, generated packages,
+test fixtures and newer implementation areas. Existing tests are not broadly
+reformatted. Four test files changed only where five assertions assumed compact
+source layout; they now inspect Python AST or XML structure and action order.
+
+Validation performed by the primary reviewer
+--------------------------------------------
+1. Full development suite: 851 tests PASS, no skips.
+   Command: python tools/dev/check.py
+   Linux, Python 3.14.8, lupa 2.8 / LuaJIT 2.1.
+   Built the existing Rust release transport locally so its six contract tests
+   also ran. No Rust source or tracked binary changed.
+
+2. Newly compiled C transport: six existing Lua/native contract tests PASS,
+   including actual loopback UDP traffic, argument checks, timeout behavior and
+   interpolation. GCC -O2 -Wall -Wextra -Werror builds successfully. Before/after
+   Linux assembly is identical except the assembler source filename directive.
+
+3. PowerShell profile and discovery fixture scripts PASS under PowerShell 7.6.6
+   on Linux. Temporary fixtures exercise rollback, ownership and path handling.
+   Two Windows drive-root assertions did not run; native Windows metadata is
+   simulated by those fixtures. This is not Windows installation acceptance.
+
+4. Python formatting preserved ASTs. For 28 renamed Python modules, 27 match
+   after applying explicit local-name maps and excluding docstrings; the
+   remaining station_catalog.py changes were manually checked (nested
+   comprehension name, independent initialization and plain dictionary reads).
+   Two later import-list expansions preserve the normalized import AST/order.
+
+5. All 30 adopted Lua modules have matching normalized LuaJIT instruction,
+   prototype, numeric/string and table-constant snapshots against the formatted
+   baseline. This comparison omits debug names and canonicalizes constant tables;
+   it is not a claim that serialized bytecode files are byte-for-byte identical.
+   Local captures and assignments were also reviewed. Shot capture retains two
+   original multiple assignments to avoid an unnecessary compiled-code change.
+
+6. All 23 MD XML trees retain element/attribute order and values, comments, and
+   non-whitespace text/tails. Only indentation and XML serialization changed.
+
+7. Formatter check and git diff --check PASS. Ruff 0.17.3, StyLua 2.6.0 and
+   libxml2/xmllint 2.12.10 were used. A relative StyLua path was also checked from
+   another working directory. The checker does not download tools.
+
+8. Seven in-memory negative mutations were rejected by the revised source
+   contract tests: disabled profiler, disabled network probe, missing closed
+   health fence, missing own-ship fence, wrong write threshold, closed extra-ship
+   dock window and wrong docking owner. Production files were not mutated.
+
+The first complete run after formatting had five layout-dependent assertion
+failures. Their corrections preserve first-child/parent relationships and
+docking guard order instead of weakening checks to accept arbitrary matches.
+The final complete run passed after those test-only corrections.
+
+Limits and integration
+----------------------
+No native X4 launch, live Windows test or joint gameplay test was performed.
+Automated equivalence checks and passing tests reduce regression risk; they do
+not prove absolute error freedom or fix pre-existing gameplay defects.
+
+The pre-existing standalone prepare.py import-path issue is outside this cleanup;
+the existing test runner supplies src/ on sys.path. This report does not claim
+that every historical command works from every environment.
+
+No normal profiles, saves, Workshop state, sealed packages or tracked compiled
+artifacts were changed. Onboarding instructions and monitor schedules remain
+unchanged. Integration belongs to Ferrite; this branch is offered for review,
+not as a new release or native gameplay acceptance.

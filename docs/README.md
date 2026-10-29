@@ -11,6 +11,7 @@ stay at the root: [README.md](../README.md), [AGENTS.md](../AGENTS.md),
 
 - [LAYOUT.md](LAYOUT.md): source folders and how to convert old-layout patches.
 - [DEVELOPMENT.txt](DEVELOPMENT.txt): setup, commands, packaging and machine changes.
+- [CODE-STYLE.md](CODE-STYLE.md): readable legacy code, compatibility boundaries and formatting checks.
 - [ARCHITECTURE.md](ARCHITECTURE.md): internal architecture and protocol reference.
 - [WORLD-SYNC-REQUIREMENTS.txt](WORLD-SYNC-REQUIREMENTS.txt): shared-universe requirements and diagnosis.
 - [DEDICATED-SERVER.md](DEDICATED-SERVER.md): dedicated server and N-player sets; copied into dedicated packages.
