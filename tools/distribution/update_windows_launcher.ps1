@@ -3,21 +3,27 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 2
 
 function Update-WindowsLauncher([string]$Path, [string]$Payload) {
-    if (Get-Process -Name X4 -ErrorAction SilentlyContinue) { throw 'Close X4 on Windows before applying this update.' }
+    if (Get-Process -Name X4 -ErrorAction SilentlyContinue) {
+        throw 'Close X4 on Windows before applying this update.'
+    }
     $root = (Resolve-Path -LiteralPath $Path).Path
     $packageFile = Join-Path $root 'package.json'
     if (!(Test-Path -LiteralPath $packageFile) -or !(Test-Path -LiteralPath (Join-Path $root 'setup.ps1'))) {
         throw 'Copy ALL files from the update ZIP into your existing Windows package folder (beside 3-START-X4-TEST.cmd), then run UPDATE-WINDOWS.cmd there.'
     }
     $pkg = Get-Content -Raw -LiteralPath $packageFile | ConvertFrom-Json
-    if ($pkg.platform -ne 'Windows11' -or $pkg.release -ne 5) { throw 'This update requires a Windows v5 / 5.0.x package.' }
+    if ($pkg.platform -ne 'Windows11' -or $pkg.release -ne 5) {
+        throw 'This update requires a Windows v5 / 5.0.x package.'
+    }
     if ($pkg.PSObject.Properties['version'] -and $pkg.version -notin @('5.0.0','5.0.1','5.0.2')) {
         throw 'This update supports versions 5.0.0, 5.0.1 and 5.0.2 only. Do not downgrade a newer package.'
     }
     $setup = Get-Content -Raw -LiteralPath $Payload
     $errors = $null
     [System.Management.Automation.Language.Parser]::ParseInput($setup, [ref]$null, [ref]$errors) | Out-Null
-    if ($errors.Count) { throw 'The replacement launcher is damaged. Extract the update ZIP again.' }
+    if ($errors.Count) {
+        throw 'The replacement launcher is damaged. Extract the update ZIP again.'
+    }
     $pkg | Add-Member -NotePropertyName version -NotePropertyValue '5.0.2' -Force
     $updates = [ordered]@{
         'setup.ps1' = $setup
@@ -31,20 +37,26 @@ function Update-WindowsLauncher([string]$Path, [string]$Payload) {
         $updates['installation.json'] = ($state | ConvertTo-Json -Depth 20) + "`n"
     }
     $checksumFile = Join-Path $root 'SHA256SUMS.txt'
-    if (Test-Path -LiteralPath $checksumFile) { $updates['SHA256SUMS.txt'] = '' }
+    if (Test-Path -LiteralPath $checksumFile) {
+        $updates['SHA256SUMS.txt'] = ''
+    }
     $backup = Join-Path $root ('backups\launcher-before-5.0.2-' + [Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $backup -Force | Out-Null
     $existed = @{}
     foreach ($name in $updates.Keys) {
         $target = Join-Path $root $name
         $existed[$name] = Test-Path -LiteralPath $target
-        if ($existed[$name]) { Copy-Item -LiteralPath $target -Destination (Join-Path $backup $name) }
+        if ($existed[$name]) {
+            Copy-Item -LiteralPath $target -Destination (Join-Path $backup $name)
+        }
     }
     $utf8 = New-Object Text.UTF8Encoding($false)
     $written = @()
     try {
         foreach ($name in $updates.Keys) {
-            if ($name -eq 'SHA256SUMS.txt') { continue }
+            if ($name -eq 'SHA256SUMS.txt') {
+                continue
+            }
             $written += $name
             [IO.File]::WriteAllText((Join-Path $root $name), $updates[$name], $utf8)
         }
@@ -54,7 +66,9 @@ function Update-WindowsLauncher([string]$Path, [string]$Payload) {
                 if ($_ -match '^([0-9a-fA-F]{64})  (.+)$' -and $updates.Contains($Matches[2])) {
                     $name = $Matches[2]
                     (Get-FileHash -LiteralPath (Join-Path $root $name) -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $name
-                } else { $_ }
+                } else {
+                    $_
+                }
             })
             $written += 'SHA256SUMS.txt'
             [IO.File]::WriteAllLines($checksumFile, [string[]]$lines, $utf8)
@@ -62,8 +76,12 @@ function Update-WindowsLauncher([string]$Path, [string]$Payload) {
     } catch {
         foreach ($name in $written) {
             $target = Join-Path $root $name
-            if ($existed[$name]) { Copy-Item -LiteralPath (Join-Path $backup $name) -Destination $target -Force }
-            elseif (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target }
+            if ($existed[$name]) {
+                Copy-Item -LiteralPath (Join-Path $backup $name) -Destination $target -Force
+            }
+            elseif (Test-Path -LiteralPath $target) {
+                Remove-Item -LiteralPath $target
+            }
         }
         throw
     }
