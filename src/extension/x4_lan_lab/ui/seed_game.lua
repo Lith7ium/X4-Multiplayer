@@ -4,10 +4,10 @@ local cfg = X4LAN_CONFIG
 if not cfg or not cfg.enabled or cfg.seed_id == nil then
     return
 end
-local G = { ready = false }
-X4LAN_SEED_GATE = G
+local gate = { ready = false }
+X4LAN_SEED_GATE = gate
 local ffi = require('ffi')
-local C = ffi.C
+local engine = ffi.C
 ffi.cdef([[
 bool IsPlayerValid(void);bool IsSaveListLoadingComplete(void);
 void ReloadSaveList(void);const char* GetSaveFolderPath(void);
@@ -16,8 +16,8 @@ local function log(text)
     DebugError('[X4LAN] SEED_GATE ' .. text)
 end
 local function fail(reason)
-    G.failed = reason
-    G.ready = false
+    gate.failed = reason
+    gate.ready = false
     log('STOPPED ' .. reason)
 end
 local function valid()
@@ -39,7 +39,7 @@ local function valid()
         cfg.bubble == cfg.seed_id and cfg.seed_verified == true,
         'unverified seed or relay session mismatch'
     )
-    local path = ffi.string(C.GetSaveFolderPath()):gsub('\\', '/'):gsub('/+$', '')
+    local path = ffi.string(engine.GetSaveFolderPath()):gsub('\\', '/'):gsub('/+$', '')
     assert(
         path:sub(-#('/' .. profile .. '/save')) == '/' .. profile .. '/save',
         'seed admission outside isolated profile'
@@ -52,20 +52,20 @@ if not ok then
 end
 RegisterEvent('X4LAN_Seed.Loaded', function()
     -- Reloading an active multiplayer game would retain stale Lua/network state.
-    if G.ready then
+    if gate.ready then
         fail('active session reload is unsupported')
         return
     end
-    G.loaded = true
-    G.pending = false
-    G.started = GetCurRealTime()
-    C.ReloadSaveList()
+    gate.loaded = true
+    gate.pending = false
+    gate.started = GetCurRealTime()
+    engine.ReloadSaveList()
 end)
 RegisterEvent('X4LAN_Seed.State', function(_, payload)
-    if G.failed or G.ready or not G.pending then
+    if gate.failed or gate.ready or not gate.pending then
         return
     end
-    G.pending = false
+    gate.pending = false
     local marker, pristine, loads = tostring(payload):match('^(.*)|([01])|(%d+)$')
     if not marker then
         fail('malformed world marker')
@@ -82,8 +82,8 @@ RegisterEvent('X4LAN_Seed.State', function(_, payload)
         -- A restored marker can become readable before the load-completed MD event.
         -- Zero remains pending and is bounded by the same admission timeout.
         if loads == 0 then
-            if not G.waitLogged then
-                G.waitLogged = true
+            if not gate.waitLogged then
+                gate.waitLogged = true
                 log('WAIT_NATIVE_LOAD seed=' .. marker)
             end
             return
@@ -92,8 +92,8 @@ RegisterEvent('X4LAN_Seed.State', function(_, payload)
             fail('snapshot has unexpected native load count ' .. loads)
             return
         end
-        G.loaded = true
-        G.ready = true
+        gate.loaded = true
+        gate.ready = true
         log('READY seed=' .. marker .. ' slot=' .. cfg.slot)
         return
     end
@@ -101,32 +101,32 @@ RegisterEvent('X4LAN_Seed.State', function(_, payload)
         fail('loaded world differs from the staged session')
         return
     end
-    if G.loadRequested then
+    if gate.loadRequested then
         return
     end -- The old world may answer while loading starts.
-    G.loadRequested = true
-    G.started = GetCurRealTime()
+    gate.loadRequested = true
+    gate.started = GetCurRealTime()
     log('LOAD_REQUESTED seed=' .. cfg.seed_id)
     LoadGame('save_010')
 end)
-function G.frame(now)
-    if G.failed or G.ready then
-        return G.ready
+function gate.frame(now)
+    if gate.failed or gate.ready then
+        return gate.ready
     end
-    G.started = G.started or now
-    if now - G.started > 180 then
+    gate.started = gate.started or now
+    if now - gate.started > 180 then
         fail('native seed load timed out')
         return false
     end
-    if not C.IsPlayerValid() or G.pending or now < (G.nextInspect or 0) then
+    if not engine.IsPlayerValid() or gate.pending or now < (gate.nextInspect or 0) then
         return false
     end
-    if not G.refreshed then
-        G.refreshed = true
-        C.ReloadSaveList()
+    if not gate.refreshed then
+        gate.refreshed = true
+        engine.ReloadSaveList()
         return false
     end
-    if not C.IsSaveListLoadingComplete() then
+    if not engine.IsSaveListLoadingComplete() then
         return false
     end
     local found = false
@@ -139,8 +139,8 @@ function G.frame(now)
         fail('verified isolated seed slot is absent')
         return false
     end
-    G.pending = true
-    G.nextInspect = now + 1
+    gate.pending = true
+    gate.nextInspect = now + 1
     AddUITriggeredEvent('X4LAN_Seed', 'Inspect')
     return false
 end

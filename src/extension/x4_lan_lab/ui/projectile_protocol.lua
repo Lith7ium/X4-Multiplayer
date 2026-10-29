@@ -5,24 +5,24 @@
 -- 'forwarded' (relay -> other client, sourceLease right after the recipient lease, as in FIRE2).
 -- Numbers serialize as '%.17g' (the same canonical text as x4lan/projectile_protocol.py).
 X4LAN_PROJECTILE_PROTOCOL = {}
-local P = X4LAN_PROJECTILE_PROTOCOL
-P.MAX_PACKET, P.MAX_SEQ, P.MAX_TIME, P.MAX_POSITION, P.MAX_VELOCITY, P.MAX_ANGLE, P.MAX_TTL =
+local protocol = X4LAN_PROJECTILE_PROTOCOL
+protocol.MAX_PACKET, protocol.MAX_SEQ, protocol.MAX_TIME, protocol.MAX_POSITION, protocol.MAX_VELOCITY, protocol.MAX_ANGLE, protocol.MAX_TTL =
     768, 2147483647, 1e12, 50000000, 100000, 2 * math.pi, 3
-P.KINDS = {
+protocol.KINDS = {
     'weapon_ter_s_plasma_01_mk1_macro',
     'weapon_gen_s_laser_01_mk1_macro',
     'weapon_gen_s_laser_01_mk2_macro',
 }
 local NUMBERS = {
-    { 'x', P.MAX_POSITION },
-    { 'y', P.MAX_POSITION },
-    { 'z', P.MAX_POSITION },
-    { 'vx', P.MAX_VELOCITY },
-    { 'vy', P.MAX_VELOCITY },
-    { 'vz', P.MAX_VELOCITY },
-    { 'yaw', P.MAX_ANGLE },
-    { 'pitch', P.MAX_ANGLE },
-    { 'roll', P.MAX_ANGLE },
+    { 'x', protocol.MAX_POSITION },
+    { 'y', protocol.MAX_POSITION },
+    { 'z', protocol.MAX_POSITION },
+    { 'vx', protocol.MAX_VELOCITY },
+    { 'vy', protocol.MAX_VELOCITY },
+    { 'vz', protocol.MAX_VELOCITY },
+    { 'yaw', protocol.MAX_ANGLE },
+    { 'pitch', protocol.MAX_ANGLE },
+    { 'roll', protocol.MAX_ANGLE },
 }
 local function split(s)
     local out = {}
@@ -36,7 +36,7 @@ local function integer(s)
         return nil
     end
     local n = tonumber(s)
-    return n <= P.MAX_SEQ and n or nil
+    return n <= protocol.MAX_SEQ and n or nil
 end
 local function finite(n)
     return type(n) == 'number' and n == n and n ~= math.huge and n ~= -math.huge
@@ -62,7 +62,7 @@ local function lease(s)
     return type(s) == 'string' and #s == 32 and s:match('^[a-f0-9]+$') ~= nil
 end
 local function whole(n)
-    return finite(n) and n == math.floor(n) and n >= 1 and n <= P.MAX_SEQ
+    return finite(n) and n == math.floor(n) and n >= 1 and n <= protocol.MAX_SEQ
 end
 
 -- The same checks back decoding and serialization; returns the message or nil, reason.
@@ -90,11 +90,11 @@ local function check(m)
     if m.entity ~= 1 and m.entity ~= 2 then
         return nil, 'invalid entity'
     end
-    if not finite(m.time) or m.time < 0 or m.time > P.MAX_TIME then
+    if not finite(m.time) or m.time < 0 or m.time > protocol.MAX_TIME then
         return nil, 'time out of bounds'
     end
     if m.type == 'BOLT' then
-        if not whole(m.kind) or not P.KINDS[m.kind] then
+        if not whole(m.kind) or not protocol.KINDS[m.kind] then
             return nil, 'invalid kind'
         end
         if
@@ -109,7 +109,7 @@ local function check(m)
                 return nil, n[1] .. ' out of bounds'
             end
         end
-        if not finite(m.ttl) or m.ttl <= 0 or m.ttl > P.MAX_TTL then
+        if not finite(m.ttl) or m.ttl <= 0 or m.ttl > protocol.MAX_TTL then
             return nil, 'ttl out of bounds'
         end
     end
@@ -117,11 +117,11 @@ local function check(m)
 end
 
 -- Decodes one BOLT/BEND packet of the stated direction: a named-field table, or nil, reason.
-function P.parse(raw, direction)
+function protocol.parse(raw, direction)
     if direction ~= 'client' and direction ~= 'forwarded' then
         return nil, 'invalid direction'
     end
-    if type(raw) ~= 'string' or #raw > P.MAX_PACKET or raw:find('[^\33-\126]') then
+    if type(raw) ~= 'string' or #raw > protocol.MAX_PACKET or raw:find('[^\33-\126]') then
         return nil, 'invalid packet'
     end
     local f = split(raw)
@@ -142,20 +142,20 @@ function P.parse(raw, direction)
         epoch = integer(f[h + 1]),
         gen = integer(f[h + 2]),
         id = integer(f[h + 3]),
-        time = number(f[h + 4], P.MAX_TIME),
+        time = number(f[h + 4], protocol.MAX_TIME),
     }
     if m.type == 'BOLT' then
         m.sector, m.kind = f[h + 5], integer(f[h + 6])
         for i, n in ipairs(NUMBERS) do
             m[n[1]] = number(f[h + 6 + i], n[2])
         end
-        m.ttl = number(f[h + 16], P.MAX_TTL)
+        m.ttl = number(f[h + 16], protocol.MAX_TTL)
     end
     return check(m)
 end
 
 -- Encodes a message in its own direction: the packet, or nil, reason.
-function P.serialize(m)
+function protocol.serialize(m)
     if type(m) ~= 'table' then
         return nil, 'not a projectile message'
     end
@@ -180,7 +180,7 @@ function P.serialize(m)
         f[#f + 1] = string.format('%.17g', m.ttl)
     end
     local raw = table.concat(f, '|')
-    if #raw > P.MAX_PACKET then
+    if #raw > protocol.MAX_PACKET then
         return nil, 'packet too long'
     end
     return raw

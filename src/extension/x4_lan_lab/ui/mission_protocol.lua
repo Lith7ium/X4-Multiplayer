@@ -1,17 +1,20 @@
 -- Bounded host-native mission records. No local objective/reward authority.
 X4LAN_MISSION_PROTOCOL = {}
-local M = X4LAN_MISSION_PROTOCOL
-local P = X4LAN_UNIVERSE_PROTOCOL
-M.limit = 256
-M.partSize = 500
-M.maxParts = 24
-M.transitions = { O = { O = true, A = true, C = true, F = true, X = true, W = true }, A = {
-    A = true,
-    C = true,
-    F = true,
-    X = true,
-} }
-function M.encode(v)
+local missionProtocol = X4LAN_MISSION_PROTOCOL
+local universeProtocol = X4LAN_UNIVERSE_PROTOCOL
+missionProtocol.limit = 256
+missionProtocol.partSize = 500
+missionProtocol.maxParts = 24
+missionProtocol.transitions = {
+    O = { O = true, A = true, C = true, F = true, X = true, W = true },
+    A = {
+        A = true,
+        C = true,
+        F = true,
+        X = true,
+    },
+}
+function missionProtocol.encode(v)
     return (v:gsub('.', function(c)
         return string.format('%02x', c:byte())
     end))
@@ -44,7 +47,7 @@ local function utf8(s)
     end
     return true
 end
-function M.text(v, max)
+function missionProtocol.text(v, max)
     if type(v) ~= 'string' or #v == 0 or #v > max * 2 or #v % 2 ~= 0 or v:find('[^0-9a-f]') then
         return nil
     end
@@ -56,8 +59,8 @@ function M.text(v, max)
     end
     return s
 end
-function M.parse(payload)
-    local f = P.split(payload, ',')
+function missionProtocol.parse(payload)
+    local f = universeProtocol.split(payload, ',')
     if
         #f ~= 9
         or f[1] ~= 'quota'
@@ -65,7 +68,10 @@ function M.parse(payload)
     then
         return nil
     end
-    local d, n, r = P.integer(f[3], 1000000), P.integer(f[4], 1000000), P.integer(f[5])
+    local d, n, r =
+        universeProtocol.integer(f[3], 1000000),
+        universeProtocol.integer(f[4], 1000000),
+        universeProtocol.integer(f[5])
     if
         not d
         or not n
@@ -80,7 +86,10 @@ function M.parse(payload)
     if f[2] == 'O' and d ~= 0 or f[2] == 'C' and d ~= n then
         return nil
     end
-    local title, description, objective = M.text(f[7], 256), M.text(f[8], 4096), M.text(f[9], 512)
+    local title, description, objective =
+        missionProtocol.text(f[7], 256),
+        missionProtocol.text(f[8], 4096),
+        missionProtocol.text(f[9], 512)
     if not title or not description or not objective then
         return nil
     end
@@ -96,13 +105,13 @@ function M.parse(payload)
         objective = objective,
     }
 end
-function M.advances(old, new)
+function missionProtocol.advances(old, new)
     if not old then
         return true
     end
     if
-        not M.transitions[old.state]
-        or not M.transitions[old.state][new.state]
+        not missionProtocol.transitions[old.state]
+        or not missionProtocol.transitions[old.state][new.state]
         or new.done < old.done
     then
         return false
@@ -114,18 +123,23 @@ function M.advances(old, new)
     end
     return true
 end
-function M.assembly()
+function missionProtocol.assembly()
     local a = { records = {}, pending = {} }
     function a:add(f, now)
-        if #f ~= 10 or f[1] ~= 'MSTATE' or not P.hex(f[4]) or self.epoch and f[4] ~= self.epoch then
+        if
+            #f ~= 10
+            or f[1] ~= 'MSTATE'
+            or not universeProtocol.hex(f[4])
+            or self.epoch and f[4] ~= self.epoch
+        then
             return nil
         end
         local id, rev, part, total, digest =
-            P.integer(f[5], M.limit),
-            P.integer(f[6]),
-            P.integer(f[7], M.maxParts),
-            P.integer(f[8], M.maxParts),
-            P.integer(f[9], 4294967295)
+            universeProtocol.integer(f[5], missionProtocol.limit),
+            universeProtocol.integer(f[6]),
+            universeProtocol.integer(f[7], missionProtocol.maxParts),
+            universeProtocol.integer(f[8], missionProtocol.maxParts),
+            universeProtocol.integer(f[9], 4294967295)
         if
             not id
             or id < 1
@@ -137,7 +151,7 @@ function M.assembly()
             or part > total
             or not digest
             or #f[10] < 1
-            or #f[10] > M.partSize
+            or #f[10] > missionProtocol.partSize
             or f[10]:find('[^a-zA-Z0-9_,]')
         then
             return nil
@@ -151,8 +165,15 @@ function M.assembly()
             return nil
         end
         if not p or rev > p.rev or now - p.at >= 10 then
-            p =
-                { epoch = f[4], rev = rev, total = total, digest = digest, parts = {}, at = now, got = 0 }
+            p = {
+                epoch = f[4],
+                rev = rev,
+                total = total,
+                digest = digest,
+                parts = {},
+                at = now,
+                got = 0,
+            }
             self.pending[id] = p
         end
         if
@@ -171,11 +192,11 @@ function M.assembly()
             return nil
         end
         local payload = table.concat(p.parts)
-        if P.checksum({ payload }) ~= digest then
+        if universeProtocol.checksum({ payload }) ~= digest then
             return nil
         end
-        local row = M.parse(payload)
-        if not row or not M.advances(old and old.row, row) then
+        local row = missionProtocol.parse(payload)
+        if not row or not missionProtocol.advances(old and old.row, row) then
             return nil
         end
         local r =
@@ -187,25 +208,22 @@ function M.assembly()
     end
     return a
 end
-function M.packets(lease, epoch, r)
+function missionProtocol.packets(lease, epoch, r)
     local packets = {}
-    local total = math.ceil(#r.payload / M.partSize)
+    local total = math.ceil(#r.payload / missionProtocol.partSize)
     for i = 1, total do
-        packets[i] = table.concat(
-            {
-                'MSTATE',
-                1,
-                lease,
-                epoch,
-                r.id,
-                r.rev,
-                i,
-                total,
-                string.format('%.0f', r.digest),
-                r.payload:sub((i - 1) * M.partSize + 1, i * M.partSize),
-            },
-            '|'
-        )
+        packets[i] = table.concat({
+            'MSTATE',
+            1,
+            lease,
+            epoch,
+            r.id,
+            r.rev,
+            i,
+            total,
+            string.format('%.0f', r.digest),
+            r.payload:sub((i - 1) * missionProtocol.partSize + 1, i * missionProtocol.partSize),
+        }, '|')
     end
     return packets
 end

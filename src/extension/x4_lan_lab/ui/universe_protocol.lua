@@ -1,17 +1,17 @@
 -- Original W01 atomic sector baselines; mirrors x4lan/universe.py's wire contract.
 X4LAN_UNIVERSE_PROTOCOL = {}
-local P = X4LAN_UNIVERSE_PROTOCOL
-P.limit = 4096
-P.window = 12
-P.retry = 0.25
-function P.split(s, separator)
+local protocol = X4LAN_UNIVERSE_PROTOCOL
+protocol.limit = 4096
+protocol.window = 12
+protocol.retry = 0.25
+function protocol.split(s, separator)
     local out = {}
     for v in (s .. separator):gmatch('(.-)' .. separator) do
         out[#out + 1] = v
     end
     return out
 end
-function P.integer(s, limit)
+function protocol.integer(s, limit)
     if type(s) ~= 'string' or not s:match('^%d+$') then
         return nil
     end
@@ -21,29 +21,29 @@ function P.integer(s, limit)
     end
     return n
 end
-function P.atom(s, macro)
+function protocol.atom(s, macro)
     return type(s) == 'string'
         and #s > 0
         and #s <= 96
         and not s:find('[^a-zA-Z0-9_.-]')
         and (not macro or s:sub(-6) == '_macro')
 end
-function P.hex(s)
+function protocol.hex(s)
     return type(s) == 'string' and #s == 32 and not s:find('[^a-f0-9]')
 end
-function P.record(row)
+function protocol.record(row)
     if type(row) ~= 'string' or #row > 512 or row:find('[^%g]') then
         return nil
     end
-    local f = P.split(row, ',')
+    local f = protocol.split(row, ',')
     if #f ~= 12 then
         return nil
     end
-    local id = P.integer(f[1])
+    local id = protocol.integer(f[1])
     if not id or id == 0 or (f[2] ~= 'ship' and f[2] ~= 'drop') then
         return nil
     end
-    if not P.atom(f[3], true) or not P.atom(f[4]) or not P.atom(f[11]) then
+    if not protocol.atom(f[3], true) or not protocol.atom(f[4]) or not protocol.atom(f[11]) then
         return nil
     end
     local pose = {}
@@ -57,7 +57,7 @@ function P.record(row)
         end
         pose[i] = n
     end
-    local amount = P.integer(f[12], 1000000)
+    local amount = protocol.integer(f[12], 1000000)
     if
         not amount
         or (f[2] == 'ship' and (f[11] ~= 'none' or amount ~= 0))
@@ -65,9 +65,17 @@ function P.record(row)
     then
         return nil
     end
-    return { id = id, kind = f[2], macro = f[3], owner = f[4], pose = pose, ware = f[11], amount = amount }
+    return {
+        id = id,
+        kind = f[2],
+        macro = f[3],
+        owner = f[4],
+        pose = pose,
+        ware = f[11],
+        amount = amount,
+    }
 end
-function P.checksum(rows)
+function protocol.checksum(rows)
     local a, b = 1, 0
     for i, row in ipairs(rows) do
         if i > 1 then
@@ -81,25 +89,29 @@ function P.checksum(rows)
     end
     return b * 65536 + a
 end
-function P.baseline(epoch, revision, sector, rows)
+function protocol.baseline(epoch, revision, sector, rows)
     assert(
-        P.hex(epoch) and revision > 0 and revision % 1 == 0 and revision <= 2147483647,
+        protocol.hex(epoch) and revision > 0 and revision % 1 == 0 and revision <= 2147483647,
         'bad world identity'
     )
-    assert(P.atom(sector, true) and #rows <= P.limit, 'bad world scope/size')
+    assert(protocol.atom(sector, true) and #rows <= protocol.limit, 'bad world scope/size')
     local previous = 0
     local owned = {}
     for i, row in ipairs(rows) do
-        local r = assert(P.record(row), 'bad world record')
+        local r = assert(protocol.record(row), 'bad world record')
         assert(r.id > previous, 'unordered/duplicate world ID')
         previous = r.id
         owned[i] = row
     end
-    return { epoch = epoch, revision = revision, sector = sector, rows = owned, digest = P.checksum(
-        owned
-    ) }
+    return {
+        epoch = epoch,
+        revision = revision,
+        sector = sector,
+        rows = owned,
+        digest = protocol.checksum(owned),
+    }
 end
-function P.packet(b, lease, index)
+function protocol.packet(b, lease, index)
     local header = '|1|' .. lease .. '|' .. b.epoch .. '|' .. b.revision
     if index == 0 then
         return 'UBEGIN'
@@ -116,11 +128,11 @@ function P.packet(b, lease, index)
     end
     return 'UOBJECT' .. header .. '|' .. index .. '|' .. b.rows[index]
 end
-function P.receiver()
+function protocol.receiver()
     local self = {}
     function self:receive(f, now)
-        local rev = P.integer(f[5])
-        if #f < 5 or not P.hex(f[4]) or not rev or rev == 0 then
+        local rev = protocol.integer(f[5])
+        if #f < 5 or not protocol.hex(f[4]) or not rev or rev == 0 then
             return nil
         end
         local epoch = f[4]
@@ -139,9 +151,9 @@ function P.receiver()
             p = nil
         end
         if f[1] == 'UBEGIN' and #f == 8 then
-            local count = P.integer(f[7], P.limit)
-            local digest = P.integer(f[8], 4294967295)
-            if not P.atom(f[6], true) or not count or not digest then
+            local count = protocol.integer(f[7], protocol.limit)
+            local digest = protocol.integer(f[8], 4294967295)
+            if not protocol.atom(f[6], true) or not count or not digest then
                 return nil
             end
             if p then
@@ -172,8 +184,8 @@ function P.receiver()
             return -1
         end
         if f[1] == 'UOBJECT' and #f == 7 then
-            local index = P.integer(f[6])
-            if not index or index < 1 or index > p.count or not P.record(f[7]) then
+            local index = protocol.integer(f[6])
+            if not index or index < 1 or index > p.count or not protocol.record(f[7]) then
                 return nil
             end
             if p.rows[index] and p.rows[index] ~= f[7] then
@@ -188,7 +200,7 @@ function P.receiver()
             return index
         end
         if f[1] == 'UCOMMIT' and #f == 5 and p.got == p.count then
-            local ok, b = pcall(P.baseline, epoch, rev, p.sector, p.rows)
+            local ok, b = pcall(protocol.baseline, epoch, rev, p.sector, p.rows)
             if not ok or b.digest ~= p.digest then
                 self.pending = nil
                 return -1
@@ -201,7 +213,7 @@ function P.receiver()
     end
     return self
 end
-function P.sender(b)
+function protocol.sender(b)
     local self = { baseline = b, acked = {}, sent = {}, done = false }
     function self:ack(epoch, rev, index)
         if epoch ~= b.epoch or rev ~= b.revision then
@@ -228,7 +240,7 @@ function P.sender(b)
             for i = 1, #b.rows do
                 if not self.acked[i] then
                     indices[#indices + 1] = i
-                    if #indices >= P.window then
+                    if #indices >= protocol.window then
                         break
                     end
                 end
@@ -239,9 +251,9 @@ function P.sender(b)
         end
         local out = {}
         for _, index in ipairs(indices) do
-            if now - (self.sent[index] or -math.huge) >= P.retry then
+            if now - (self.sent[index] or -math.huge) >= protocol.retry then
                 self.sent[index] = now
-                out[#out + 1] = P.packet(b, lease, index)
+                out[#out + 1] = protocol.packet(b, lease, index)
             end
         end
         return out

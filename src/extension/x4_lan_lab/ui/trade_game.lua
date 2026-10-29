@@ -3,14 +3,20 @@ local cfg = X4LAN_CONFIG
 if not cfg or not cfg.enabled or not cfg.trading or not X4LAN_BUBBLE_API then
     return
 end
-local A = X4LAN_BUBBLE_API
-local s = A.state
+local api = X4LAN_BUBBLE_API
+local s = api.state
 if not s.active then
     return
 end
-local P = X4LAN_TRADE_PROTOCOL
-local t =
-    { markets = {}, executed = {}, assembler = P.assembler(), dock = 'none', dockseq = 0, revision = 0 }
+local protocol = X4LAN_TRADE_PROTOCOL
+local t = {
+    markets = {},
+    executed = {},
+    assembler = protocol.assembler(),
+    dock = 'none',
+    dockseq = 0,
+    revision = 0,
+}
 local function log(v)
     DebugError('[X4LAN] ' .. v)
 end
@@ -57,12 +63,12 @@ local function result(request, status)
 end
 local function submit(market, lines)
     if cfg.coop then
-        local i = A.coop and A.coop.controlled or 0
-        if i == 0 or A.coop.pilots[i] ~= cfg.slot or A.coop.owners[i] ~= cfg.slot then
+        local i = api.coop and api.coop.controlled or 0
+        if i == 0 or api.coop.pilots[i] ~= cfg.slot or api.coop.owners[i] ~= cfg.slot then
             notice('Take the controls of an available shared ship first.')
             return false
         end
-        t.dock = A.coop.docks[i] > 0 and ('m' .. A.coop.docks[i]) or 'none'
+        t.dock = api.coop.docks[i] > 0 and ('m' .. api.coop.docks[i]) or 'none'
     end
     if t.pending or t.locked then
         notice('Wait for the pending trade to finish.')
@@ -79,7 +85,7 @@ local function submit(market, lines)
         notice('Trading is waiting for the host connection.')
         return false
     end
-    if not P.lines(lines) then
+    if not protocol.lines(lines) then
         notice(statuses.UNSUPPORTED)
         return false
     end
@@ -89,11 +95,16 @@ local function submit(market, lines)
     end
     t.requestCounter = (t.requestCounter or 0) + 1
     local request = s.client.lease:sub(1, 24) .. string.format('%08x', t.requestCounter)
-    t.pending =
-        { request = request, market = market, lines = lines, owner = t.owner, at = GetCurRealTime() }
+    t.pending = {
+        request = request,
+        market = market,
+        lines = lines,
+        owner = t.owner,
+        at = GetCurRealTime(),
+    }
     if cfg.coop then
-        t.pending.ship = A.coop.controlled
-        t.pending.epoch = A.coop.epochs[t.pending.ship]
+        t.pending.ship = api.coop.controlled
+        t.pending.epoch = api.coop.epochs[t.pending.ship]
     end
     notice('Trade order submitted.')
     return true
@@ -113,12 +124,12 @@ if nativeTradeList then
         end
         local result = {}
         for _, offer in ipairs(offers) do
-            if offer.ismissionoffer and P.index[offer.ware] then
+            if offer.ismissionoffer and protocol.index[offer.ware] then
                 -- These are ordinary market rows. The mission marker only identifies our native offers.
                 offer.ismissionoffer = false
                 if t.snapshot then
                     for _, row in ipairs(t.snapshot.rows) do
-                        if row.index == P.index[offer.ware] then
+                        if row.index == protocol.index[offer.ware] then
                             local stock = row.cargo[shared + 2]
                             local amount = offer.isselloffer and stock
                                 or math.min(
@@ -162,7 +173,7 @@ local function hook()
                     notice('Shared trading is available at LAN Trading Station Alpha and Beta.')
                     return
                 end
-                local tradeShip = cfg.coop and A.coop and A.coop.ships[A.coop.controlled or 0]
+                local tradeShip = cfg.coop and api.coop and api.coop.ships[api.coop.controlled or 0]
                     or s.ship
                 if
                     not data.currentShip
@@ -178,7 +189,7 @@ local function hook()
                     if amount ~= 0 then
                         local offer =
                             menu.getTradeOfferByID(ConvertStringToLuaID(tostring(tradeID)))
-                        if not offer or not P.index[offer.ware] or seen[offer.ware] then
+                        if not offer or not protocol.index[offer.ware] or seen[offer.ware] then
                             notice(statuses.UNSUPPORTED)
                             return
                         end
@@ -200,8 +211,8 @@ local function hook()
         end
     end
 end
-A.trade = {}
-function A.trade.receive(client, f, now)
+api.trade = {}
+function api.trade.receive(client, f, now)
     if f[1] == 'ECON' then
         if #f ~= 8 or not f[4]:match('^[a-f0-9]+$') or #f[4] ~= 32 then
             return true
@@ -213,10 +224,15 @@ function A.trade.receive(client, f, now)
                 notice(statuses.UNCERTAIN)
             end
             t.owner = f[4]
-            t.assembler = P.assembler()
+            t.assembler = protocol.assembler()
         end
-        local parsed =
-            t.assembler:add(P.integer(f[5]), P.integer(f[6], 8), P.integer(f[7], 8), f[8], now)
+        local parsed = t.assembler:add(
+            protocol.integer(f[5]),
+            protocol.integer(f[6], 8),
+            protocol.integer(f[7], 8),
+            f[8],
+            now
+        )
         if parsed then
             t.snapshot = parsed
             t.lastSnapshot = now
@@ -238,7 +254,7 @@ function A.trade.receive(client, f, now)
         if #f ~= 6 or (f[6] ~= 'none' and f[6] ~= 'm1' and f[6] ~= 'm2') then
             return true
         end
-        local seq = P.integer(f[5])
+        local seq = protocol.integer(f[5])
         if not seq then
             return true
         end
@@ -264,24 +280,25 @@ function A.trade.receive(client, f, now)
         then
             return true
         end
-        if not t.ready or A.paused() then
+        if not t.ready or api.paused() then
             return true
         end
         local old = t.executed[f[4]]
         if old and old ~= 'PENDING' then
             send('ORDER_DONE|1|' .. client.lease .. '|' .. f[4] .. '|' .. old)
         elseif not old then
-            local lines = P.lines(f[7])
+            local lines = protocol.lines(f[7])
             if not lines then
                 result(f[4], 'UNSUPPORTED')
                 return true
             end
             t.executed[f[4]] = 'PENDING'
-            AddUITriggeredEvent(
-                'X4LAN_Trade',
-                'Order',
-                { request = f[4], slot = f[5] == 'p1' and 1 or 2, market = tonumber(f[6]:sub(2)), lines = lines }
-            )
+            AddUITriggeredEvent('X4LAN_Trade', 'Order', {
+                request = f[4],
+                slot = f[5] == 'p1' and 1 or 2,
+                market = tonumber(f[6]:sub(2)),
+                lines = lines,
+            })
         end
         return true
     elseif f[1] == 'ORDER_RESULT' then
@@ -300,9 +317,9 @@ function A.trade.receive(client, f, now)
     end
     return false
 end
-function A.trade.frame(now)
+function api.trade.frame(now)
     hook()
-    if cfg.coop and (not A.coop or not A.coop.ready) then
+    if cfg.coop and (not api.coop or not api.coop.ready) then
         return
     end
     if not t.setup then
@@ -397,7 +414,7 @@ RegisterEvent('X4LAN_Trade.LocalDock', function(_, market)
 end)
 RegisterEvent('X4LAN_Trade.Snapshot', function(_, payload)
     if cfg.slot == 'p1' then
-        if P.snapshot(payload) then
+        if protocol.snapshot(payload) then
             t.payload = payload
             t.revision = t.revision + 1
         else
@@ -412,6 +429,6 @@ RegisterEvent('X4LAN_Trade.Result', function(_, payload)
     end
 end)
 -- Exposed only for the development harness, which is never shipped in installers.
-A.trade.state = t
-A.trade.submit = submit
+api.trade.state = t
+api.trade.submit = submit
 hook()

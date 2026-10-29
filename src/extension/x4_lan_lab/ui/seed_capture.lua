@@ -5,9 +5,11 @@ if not cfg or not cfg.seed_capture then
     return
 end
 local ffi = require('ffi')
-local C = ffi.C
-ffi.cdef([[bool IsPlayerValid(void);bool IsGamePaused(void);
-bool IsSaveListLoadingComplete(void);void ReloadSaveList(void);const char* GetSaveFolderPath(void);]])
+local engine = ffi.C
+ffi.cdef(
+    [[bool IsPlayerValid(void);bool IsGamePaused(void);
+bool IsSaveListLoadingComplete(void);void ReloadSaveList(void);const char* GetSaveFolderPath(void);]]
+)
 local s = {}
 X4LAN_SEED_CAPTURE = s
 local function log(text)
@@ -16,7 +18,7 @@ end
 local function fail(reason)
     s.failed = tostring(reason)
     log('STOPPED ' .. s.failed)
-    if s.paused and C.IsGamePaused() then
+    if s.paused and engine.IsGamePaused() then
         Pause()
     end
     s.paused = false
@@ -31,7 +33,7 @@ local ok, err = pcall(function()
         type(cfg.seed_id) == 'string' and #cfg.seed_id == 32 and cfg.seed_id:match('^[a-f0-9]+$'),
         'invalid world identity'
     )
-    local path = ffi.string(C.GetSaveFolderPath()):gsub('\\', '/'):gsub('/+$', '')
+    local path = ffi.string(engine.GetSaveFolderPath()):gsub('\\', '/'):gsub('/+$', '')
     assert(path:sub(-#'/45841/save') == '/45841/save', 'capture outside isolated profile')
     X4LAN_SEED_CONTENT(cfg.seed_content)
 end)
@@ -90,7 +92,7 @@ RegisterEvent('X4LAN_Seed.State', function(_, payload)
             return
         end
         assert(IsSavingPossible(false), 'native saving unavailable')
-        if not C.IsGamePaused() then
+        if not engine.IsGamePaused() then
             Pause()
             s.paused = true
         end
@@ -115,7 +117,7 @@ local function frame()
         end
         return
     end
-    if not C.IsPlayerValid() then
+    if not engine.IsPlayerValid() then
         return
     end
     s.started = s.started or now
@@ -124,11 +126,11 @@ local function frame()
         return
     end
     if not s.refreshed then
-        C.ReloadSaveList()
+        engine.ReloadSaveList()
         s.refreshed = true
         return
     end
-    if not C.IsSaveListLoadingComplete() then
+    if not engine.IsSaveListLoadingComplete() then
         return
     end
     for _, entry in pairs(GetSaveList({ save_010 = true }) or {}) do

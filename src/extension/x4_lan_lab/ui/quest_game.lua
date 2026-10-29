@@ -1,12 +1,12 @@
 -- Shared mission display; the host MD script owns progression and the reward.
 local cfg = X4LAN_CONFIG
-local A = X4LAN_BUBBLE_API
-if not cfg or not cfg.coop or not A or not A.state.active then
+local api = X4LAN_BUBBLE_API
+if not cfg or not cfg.coop or not api or not api.state.active then
     return
 end
-local s = A.state
+local s = api.state
 local q = { revision = -1 }
-A.quest = q
+api.quest = q
 local function integer(v, max)
     local n = tonumber(v)
     if not n or n ~= n or n < 0 or n % 1 ~= 0 or n > max then
@@ -53,13 +53,18 @@ function q.receive(f)
     end
     q.owner, q.revision, q.progress = f[4], rev, v
     if cfg.slot ~= 'p1' then
-        q.pending =
-            { revision = rev, stage = stage, delivered = delivered, destroyed = destroyed, paid = paid }
+        q.pending = {
+            revision = rev,
+            stage = stage,
+            delivered = delivered,
+            destroyed = destroyed,
+            paid = paid,
+        }
     end
     return true
 end
 function q.frame(now)
-    if not A.trade or not A.trade.state.ready then
+    if not api.trade or not api.trade.state.ready then
         return
     end
     if not q.setup then
@@ -69,7 +74,7 @@ function q.frame(now)
     if not q.ready then
         return
     end
-    if q.pending and not A.paused() then
+    if q.pending and not api.paused() then
         AddUITriggeredEvent('X4LAN_Quest', 'Apply', q.pending)
         q.pending = nil
     end

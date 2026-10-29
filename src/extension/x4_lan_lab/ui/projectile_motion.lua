@@ -2,7 +2,7 @@
 -- Caller admits authority/sector/clock first. All times use the NAV2 source clock;
 -- sample receives its delayed render cursor, not the packet arrival clock.
 X4LAN_PROJECTILE_MOTION = { capacity = 256, window = 2048 }
-local P = X4LAN_PROJECTILE_MOTION
+local motion = X4LAN_PROJECTILE_MOTION
 local function finite(n, limit)
     return type(n) == 'number' and n == n and math.abs(n) <= limit
 end
@@ -27,7 +27,7 @@ local function copy(v)
     end
     return out
 end
-function P.new(key, cutoff)
+function motion.new(key, cutoff)
     assert(type(key) == 'string' and #key > 0 and finite(cutoff or 0, 1e12))
     return { key = key, cutoff = cutoff or 0, latest = 0, seen = {}, active = {}, count = 0 }
 end
@@ -43,16 +43,16 @@ local function mark(b, id)
     if not integer(id) then
         return false
     end
-    if b.latest > 0 and id > b.latest + P.window then
+    if b.latest > 0 and id > b.latest + motion.window then
         return false
     end
-    if id <= b.latest - P.window or b.seen[id] then
+    if id <= b.latest - motion.window or b.seen[id] then
         return false
     end
     if id > b.latest then
         b.latest = id
         for old in pairs(b.seen) do
-            if old <= id - P.window then
+            if old <= id - motion.window then
                 b.seen[old] = nil
                 remove(b, old)
             end
@@ -70,7 +70,7 @@ local function purge(b, renderNow)
 end
 -- Admission uses the UNDELAYED NAV2 source estimate. renderNow may be delayed;
 -- purge against that cursor so the last interpolation tail is not removed early.
-function P.birth(b, key, r, sourceNow, renderNow)
+function motion.birth(b, key, r, sourceNow, renderNow)
     if
         key ~= b.key
         or type(r) ~= 'table'
@@ -103,7 +103,7 @@ function P.birth(b, key, r, sourceNow, renderNow)
         return false
     end
     -- Remember refused/expired births too: a later duplicate cannot resurrect them.
-    if sourceNow >= r.time + r.ttl or b.count >= P.capacity then
+    if sourceNow >= r.time + r.ttl or b.count >= motion.capacity then
         return false
     end
     b.active[r.id] = {
@@ -117,7 +117,7 @@ function P.birth(b, key, r, sourceNow, renderNow)
     b.count = b.count + 1
     return true
 end
-function P.finish(b, key, id, time)
+function motion.finish(b, key, id, time)
     if key ~= b.key or not integer(id) or not finite(time, 1e12) or time < 0 then
         return false
     end
@@ -132,14 +132,14 @@ function P.finish(b, key, id, time)
     end
     return mark(b, id) -- End-before-birth tombstone, including after expiry.
 end
-function P.clear(b, sourceNow)
+function motion.clear(b, sourceNow)
     assert(finite(sourceNow, 1e12))
     b.active = {}
     b.count = 0
     b.cutoff = math.max(b.cutoff, sourceNow)
     -- Retain seen IDs and watermark until the caller binds a different authority key.
 end
-function P.sample(b, sourceNow)
+function motion.sample(b, sourceNow)
     assert(finite(sourceNow, 1e12))
     local out = {}
     for id, r in pairs(b.active) do
@@ -165,7 +165,7 @@ function P.sample(b, sourceNow)
 end
 -- Actual native position differences retain inherited ship motion, slew and spread.
 -- Do not substitute ship forward direction or a selected target for this velocity.
-function P.velocity(a, b)
+function motion.velocity(a, b)
     if
         type(a) ~= 'table'
         or type(b) ~= 'table'

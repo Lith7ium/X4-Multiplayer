@@ -1,18 +1,28 @@
 -- Native host missions, mirrored in the guest's ordinary mission interface.
-local cfg, A = X4LAN_CONFIG, X4LAN_BUBBLE_API
-if not cfg or not cfg.faction_missions or not A or not A.coop or not A.health then
+local cfg = X4LAN_CONFIG
+local api = X4LAN_BUBBLE_API
+if not cfg or not cfg.faction_missions or not api or not api.coop or not api.health then
     return
 end
-local P, M = X4LAN_UNIVERSE_PROTOCOL, X4LAN_MISSION_PROTOCOL
-local s, h = A.state, A.health
-local q =
-    { assembly = M.assembly(), records = {}, building = {}, requests = {}, pending = {}, changed = {}, cursor = 0 }
-A.missions = q
+local universeProtocol = X4LAN_UNIVERSE_PROTOCOL
+local missionProtocol = X4LAN_MISSION_PROTOCOL
+local s = api.state
+local h = api.health
+local q = {
+    assembly = missionProtocol.assembly(),
+    records = {},
+    building = {},
+    requests = {},
+    pending = {},
+    changed = {},
+    cursor = 0,
+}
+api.missions = q
 local function log(v)
     DebugError('[X4LAN] MISSIONS ' .. v)
 end
 local function fresh(now)
-    return not A.paused() and h.mdStamp and now - (h.mdAt or 0) <= 0.5
+    return not api.paused() and h.mdStamp and now - (h.mdAt or 0) <= 0.5
 end
 local function call(action, r)
     r.stamp, r.from, r.deadline = h.mdStamp, h.mdAge, h.mdAge + 1
@@ -35,15 +45,15 @@ function q.receive(f, now)
             q.requests[r.id] = nil
         end
     elseif cfg.slot == 'p1' and f[1] == 'MREQ' and #f == 7 and f[4] == s.client.lease then
-        local id, rev = P.integer(f[5], M.limit), P.integer(f[6])
+        local id, rev =
+            universeProtocol.integer(f[5], missionProtocol.limit), universeProtocol.integer(f[6])
         local r = id and q.records[id]
         if
             r
             and r.rev == rev
             and (
-                (r.row.state == 'O' and f[7] == 'ACCEPT') or (
-                    r.row.state == 'A' and f[7] == 'ABORT'
-                )
+                (r.row.state == 'O' and f[7] == 'ACCEPT')
+                or (r.row.state == 'A' and f[7] == 'ABORT')
             )
         then
             q.requests[id] = { id = id, revision = rev, action = f[7] }
@@ -104,7 +114,7 @@ function q.frame(now)
             q.cursor = q.cursor % #ids + 1
             local id = table.remove(q.changed, 1) or ids[q.cursor]
             local r = q.records[id]
-            for _, packet in ipairs(M.packets(s.client.lease, q.epoch, r)) do
+            for _, packet in ipairs(missionProtocol.packets(s.client.lease, q.epoch, r)) do
                 s.transport:send(packet)
             end
         end
@@ -119,15 +129,17 @@ RegisterEvent('X4LAN_Missions.Header', function(_, text)
     if cfg.slot ~= 'p1' then
         return
     end
-    local f = P.split(text, '|')
-    local id, rev = P.integer(f[1], M.limit), P.integer(f[2])
+    local f = universeProtocol.split(text, '|')
+    local id, rev =
+        universeProtocol.integer(f[1], missionProtocol.limit), universeProtocol.integer(f[2])
     if #f ~= 7 or not id or id < 1 or not rev or rev < 1 then
         return
     end
-    q.building[id] = { id = id, rev = rev, header = table.concat(
-        { 'quota', f[3], f[4], f[5], f[6], f[7] },
-        ','
-    ) }
+    q.building[id] = {
+        id = id,
+        rev = rev,
+        header = table.concat({ 'quota', f[3], f[4], f[5], f[6], f[7] }, ','),
+    }
 end)
 for _, field in ipairs({ 'Title', 'Description', 'Objective' }) do
     RegisterEvent('X4LAN_Missions.' .. field, function(_, text)
@@ -150,18 +162,18 @@ RegisterEvent('X4LAN_Missions.Commit', function(_, value)
     q.building[id] = nil
     r.payload = r.header
         .. ','
-        .. M.encode(r.Title)
+        .. missionProtocol.encode(r.Title)
         .. ','
-        .. M.encode(r.Description)
+        .. missionProtocol.encode(r.Description)
         .. ','
-        .. M.encode(r.Objective)
-    r.row = M.parse(r.payload)
+        .. missionProtocol.encode(r.Objective)
+    r.row = missionProtocol.parse(r.payload)
     local old = q.records[id]
-    if not r.row or old and (r.rev <= old.rev or not M.advances(old.row, r.row)) then
+    if not r.row or old and (r.rev <= old.rev or not missionProtocol.advances(old.row, r.row)) then
         log('rejected native record id=' .. id)
         return
     end
-    r.digest = P.checksum({ r.payload })
+    r.digest = universeProtocol.checksum({ r.payload })
     q.records[id] = r
     q.requests[id] = nil
     local queued = false
@@ -204,9 +216,8 @@ RegisterEvent('X4LAN_Missions.Request', function(_, text)
         r
         and r.rev == rev
         and (
-            (action == 'ACCEPT' and r.row.state == 'O') or (
-                action == 'ABORT' and r.row.state == 'A'
-            )
+            (action == 'ACCEPT' and r.row.state == 'O')
+            or (action == 'ABORT' and r.row.state == 'A')
         )
     then
         q.requests[id] = { id = id, revision = rev, action = action }

@@ -1,7 +1,7 @@
 -- Strict wire parsing, independent of X4. Money is always integral cents.
 X4LAN_TRADE_PROTOCOL = {}
-local P = X4LAN_TRADE_PROTOCOL
-P.wares = {
+local protocol = X4LAN_TRADE_PROTOCOL
+protocol.wares = {
     'energycells',
     'foodrations',
     'medicalsupplies',
@@ -9,18 +9,18 @@ P.wares = {
     'refinedmetals',
     'siliconwafers',
 }
-P.index = {}
-for i, w in ipairs(P.wares) do
-    P.index[w] = i
+protocol.index = {}
+for i, w in ipairs(protocol.wares) do
+    protocol.index[w] = i
 end
-function P.split(s, sep)
+function protocol.split(s, sep)
     local out = {}
     for v in (s .. sep):gmatch('(.-)' .. sep) do
         out[#out + 1] = v
     end
     return out
 end
-function P.integer(s, limit, signed)
+function protocol.integer(s, limit, signed)
     if type(s) ~= 'string' or not s:match(signed and '^%-?%d+$' or '^%d+$') then
         return nil
     end
@@ -30,36 +30,36 @@ function P.integer(s, limit, signed)
     end
     return n
 end
-function P.snapshot(payload)
+function protocol.snapshot(payload)
     if #payload > 4000 then
         return nil
     end
-    local rows = P.split(payload, ';')
-    if #rows ~= #P.wares + 1 then
+    local rows = protocol.split(payload, ';')
+    if #rows ~= #protocol.wares + 1 then
         return nil
     end
-    local m = P.split(rows[1], ',')
+    local m = protocol.split(rows[1], ',')
     if #m ~= 5 or m[1] ~= 'M' then
         return nil
     end
     local result = { balances = {}, rows = {} }
     local seen = {}
     for i = 1, 4 do
-        result.balances[i] = P.integer(m[i + 1])
+        result.balances[i] = protocol.integer(m[i + 1])
         if not result.balances[i] then
             return nil
         end
     end
     for i = 2, #rows do
-        local r = P.split(rows[i], ',')
-        local index = P.index[r[2]]
+        local r = protocol.split(rows[i], ',')
+        local index = protocol.index[r[2]]
         if #r ~= 13 or r[1] ~= 'W' or not index or seen[index] then
             return nil
         end
         seen[index] = true
         local v = {}
         for j = 3, 13 do
-            v[j - 2] = P.integer(r[j])
+            v[j - 2] = protocol.integer(r[j])
             if not v[j - 2] then
                 return nil
             end
@@ -86,17 +86,17 @@ function P.snapshot(payload)
     end
     return result
 end
-function P.lines(payload)
-    local rows = P.split(payload, ';')
-    if #rows < 1 or #rows > #P.wares then
+function protocol.lines(payload)
+    local rows = protocol.split(payload, ';')
+    if #rows < 1 or #rows > #protocol.wares then
         return nil
     end
     local result, seen = {}, {}
     for _, row in ipairs(rows) do
-        local f = P.split(row, ',')
-        local index = P.index[f[1]]
-        local qty = P.integer(f[2], 1000000, true)
-        local price = P.integer(f[3])
+        local f = protocol.split(row, ',')
+        local index = protocol.index[f[1]]
+        local qty = protocol.integer(f[2], 1000000, true)
+        local price = protocol.integer(f[3])
         if
             #f ~= 3
             or not index
@@ -114,7 +114,7 @@ function P.lines(payload)
     end
     return result
 end
-function P.assembler()
+function protocol.assembler()
     return {
         revision = -1,
         pending = {},
@@ -164,7 +164,7 @@ function P.assembler()
                     return nil
                 end
             end
-            local parsed = P.snapshot(table.concat(item.parts))
+            local parsed = protocol.snapshot(table.concat(item.parts))
             if not parsed then
                 return nil
             end
