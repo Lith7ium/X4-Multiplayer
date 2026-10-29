@@ -63,15 +63,15 @@ def main():
                         last_print = now
             if lease and now - last_send >= 0.05:
                 seq += 1
-                t = (now - started) * 0.15
+                phase = (now - started) * 0.15
                 slot_x = -1000 if args.slot == "p1" else 1000
                 pose = (
-                    slot_x + 300 * math.cos(t),
-                    100 * math.sin(t * 0.7),
-                    300 * math.sin(t),
-                    ((-t + math.pi) % math.tau) - math.pi,
-                    0.2 * math.sin(t * 0.8),
-                    0.3 * math.sin(t * 0.6),
+                    slot_x + 300 * math.cos(phase),
+                    100 * math.sin(phase * 0.7),
+                    300 * math.sin(phase),
+                    ((-phase + math.pi) % math.tau) - math.pi,
+                    0.2 * math.sin(phase * 0.8),
+                    0.3 * math.sin(phase * 0.6),
                 )
                 msg = f"STATE|1|{lease}|{seq}|" + "|".join(f"{x:.9g}" for x in pose)
                 try:

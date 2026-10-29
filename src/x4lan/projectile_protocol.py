@@ -215,7 +215,7 @@ def serialize(message):
     if isinstance(message, Bolt):
         fields += (
             [message.sector, str(message.kind)]
-            + [_text(getattr(message, n)) for n, _ in BOLT_NUMBERS]
+            + [_text(getattr(message, field_name)) for field_name, _ in BOLT_NUMBERS]
             + [_text(message.ttl)]
         )
     raw = '|'.join(fields).encode('ascii')

@@ -45,13 +45,13 @@ def addresses():
                 rows = [rows]
             return [
                 {
-                    'interface': r['InterfaceAlias'],
-                    'ip': r['IPAddress'],
+                    'interface': row['InterfaceAlias'],
+                    'ip': row['IPAddress'],
                     'kind': 'ZeroTier'
-                    if 'zerotier' in r['InterfaceAlias'].lower()
+                    if 'zerotier' in row['InterfaceAlias'].lower()
                     else 'LAN / other',
                 }
-                for r in rows
+                for row in rows
             ]
         result = subprocess.run(
             ['ip', '-j', '-4', 'addr', 'show', 'scope', 'global'],
@@ -63,13 +63,13 @@ def addresses():
         rows = json.loads(result.stdout)
         return [
             {
-                'interface': r['ifname'],
-                'ip': a['local'],
-                'kind': 'ZeroTier' if r['ifname'].startswith('zt') else 'LAN / other',
+                'interface': row['ifname'],
+                'ip': address['local'],
+                'kind': 'ZeroTier' if row['ifname'].startswith('zt') else 'LAN / other',
             }
-            for r in rows
-            for a in r.get('addr_info', [])
-            if a.get('family') == 'inet'
+            for row in rows
+            for address in row.get('addr_info', [])
+            if address.get('family') == 'inet'
         ]
     except (OSError, ValueError, subprocess.SubprocessError):
         return []
@@ -162,7 +162,7 @@ def combat(session, now):
         }
         frame = session.health.get(i)
         if frame:
-            hull, shield = (float(v) for v in frame['fields'][3:5])
+            hull, shield = (float(entry_value) for entry_value in frame['fields'][3:5])
             row['frame'] = {
                 'seq': frame['seq'],
                 'hull_percent': round(hull, 3),
@@ -174,16 +174,16 @@ def combat(session, now):
     shots = sorted(
         (
             {
-                'shooter': k[0],
-                'shooter_gen': k[1],
-                'victim': k[2],
-                'victim_gen': k[3],
-                'hits': v['hits'],
-                'seq': v['seq'],
-                'weapon': v['fields'][-1],
-                'age': round(now - v['at'], 2),
+                'shooter': entry_key[0],
+                'shooter_gen': entry_key[1],
+                'victim': entry_key[2],
+                'victim_gen': entry_key[3],
+                'hits': entry_value['hits'],
+                'seq': entry_value['seq'],
+                'weapon': entry_value['fields'][-1],
+                'age': round(now - entry_value['at'], 2),
             }
-            for k, v in newest
+            for entry_key, entry_value in newest
         ),
         key=lambda r: (r['shooter'], r['victim'], r['shooter_gen'], r['victim_gen']),
     )
@@ -191,8 +191,8 @@ def combat(session, now):
     projectiles = getattr(session, 'projectiles', None)
     if projectiles is not None:
         result['projectiles'] = [
-            {'ship': e, 'live': len(s.live()), 'latest_id': s.latest}
-            for e, s in sorted(projectiles.streams.items())
+            {'ship': entity, 'live': len(stream.live()), 'latest_id': stream.latest}
+            for entity, stream in sorted(projectiles.streams.items())
         ]
     return result
 
@@ -278,7 +278,9 @@ class Monitor:
                 metrics = session.game_metrics.get(peer.lease)
                 if metrics:
                     players[-1]['game'] = {
-                        k: v for k, v in metrics.items() if k not in ('seq', 'at')
+                        entry_key: entry_value
+                        for entry_key, entry_value in metrics.items()
+                        if entry_key not in ('seq', 'at')
                     }
                     players[-1]['game']['age'] = round(now - metrics['at'], 2)
                 ships = [
@@ -291,7 +293,11 @@ class Monitor:
                 )
             probe = getattr(self.relay, 'netprobe', None)
             if probe is not None and probe.enabled and slot in probe.latest:
-                players[-1]['net'] = {k: v for k, v in probe.latest[slot].items() if k != 'slot'}
+                players[-1]['net'] = {
+                    entry_key: entry_value
+                    for entry_key, entry_value in probe.latest[slot].items()
+                    if entry_key != 'slot'
+                }
             self.previous[slot] = {
                 'lease': peer.lease,
                 'count': peer.state_messages,
@@ -339,8 +345,12 @@ class Monitor:
             'players': players,
             'connected': len(session.peers),
             'streams': streams,
-            'pending_trades': sum(v['result'] == 'PENDING' for v in session.orders.values()),
-            'pending_actions': sum(v['result'] == 'PENDING' for v in session.commands.values()),
+            'pending_trades': sum(
+                entry_value['result'] == 'PENDING' for entry_value in session.orders.values()
+            ),
+            'pending_actions': sum(
+                entry_value['result'] == 'PENDING' for entry_value in session.commands.values()
+            ),
             'network': {
                 'rx_packets': rx,
                 'tx_packets': tx,
@@ -377,12 +387,12 @@ class Monitor:
                     paid=bool(paid),
                 )
         if hasattr(session, 'universe'):
-            b = session.universe.latest
+            baseline = session.universe.latest
             snapshot['universe'] = {
                 'scope': 'experimental NPC scenes',
-                'revision': b.revision if b else None,
-                'sector': b.sector if b else None,
-                'objects': len(b.rows) if b else 0,
+                'revision': baseline.revision if baseline else None,
+                'sector': baseline.sector if baseline else None,
+                'objects': len(baseline.rows) if baseline else 0,
                 'guest_committed_revision': session.delivered,
                 'pending_objects': len(session.universe.pending['rows'])
                 if session.universe.pending
@@ -407,19 +417,19 @@ def render(state, width=100, attached=False):
         f' Uptime {duration(state["uptime"])}   UDP {state["port"]}   Session {state["bubble"]}',
         bar,
     ]
-    for p in state['players']:
-        role = 'HOST / LINUX' if p['slot'] == 'p1' else 'GUEST / WINDOWS'
-        age = '-' if p['age'] is None else f'{p["age"]:.1f}s'
+    for player in state['players']:
+        role = 'HOST / LINUX' if player['slot'] == 'p1' else 'GUEST / WINDOWS'
+        age = '-' if player['age'] is None else f'{player["age"]:.1f}s'
         lines += [
-            f' {p["slot"].upper()}  {role:<17} {p["status"]:<12} {p["address"]}',
-            f'     Last update: {age:<7} Updates/s: {p["updates_hz"]:<5.1f} Position: {p["pose"]}',
+            f' {player["slot"].upper()}  {role:<17} {player["status"]:<12} {player["address"]}',
+            f'     Last update: {age:<7} Updates/s: {player["updates_hz"]:<5.1f} Position: {player["pose"]}',
         ]
-        game = p.get('game')
+        game = player.get('game')
         if game:
             lines.append(
                 f'     Game callbacks/s: {game["callbacks_hz"]:g}  Max gap: {game["interval_max_ms"]:g} ms  {game["state"]}'
             )
-        net = p.get('net')
+        net = player.get('net')
         if net:
             lines.append(
                 f'     RTT probe ms: median {net["rtt_ms_median"]}  p95 {net["rtt_ms_p95"]}  '
@@ -480,7 +490,10 @@ def render(state, width=100, attached=False):
         else ' Ctrl+C stops this server. Keep this window open while playing.',
     ]
     # Strip control characters from external data before writing to a terminal.
-    return '\n'.join(''.join(c if c.isprintable() else '?' for c in line)[:width] for line in lines)
+    return '\n'.join(
+        ''.join(character if character.isprintable() else '?' for character in line)[:width]
+        for line in lines
+    )
 
 
 class Screen:
@@ -508,7 +521,7 @@ class Screen:
         else:
             signature = (
                 state['running'],
-                tuple((p['status'], p['address']) for p in state['players']),
+                tuple((player['status'], player['address']) for player in state['players']),
             )
             if signature != self.last_plain:
                 print(render(state, 110, self.attached), flush=True)

@@ -19,21 +19,24 @@ class CargoTransactions:
         self.inventory_cursor = 0
 
     def busy(self, ship):
-        return any(r['ship'] == ship and r['result'] == 'PENDING' for r in self.requests.values())
+        return any(
+            request['ship'] == ship and request['result'] == 'PENDING'
+            for request in self.requests.values()
+        )
 
     def reply(self, lease, request, status, fence=0):
         return f'CARGOREPLY|1|{lease}|{request}|{status}|{fence}'.encode()
 
     def receive(self, raw, address, now):
-        s = self.session
-        s.expire(now)
+        session = self.session
+        session.expire(now)
         if len(raw) > 768:
             return []
         try:
             fields = raw.decode('ascii').split('|')
             if len(fields) < 4 or fields[1] != '1':
                 return []
-            slot, peer = s._peer(fields[2], address)
+            slot, peer = session._peer(fields[2], address)
             if not peer:
                 return []
             if (
@@ -93,17 +96,17 @@ class CargoTransactions:
                 if old['signature'] != signature:
                     return [self.reply(peer.lease, request, 'REJECTED')]
                 return [self.reply(peer.lease, request, old['result'], old.get('fence', 0))]
-            authority = s.peers.get('p1')
+            authority = session.peers.get('p1')
             if not authority or authority.lease != host:
                 return [self.reply(peer.lease, request, 'STALE')]
             if (
-                s.owners[ship] != slot
-                or s.epochs[ship] != epoch
-                or s.pilot(ship) != slot
-                or s.dead(ship)
+                session.owners[ship] != slot
+                or session.epochs[ship] != epoch
+                or session.pilot(ship) != slot
+                or session.dead(ship)
             ):
                 return [self.reply(peer.lease, request, 'REJECTED')]
-            if s.busy(ship):
+            if session.busy(ship):
                 return [self.reply(peer.lease, request, 'BUSY')]
             # Reject new requests at the cap; never evict a completed ID into reuse.
             if len(self.requests) >= 8192:

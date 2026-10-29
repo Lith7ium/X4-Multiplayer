@@ -101,7 +101,9 @@ class Assembly:
         ):
             return None
         self.pending = {
-            r: v for r, v in self.pending.items() if now - v[0] < 3 and r > self.revision
+            revision: pending_entry
+            for revision, pending_entry in self.pending.items()
+            if now - pending_entry[0] < 3 and revision > self.revision
         }
         if rev not in self.pending:
             if len(self.pending) >= 4:
@@ -118,7 +120,11 @@ class Assembly:
         value = ''.join(parts[i] for i in range(1, total + 1))
         parse_snapshot(value)
         self.revision = rev
-        self.pending = {r: v for r, v in self.pending.items() if r > rev}
+        self.pending = {
+            revision: pending_entry
+            for revision, pending_entry in self.pending.items()
+            if revision > rev
+        }
         return value
 
 
@@ -143,8 +149,8 @@ class EconomySession(BubbleSession):
             for cmd in self.orders.values():
                 if cmd['result'] == 'PENDING':
                     cmd['result'] = 'UNCERTAIN'
-        live = {p.lease for p in self.peers.values()}
-        self.docks = {lease: v for lease, v in self.docks.items() if lease in live}
+        live = {remote_peer.lease for remote_peer in self.peers.values()}
+        self.docks = {lease: dock for lease, dock in self.docks.items() if lease in live}
         for cmd in self.orders.values():
             if cmd['lease'] not in live and cmd['result'] == 'PENDING':
                 cmd['result'] = 'UNCERTAIN'

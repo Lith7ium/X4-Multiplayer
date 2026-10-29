@@ -38,7 +38,13 @@ class QuestState:
     def receive(self, lease, fields):
         progress = parse_progress(fields)
         old = self.progress if self.owner == lease else None
-        if old and (progress[0] <= old[0] or any(a < b for a, b in zip(progress[1:], old[1:]))):
+        if old and (
+            progress[0] <= old[0]
+            or any(
+                current_value < previous_value
+                for current_value, previous_value in zip(progress[1:], old[1:])
+            )
+        ):
             return
         self.owner, self.progress = lease, progress
 
@@ -49,6 +55,6 @@ class QuestState:
         self.next_send = now + 0.5
         payload = '|'.join(map(str, self.progress))
         return [
-            (p.address, f'QUEST|1|{p.lease}|{host.lease}|{payload}'.encode())
-            for p in peers.values()
+            (remote_peer.address, f'QUEST|1|{remote_peer.lease}|{host.lease}|{payload}'.encode())
+            for remote_peer in peers.values()
         ]

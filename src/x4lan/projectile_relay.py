@@ -52,7 +52,7 @@ class Stream:
                 del self.seen[old]
 
     def live(self):
-        return [r for r in self.seen.values() if r['live']]
+        return [record for record in self.seen.values() if record['live']]
 
 
 class ProjectileRelay:
@@ -138,7 +138,14 @@ class ProjectileRelay:
         result = []
         for entity, stream in list(self.streams.items()):
             lease, epoch, gen = stream.key
-            slot = next((s for s, p in session.peers.items() if p.lease == lease), None)
+            slot = next(
+                (
+                    player_slot
+                    for player_slot, remote_peer in session.peers.items()
+                    if remote_peer.lease == lease
+                ),
+                None,
+            )
             auth = slot and self.authority(session, entity, slot, lease, now)
             if not auth or auth[:2] != (epoch, gen):
                 # Transition or stale NAV2: retire everything, but keep the ids so that a late

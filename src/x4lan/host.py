@@ -34,7 +34,11 @@ def bundle(packets, peers):
     each destination's packet order is preserved. A bundle of one item is sent as the
     original packet. Without capable peers the input is returned unchanged.
     """
-    capable = {p.address: p.lease.encode('ascii') for p in peers.values() if p.bundle}
+    capable = {
+        remote_peer.address: remote_peer.lease.encode('ascii')
+        for remote_peer in peers.values()
+        if remote_peer.bundle
+    }
     if not capable:
         return list(packets)
     out, open_ = [], {}
@@ -151,7 +155,7 @@ class Session:
                     or build != self.build
                     or bubble != self.bubble
                     or slot not in ('p1', 'p2')
-                    or not all(HEX.fullmatch(v) for v in (previous_nonce, lease, nonce))
+                    or not all(HEX.fullmatch(value) for value in (previous_nonce, lease, nonce))
                     or not ATOM.fullmatch(sector)
                 ):
                     return []
@@ -172,7 +176,11 @@ class Session:
                     )
                     or (self.sector is not None and self.sector != sector)
                     or (peer is None and saved[1] != sector)
-                    or any(p.address == address for key, p in self.peers.items() if key != slot)
+                    or any(
+                        remote_peer.address == address
+                        for key, remote_peer in self.peers.items()
+                        if key != slot
+                    )
                 ):
                     return []
                 candidate.resume_from = previous_nonce
@@ -204,7 +212,7 @@ class Session:
                     if (slot, nonce) in self.retired:
                         return []
                     # A single endpoint must not own both slots.
-                    if any(p.address == address for p in self.peers.values()):
+                    if any(remote_peer.address == address for remote_peer in self.peers.values()):
                         return []
                     peer = Peer(address, nonce, secrets.token_hex(16), now, joined_at=now)
                     self.peers[slot] = peer
@@ -217,9 +225,10 @@ class Session:
                 # client that announced it ever receives an XB bundle.
                 peer = next(
                     (
-                        p
-                        for p in self.peers.values()
-                        if p.address == address and hmac.compare_digest(p.lease, fields[2])
+                        remote_peer
+                        for remote_peer in self.peers.values()
+                        if remote_peer.address == address
+                        and hmac.compare_digest(remote_peer.lease, fields[2])
                     ),
                     None,
                 )
@@ -232,9 +241,10 @@ class Session:
                 return []
             peer = next(
                 (
-                    p
-                    for p in self.peers.values()
-                    if p.address == address and hmac.compare_digest(p.lease, fields[2])
+                    remote_peer
+                    for remote_peer in self.peers.values()
+                    if remote_peer.address == address
+                    and hmac.compare_digest(remote_peer.lease, fields[2])
                 ),
                 None,
             )
@@ -423,7 +433,8 @@ def main() -> None:
                 print(line, flush=True)
             status = (
                 ", ".join(
-                    f"{slot}@{p.address[0]}:{p.address[1]}" for slot, p in session.peers.items()
+                    f"{slot}@{remote_peer.address[0]}:{remote_peer.address[1]}"
+                    for slot, remote_peer in session.peers.items()
                 )
                 or "waiting"
             )

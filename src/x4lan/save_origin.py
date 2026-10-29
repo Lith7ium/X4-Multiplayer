@@ -37,26 +37,26 @@ def read(snapshot, format):
                         raise seed.SeedError('not a native X4 save')
                     if path != ['savegame', 'info', 'game']:
                         continue
-                    a = node.attrib
-                    if a.get('id') != 'X4' or not re.fullmatch(
-                        r'[1-9][0-9]{0,9}', a.get('seed', '')
+                    attributes = node.attrib
+                    if attributes.get('id') != 'X4' or not re.fullmatch(
+                        r'[1-9][0-9]{0,9}', attributes.get('seed', '')
                     ):
                         raise seed.SeedError('invalid native world generation seed')
-                    number = int(a['seed'])
+                    number = int(attributes['seed'])
                     if not 1 <= number <= 4294967295:
                         raise seed.SeedError('native seed outside supported bounds')
-                    for k in ('start', 'version', 'build'):
-                        if not seed.ATOM.fullmatch(a.get(k, '')):
+                    for field in ('start', 'version', 'build'):
+                        if not seed.ATOM.fullmatch(attributes.get(field, '')):
                             raise seed.SeedError('invalid native game header')
-                    guid = str(uuid.UUID(a['guid']))
-                    if guid != a['guid'].lower():
+                    guid = str(uuid.UUID(attributes['guid']))
+                    if guid != attributes['guid'].lower():
                         raise seed.SeedError('noncanonical native world GUID')
                     return dict(
                         game_guid=guid,
                         generation_seed=number,
-                        gamestart=a['start'],
-                        game_version=a['version'],
-                        game_build=a['build'],
+                        gamestart=attributes['start'],
+                        game_version=attributes['version'],
+                        game_build=attributes['build'],
                     )
     except (OSError, EOFError, ValueError, KeyError, ET.ParseError) as exc:
         if isinstance(exc, seed.SeedError):

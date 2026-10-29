@@ -50,7 +50,7 @@ def validate(recipe):
 
 
 def content(recipe):
-    return {k: recipe[k] for k in ('game_build', 'mod_sha256', 'extensions')}
+    return {field: recipe[field] for field in ('game_build', 'mod_sha256', 'extensions')}
 
 
 def create(
@@ -109,7 +109,10 @@ def arguments(recipe, profile, *, observed_content):
     values = config.findall('seed')
     if values and (len(values) != 1 or values[0].text != str(recipe['generation_seed'])):
         raise seed.SeedError('profile seed conflicts with the host generation seed')
-    if any(config.find(k) is not None for k in ('load', 'module', 'mpar', 'usedefaultconfig')):
+    if any(
+        config.find(setting) is not None
+        for setting in ('load', 'module', 'mpar', 'usedefaultconfig')
+    ):
         raise seed.SeedError('profile contains a load/module override; fresh-world plan refused')
     return [
         '-personalfolderid',

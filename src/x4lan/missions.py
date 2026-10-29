@@ -23,7 +23,7 @@ def text_field(value, maximum):
     ):
         raise ValueError('mission text encoding')
     text = bytes.fromhex(value).decode('utf-8')
-    if any(ord(c) < 32 and c not in '\n\t' for c in text) or '\x7f' in text:
+    if any(ord(character) < 32 and character not in '\n\t' for character in text) or '\x7f' in text:
         raise ValueError('mission text control')
     return text
 
@@ -61,8 +61,8 @@ def advances(old, new):
         new['state'] in TRANSITIONS.get(old['state'], set())
         and new['done'] >= old['done']
         and all(
-            new[k] == old[k]
-            for k in ('kind', 'total', 'reward', 'faction', 'title', 'description', 'objective')
+            new[field] == old[field]
+            for field in ('kind', 'total', 'reward', 'faction', 'title', 'description', 'objective')
         )
     )
 
@@ -87,8 +87,8 @@ class MissionJournal:
         return host
 
     def receive(self, raw, address, now):
-        s = self.session
-        s.expire(now)
+        session = self.session
+        session.expire(now)
         if len(raw) > MAX_PACKET:
             return []
         try:
@@ -96,7 +96,7 @@ class MissionJournal:
             if len(fields) < 7 or fields[1] != '1':
                 return []
             host = self.current_host()
-            slot, peer = s._peer(fields[2], address)
+            slot, peer = session._peer(fields[2], address)
             if not host or not peer or fields[3] != host.lease:
                 return []
             ident, rev = sequence(fields[4]), sequence(fields[5])
@@ -122,20 +122,20 @@ class MissionJournal:
                     return []
                 if not re.fullmatch('[a-zA-Z0-9_,]+', fields[9]):
                     return []
-                p = self.pending.get(ident)
-                if p and rev < p['rev']:
+                pending = self.pending.get(ident)
+                if pending and rev < pending['rev']:
                     return []
-                if not p or rev > p['rev'] or now - p['at'] >= 10:
-                    p = dict(rev=rev, total=total, digest=digest, parts={}, at=now)
-                    self.pending[ident] = p
-                if (total, digest) != (p['total'], p['digest']):
+                if not pending or rev > pending['rev'] or now - pending['at'] >= 10:
+                    pending = dict(rev=rev, total=total, digest=digest, parts={}, at=now)
+                    self.pending[ident] = pending
+                if (total, digest) != (pending['total'], pending['digest']):
                     return []
-                if part in p['parts'] and p['parts'][part] != fields[9]:
+                if part in pending['parts'] and pending['parts'][part] != fields[9]:
                     return []
-                p['parts'][part] = fields[9]
-                if len(p['parts']) != total:
+                pending['parts'][part] = fields[9]
+                if len(pending['parts']) != total:
                     return []
-                payload = ''.join(p['parts'][i] for i in range(1, total + 1))
+                payload = ''.join(pending['parts'][i] for i in range(1, total + 1))
                 if zlib.adler32(payload.encode()) != digest:
                     return []
                 row = parse_record(payload)
@@ -165,14 +165,14 @@ class MissionJournal:
             self.cursor %= len(ids)
             ident = self.changed.pop(0) if self.changed else ids[self.cursor]
             self.cursor += 1
-            r = self.records[ident]
-            payload = r['payload']
+            record = self.records[ident]
+            payload = record['payload']
             parts = [payload[i : i + PART_SIZE] for i in range(0, len(payload), PART_SIZE)]
             for i, part in enumerate(parts, 1):
                 out.append(
                     (
                         guest.address,
-                        f'MSTATE|1|{guest.lease}|{host.lease}|{ident}|{r["rev"]}|{i}|{len(parts)}|{r["digest"]}|{part}'.encode(),
+                        f'MSTATE|1|{guest.lease}|{host.lease}|{ident}|{record["rev"]}|{i}|{len(parts)}|{record["digest"]}|{part}'.encode(),
                     )
                 )
         for ident, (lease, rev, action) in list(self.requests.items()):

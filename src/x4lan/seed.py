@@ -90,7 +90,7 @@ def validate_manifest(value):
         if (
             not isinstance(row, dict)
             or set(row) != {"id", "version"}
-            or not all(isinstance(row[k], str) and ATOM.fullmatch(row[k]) for k in row)
+            or not all(isinstance(row[field], str) and ATOM.fullmatch(row[field]) for field in row)
         ):
             raise SeedError("invalid extension manifest")
         names.append(row["id"])
@@ -282,7 +282,7 @@ def receive_bundle(connection, destination, token, *, seed_id, game_build, mod_s
     expected = dict(
         seed_id=seed_id, game_build=game_build, mod_sha256=mod_sha256, extensions=extensions
     )
-    if any(manifest[k] != expected[k] for k in ("seed_id", "game_build", "mod_sha256")):
+    if any(manifest[field] != expected[field] for field in ("seed_id", "game_build", "mod_sha256")):
         raise SeedError("session, game build or multiplayer scripts differ")
     if manifest["extensions"] != extensions:
         describe = lambda rows: (
@@ -334,7 +334,7 @@ def stage_test_save(folder, profile):
     if saves.is_symlink():
         raise SeedError("linked save directory")
     saves.mkdir(exist_ok=True)
-    if any(p.name != "steam_autocloud.vdf" for p in saves.iterdir()):
+    if any(save_path.name != "steam_autocloud.vdf" for save_path in saves.iterdir()):
         raise SeedError("isolated save directory must be empty")
     manifest, source = read_bundle(folder)
     suffix = ".xml.gz" if manifest["format"] == "x4-xml-gzip" else ".xml"
