@@ -1,257 +1,311 @@
 -- Optional exact-bay execution. Prepared operations are local capabilities;
 -- native handles are obtained locally and are never accepted from the network.
-local A, cfg = X4LAN_BUBBLE_API, X4LAN_CONFIG
-if not A or not A.coopDocks or not cfg.coop_docks then
+local API, cfg = X4LAN_BUBBLE_API, X4LAN_CONFIG
+if not API or not API.coopDocks or not cfg.coop_docks then
     return
 end
-local d, c, s = A.coopDocks, A.coop, A.state
-local x = { generation = { 0, 0 }, ack = { 0, 0 }, keys = {}, operation = 0, epoch = A.nonce() }
-d.execution = x
+local dockAdapter, coopAdapter, sessionState = API.coopDocks, API.coop, API.state
+local execution =
+    { generation = { 0, 0 }, ack = { 0, 0 }, keys = {}, operation = 0, epoch = API.nonce() }
+dockAdapter.execution = execution
 local function log(v)
     DebugError('[X4LAN] COOP_DOCK_EXEC ' .. v)
 end
 local function event(control, value)
     AddUITriggeredEvent('X4LAN_CoopAttachment', control, value)
 end
-local function key(e, now)
+local function key(entity, now)
     -- Separate datagrams can temporarily be unpaired. This blocks pose/new
     -- preparation, but must not repeatedly cancel an already invoked undock.
-    local q = d.intent(e, now)
-    if not q then
+    local intent = dockAdapter.intent(entity, now)
+    if not intent then
         return table.concat(
-            { 'blocked', tostring(c.owners[e]), tostring(c.epochs[e]), tostring(c.pilots[e]) },
+            {
+                'blocked',
+                tostring(coopAdapter.owners[entity]),
+                tostring(coopAdapter.epochs[entity]),
+                tostring(coopAdapter.pilots[entity]),
+            },
             '|'
         ),
             nil
     end
-    return table.concat({ c.owners[e], q.epoch, q.lease, q.mode, q.dock }, '|'), q
+    return table.concat(
+        { coopAdapter.owners[entity], intent.epoch, intent.lease, intent.mode, intent.dock },
+        '|'
+    ),
+        intent
 end
-local function fence(e, k, q)
-    if x.keys[e] == k then
+local function fence(entity, authorityKey, intent)
+    if execution.keys[entity] == authorityKey then
         return
     end
-    x.keys[e] = k
-    x.generation[e] = x.generation[e] + 1
-    if x.pending then
-        x.pending = nil
+    execution.keys[entity] = authorityKey
+    execution.generation[entity] = execution.generation[entity] + 1
+    if execution.pending then
+        execution.pending = nil
     end
     event(
         'Fence',
-        { seed = cfg.seed_id, epoch = x.epoch, ship = e, generation = x.generation[e], enabled = q
-            ~= nil }
+        {
+            seed = cfg.seed_id,
+            epoch = execution.epoch,
+            ship = entity,
+            generation = execution.generation[entity],
+            enabled = intent ~= nil,
+        }
     )
 end
-function d.authorized(e, now)
-    local k, q = key(e, now)
-    return x.ready and q ~= nil and x.keys[e] == k and x.ack[e] == x.generation[e]
+function dockAdapter.authorized(entity, now)
+    local authorityKey, intent = key(entity, now)
+    return execution.ready
+        and intent ~= nil
+        and execution.keys[entity] == authorityKey
+        and execution.ack[entity] == execution.generation[entity]
 end
-function c.attachmentGeneration(e)
-    return x.generation[e]
+function coopAdapter.attachmentGeneration(entity)
+    return execution.generation[entity]
 end
-function c.attachmentWindow(e, now)
-    local r = d.localRow(e, now)
-    if r then
-        return r.stamp, r.age
+function coopAdapter.attachmentWindow(entity, now)
+    local localRowState = dockAdapter.localRow(entity, now)
+    if localRowState then
+        return localRowState.stamp, localRowState.age
     end
 end
-local function current(p, now)
-    return p and d.authorized(p.entity, now) and p.generation == x.generation[p.entity]
+local function current(pendingOperation, now)
+    return pendingOperation
+        and dockAdapter.authorized(pendingOperation.entity, now)
+        and pendingOperation.generation == execution.generation[pendingOperation.entity]
 end
 local function outcome(reason)
-    if x.lastOutcome ~= reason then
-        x.lastOutcome = reason
+    if execution.lastOutcome ~= reason then
+        execution.lastOutcome = reason
         log(reason)
     end
-    x.pending = nil
-    x.nextAttempt = GetCurRealTime() + 0.5
+    execution.pending = nil
+    execution.nextAttempt = GetCurRealTime() + 0.5
 end
-local function choose(q, r)
-    if r.mode == 'UNKNOWN' then
+local function choose(intent, localRowState)
+    if localRowState.mode == 'UNKNOWN' then
         return nil
     end
-    if q.mode == r.mode and q.dock == r.dock then
+    if intent.mode == localRowState.mode and intent.dock == localRowState.dock then
         return nil
     end
-    if r.mode == 'EXTERNAL' or r.mode == 'STORED' then
+    if localRowState.mode == 'EXTERNAL' or localRowState.mode == 'STORED' then
         return 'UNDOCK', 'FREE', 0
     end
-    if r.mode == 'APPROACH' and (q.mode == 'FREE' or q.dock ~= r.dock) then
+    if
+        localRowState.mode == 'APPROACH'
+        and (intent.mode == 'FREE' or intent.dock ~= localRowState.dock)
+    then
         return 'CANCEL', 'FREE', 0
     end
-    if q.mode == 'APPROACH' and r.mode == 'FREE' then
-        return 'RESERVE', 'APPROACH', q.dock
+    if intent.mode == 'APPROACH' and localRowState.mode == 'FREE' then
+        return 'RESERVE', 'APPROACH', intent.dock
     end
     if
-        (q.mode == 'EXTERNAL' or q.mode == 'STORED')
-        and (r.mode == 'FREE' or r.mode == 'APPROACH' and r.dock == q.dock)
+        (intent.mode == 'EXTERNAL' or intent.mode == 'STORED')
+        and (
+            localRowState.mode == 'FREE'
+            or localRowState.mode == 'APPROACH' and localRowState.dock == intent.dock
+        )
     then
-        return 'ATTACH', q.mode, q.dock
+        return 'ATTACH', intent.mode, intent.dock
     end
 end
-function d.executeFrame(now)
-    if d.closed then
-        if x.started and not x.stopped then
-            x.stopped = true
+function dockAdapter.executeFrame(now)
+    if dockAdapter.closed then
+        if execution.started and not execution.stopped then
+            execution.stopped = true
             event('Stop')
         end
         return
     end
-    if d.ready and not x.started and s.client and s.client.lease then
-        x.started = true
-        x.lease = s.client.lease
-        x.startAt = now
-        event('Start', { seed = cfg.seed_id, epoch = x.epoch, role = cfg.slot })
+    if
+        dockAdapter.ready
+        and not execution.started
+        and sessionState.client
+        and sessionState.client.lease
+    then
+        execution.started = true
+        execution.lease = sessionState.client.lease
+        execution.startAt = now
+        event('Start', { seed = cfg.seed_id, epoch = execution.epoch, role = cfg.slot })
     end
-    if not x.started then
+    if not execution.started then
         return
     end
-    if not s.client or s.client.lease ~= x.lease then
-        d.stop('attachment session lease changed; reload required')
+    if not sessionState.client or sessionState.client.lease ~= execution.lease then
+        dockAdapter.stop('attachment session lease changed; reload required')
         return
     end
-    if not x.ready then
-        if now - x.startAt > 5 then
-            d.stop('native attachment setup timed out')
+    if not execution.ready then
+        if now - execution.startAt > 5 then
+            dockAdapter.stop('native attachment setup timed out')
         end
         return
     end
-    for e = 1, 2 do
-        local k, q = key(e, now)
-        fence(e, k, q)
+    for entity = 1, 2 do
+        local authorityKey, intent = key(entity, now)
+        fence(entity, authorityKey, intent)
     end
-    local p = x.pending
-    if p then
-        if not current(p, now) then
-            x.pending = nil
+    local pendingOperation = execution.pending
+    if pendingOperation then
+        if not current(pendingOperation, now) then
+            execution.pending = nil
             return
         end
-        if now - p.at > (p.applied and 30 or 2) then
+        if now - pendingOperation.at > (pendingOperation.applied and 30 or 2) then
             -- An invoked operation may still be moving natively. Keep pose fenced by
             -- native attachment, report it, and inspect before any further operation.
-            outcome('WAIT_EXPIRED entity=' .. p.entity .. ' action=' .. p.action)
+            outcome(
+                'WAIT_EXPIRED entity='
+                    .. pendingOperation.entity
+                    .. ' action='
+                    .. pendingOperation.action
+            )
             return
         end
-        if p.applied then
-            local r = d.localRow(p.entity, now)
-            if r and r.at >= p.applied and r.mode == p.want and r.dock == p.dock then
+        if pendingOperation.applied then
+            local localRowState = dockAdapter.localRow(pendingOperation.entity, now)
+            if
+                localRowState
+                and localRowState.at >= pendingOperation.applied
+                and localRowState.mode == pendingOperation.want
+                and localRowState.dock == pendingOperation.dock
+            then
                 outcome(
-                    'CONFIRMED entity=' .. p.entity .. ' action=' .. p.action .. ' mode=' .. r.mode
+                    'CONFIRMED entity='
+                        .. pendingOperation.entity
+                        .. ' action='
+                        .. pendingOperation.action
+                        .. ' mode='
+                        .. localRowState.mode
                 )
-            elseif r and r.at >= p.applied and p.action == 'UNDOCK' and r.mode == 'APPROACH' then
+            elseif
+                localRowState
+                and localRowState.at >= pendingOperation.applied
+                and pendingOperation.action == 'UNDOCK'
+                and localRowState.mode == 'APPROACH'
+            then
                 -- X Shuttle can physically detach yet retain its assignment. localRow also
                 -- checks native isdocked=false: only now may a separate guarded CANCEL
                 -- remove that reservation. Pose remains blocked until actual FREE readback.
-                outcome('DETACHED_WITH_RESERVATION entity=' .. p.entity)
+                outcome('DETACHED_WITH_RESERVATION entity=' .. pendingOperation.entity)
             end
         end
         return
     end
-    if now < (x.nextAttempt or 0) then
+    if now < (execution.nextAttempt or 0) then
         return
     end
-    for e = 1, 2 do
-        local q, r = d.goal(e, now), d.localRow(e, now)
-        if q and r and d.authorized(e, now) then
-            local action, want, dock = choose(q, r)
+    for entity = 1, 2 do
+        local intent, localRowState =
+            dockAdapter.goal(entity, now), dockAdapter.localRow(entity, now)
+        if intent and localRowState and dockAdapter.authorized(entity, now) then
+            local action, want, dock = choose(intent, localRowState)
             if action then
-                x.operation = x.operation + 1
-                x.pending = {
-                    entity = e,
-                    generation = x.generation[e],
-                    operation = x.operation,
+                execution.operation = execution.operation + 1
+                execution.pending = {
+                    entity = entity,
+                    generation = execution.generation[entity],
+                    operation = execution.operation,
                     action = action,
                     want = want,
                     dock = dock,
                     at = now,
                 }
-                event(
-                    'Prepare',
-                    {
-                        seed = cfg.seed_id,
-                        epoch = x.epoch,
-                        operation = x.operation,
-                        ship = e,
-                        native = A.id(c.ships[e]),
-                        generation = x.generation[e],
-                        action = action,
-                        state = want,
-                        dock = dock,
-                        fromState = r.mode,
-                        fromDock = r.dock,
-                        stamp = r.stamp,
-                        age = r.age,
-                    }
-                )
+                event('Prepare', {
+                    seed = cfg.seed_id,
+                    epoch = execution.epoch,
+                    operation = execution.operation,
+                    ship = entity,
+                    native = API.id(coopAdapter.ships[entity]),
+                    generation = execution.generation[entity],
+                    action = action,
+                    state = want,
+                    dock = dock,
+                    fromState = localRowState.mode,
+                    fromDock = localRowState.dock,
+                    stamp = localRowState.stamp,
+                    age = localRowState.age,
+                })
                 return
             end
         end
     end
 end
 RegisterEvent('X4LAN_CoopAttachment.Ready', function(_, v)
-    if v == cfg.seed_id .. '|' .. x.epoch and not d.closed then
-        x.ready = true
+    if v == cfg.seed_id .. '|' .. execution.epoch and not dockAdapter.closed then
+        execution.ready = true
         log('READY')
     end
 end)
 RegisterEvent('X4LAN_CoopAttachment.Fenced', function(_, v)
-    local seed, epoch, e, g = tostring(v):match('^([^|]+)|([^|]+)|(%d)|(%d+)$')
-    e, g = tonumber(e), tonumber(g)
+    local seed, epoch, entity, generation = tostring(v):match('^([^|]+)|([^|]+)|(%d)|(%d+)$')
+    entity, generation = tonumber(entity), tonumber(generation)
     if
         seed == cfg.seed_id
-        and epoch == x.epoch
-        and e
-        and e >= 1
-        and e <= 2
-        and g == x.generation[e]
+        and epoch == execution.epoch
+        and entity
+        and entity >= 1
+        and entity <= 2
+        and generation == execution.generation[entity]
     then
-        x.ack[e] = g
+        execution.ack[entity] = generation
     end
 end)
 RegisterEvent('X4LAN_CoopAttachment.Error', function(_, v)
-    d.stop(v)
+    dockAdapter.stop(v)
 end)
 RegisterEvent('X4LAN_CoopAttachment.Window', function(_, v)
     local seed, epoch, op, accepted = tostring(v):match('^([^|]+)|([^|]+)|(%d+)|([01])$')
-    local p = x.pending
+    local pendingOperation = execution.pending
     local now = GetCurRealTime()
     if
         seed ~= cfg.seed_id
-        or epoch ~= x.epoch
-        or not p
-        or tonumber(op) ~= p.operation
-        or not current(p, now)
-        or now - p.at > 2
+        or epoch ~= execution.epoch
+        or not pendingOperation
+        or tonumber(op) ~= pendingOperation.operation
+        or not current(pendingOperation, now)
+        or now - pendingOperation.at > 2
     then
         return
     end
     if accepted ~= '1' then
-        outcome('REFUSED entity=' .. p.entity .. ' action=' .. p.action)
+        outcome(
+            'REFUSED entity=' .. pendingOperation.entity .. ' action=' .. pendingOperation.action
+        )
         return
     end
-    event('Apply', { seed = cfg.seed_id, epoch = x.epoch, operation = p.operation })
+    event(
+        'Apply',
+        { seed = cfg.seed_id, epoch = execution.epoch, operation = pendingOperation.operation }
+    )
 end)
 RegisterEvent('X4LAN_CoopAttachment.Applied', function(_, v)
     local seed, epoch, op, result = tostring(v):match('^([^|]+)|([^|]+)|(%d+)|(%a+)$')
-    local p = x.pending
+    local pendingOperation = execution.pending
     local now = GetCurRealTime()
     if
         seed ~= cfg.seed_id
-        or epoch ~= x.epoch
-        or not p
-        or tonumber(op) ~= p.operation
-        or not current(p, now)
+        or epoch ~= execution.epoch
+        or not pendingOperation
+        or tonumber(op) ~= pendingOperation.operation
+        or not current(pendingOperation, now)
     then
         return
     end
     if result == 'applied' then
-        p.applied = now
-        p.at = now
+        pendingOperation.applied = now
+        pendingOperation.at = now
     else
         outcome(
             'NOT_APPLIED entity='
-                .. p.entity
+                .. pendingOperation.entity
                 .. ' action='
-                .. p.action
+                .. pendingOperation.action
                 .. ' result='
                 .. tostring(result)
         )
