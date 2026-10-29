@@ -78,8 +78,8 @@ local function connect(ship, sector, now)
     local transport = X4LAN_TRANSPORT.open(cfg.host, cfg.port)
     state.transport = transport
     local config = {}
-    for k, v in pairs(cfg) do
-        config[k] = v
+    for configKey, configValue in pairs(cfg) do
+        config[configKey] = configValue
     end
     config.sector = sectorMacro
     state.client = X4LAN_CLIENT.new(config, transport, nonce(), log)

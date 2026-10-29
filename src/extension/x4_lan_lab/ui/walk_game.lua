@@ -20,8 +20,8 @@ end
 local sessionState = API.state
 local roster = API.roster
     or { players = 2, slot = tonumber(tostring(cfg.slot):match('^p(%d)$')) or 1 }
-local function log(v)
-    DebugError('[X4LAN] ' .. v)
+local function log(value)
+    DebugError('[X4LAN] ' .. value)
 end
 if roster.dedicated and roster.slot == 1 then
     log('WALK_DISABLED server: the dedicated server neither walks nor draws avatars')
@@ -38,8 +38,11 @@ walk.MOVING = 0.1 -- local send interval while walking
 walk.IDLE = 0.5 -- local send interval while standing (still inside the relay's 1 s freshness)
 walk.MAX_SAMPLES = 10
 local KINDS = { none = true, ship = true, station = true }
-local function atom(v)
-    return type(v) == 'string' and #v >= 1 and #v <= 96 and v:match('^[%w_.-]+$') ~= nil
+local function atom(value)
+    return type(value) == 'string'
+        and #value >= 1
+        and #value <= 96
+        and value:match('^[%w_.-]+$') ~= nil
 end
 -- Rate-limited diagnostics: one line per key every 5 s, with the suppressed count.
 function walk.diag(key, text, now)
@@ -97,19 +100,24 @@ local function context(pose)
     end
     return pose
 end
-local function number(v)
-    local n = tonumber(v)
-    if not n or n ~= n or n == math.huge or n == -math.huge then
+local function number(value)
+    local numberValue = tonumber(value)
+    if
+        not numberValue
+        or numberValue ~= numberValue
+        or numberValue == math.huge
+        or numberValue == -math.huge
+    then
         return nil
     end
-    return n
+    return numberValue
 end
-local function integer(v, max)
-    local n = number(v)
-    if not n or n < 0 or n % 1 ~= 0 or n > max then
+local function integer(value, max)
+    local numberValue = number(value)
+    if not numberValue or numberValue < 0 or numberValue % 1 ~= 0 or numberValue > max then
         return nil
     end
-    return n
+    return numberValue
 end
 -- Identity of the place a pose is relative to; interpolation never crosses it.
 function walk.contextKey(pose)
@@ -181,8 +189,8 @@ end
 -- MD's local payload: state|kind|ship|sector|code|macro|room|x|y|z|yaw|transfers|reason.
 function walk.parseLocal(payload)
     local fields = {}
-    for v in (tostring(payload) .. '|'):gmatch('([^|]*)|') do
-        fields[#fields + 1] = v
+    for value in (tostring(payload) .. '|'):gmatch('([^|]*)|') do
+        fields[#fields + 1] = value
     end
     if #fields ~= 13 then
         return nil, 'format'
@@ -239,24 +247,24 @@ end
 -- Interpolated pose at the render time (sender clock), never extrapolated past the newest.
 function walk.sample(remote, now)
     local list = remote.samples
-    local n = #list
-    if n == 0 then
+    local numberValue = #list
+    if numberValue == 0 then
         return nil
     end
     local t = now - (remote.offset or 0) - walk.DELAY
-    if t >= list[n].stime then
-        return list[n]
+    if t >= list[numberValue].stime then
+        return list[numberValue]
     end
     if t <= list[1].stime then
         return list[1]
     end
-    for i = n - 1, 1, -1 do
+    for i = numberValue - 1, 1, -1 do
         local a, b = list[i], list[i + 1]
         if a.stime <= t then
             local k = (b.stime > a.stime) and (t - a.stime) / (b.stime - a.stime) or 1
             local pose = {}
-            for key, v in pairs(b) do
-                pose[key] = v
+            for key, value in pairs(b) do
+                pose[key] = value
             end
             pose.x = a.x + (b.x - a.x) * k
             pose.y = a.y + (b.y - a.y) * k
@@ -270,7 +278,7 @@ function walk.sample(remote, now)
             return pose
         end
     end
-    return list[n]
+    return list[numberValue]
 end
 function walk.receive(fields, now)
     if fields[1] == 'WALK' then

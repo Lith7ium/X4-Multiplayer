@@ -25,8 +25,8 @@ UniverseID SpawnObjectAtPos2(const char*,UniverseID,UIPosRot,const char*);
 void SetObjectSectorPos(UniverseID,UniverseID,UIPosRot);
 void RemoveComponent(UniverseID);
 ]])
-local function log(bubbleState)
-    DebugError('[X4LAN] ' .. tostring(bubbleState))
+local function log(message)
+    DebugError('[X4LAN] ' .. tostring(message))
 end
 -- Player roster shared by every co-op adapter (relay rules): slots p1..p<players>,
 -- shared ships 1..<ships>. Two players/ships outside a dedicated session; a dedicated

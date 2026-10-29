@@ -71,9 +71,11 @@ local function enqueue(ship, verb, id, ware, amount)
         return false
     end
     cargo.counter = cargo.counter + 1
-    local req = state.client.lease:sub(1, 20) .. 'ca00' .. string.format('%08x', cargo.counter)
+    local requestId = state.client.lease:sub(1, 20)
+        .. 'ca00'
+        .. string.format('%08x', cargo.counter)
     cargo.queue[#cargo.queue + 1] = {
-        request = req,
+        request = requestId,
         host = b.epoch,
         ship = ship,
         epoch = API.coop.epochs[ship],
@@ -83,7 +85,7 @@ local function enqueue(ship, verb, id, ware, amount)
         amount = amount,
     }
     if id > 0 then
-        cargo.held[id] = { request = req }
+        cargo.held[id] = { request = requestId }
     end
     return true
 end
@@ -149,24 +151,24 @@ function cargo.ensure(r, sector)
     })
 end
 local receive = universe.receive
-function universe.receive(f, now)
-    if f[1] == 'CARGOEXEC' then
-        if cfg.slot ~= 'p1' or #f ~= 11 or not protocol.hex(f[4]) then
+function universe.receive(packetFields, now)
+    if packetFields[1] == 'CARGOEXEC' then
+        if cfg.slot ~= 'p1' or #packetFields ~= 11 or not protocol.hex(packetFields[4]) then
             return true
         end
-        local req = f[4]
-        local previous = cargo.executed[req]
+        local requestId = packetFields[4]
+        local previous = cargo.executed[requestId]
         if previous then
             if previous.fence then
-                finish(req, previous.status, previous.fence)
+                finish(requestId, previous.status, previous.fence)
             end
             return true
         end
         local ship, epoch, id, amount =
-            protocol.integer(f[5], 2),
-            protocol.integer(f[6]),
-            protocol.integer(f[8]),
-            protocol.integer(f[10], 1000000)
+            protocol.integer(packetFields[5], 2),
+            protocol.integer(packetFields[6]),
+            protocol.integer(packetFields[8]),
+            protocol.integer(packetFields[10], 1000000)
         if
             not ship
             or ship < 1
@@ -174,73 +176,83 @@ function universe.receive(f, now)
             or not id
             or not amount
             or amount < 1
-            or not protocol.atom(f[9])
-            or (f[7] ~= 'DROP' and f[7] ~= 'PICKUP')
+            or not protocol.atom(packetFields[9])
+            or (packetFields[7] ~= 'DROP' and packetFields[7] ~= 'PICKUP')
         then
             return true
         end
         -- No engine mutation occurred, so the existing committed baseline suffices.
-        if API.coop.epochs[ship] ~= epoch or API.coop.owners[ship] ~= f[11] then
-            finish(req, 'STALE', universe.revision)
+        if API.coop.epochs[ship] ~= epoch or API.coop.owners[ship] ~= packetFields[11] then
+            finish(requestId, 'STALE', universe.revision)
             return true
         end
-        cargo.executed[req] = { status = 'PENDING' }
-        event(
-            'Order',
-            { request = req, ship = ship, verb = f[7], drop = id, ware = f[9], amount = amount }
-        )
+        cargo.executed[requestId] = { status = 'PENDING' }
+        event('Order', {
+            request = requestId,
+            ship = ship,
+            verb = packetFields[7],
+            drop = id,
+            ware = packetFields[9],
+            amount = amount,
+        })
         return true
-    elseif f[1] == 'CARGOREPLY' then
-        if cfg.slot == 'p1' or #f ~= 6 then
+    elseif packetFields[1] == 'CARGOREPLY' then
+        if cfg.slot == 'p1' or #packetFields ~= 6 then
             return true
         end
-        local q = cargo.queue[1]
-        if not q or f[4] ~= q.request or f[5] == 'PENDING' then
+        local queuedRequest = cargo.queue[1]
+        if
+            not queuedRequest
+            or packetFields[4] ~= queuedRequest.request
+            or packetFields[5] == 'PENDING'
+        then
             return true
         end
-        if f[5] ~= 'OK' and not notices[f[5]] then
+        if packetFields[5] ~= 'OK' and not notices[packetFields[5]] then
             return true
         end
-        local fence = protocol.integer(f[6])
+        local fence = protocol.integer(packetFields[6])
         if not fence then
             return true
         end
         -- A baseline may overtake its completion. Its committed revision already
         -- satisfies that fence; waiting for an invented next revision strands a
         -- partially collected drop until unrelated world state changes.
-        if q.drop > 0 and cargo.held[q.drop] then
-            cargo.held[q.drop].fence = fence
+        if queuedRequest.drop > 0 and cargo.held[queuedRequest.drop] then
+            cargo.held[queuedRequest.drop].fence = fence
         end
         table.remove(cargo.queue, 1)
-        log('RESULT ' .. q.verb .. ' ' .. f[5] .. ' fence=' .. fence)
-        if notices[f[5]] then
+        log('RESULT ' .. queuedRequest.verb .. ' ' .. packetFields[5] .. ' fence=' .. fence)
+        if notices[packetFields[5]] then
             cargo.lastNotice = cargo.lastNotice or {}
-            if now >= (cargo.lastNotice[f[5]] or -math.huge) + 5 then
-                cargo.lastNotice[f[5]] = now
-                AddUITriggeredEvent('X4LAN_Trade', 'Notice', notices[f[5]])
+            if now >= (cargo.lastNotice[packetFields[5]] or -math.huge) + 5 then
+                cargo.lastNotice[packetFields[5]] = now
+                AddUITriggeredEvent('X4LAN_Trade', 'Notice', notices[packetFields[5]])
             end
         end
         return true
-    elseif f[1] == 'CINV' then
+    elseif packetFields[1] == 'CINV' then
         if
             cfg.slot == 'p1'
-            or #f ~= 8
+            or #packetFields ~= 8
             or not universe.latest
-            or f[4] ~= universe.latest.epoch
-            or not protocol.atom(f[6])
+            or packetFields[4] ~= universe.latest.epoch
+            or not protocol.atom(packetFields[6])
         then
             return true
         end
         local seq, a, b =
-            protocol.integer(f[5]), protocol.integer(f[7], 1000000), protocol.integer(f[8], 1000000)
-        if not seq or not a or not b or (cargo.inventory[f[6]] or -1) >= seq then
+            protocol.integer(packetFields[5]),
+            protocol.integer(packetFields[7], 1000000),
+            protocol.integer(packetFields[8], 1000000)
+        if not seq or not a or not b or (cargo.inventory[packetFields[6]] or -1) >= seq then
             return true
         end
-        cargo.inventory[f[6]] = seq
-        event('Inventory', { ware = f[6], counts = { a, b } })
+        cargo.inventory[packetFields[6]] = seq
+        event('Inventory', { ware = packetFields[6], counts = { a, b } })
         return true
     end
-    return receive(f, now)
+    return receive(packetFields, now)
 end
 local function frame(now)
     if not state.client or not state.client.lease or not API.coop.ready or API.paused() then
@@ -283,21 +295,21 @@ local function frame(now)
                 end
             end
         end
-        local q = cargo.queue[1]
-        if q and now >= (q.nextSend or 0) then
-            q.nextSend = now + 0.25
+        local queuedRequest = cargo.queue[1]
+        if queuedRequest and now >= (queuedRequest.nextSend or 0) then
+            queuedRequest.nextSend = now + 0.25
             send(table.concat({
                 'CARGOREQ',
                 '1',
                 state.client.lease,
-                q.request,
-                q.host,
-                q.ship,
-                q.epoch,
-                q.verb,
-                q.drop,
-                q.ware,
-                q.amount,
+                queuedRequest.request,
+                queuedRequest.host,
+                queuedRequest.ship,
+                queuedRequest.epoch,
+                queuedRequest.verb,
+                queuedRequest.drop,
+                queuedRequest.ware,
+                queuedRequest.amount,
             }, '|'))
         end
     end
@@ -322,10 +334,16 @@ RegisterEvent('X4LAN_Cargo.HostDrop', function(_, payload)
     if cfg.slot ~= 'p1' or type(payload) ~= 'string' then
         return
     end
-    local f = protocol.split(payload, '|')
-    local object = cargo.object(f[1])
-    local amount = protocol.integer(f[3], 1000000)
-    if #f ~= 3 or not object or not amount or amount == 0 or not protocol.atom(f[2]) then
+    local packetFields = protocol.split(payload, '|')
+    local object = cargo.object(packetFields[1])
+    local amount = protocol.integer(packetFields[3], 1000000)
+    if
+        #packetFields ~= 3
+        or not object
+        or not amount
+        or amount == 0
+        or not protocol.atom(packetFields[2])
+    then
         return
     end
     local k = key(object)
@@ -340,24 +358,33 @@ RegisterEvent('X4LAN_Cargo.HostDrop', function(_, payload)
         d = { id = universe.nextId, object = object, macro = macro }
         cargo.drops[k] = d
         event('Register', { id = d.id, object = API.id(object) })
-        log('TRACK id=' .. d.id .. ' object=' .. k .. ' ware=' .. f[2] .. ' amount=' .. amount)
+        log(
+            'TRACK id='
+                .. d.id
+                .. ' object='
+                .. k
+                .. ' ware='
+                .. packetFields[2]
+                .. ' amount='
+                .. amount
+        )
     end
-    if d.amount ~= amount or d.ware ~= f[2] then
+    if d.amount ~= amount or d.ware ~= packetFields[2] then
         universe.cargoDirty = true
     end
-    d.ware = f[2]
+    d.ware = packetFields[2]
     d.amount = amount
 end)
 RegisterEvent('X4LAN_Cargo.Created', function(_, payload)
     if type(payload) ~= 'string' then
         return
     end
-    local f = protocol.split(payload, '|')
-    local id = protocol.integer(f[1])
-    local generation = protocol.integer(f[2])
-    local object = cargo.object(f[3])
+    local packetFields = protocol.split(payload, '|')
+    local id = protocol.integer(packetFields[1])
+    local generation = protocol.integer(packetFields[2])
+    local object = cargo.object(packetFields[3])
     local r = id and universe.replicas[id]
-    if #f ~= 3 or not generation or not object then
+    if #packetFields ~= 3 or not generation or not object then
         return
     end
     -- A duplicate callback for the adopted handle must not delete that live replica.
@@ -383,11 +410,17 @@ RegisterEvent('X4LAN_Cargo.GuestDrop', function(_, payload)
     if type(payload) ~= 'string' then
         return
     end
-    local f = protocol.split(payload, '|')
-    local ship = protocol.integer(f[1], 2)
-    local amount = protocol.integer(f[3], 1000000)
-    if #f == 4 and ship and ship > 0 and amount and f[3] == f[4] then
-        enqueue(ship, 'DROP', 0, f[2], amount)
+    local packetFields = protocol.split(payload, '|')
+    local ship = protocol.integer(packetFields[1], 2)
+    local amount = protocol.integer(packetFields[3], 1000000)
+    if
+        #packetFields == 4
+        and ship
+        and ship > 0
+        and amount
+        and packetFields[3] == packetFields[4]
+    then
+        enqueue(ship, 'DROP', 0, packetFields[2], amount)
     else
         log('ROLLBACK_FAILED drop; end this isolated test')
     end
@@ -396,21 +429,21 @@ RegisterEvent('X4LAN_Cargo.GuestPickup', function(_, payload)
     if type(payload) ~= 'string' then
         return
     end
-    local f = protocol.split(payload, '|')
-    local id = protocol.integer(f[1])
-    local generation = protocol.integer(f[2])
-    local object = cargo.object(f[3])
-    local ship = protocol.integer(f[4], 2)
-    local amount = protocol.integer(f[6], 1000000)
+    local packetFields = protocol.split(payload, '|')
+    local id = protocol.integer(packetFields[1])
+    local generation = protocol.integer(packetFields[2])
+    local object = cargo.object(packetFields[3])
+    local ship = protocol.integer(packetFields[4], 2)
+    local amount = protocol.integer(packetFields[6], 1000000)
     if
-        #f == 7
+        #packetFields == 7
         and id
         and generation
         and object
         and ship
         and ship > 0
         and amount
-        and f[6] == f[7]
+        and packetFields[6] == packetFields[7]
     then
         local r = universe.replicas[id]
         -- Rollback can free room for another native partial collection in the same
@@ -419,7 +452,7 @@ RegisterEvent('X4LAN_Cargo.GuestPickup', function(_, payload)
         if cargo.held[id] or not r or r.creation ~= generation or r.object ~= object then
             return
         end
-        if enqueue(ship, 'PICKUP', id, f[5], amount) then
+        if enqueue(ship, 'PICKUP', id, packetFields[5], amount) then
             if r and r.object then
                 if C.IsComponentOperational(r.object) then
                     C.RemoveComponent(r.object)
@@ -441,12 +474,12 @@ RegisterEvent('X4LAN_Cargo.Inventory', function(_, payload)
     then
         return
     end
-    local f = protocol.split(payload, '|')
+    local packetFields = protocol.split(payload, '|')
     if
-        #f ~= 3
-        or not protocol.atom(f[1])
-        or not protocol.integer(f[2], 1000000)
-        or not protocol.integer(f[3], 1000000)
+        #packetFields ~= 3
+        or not protocol.atom(packetFields[1])
+        or not protocol.integer(packetFields[2], 1000000)
+        or not protocol.integer(packetFields[3], 1000000)
     then
         return
     end
@@ -466,10 +499,10 @@ RegisterEvent('X4LAN_Cargo.Result', function(_, payload)
     if cfg.slot ~= 'p1' or type(payload) ~= 'string' then
         return
     end
-    local f = protocol.split(payload, '|')
-    local r = cargo.executed[f[1]]
-    if #f == 2 and r and r.status == 'PENDING' then
-        r.status = f[2]
+    local packetFields = protocol.split(payload, '|')
+    local r = cargo.executed[packetFields[1]]
+    if #packetFields == 2 and r and r.status == 'PENDING' then
+        r.status = packetFields[2]
         r.after = GetCurRealTime() + 0.25
     end
 end)
@@ -478,11 +511,11 @@ RegisterEvent('X4LAN_Cargo.CreateFailed', function(_, payload)
     if type(payload) ~= 'string' then
         return
     end
-    local f = protocol.split(payload, '|')
-    local id = protocol.integer(f[1])
-    local generation = protocol.integer(f[2])
+    local packetFields = protocol.split(payload, '|')
+    local id = protocol.integer(packetFields[1])
+    local generation = protocol.integer(packetFields[2])
     local r = id and universe.replicas[id]
-    if #f ~= 4 or not r or not generation or r.creating ~= generation then
+    if #packetFields ~= 4 or not r or not generation or r.creating ~= generation then
         return
     end
     r.creating = nil
