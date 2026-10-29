@@ -33,16 +33,16 @@ def build(destination: Path):
     # Unique filename so copying the update cannot replace the package manifest.
     (root / 'UPDATE-SHA256.txt').write_text(
         ''.join(
-            hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name + '\n'
-            for p in sorted(root.iterdir())
-            if p.is_file()
+            hashlib.sha256(file_path.read_bytes()).hexdigest() + '  ' + file_path.name + '\n'
+            for file_path in sorted(root.iterdir())
+            if file_path.is_file()
         ),
         encoding='utf-8',
     )
     archive = destination / (root.name + '.zip')
     with zipfile.ZipFile(archive, 'x', zipfile.ZIP_DEFLATED) as z:
-        for p in sorted(root.iterdir()):
-            z.write(p, p.name)
+        for file_path in sorted(root.iterdir()):
+            z.write(file_path, file_path.name)
     with zipfile.ZipFile(archive) as z:
         assert z.testzip() is None
     print('Windows launcher update created:', archive)

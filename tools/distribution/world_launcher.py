@@ -6,6 +6,7 @@ A pristine starting snapshot is not a persistent multiplayer campaign.
 """
 
 from __future__ import annotations
+
 import hashlib
 import json
 import os
@@ -66,10 +67,12 @@ def write(path, value):
 def replace_bytes(path, data):
     path = Path(path)
     temp = path.with_name(path.name + '.world-tmp')
+    # Exclusive creation refuses a leftover temporary file from an earlier attempt.
     with temp.open('xb') as stream:
         stream.write(data)
         stream.flush()
         os.fsync(stream.fileno())
+    # Replace only after the new bytes have been flushed to the filesystem.
     temp.replace(path)
 
 
@@ -82,7 +85,7 @@ def content_digest(extension):
     # Platform transport binaries have their own package hashes. Shared script
     # identity must remain equal after the two packages prune the other binary.
     extension = Path(extension)
-    h = hashlib.sha256()
+    digest = hashlib.sha256()
     for path in sorted(extension.rglob('*')):
         name = path.relative_to(extension).as_posix()
         if (
@@ -92,8 +95,8 @@ def content_digest(extension):
             or name.startswith('.')
         ):
             continue
-        h.update(name.encode() + b'\0' + path.read_bytes() + b'\0')
-    return h.hexdigest()
+        digest.update(name.encode() + b'\0' + path.read_bytes() + b'\0')
+    return digest.hexdigest()
 
 
 def xml_root(path):
@@ -203,10 +206,10 @@ def context(root, package, session):
         raise RuntimeError('Installed game build differs from this package.')
     config = xml_root(profile / 'config.xml')
     if config.tag != 'root' or any(
-        config.findtext(k) != 'false' for k in ('autosave', 'uisafemode')
+        config.findtext(setting) != 'false' for setting in ('autosave', 'uisafemode')
     ):
         raise RuntimeError('Test profile must keep autosave=false and uisafemode=false.')
-    if any(config.find(k) is not None for k in ('load', 'loadgame', 'module', 'mpar')):
+    if any(config.find(setting) is not None for setting in ('load', 'loadgame', 'module', 'mpar')):
         raise RuntimeError('Test profile has a conflicting load/start override.')
     expected_digest = content_digest(root / 'extension/x4_lan_lab')
     if content_digest(target) != expected_digest:
@@ -231,7 +234,9 @@ def save_files(profile):
     if folder.is_symlink():
         raise RuntimeError('Linked test save directory is unsupported.')
     return (
-        sorted(p for p in folder.iterdir() if p.name != 'steam_autocloud.vdf')
+        sorted(
+            save_path for save_path in folder.iterdir() if save_path.name != 'steam_autocloud.vdf'
+        )
         if folder.exists()
         else []
     )
@@ -296,7 +301,7 @@ def verify_prepared(folder, session):
 
 def verify_bundle(bundle, identity):
     manifest, _ = seed.read_bundle(bundle)
-    if any(manifest[k] != v for k, v in identity.items()):
+    if any(manifest[field] != expected_value for field, expected_value in identity.items()):
         raise RuntimeError('Shared world differs from this session/build/DLC/mod set.')
     return manifest
 

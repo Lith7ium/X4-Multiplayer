@@ -83,8 +83,12 @@ def dedicated_roles(max_players):
     if not 2 <= max_players <= 8:
         raise ValueError('--max-players must be from 2 to 8.')
     roles = [('Linux', 'host', '45841')]
-    for k in range(1, max_players):
-        role, profile = ('guest', '45841') if k == 1 else ('guest%d' % k, str(45840 + k))
+    for guest_index in range(1, max_players):
+        role, profile = (
+            ('guest', '45841')
+            if guest_index == 1
+            else ('guest%d' % guest_index, str(45840 + guest_index))
+        )
         roles += [('Windows11', role, profile), ('Linux', role, profile)]
     return roles
 
@@ -164,7 +168,7 @@ def build(
             game_version='9.00 (611726)',
             test_profile=profile,
             runtime_bundled=bool(runtime_cache),
-            roles=list(dict.fromkeys(r[1] for r in roles)),
+            roles=list(dict.fromkeys(role_entry[1] for role_entry in roles)),
         )
         if dedicated:
             package['max_players'] = max_players
@@ -284,15 +288,15 @@ def build(
                 )
         for cache in root.rglob('__pycache__'):
             shutil.rmtree(cache)
-        files = sorted(p for p in root.rglob('*') if p.is_file())
+        files = sorted(file_path for file_path in root.rglob('*') if file_path.is_file())
         write(
             root / 'SHA256SUMS.txt',
             ''.join(
-                hashlib.sha256(p.read_bytes()).hexdigest()
+                hashlib.sha256(file_path.read_bytes()).hexdigest()
                 + '  '
-                + p.relative_to(root).as_posix()
+                + file_path.relative_to(root).as_posix()
                 + '\n'
-                for p in files
+                for file_path in files
             ),
         )
         if platform == 'Linux':
@@ -311,8 +315,8 @@ def build(
     write(
         destination / 'PACKAGES-SHA256.txt',
         ''.join(
-            hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name + '\n'
-            for p in sorted(archives)
+            hashlib.sha256(file_path.read_bytes()).hexdigest() + '  ' + file_path.name + '\n'
+            for file_path in sorted(archives)
         ),
     )
     for name in (

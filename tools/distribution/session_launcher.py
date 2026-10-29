@@ -140,7 +140,10 @@ def validate_invite(value):
         world_sync=True,
         world_mode='replica',
     )
-    if any(type(value[k]) is not type(v) or value[k] != v for k, v in expected.items()):
+    if any(
+        type(value[field]) is not type(expected_value) or value[field] != expected_value
+        for field, expected_value in expected.items()
+    ):
         raise ValueError('Session version/channel does not match Internal Test.')
     if not isinstance(value['token'], str) or not re.fullmatch('[0-9a-f]{32}', value['token']):
         raise ValueError('Invalid session key.')
@@ -226,7 +229,7 @@ def configured():
     if slot not in ('p1', 'p2') and not package.get('dedicated'):
         raise RuntimeError('Player ' + slot[1:] + ' requires a dedicated-server package.')
     session = read_json(ROOT / 'session.json')
-    validate_invite({k: v for k, v in session.items() if k != 'host'})
+    validate_invite({field: value for field, value in session.items() if field != 'host'})
     if session.get('dedicated', False) != package.get('dedicated', False):
         raise RuntimeError('Session and package dedicated modes differ.')
     players = session.get('max_players', 3 if session.get('dedicated') else 2)
@@ -309,7 +312,9 @@ def session_config(session, slot, host, dedicated=False, control_path=None, prof
     cfg.update(rng_split=windows, frame_diet=windows and dedicated and slot == 'p1')
     return (
         '-- Internal Test. Private session configuration; do not publish.\nX4LAN_CONFIG = {\n'
-        + ''.join('    ' + k + ' = ' + json.dumps(v) + ',\n' for k, v in cfg.items())
+        + ''.join(
+            '    ' + field + ' = ' + json.dumps(value) + ',\n' for field, value in cfg.items()
+        )
         + '}\n'
     )
 
@@ -329,7 +334,9 @@ def recover_session_metadata():
         saved = read_json(ROOT / 'session.json')
         if not isinstance(saved, dict) or 'host' not in saved:
             raise RuntimeError('Incomplete session.json; no files were changed.')
-        invitation = validate_invite({k: v for k, v in saved.items() if k != 'host'})
+        invitation = validate_invite(
+            {field: value for field, value in saved.items() if field != 'host'}
+        )
         if package.get('dedicated'):
             slot = role_slot(package.get('role'))
         elif saved['host'] == '127.0.0.1':
@@ -363,11 +370,16 @@ def recover_session_metadata():
         updates[ROOT / 'package.json'] = (json.dumps(package, indent=2) + '\n').encode('utf-8')
         for path in (*updates, ROOT / 'session.json', state_path, invite_path):
             if path.is_symlink() or any(
-                p.is_symlink() for p in path.parents if p != ROOT and ROOT in p.parents
+                file_path.is_symlink()
+                for file_path in path.parents
+                if file_path != ROOT and ROOT in file_path.parents
             ):
                 raise RuntimeError('Linked session metadata is unsupported; no files were changed.')
         settings = backend_module('profile_settings')
-        before = {p: p.read_bytes() if p.exists() else None for p in updates}
+        before = {
+            file_path: file_path.read_bytes() if file_path.exists() else None
+            for file_path in updates
+        }
         backup = (
             ROOT
             / 'backups'
@@ -381,7 +393,10 @@ def recover_session_metadata():
                 target.write_bytes(data)
         write_json(
             backup / 'before.json',
-            {p.relative_to(ROOT).as_posix(): b is not None for p, b in before.items()},
+            {
+                file_path.relative_to(ROOT).as_posix(): contents is not None
+                for file_path, contents in before.items()
+            },
         )
         changed = []
         try:
@@ -644,7 +659,7 @@ def server(console=False):
             )
         status = read_json(status_path)
         if not status.get('running') or any(
-            status.get(k) != cfg[k] for k in ('build', 'bubble', 'port')
+            status.get(field) != cfg[field] for field in ('build', 'bubble', 'port')
         ):
             raise RuntimeError(
                 'A matching server is running, but this folder has no matching live status.'

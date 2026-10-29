@@ -96,7 +96,11 @@ def plan(package_root):
     ids.update(('x4_lan_lab', 'ego_dlc_ventures'))
     disabled = []
     for extension_id in sorted(ids):
-        entries = [e for e in tree.findall('extension') if e.get('id') == extension_id]
+        entries = [
+            extension_entry
+            for extension_entry in tree.findall('extension')
+            if extension_entry.get('id') == extension_id
+        ]
         if not entries:
             entries = [ET.SubElement(tree, 'extension', id=extension_id)]
         if extension_id == 'x4_lan_lab':
@@ -105,7 +109,10 @@ def plan(package_root):
             # Preserve DLC that the tester deliberately disabled.
             enabled = (
                 'false'
-                if any(e.get('enabled', '').lower() in ('false', '0') for e in entries)
+                if any(
+                    extension_entry.get('enabled', '').lower() in ('false', '0')
+                    for extension_entry in entries
+                )
                 else 'true'
             )
         else:
@@ -119,6 +126,7 @@ def plan(package_root):
 
 
 def apply(package_root, proposed):
+    # Withdrawal is unconditional: a local selection cannot prove Steam subscription state.
     raise RuntimeError(
         'WITHDRAWN: Workshop subscriptions were reported lost. '
         'Do not isolate mods with this helper. Use 10-RECOVER-WORKSHOP.cmd.'

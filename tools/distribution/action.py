@@ -26,12 +26,12 @@ def run(verb):
         while time.monotonic() < deadline:
             sock.send(packet)
             try:
-                f = sock.recv(769).decode('ascii').split('|')
+                response_fields = sock.recv(769).decode('ascii').split('|')
             except (socket.timeout, ConnectionRefusedError, ConnectionResetError):
                 continue
-            if len(f) != 4 or f[:3] != ['RESULT', '1', request]:
+            if len(response_fields) != 4 or response_fields[:3] != ['RESULT', '1', request]:
                 continue
-            if f[3] == 'PENDING':
+            if response_fields[3] == 'PENDING':
                 time.sleep(0.2)
                 continue
             pending.unlink()
@@ -44,8 +44,8 @@ def run(verb):
                 'NO_PLAYER': 'Your game is not connected yet.',
                 'SESSION_FULL': 'Test limit reached. Restart both games and the server.',
             }
-            print(messages.get(f[3], f[3]))
-            return 0 if f[3] == 'OK' else 1
+            print(messages.get(response_fields[3], response_fields[3]))
+            return 0 if response_fields[3] == 'OK' else 1
     print(
         'No final reply yet. Request saved. Retry the same command; its request ID will be reused.'
     )

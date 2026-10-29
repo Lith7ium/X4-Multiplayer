@@ -82,7 +82,7 @@ def steam_roots(home: Path):
         if not path.is_dir():
             continue
         path = path.resolve()
-        if any(p == path for _, p in result):
+        if any(existing_path == path for _, existing_path in result):
             continue
         result.append((kind, path))
     return result
@@ -93,9 +93,9 @@ def libraries(root: Path):
     path = root / 'steamapps/libraryfolders.vdf'
     if path.exists():
         for value in re.findall(r'"path"\s+"([^"]+)"', path.read_text(errors='replace')):
-            p = Path(value.replace('\\\\', '\\'))
-            if p not in found:
-                found.append(p)
+            library_path = Path(value.replace('\\\\', '\\'))
+            if library_path not in found:
+                found.append(library_path)
     return found
 
 
@@ -192,9 +192,9 @@ def install(args):
         kind = args.steam_kind or 'native'
         game = Path(args.game).expanduser().resolve()
         candidates = [
-            (k, r, g)
-            for k, r, g in found
-            if g == game and (not args.steam_kind or k == args.steam_kind)
+            (steam_kind, steam_root, game_path)
+            for steam_kind, steam_root, game_path in found
+            if game_path == game and (not args.steam_kind or steam_kind == args.steam_kind)
         ]
         if candidates:
             kind, steamroot, game = candidates[0]
@@ -206,8 +206,8 @@ def install(args):
                 'X4 was not found automatically. Use: python3 setup.py install --game "/path/steamapps/common/X4 Foundations" --steam-kind native (or flatpak).'
             )
         if len(found) > 1:
-            for i, (k, _, g) in enumerate(found, 1):
-                print(f'{i}: {k}: {g}')
+            for i, (steam_kind, _, game_path) in enumerate(found, 1):
+                print(f'{i}: {steam_kind}: {game_path}')
             choice = int(input('Which installation should be used? ')) - 1
             if choice not in range(len(found)):
                 raise RuntimeError('Invalid selection.')
@@ -321,7 +321,7 @@ def diagnose():
     if log.exists():
         # Keep a full engine log as well: filtering hid the Windows loading errors.
         shutil.copy2(log, out / 'x4-debug.txt')
-        lines = [l for l in log.read_text(errors='replace').splitlines() if '[X4LAN]' in l]
+        lines = [line for line in log.read_text(errors='replace').splitlines() if '[X4LAN]' in line]
         (out / 'x4-mod-diagnostics.txt').write_text('\n'.join(lines) + '\n')
         print('\n'.join(lines[-12:]) or 'No X4LAN messages in the game log yet.')
     else:

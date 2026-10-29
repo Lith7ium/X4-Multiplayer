@@ -95,7 +95,9 @@ def prepare(root):
             raise RuntimeError('Invalid after checksum.')
         if not isinstance(record.get('disabled_ids'), list):
             raise RuntimeError('Invalid affected-ID list.')
-        candidates.update(n for value in record['disabled_ids'] if (n := workshop_id(value)))
+        candidates.update(
+            item_id for value in record['disabled_ids'] if (item_id := workshop_id(value))
+        )
         records.append((folder, record, before))
     if not records:
         raise RuntimeError(
@@ -231,7 +233,7 @@ def recover(root, plan, restore=True):
         candidates=plan['ids'],
         subscription_status='not_checked_or_modified',
         warnings=plan['warnings'],
-        source_records=[str(f / 'change.json') for f, _, _ in plan['records']],
+        source_records=[str(folder / 'change.json') for folder, _, _ in plan['records']],
     )
     journal = output / 'recovery.json'
     journal.write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')

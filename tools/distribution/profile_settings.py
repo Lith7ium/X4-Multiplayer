@@ -59,13 +59,13 @@ def owned_profile(package_root, slot_validator=None):
 
 def candidates(profile):
     return sorted(
-        p
-        for p in profile.parent.iterdir()
-        if p.is_dir()
-        and p.name.isdigit()
-        and p.name not in TEST_PROFILES
-        and not p.is_symlink()
-        and (p / 'config.xml').is_file()
+        candidate
+        for candidate in profile.parent.iterdir()
+        if candidate.is_dir()
+        and candidate.name.isdigit()
+        and candidate.name not in TEST_PROFILES
+        and not candidate.is_symlink()
+        and (candidate / 'config.xml').is_file()
     )
 
 
@@ -162,7 +162,10 @@ def import_settings(
             (backup / name).write_bytes(data)
     record.update(source=str(source), files=sorted(files), backup=str(backup))
     (backup / 'before.json').write_text(
-        json.dumps({n: v is not None for n, v in before.items()}, indent=2) + '\n'
+        json.dumps(
+            {filename: contents is not None for filename, contents in before.items()}, indent=2
+        )
+        + '\n'
     )
     changed = []
     try:
