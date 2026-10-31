@@ -10,14 +10,16 @@
         <set_value name="$arena.$shotSGen" exact="[0,0,0,0,0,0,0,0]" />
         <set_value name="$arena.$shotVGen" exact="[0,0,0,0,0,0,0,0]" />
         <set_value name="$arena.$shotCount" exact="[0,0,0,0,0,0,0,0]" />
-        <set_value name="$arena.$shotStrength" exact="[0,0]" />
+        <!-- Per shared ship (ships 3+ keep the neutral entry; shot authority is ships 1/2 only). -->
+        <set_value name="$arena.$shotStrength" exact="[]" /><set_value name="$arena.$shotCurrentGen" exact="[]" /><set_value name="$arena.$shotAuthority" exact="[]" />
+        <do_all exact="[$arena.$ships.count,2].max" counter="$i">
+          <append_to_list name="$arena.$shotStrength" exact="0" /><append_to_list name="$arena.$shotCurrentGen" exact="0" /><append_to_list name="$arena.$shotAuthority" exact="false" />
+        </do_all>
         <raise_lua_event name="'X4LAN_Shot.Ready'" />
         <debug_text text="'[X4LAN] SHOT_SETUP host=%s'.[$arena.$host]" />
         <set_value name="$arena.$shotFailed" exact="false" />
         <set_value name="$arena.$shotState" exact="0" />
         <set_value name="$arena.$shotStateAt" exact="-10s" />
-        <set_value name="$arena.$shotCurrentGen" exact="[0,0]" />
-        <set_value name="$arena.$shotAuthority" exact="[false,false]" />
         <set_value name="$arena.$shotApplying" exact="false" />
       </actions>
       <cues>

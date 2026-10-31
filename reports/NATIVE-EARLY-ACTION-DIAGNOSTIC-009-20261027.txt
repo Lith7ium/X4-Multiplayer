@@ -1,0 +1,242 @@
+NATIVE WORLD009: TARGET SAMPLING OBSERVED; STRICT LOCKSTEP STILL FAILS
+27 October 2026 (native pair ended 28 October UTC)
+
+Result and limits
+-----------------
+One approved disposable Windows pair completed and was fully restored. Full
+imported-world roots agree at tick1 and differ at tick2 in motion for three saved
+ships:80d4f,930fc,9d39b. The new930fc difference is outside the four exact watches.
+No tolerance, hash exclusion, transform correction or additional RNG intervention
+was introduced. Main validation retains42 strict errors, evidence_valid=false
+and session_pass=false. The short run stopped before battle engagement.
+
+The two previously selected saved-Wait scopes again produce equal deadlines.
+A third Wait, observed naturally without a seed or caller-RNG restoration, has
+unequal deadlines. Both are later than the observed tick2, so neither client
+publishes the third pilot's extra command batch in009.
+
+The new Action observer captures75 complete selected events per client. Every
+selected event passes its guards, and selected action metadata/order matches.
+Seven actions advance RNG; their input states already differ. Overall Action
+coverage is explicitly INCOMPLETE:2092 versus2064 early calls have unresolved
+ownership. The independent parser rejects complete capture on both sides. Clean
+selected records are useful local evidence, not a complete or passing trace.
+
+Immutable inputs and owned lifecycle
+-----------------------------------
+Integrated source cdc9841207e495637dbb458eeb8cd51b1664556b.
+282 copied source files and125 frozen build-source hashes verified independently.
+DLL600064 bytes:
+0f84d91c150afe8cd14dd31ddbf0b1ab6d52b5d422753a76e867ed29f573d352
+Overlay manifest,11 declared payloads/no extras:
+de850c2abd2712b02c456be3a9cf5e68def51c7187c9bd25f6eb04887af3e632
+Unchanged25320681-byte snapshot:
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8
+Wait observation manifest:
+0cd18aa101c28b9949ae08ff8fbbcc1fca6119312ec4d2ad0988b6f6e63151da
+Mixed Wait policy manifest:
+66dc5770ccf874cea51403789c8af937fabae26fd628bcaf712d6f9ede1c7a45
+Read-only Action manifest:
+696f4645484180cc66329a4a17760067c81f9c73e78df129e36a745867df1d61
+
+Relative to008, only DLL, exact integrated probe, config and overlay manifest
+changed. Config has exactly two Wait-field replacements and one Action-field
+addition. First two Wait selections/seeds/guards are unchanged; schema2 makes
+their intervention policy explicit and adds6d945 as observe-only. The Action
+manifest selects80d54/move.idle v4 and9d3a4/order.fight.patrol v10 plus
+move.seekenemies v7. Other fixture/options/scenario files are byte-identical.
+Four world watches, stride1,12-tick cap, first strict mismatch stop,260s runtime
+and900s released admission are unchanged. No new player-transition or NPC RNG
+intervention was enabled.
+
+Released runner69c8bd26509c used explicitly assigned b1/b2, profiles45850/45851.
+Queued2026-10-28T02:50:33Z; actual games started02:55:35.804Z and02:55:36.473Z.
+Runner113092 owned X4 PIDs112756/54568; coordinator115452 was runner-owned.
+The then-current28GB pair threshold delayed admission behind another request.
+382.829s total includes approximately302s admission; game interval about80s.
+Result exit_code5/fail_pattern: battle_state_mismatch_tick_2.
+Both games accepted graceful WM_CLOSE and exited0; both lanes and native
+snapshots restored with original snapshot bytes/hash. Coordinator stopped.
+Subsequent released status showed no X4, queue empty and no instance mutex.
+No retry was made. Later user changes to admission policy do not alter this
+historical lifecycle or authorize an unchanged repeat.
+
+Saved Wait evidence
+-------------------
+Each client:18943 import calls, three selected events/twelve raw rows, unknown0,
+failures0/dropped0/open0/restore_open0, restored1. Wait/RNG parser errors are empty.
+Independent mixed-policy capture_valid=true and intervene_outputs_equal=true;
+observe_outputs_equal=false, selected_outputs_equal=false. Global RNG parity
+and exception cleanup remain false claims, not inferred from selected success.
+
+Unchanged intervened outputs:
+  80d54/move.idle v4, XMLindex5, native slot70/PC71/since0:
+    seed41aa3ad655ad9a9c; due7.0451471956503395 on both clients.
+  9d3a4/order.fight.patrol v10, XMLindex1, native slot121/PC122/since0:
+    seed8b0f91e8910d9f7c; due6.4457276735734945 on both clients.
+Each caller's unequal pre-call RNG is restored; raw caller differences remain.
+
+Natural third selection6d945/move.idle v4, XMLindex5:
+  Original saved text6.98333; audited native bits401beeee0f3cb3e6;
+  actual slot70/PC71/since0 now observed, not guessed in the manifest;
+  due before -1; constant range0.1..0.5; reason2;
+  client1 due7.347312772827149, sampled delta0.3639827728271481;
+  client2 due7.14606864209652, sampled delta0.16273864209651911.
+Both before/after RNG pairs match exactly one native step. No seed, scoped
+apply/used/refusal or restoration was performed for this entry. Both deadlines
+exceed the observed tick2 time7.116333333333333. This establishes a natural
+restoration difference in009, not a retrospective measurement of008's deadlines.
+Phase is boot2/tick0/app0x26/VBIloading1; TLS/game/saved clocks7.083. Boot2 alone
+does not identify the dynamic extent of the native Load function.
+
+Action evidence and explicit incomplete coverage
+-----------------------------------------------
+Both clients publish75 events/225 rows; all three manifest entries exercised.
+Every selected event errors0; failures0/dropped0/thread_failures0/open0/
+restore_open0, closed1. Each selected event has parent0,children0 and
+unobserved_children0. Types:57 uninterpreted raw actions,4 GetSafePos,
+3 CreatePosition and11 SetValue. All selected phase samples are boot2/tick0,
+app0x20/VBIloading0/view1/UI1/main0, TLS/game/saved clocks7.083.
+
+Global counters remain unequal and incomplete:
+                 client1 client2
+  calls            32812   35956
+  other_owner        377     314
+  other_context     8495    8495
+  other_phase      21773   25008
+  unresolved_owner  2092    2064
+  unknown_rng          1       1
+The observer did not retain reason-specific samples for unresolved_owner, so
+these cannot be retrospectively classified as unrelated or selected. Both
+strict Action errors say failed/incomplete observer coverage; paired
+capture_valid=false. No filtered comparison promotes this result.
+
+A separate diagnostic comparison of the75 event metadata records finds no
+difference after excluding only local thread ID and raw before/after RNG.
+This includes selected identity/name/version, native slot/PC, type/Execute RVA,
+program vtable-shape hash, parent/depth, flags and raw chance field. The shape
+hash is not a semantic program digest. Pointers/lifetime IDs remain local
+diagnostics rather than portable equality keys.
+
+Seven selected events advance RNG on both clients:
+  event  pilot   script/version       PC/slot  action             native steps
+      4  9d3a4   order.fight.patrol10 130/129  FindComponent*                1
+     30  9d3a4   order.fight.patrol10 216/215  CreatePosition                3
+     31  9d3a4   order.fight.patrol10 217/216  SetValue                      1
+     32  9d3a4   order.fight.patrol10 218/217  GetSafePos                    2
+     43  80d54   move.idle4           52/51   GetSafePos                    5
+     47  80d54   move.idle4           60/59   GetSafePos                    2
+     71  9d3a4   move.seekenemies7     42/41   GetSafePos                    2
+Step counts are bounded arithmetic consistency checks against the pinned PCG
+transition, searched up to4096; they do not prove absence of other hidden work.
+All input RNG states differ between clients. No first global RNG divergence
+or equality of evaluated action inputs is established.
+
+* The capture retained stage0/type2c0f3c8/Execute b87a30. A subsequent static
+PE RTTI audit resolves Scripts::FindComponentAction. Full275-byte native span:
+b0e683b728526d447edd027a564797983e766ca0ebba80981f857fa45f937a69.
+Its helperc5c3c0 builds a temporary component vector; c5f680 can reorder/select
+that vector and returns a retained count. It is not an index-only selection.
+The sampled helper/path and exact XML node remain unobserved. Do not silently
+relabel historical stage0 or treat its unknown_rng counter as resolved coverage.
+
+All75 captured node+0x10 DWORDs are zero. Pinned interpreterb58bb0 tests this
+field and jumps directly to dispatch when zero; those invoked nodes therefore
+bypass that interpreter's chance-expression/draw prefix. Skipped nodes and
+interleaved/unobserved executions are not covered. Gaps between Action RNG
+states remain unattributed. Evaluated Values and coordinate outputs are outside
+the present bracket (value_coverage0); exception_cleanup0 remains explicit.
+
+Target command and Agent propagation
+------------------------------------
+Both clients now have10 enqueue/10 dispatch/2 append events,22 complete queue
+rows, no errors/provenance failures/drop/outstanding/preimport/open/restore_open,
+restored1. Both five-command batches are generated at boot2/tick0/time7.083,
+app0x20/VBIloading0. First four typed control payloads match; the fifth command's
+target vector already differs at manager enqueue:
+
+Trader80d4f, source80d54/move.idle PC67, reference95, deadline -1:
+  client1 [34745.3046875,-3404.67919921875,-14232.6689453125]
+  client2 [28104.416015625,1165.7982177734375,-6759.3017578125]
+Destroyer9d39b, source9d3a4/move.seekenemies PC48, reference2b, deadline -1:
+  client1 [22814.78125,423.46142578125,32940.9375]
+  client2 [-2743.7578125,-1885.6912841796875,3404.5078125]
+Coordinates are local to the command reference, not world-resolved. Reference
+matches within009 but differs from008's destroyer reference428af. Publication
+PC is not the coordinate-sampling identity or proof of the decision time.
+
+The nested pending appends introduce the unequal vector, retained in frame1
+baseline pending0. At Agent tick2 entry, interpreted banks/model agree while
+pending0.vector0 differs, along with already-recorded raw RNG/constructor timer.
+Time/dt/cheap inputs and physical selectors agree. Each original Agent consumes
+one pending command, advances main count0->1, pending1->0 and produces unequal
+model/bank output without advancing its local RNG. Agent uses read0/write1 in
+both clients; no bank relabeling or timer correction was applied.
+
+New outside-watch motion difference
+----------------------------------
+Saved930fc is a Teladi S fighter, ship_tel_s_fighter_02_a_macro, in savedzone2b.
+Its pilot93101 has saved orders.base v7 ->order.move.recon v19 ->move.generic
+v23; top saved XMLindex6/time_text6.95. Snapshot model is linear and existing
+targetpoint reference29. Its original job is teladi_fighter_patrol_s_zone_exp.
+No exact Action/queue/Agent watch covers it in009. Its motion hash mismatch is
+established; a shared cause with80d4f/9d39b or the third Wait is not established.
+
+Independent root reconstruction has no errors:521929 imported IDs,426799 present
+per client, unknown_class0/unknown_motion32607/unknown_references0 retained.
+Tick2 topology/health/timing and inventory match. All three motion differences
+remain strict, including the newly affected ship.
+
+Next bounded proposal (not implemented or authorized to run here)
+---------------------------------------------------------------
+First preserve the current failures and add reason-specific bounded diagnostics
+at the EXISTING Action owner decoder: raw tag/context-read/entity-read/map-miss
+reason, exact phase/native CURRENT and live NPC ownership. No inferred foreign
+classification or relaxation of unresolved counters. Add pinned FindComponent
+classification without claiming its evaluated input or XML mapping.
+
+For actual position-output evidence, audit a narrow read-only receipt at the
+native assignment helpercc6710. Existing full1403-byte pin is
+0863f3019f3027b33c2cac7c05d10a8708bd0db6e04ce1e24cb4fbf3bc327391.
+Four native arguments are declaration RCX, frame RDX, secondary declaration R8
+and source Value R9; AL reports assignment success. Restrict observations to a
+live exact selected Action scope and known return sites:be23af for GetSafePos,
+be0c8b for CreatePosition, and the audited c5af30 SetValue paths. Copy source
+Value before original, never evaluate it or increment a reference. Initially
+support only verified scalar/position tags; position tag0x63's owned payload+20
+layout is visible in CreatePosition, but all newly relied-on constructors,
+allocation extents and consumers need complete pins before implementation.
+Unknown tags/references/lifetimes must be explicit failures. Keep one original
+call, unchanged RNG/return, pre-emitted resident thunk, all-call STOP accounting
+and normal-return limitation. This would be a NEW hook requiring review; no
+site/offset is reserved by this report. It captures published sampled output,
+not every evaluated input or successful downstream use.
+
+Separately audit c5f680 candidate ordering/retained-count semantics under the
+exact FindComponent action. A future read-only bracket could compare canonical
+candidate IDs/order and RNG before/after to distinguish unequal candidate input
+from unequal selection. Its full1393-byte span hash is
+a8c53d2bfa05d4c37acd064148a31143ae1761065cbd30f929d09f17a6bcf6d9.
+Seven-argument ABI, array lifetime and original return need independent review;
+no hook or generalized seeding is approved by the current evidence.
+
+These are separate from930fc's unobserved cause and6d945's natural Wait. A later
+controlled Action seed experiment needs exact action/expression/input identity
+and its own review; ambient RNG divergence alone does not justify broad seeding.
+
+Private reproduction and retained evidence (not committed)
+---------------------------------------------------------
+Own .local/native-lockstep/world-motion-009/: result.json, validation.json,
+world-difference.json, selected-causality-summary.json,
+selected-native-phase-sequence.json, new-motion-object-930fc.json,
+world-{trace,queue,wait,rng,action}-difference.json, both raw client logs.
+Freeze/audit files:world-motion-freeze-009.json,
+world-motion-source-manifest-009.json, world-motion-artifact-audit-009.json,
+world-motion-independent-file-audit-009.json and world-motion-launch-009.json.
+Helpers:analyze_world_motion_009.py and world_motion_009_followup.py use frozen009
+parsers. Source/build/overlay-009 trees and older007/008 evidence are immutable.
+Exact PE SHA19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891;
+private queue-win-b87a30.asm, queue-win-c5f680.asm and linear-win-b58bb0.asm
+support the new static distinctions. No proprietary disassembly or raw logs
+are included in this report commit. Documentation-only validation: source diff,
+evidence assertions and links; no additional native run or unchanged test suite.

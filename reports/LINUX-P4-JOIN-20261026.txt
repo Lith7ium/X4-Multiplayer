@@ -1,0 +1,68 @@
+LINUX PLAYER 4 / DEDICATED SERVER - 26 OCTOBER 2026
+
+Result: bounded native admission and local controls observed after a staging fix.
+This is not acceptance of full multiplayer gameplay or the stock Steam starter.
+
+Original artifact: X4-LAN-7.6.0-Linux-Client3.tar.xz, 21,556,276 bytes,
+SHA256 40205027bf76b09786ced301bf74e00475997a3edf7b995952d1f5d8ef128c61.
+Base source: 8ed861e99297467047bd71cd213d95532cc9c094, contrib/ferrite-np8.
+Pair: internal-dist-124d714d7a862245. Assigned guest3 / p4 / profile45843.
+All 4,698 package manifest files verified before configuration. Four launcher /
+profile modules matched the pinned source. Original archive remains unchanged.
+
+Original failure: setup and authenticated UDP session check passed; the 27,412,793
+byte host snapshot downloaded and passed identity checks. Start then refused
+profile45843 in x4lan.seed.stage_test_save, which still required45841. No engine
+was started by that failed attempt; original failure log is retained.
+
+Fix4d9abaa permits the existing launcher-reserved range45841..45848, retaining
+the existing directory, profile/save symlink, empty-save, digest and atomic
+no-overwrite checks. Only extracted x4lan/seed.py was patched for this retry;
+its SHA256 is3663a9a7bb459ad76977041eeab0f18dae1e0e1d71e584ea50c7fa7489f9671b.
+Gameplay extension bytes and protocol remained unchanged. Ten seed and17 world
+launcher tests passed. The new p4 launcher regression reproduced the original
+failure before the fix. Independent bounded read-only review found no blocker.
+These tests do not establish arbitrary parent-link/reparse containment or native
+Windows behavior; the existing caller ownership checks remain required.
+
+Native fixture: private Btrfs reflink copy of unchanged installed game assets,
+only the seven matching official DLCs, plus the sealed multiplayer extension.
+A task-private45843 profile was mounted over the normal profile root inside an
+owned bwrap namespace. Original roots were read-only to the game. Display/control
+preferences were copied read-only; no Workshop selections were generated or
+changed. Autosave=false and -noworkshopsync were retained. The private Steam shim
+launched the identical native ELF directly with Steam IDs, rather than dispatching
+the normal Steam launcher. This deviation is outside stock-starter acceptance.
+ELF SHA256113f73d74570084f6ce18a659b365009eccf579fb66dbabb5dad2b1718045f20.
+
+Native run08:41:49-08:48:14 CET (07:41:49-07:48:14 UTC):
+- save_010.xml.gz loaded; native seed gate READY at game8.78, slot=p4.
+- First connected/receiving bubble at22.80, revision16828; last283.08, revision17850.
+  There were53 connected/receiving rows, plus one initial waiting/absent row.
+- HUD captured at0m/s, then250m/s after two seconds of mapped acceleration input;
+  stop requested with the mapped Backspace key. Map opened and displayed symbols.
+  This verifies local controls/display, not another client's receipt of our motion.
+- No REMOTE_FIRE_DROP or WALK_ markers, and no seed/universe STOPPED/FAIL marker.
+  Absence of those markers is not coverage of firing, walking or every failure.
+- 2,535 repeated MD healthOwn.{3} lookup errors occurred in X4LAN_Health.Own.
+  This is concrete evidence of the advertised ship3+ health limitation, not a
+  clean gameplay pass. Also retained86 mass-traffic-offset errors, one visual
+  plasma damage-definition warning and startup FSR3/unsigned-mod/job-pause messages.
+- No separately coordinated interactive Windows peer; no joint combat, docking,
+  trading, shield-flicker or remote map-jump acceptance is claimed.
+
+Cleanup: stopped only the verified owned process group with SIGTERM; no forced
+kill needed. No X4 remained. All110 monitored original profile/save/extension
+files retained exact SHA256 and mtime; original profile45843 was never created.
+The staged snapshot still matches the received manifest. Raw evidence and private
+credentials remain outside Git; game assets are not published.
+
+Private evidence in Astra checkout: .local/evidence-033-withheld
+native-result.json, native-before-files.json, native-after-files.json,
+native-preservation.json, native-stop.json, native-input-events.json, three PNGs,
+start-original-profile-failure.log, local-patch.json and exact received snapshot.
+Final raw engine log SHA256:
+6d8f06e1c132ad389d8b56be56ed1df8bf1fe363a2a923681f3bb8a38389bcb5.
+
+Next: lead reviews/integrates PR62 and schedules a bounded Windows/Linux peer
+window. Further ship3+ health/action corrections remain lead-assigned work.

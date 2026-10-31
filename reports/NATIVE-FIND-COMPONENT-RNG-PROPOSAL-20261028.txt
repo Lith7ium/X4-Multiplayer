@@ -1,0 +1,199 @@
+SELECTED FINDCOMPONENT RNG EXPERIMENT - SOURCE PROPOSAL
+28 October 2026 | No implementation or new native run
+
+World010 established a local causal difference, not a lockstep pass. The same
+ordered four component candidates entered the same native selection function;
+different TLS RNG states produced different modulo indices and saved component
+assignments. All 68 strict errors and six unsupported Values receipts remain in
+NATIVE-ACTION-VALUES-DIAGNOSTIC-010-20261028.txt. This proposal changes only that
+one selected draw in a future separately reviewed, opt-in experiment.
+
+PROPOSED BOUNDARY AND SCOPE
+
+Use the existing d2ab50 wrapper, inside its validated parent Action and outside
+its exactly-once original call. No new hook, thunk region or engine getter.
+Select saved pilot9d3a4, saved order3cdb, order.fight.patrol version10, native
+Action slot129 / dispatch PC130, phase2 / admitted tick0 / selected ordinal0.
+The selected action is FindComponent vtable2c0f3c8, Execute b87a30, with exact
+helper caller b87ae8. Phase2 means gate pre-admission, not proven inside Load.
+Require the existing UI/current-ExecState/clock/loading-state eligibility.
+
+Require single-result declaration mode: tag5b, secondary tag54, list byte+20=0,
+append byte+21=0, correct node+f0/frame arguments and optional component NULL.
+Require exactly the observed ordered saved candidates28,29,2b,428af, each valid1
+and Windows typeRVA2b66080, with unchanged headers/identities before and after.
+These candidates are guards, not seed inputs. Drift or an unequal list must not
+be concealed by hashing the differing list into a new seed. The raw declaration
+also contains local pointers/padding; retain it only as local lifetime evidence.
+
+This scope follows c5c3c0 candidate construction and c5f680 filtering/reordering.
+It cannot correct or attribute their earlier draws, conditional dispatch, the
+interpreter's pre-dispatch chance path, later CreatePosition/GetSafePos/SetValue
+sampling, unselected pilots, or the extra930fc/93101 batch. The particular010
+Action and helper entry states matched within each client, but the first selected
+Action already received unequal RNG. That upstream origin remains unresolved.
+
+SOURCE-PROVEN ORDER BINDING
+
+AIContext+148 is the associated AI::AIOrder pointer. Importer1063750 reads XML
+token2f1, resolves the saved textual order through473600 then native registry
+33d420, casts OrderIDBase to AIOrder and stores+148 at1063968. It writes the
+reverse link order+50=context at1063974. Accepted import states order+20 are
+1,5,6,7; otherwise it clears both links. RTTI source descriptor31fc818 names
+U::OrderIDBase; target31fc840 names AI::AIOrder; AIOrder vtable is2c69060.
+
+AIOrder allocation is0x78 in107b450. Base constructor34dde0 obtains a native
+registry ID and stores it at object+8. Registration473670 reads saved text,
+inserts/locates the key in the import map at31c2de0, and writes object+8 as the
+mapped native ID. Lookup473600 reads that same map (root+8, left+8/right+10,
+saved key+20/native value+28). These are order IDs, not Universe component IDs;
+world_identity_lookup must not be used to canonicalize them.
+
+Bind during the already-hooked exact Wait restore caller1069bfc, for the existing
+selected patrol Wait: saved pilot9d3a4, version10, time_text6.31667, XML blocking
+index1, native Wait slot121 / PC122. Original persisted script ID38361 is manifest
+metadata anchored by that snapshot/Wait match, not a claimed runtime context ID.
+At that import boundary, bounded read-only traversal of the saved order map must
+resolve3cdb to exactly the ID at context+148->+8. Verify vtable2c69060, reverse
+link+50 and a fresh native registry lookup resolving the ID back to that pointer.
+Capture before/after the original Wait and publish only a coherent complete
+anchor. Missing map, duplicate anchor, changed linkage or unsupported state fails.
+
+Retain only copied local lifetime evidence: context pointer/+8 ID, entity/runtime/
+saved pilot, script descriptor/version, Exec/program pointers and order pointer/
+native ID/state/backlink. Do not retain the import tree node as a later authority.
+At Action entry and exit revalidate that tuple and registry ownership. A replaced
+order/context, different generation, changed backlink or unsupported transition
+must refuse; never silently rebind. For this first experiment require captured
+order state unchanged as well; natural state transitions may therefore expose a
+coverage refusal rather than be guessed acceptable.
+
+Registry read mirrors pinned33d420 without invoking it: global6cf1750, the low
+18-bit ID slot, its 8 possible banks at+58, 32-byte groups of3 pointers, occupied
+flag and 16-bit generation field. Check pointer arithmetic/read bounds, full
+object ID equality, type and backlink. Double-read the selected registry tuple
+and both surrounding identity tuples. No allocation, refcount or registry writes.
+
+New complete contiguous function pins, independently extracted from the same
+Windows EXE SHA19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891:
+  1063750 /3437 0d1c301108dac632a0163a03f309310e188c2df418a4222694fcec3ca646c056
+  473600 /107   843aa5cc1726066e0a178ed0e4ecb588847dfd189ef683be4539cf4c19f788fa
+  473670 /160   eab79f3c53cc21a80aef17f697d890522dccc1d13b8fbdb6bc2ad7aaf901a98e
+  33d420 /184   60bad9f6942f799aad1afa992e6c3e114ddc9d404dda1d4a24481af443cd001f
+  34dde0 /296   3bf3acb6cb98352ab6dbe174a830907c5fb0a05b04bd4a9a64dd2ad1b3f141a4
+  1075c30 /125  8004aaee403942341ed60325f04ebe0ef984254cb20d6bf439b896ba93dbe2be
+  107b450 /5231 12609fca116f591829e65f75c6970f1ed6e10fcc2c55718645e158eeef489c9a
+Retain all prior interpreter/Wait/Action/Values/RNG pins. Arm-time validation must
+also pin the relied-on RTTI data/vtable entries. Do not infer loaded script
+semantics from the existing vtable-shape program hash: it is only a shape guard.
+The bounded test retains the exact frozen game/extension/script inputs.
+
+CANONICAL KEY PROPOSAL
+
+Concatenate these fields, with no implicit padding or terminators except the
+explicit domain NUL. Integers are unsigned little-endian; strings are ASCII:
+  ASCII "X4LAN/WORLD_FIND_COMPONENT/RNG/v1" followed by one NUL
+  snapshot SHA256:32 raw bytes, displayed hex decoded left-to-right
+  saved pilot:u64; saved order:u64
+  script name:u16 byte length followed by exact name bytes
+  script version:u32; Action slot:u64; Action PC:u64
+  gate phase:u32; admitted tick:u64; selected per-owner/order/slot ordinal:u64
+  saved script ID:u64; XML blocking index:u32
+  saved time text:u16 byte length followed by exact persisted bytes
+  restored Wait slot:u64; restored Wait PC:u64
+Seed is SHA256(serialized bytes)[0:8], interpreted as a little-endian u64.
+All fields are fixed by the manifest/anchor for this single-use test; compute at
+configuration time, never invoke hashing APIs across an original engine call.
+Runtime pointers, thread IDs, native IDs, caller RNG, elapsed wall time, physical
+bank selectors and candidate list are excluded from the key.
+
+Independent Python proposal vector using the010 snapshot and above selected
+values is179 bytes; SHA256080994d92a20d8658e7e391ea47ffdef7afe3ca8175ecabcb6fe34b7ba4020bc;
+seed65d8202ad9940908. The pinned native one-step arithmetic yields22403ede5ea8c4dd,
+index1 modulo4, expected saved result29. This is a prediction, not a live result.
+Changing tick/order/ordinal or moving fields must have independent test vectors;
+do not reuse an unlabelled XOR aggregate that aliases field permutations.
+
+LIFECYCLE, TLS AND EVIDENCE CONTRACT
+
+A separate explicit manifest/config opt-in requires Wait, Action and Values
+observers already configured. Default off changes no byte of natural execution.
+Configuration and closure use serialized admission/rechecks. Selected ordinal0
+is single-use; a second qualifying attempt is a fatal duplicate, not ordinal1.
+The ledger is per canonical owner/order/action; cross-thread global order is not
+a comparison key. All candidate entries participate in nested-scope detection;
+selected-to-foreign-to-selected cannot borrow an enclosing selected scope.
+
+After every identity/phase/declaration/candidate/anchor guard passes, reserve the
+receipt and single-use scope. The final closed/state/TLS checks and seed write
+share the closure lock, preventing a write from beginning after STOP. Store the
+caller state and write the seed once, then release the lock before original.
+Call the native function exactly once. No lock is held across original.
+Refused/unselected paths call original once
+without writing or restoring TLS. Conflicting existing RNG scopes must refuse;
+the first implementation must test nested Wait/Action scopes explicitly.
+
+Use a production __try/__finally around that single call, now that the integrated
+compiler enables -fms-extensions. On normal return retain scoped RNG output and
+exact nested assignment; in finally revalidate the current TLS pointer before
+restoring its original caller state, clearing only this scope's marker and
+releasing its admission. Restoration remains necessary after STOP, but the
+overlap is fatal evidence. Do not issue a new seed write after closure.
+Postcondition/identity/STOP failures remain fatal even if caller restoration
+succeeds. An unseeded path never restores. If the current TLS cannot be validated,
+do not write through a stale pointer: retain fatal incomplete-restoration evidence.
+On abnormal termination, finally marks this seed receipt incomplete/abnormal and
+attempts only the same verified TLS restoration plus local marker/admission
+cleanup. It must not read any borrowed command/Action/candidate/order object or
+invoke ordinary after-observers. A narrowly guarded observer write failure must
+not replace the original engine exception, which continues to unwind. No order,
+command, Value, position or deadline rollback is attempted.
+
+This proposes cleanup of the new RNG scope only. Existing outer Action/Values
+wrappers do not yet balance every abnormal exit; their open scopes remain strict
+failures. A synthetic RaiseException test can establish the seed finally path;
+it cannot establish complete engine exception recovery or valid enclosing trace.
+
+The native return is opaque full RAX and must be preserved. Keep the owned hooks,
+resident forwarders, protection/cache failure accounting and STOP open scopes.
+Add separate intervention receipts joined to the existing parent/candidate event:
+anchor status, ordinal, key digest, caller-before, seeded-before, scoped-after,
+restored-caller, applied/refused/restored/errors. Preserve original raw snapshots.
+Do not describe restored caller state as a natural RNG advancement. The scope
+removes that draw from the caller's continuing stream; it does not align the
+global RNG stream or freeze all AI state.
+
+REQUIRED OFFLINE CHECKS BEFORE AN ARTIFACT REVIEW
+
+Synthetic imported order map/registry fixtures must cover missing/duplicate keys,
+wrong class/order/context, backlink replacement, ID generation reuse, cycle/bound
+failure, unstable reads and import anchor loss. Validate full pins/last-byte and
+vtable data mutations against the exact image. C and independent Python must
+agree on the serialized179-byte key, digest and native draw/output prediction.
+Exercise selected/foreign nesting, duplicate, worker STOP/config interleavings,
+overflow, TLS replacement, pre/post mutations and refusal preserving natural RNG.
+Use a real RNG-changing synthetic original: exactly one call, full RAX retained,
+caller RNG restored only when seeded, scoped output independently reconstructed.
+Raise a real structured exception from original before/after its draw, and during
+STOP: verify propagation, verified-TLS restoration, local cleanup and fatal raw
+coverage. Wrong TLS or an inaccessible original TLS page must not receive a
+stale write or replace the propagated exception. Exercise STOP immediately before
+and after the final locked seed write as well as inside original.
+Default-off receipts/output/RNG must remain byte-identical. Parser mutants must
+reject incomplete/refused/restoration mismatch and a forged claimed session pass.
+
+A future reviewed native pair would retain the010 fixture, two existing Wait
+interventions, natural third Wait, five watches and every raw root/unknown error.
+Only the new explicit experiment configuration would be added. The useful result
+is equal verified candidate selection with independently predicted saved result,
+or an explicit guard refusal. It is not full-world convergence; later target
+positions,930fc timing and raw navigation failures remain separate tests.
+
+CURSOR WORK IS SEPARATE
+
+ea2a20 proves nav.refresh_cursor records the physical selector last refreshed.
+All10008 raw010 cursor differences have derived current/current relation. This
+does not authorize dropping them: independent review found pending reference
+slots consumed by refresh that the current root omits. Another agent owns that
+domain audit. Keep raw hashes and failures unchanged; no selector reset or
+logical-hash acceptance is part of this RNG proposal.

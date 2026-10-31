@@ -1,0 +1,11 @@
+Jolt Physics 5.5.0 (MIT License, Copyright 2021 Jorrit Rouwe; LICENSE in this folder)
+
+Upstream: https://github.com/jrouwe/JoltPhysics
+Tag:      v5.5.0
+Commit:   23dadd0e603f1b321142d4c74df07fce85064989
+
+The sources are not stored in this repository. tools/dev/jolt_portable_build.py fetch
+clones exactly this tag into .local/jolt/JoltPhysics-5.5.0 and refuses another commit
+or local changes. Builds made from them (the portable Jolt for native_gate_jolt_portable
+and its offline tests) are ours and carry this licence: keep LICENSE with any binary
+that contains Jolt code.

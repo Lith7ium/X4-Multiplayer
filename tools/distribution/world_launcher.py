@@ -24,6 +24,15 @@ TRANSFER_PORT = 45844
 GAME_ARGS = ['-applaunch', '392160', '-personalfolderid', '45841', '-module',
              'x4lan_internal', '-skipintro', '-debug', 'scripts', '-logfile',
              'x4lan-debug.txt', '-nocputhrottle', '-noworkshopsync']
+# Isolated test profiles: 45841 for the server and player 2, 45839+K for player K.
+TEST_PROFILES = tuple(str(45841 + i) for i in range(8))
+
+
+def package_profile(package):
+    profile = str(package.get('test_profile', '45841'))
+    if profile not in TEST_PROFILES:
+        raise RuntimeError('Unsupported isolated test profile in package.json.')
+    return profile
 
 
 def read(path):
@@ -113,7 +122,7 @@ def owned_installation(root, package):
     state = read(root / 'installation.json')
     profile = Path(state['profile']); game = Path(state['game'])
     target = game / 'extensions/x4_lan_lab'
-    if state.get('package_id') != package['package_id'] or profile.name != '45841':
+    if state.get('package_id') != package['package_id'] or profile.name != package_profile(package):
         raise RuntimeError('Installation belongs to a different package/profile.')
     for path in (profile, profile / 'save', profile / 'config.xml', target, target / 'ui/config.lua'):
         if path.is_symlink():
@@ -215,7 +224,12 @@ def verify_bundle(bundle, identity):
 def launch(state):
     steam = state['steam']
     command = steam if isinstance(steam, list) else [steam]
-    subprocess.run(command + GAME_ARGS, check=True)
+    args = list(GAME_ARGS)
+    profile = Path(state['profile']).name if state.get('profile') else '45841'
+    if profile not in TEST_PROFILES:
+        raise RuntimeError('Unsupported isolated test profile: ' + profile)
+    args[args.index('-personalfolderid') + 1] = profile
+    subprocess.run(command + args, check=True)
 
 
 def game_closed(ensure_closed):
@@ -306,16 +320,15 @@ def prepare(root, package, session, ensure_closed, timeout=600):
     logfile = Path(state['profile']) / 'x4lan-debug.txt'
     if logfile.exists():
         shutil.copy2(logfile, run / 'previous.log')
+        logfile.unlink()
     replace_bytes(config, new)
     print('Creating the shared starting world. X4 will save it and close automatically. Do not play or load another save.', flush=True)
-    launched_ns = time.time_ns()
     launch(state)
     deadline = time.monotonic() + timeout; observed = False
     while time.monotonic() < deadline:
         closed = game_closed(ensure_closed)
         if not closed: observed = True
-        if (observed and not closed and logfile.exists()
-                and logfile.stat().st_mtime_ns >= launched_ns and logfile.stat().st_size <= 32 * 1024 * 1024):
+        if (observed and not closed and logfile.exists() and logfile.stat().st_size <= 32 * 1024 * 1024):
             text = logfile.read_text(errors='replace')
             begin = 'WORLD_CAPTURE BEGIN id=' + identity['seed_id']
             if begin in text and 'WORLD_CAPTURE STOPPED' in text[text.index(begin):]:
@@ -339,7 +352,7 @@ def install_play_config(root, target, identity):
     replace_bytes(target / 'ui/config.lua', ready.encode('utf-8'))
 
 
-def start(root, package, session, ensure_closed):
+def prepare_play(root, package, session, ensure_closed):
     ensure_closed(); state, target, identity = context(root, package, session)
     folder = Path(root) / 'world'; folder.mkdir(mode=0o700, exist_ok=True); bundle = folder / 'bundle'
     if package['slot'] == 'p1':
@@ -353,9 +366,14 @@ def start(root, package, session, ensure_closed):
         if bundle.exists():
             raise RuntimeError('An incomplete world bundle exists; preserved for review.')
         incoming.rename(bundle)
-    manifest = verify_bundle(bundle, identity)
+    verify_bundle(bundle, identity)
     stage(root, state['profile'], bundle)
     install_play_config(root, target, identity)
+    return state
+
+
+def start(root, package, session, ensure_closed):
+    state = prepare_play(root, package, session, ensure_closed)
     logfile = Path(state['profile']) / 'x4lan-debug.txt'
     if logfile.exists():
         logs = Path(root) / 'logs'; logs.mkdir(exist_ok=True)

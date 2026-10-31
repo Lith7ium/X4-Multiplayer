@@ -1,0 +1,60 @@
+SINGLE-NATIVE GETUP DIAGNOSTIC - COMBINED SOURCE CANDIDATE
+28 October 2026 | source tests only, no game or staging
+
+Base2a7846caf3bdddf97d46a33c2c330c6f0220ffdd includes the accepted Euler-v2,
+construction RNG and world-observer stack. The candidate adds reviewed diagnostic
+commits e1b616c/ea4b204/d074417/0bf62e6 as909e461/61d54a8/c931e31/7acbedd.
+Existing GetUp base changes and accepted Nav logging are not reapplied.
+CONTINUE-HERE is unchanged. No source in the root worktree was edited.
+
+Two conflicts were resolved narrowly. The pre-Load test stub keeps the root's
+world_capture refusal wording. The paired validator retains both bootstrap
+suffixes: the GetUp plan, then the existing construction RNG plan, matching Lua
+order. Their existing mutually exclusive fixture checks remain. No world hash,
+raw trace, construction RNG or Euler acceptance rule was weakened.
+
+The full actual-image Windows build/test driver passed, including the15 owned
+synthetic-memory/real-loopback NGD cases, portable transport cases,83206 Windows
+rotation-wrapper checks and1449 NavV2 checks. The resulting local source-build
+DLL SHA256 is e838e686d28158883b34272adb3bafcd49d872a5364deb53a88e839cc8e52f23.
+It is not a final frozen payload and has not been installed or staged.
+
+Full relevant Python command, with PYTHONPATH=tools;tools/dev;src;tests:
+  python -m unittest discover -s tests -p 'test_native*.py'
+Result:685 discovered,680 passed,five existing platform skips. The narrower
+native-gate suite also passed501 checks. An earlier overbroad discovery omitted
+the repository import paths and recorded seven import errors; its failed log is
+retained, not counted as a passing run. The correctly configured native scope
+above includes the construction bootstrap tests affected by this integration.
+
+Independent source review accepted0bf62e6, including actual fresh-process imports
+from the canonical released lane tree and source-only execution ledger. The
+combined integration delta and final frozen execution artifact remain separate
+review boundaries. No live action, reservation, profile write or game ran.
+
+First-live proposal remains one physicalp1 on disposableb4,120 ticks, action30
+from actualreport29, runtime900seconds and admission900seconds. Complete prior
+world captures stopped at tick2; their load/cleanup elapsed time does not prove
+per-census throughput or predict completion of120 full scans. All session,
+parity, independent-player and completed-release claims remain hardfalse.
+
+Generated-overlay compatibility follow-up
+----------------------------------------
+The first inert artifact preflight from frozen87 refused before lane preparation:
+the production overlay builder emits actor_diag=true for the required passive
+flight/AI/Agent/ship/Nav observers, but the closed diagnostic configuration parser
+did not list it. The failed artifact set and frozen inputs remain unchanged.
+
+The parser now requires actor_diag exactly true. No emitted row is stripped and
+no native bit, DLL, hook or guard changes. The existing actor path captures raw
+state and maintains observer registration; mutation families (parameter/steering
+initialization, shield refresh and RNG changes) remain excluded by the exact
+local option contract. The positive modeled configuration now includes the real
+builder field. A new test invokes the production builder with an owned synthetic
+XML save, substitutes only that save's fixed hash, validates the actual emitted
+configuration, and rejects absent, false, nonboolean or duplicate actor_diag.
+This exercises the previously missing positive builder-to-parser boundary; it
+is not native gameplay or proof that arbitrary snapshots satisfy the fixture.
+
+Full test_native*.py after the correction:686 discovered,681 passed and the
+same five platform skips. No native rebuild was needed for this Python change.

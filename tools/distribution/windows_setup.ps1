@@ -7,7 +7,15 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 2
 $PackageRoot = $PSScriptRoot
 $Utf8 = New-Object System.Text.UTF8Encoding($false)
+# Isolated test profile from package.json: 45841 (server, player 2) or 45839+K for
+# player K, so several clients can share one test PC. Anything else is refused.
 $ProfileId = '45841'
+$packageFile = Join-Path $PackageRoot 'package.json'
+if (Test-Path -LiteralPath $packageFile) {
+    $packageProfile = (Get-Content -Raw -LiteralPath $packageFile | ConvertFrom-Json).PSObject.Properties['test_profile']
+    if ($packageProfile) { $ProfileId = [string]$packageProfile.Value }
+}
+if ($ProfileId -notmatch '^4584[1-8]$') { throw 'Unsupported isolated test profile in package.json.' }
 
 function Get-PackageVersion {
     $path = Join-Path $PackageRoot 'VERSION.txt'

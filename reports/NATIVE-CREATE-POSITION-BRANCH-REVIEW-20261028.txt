@@ -1,0 +1,81 @@
+CREATEPOSITION OPTIONAL BRANCH CORRECTION - INDEPENDENT REVIEW
+28 October 2026 | source, pinned-image reads and owned native fixtures only
+
+Verdict: no blocker found in the reviewed default-off correction.
+Reviewed commit: 051b5250b302b7baf98b39a209c24bd7dfc6638d.
+Exact base: 1a6092eea56cfd75f0a479794e8f2d95085e49bc.
+Isolated archive SHA256:
+2060a08ceb2de5af453b39e27b49f2dca3276be465af296348fa9201a572db8e.
+All 1059 archived source files remained unchanged after independent checks.
+The author worktree was not edited. No X4 code or game was executed.
+
+Native branch and frame proof
+----------------------------
+The same four interception sites remain; the change is not a call-count
+whitelist. Copied descriptor fields establish the native optional branches.
+Space tag zero forbids transformation. A nonzero space expression with no
+transform requires a separate witnessed null result. Radius kind zero forbids
+radius/sampler calls; kind two requires exactly one supported sampler.
+Constant/list and unwitnessed unsampled paths remain unsupported.
+
+Independent exact-image checks matched the full c6f7b0, c59b00 and d1c8a0
+function hashes plus eleven relevant instruction slices. The native outer body
+has five pushes and a 0x100 stack allocation, with no later adjustment before
+the radius call. For its entry slot S, the actual radius entry slot T is
+S-0x130; the resolver output at RBP+0x67 is T+0x138.
+
+An earlier generic return-address premise was rejected: the entry-hooked
+native outer body returns into its owned wrapper, not the original be0bd1
+caller. The reviewed correction does not depend on that compiler continuation.
+The pinned resolver returns its output pointer in RAX. Static register-write
+inspection confirms RAX survives the supported null branch to the radius call.
+The existing radius thunk forwards RAX to wrapper-only R9, without changing
+RAX or RSP. Native c59b00 first accesses R9 by zeroing R9D before any use.
+
+The null witness binds this native-produced pointer to actual incoming T+0x138,
+the exact immediate caller, active parent scope and arguments, current TIB
+bounds/alignment and null contents before/after the original. The outer return
+word is retained as a stable diagnostic; generic DLL membership is not proof.
+
+Source and independent validation
+---------------------------------
+The original-once and private finally cleanup paths remain. No new native
+getter, RNG write, reference mutation or hook site was introduced. The new
+read/TLS dependency macros retain read_local/world_queue_tls in production;
+only the owned fixture substitutes its own memory providers.
+
+The parser derives explicit executed, expression-absent and evaluated-null
+states. Inactive guards, object proofs, transforms, radius fields and samples
+must be zero. Executed guards and completed parent Action/downstream Value
+joins remain mandatory. Repeated, forbidden, missing and unsupported calls
+still refuse. Schema1 records are readable historical evidence, never promoted
+to schema2 acceptance. Existing coverage failures remain independent and strict.
+
+Independent checks from the frozen archive passed:
+- 6772 active native fixture checks at -O2/-DNDEBUG, including actual outer
+  wrapper -> trampoline -> authored native-shaped body -> radius CALL patch
+  -> RAX-forwarding thunk -> actual radius wrapper.
+- Wrong-RAX refusal, all 129 null-path read/STOP injection positions, foreign
+  exception propagation, unselected original forwarding and restoration tests.
+- 128 focused Python/Lua tests and the actual C full-path formatter export:
+  225 changed-export refusals, four coherent class differences, raw row bounds.
+- A separate private derivative serialized the real positive null-frame record.
+  Its 5320 bytes independently decode with the exact native pointer/slot witness,
+  branch snapshots, zero inactive transform section and 129 reads/3990 bytes.
+- Read-only historical World014 validation preserves the exact ordered 64 errors,
+  false evidence/session/Position validity and unchanged original validation file.
+
+The actual null-frame wire roundtrip is not a complete joined semantic capture:
+the owned body does not execute the native direction computation. Complete
+parent/output joins for optional paths are separately exercised by Python
+fixtures; the full-path C export is also joined. These checks establish neither
+live gameplay nor general cross-platform floating-point equivalence.
+
+World014 remains invalid. Partial lifetime rereads do not exclude byte-identical
+ABA or grant a reference lease; inherited enclosing Action/Values exceptional
+cleanup limitations remain explicit. No native attempt or artifact staging was
+performed. Root owns integration and any separately reviewed frozen live test.
+
+Private audit files are under .local/create-position-branch-review/, including
+native-frame-audit.json, review-final.json, historical-world014.json and the
+owned fixture sources/logs. No player logs or private native bytes are committed.

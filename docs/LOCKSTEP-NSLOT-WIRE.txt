@@ -1,0 +1,297 @@
+NATIVE LOCKSTEP GATE: N CLIENTS AND INPUT WIRE 3 - 29 OCTOBER 2026
+
+SCOPE
+Opt-in extension of the native FrameTick gate (src/native/engine/lockstep_gate.c,
+tools/dev/native_gate_relay.py, tools/dev/native_gate_probe.lua) from two to
+N = 2..8 full-simulation clients behind one loopback coordinator relay, with one
+opaque variable-length input blob per client and tick. Protocols 1 and 2 are
+unchanged and remain the default: without the configuration below every
+packet, digest and report is the same as before. Evidence at this revision is
+offline (C and Python unit tests); no native N-client game has been run.
+Protocol 4 (PROTOCOL 4: LOOKAHEAD WINDOW below) carries the same input wire
+with a bounded permit window, for relays one internet round trip away.
+
+PROTOCOL 3 MESSAGES
+ASCII, fields separated by '|', UDP on 127.0.0.1.
+
+Client to relay, resent every 100 ms until answered:
+  NGSTATE|3|<token>|<slot>|<tick>|<game>|<real>|<digest>|<clients>|<blob>
+    token    32 lowercase hex (session token)
+    slot     1..N, canonical decimal (no sign, no leading zero)
+    tick     0..--ticks, canonical decimal; the frame just completed
+    game     16 lowercase hex: bits of the IEEE-754 double game time
+    real     16 lowercase hex: bits of the double real time
+    digest   64 lowercase hex: the client's declared state digest for tick
+    clients  N as configured on the client; refused unless equal to --clients
+    blob     0..480 lowercase hex characters, even length (0..240 bytes);
+             may be empty. This client's sealed proposal for tick.
+  The datagram is at most 1024 bytes (the largest valid one is 647).
+
+Relay to every client once all N reported tick:
+  NGGO|3|<token>|<slot>|<tick+1>|<blob 1>|<blob 2>|...|<blob N>
+    exactly N blob fields in slot order (empty fields allowed): the sealed
+    proposals all clients reported for tick. At most 3,910 bytes for N=8;
+    the native receive buffer is 8,192 bytes.
+  NGSTOP|3|<token>|<slot>|<tick>
+    end at --ticks or failure, as in protocols 1 and 2.
+
+Protocols 1 and 2 (unchanged, two players for protocol 2):
+  NGSTATE|1|<token>|<slot>|<tick>|<game>|<real>|<digest>
+  NGSTATE|2|<token>|<slot>|<tick>|<game>|<real>|<digest>|<command: 8 hex>
+  NGGO|1|<token>|<slot>|<tick+1>
+  NGGO|2|<token>|<slot>|<tick+1>|<command 1>|<command 2>
+  NGSTATE datagrams of protocols 1 and 2 stay limited to 512 bytes.
+
+DETERMINISM CONTRACT
+- A client's blob for tick t is sealed by its report for t. It is sent with
+  NGSTATE t and returned to every client, in slot order, in NGGO t+1. Lua sees
+  those blobs in s.inputs when s.issued == t+1, so the blobs applied at a tick
+  are byte-identical on every client and come only from the relay's permit.
+- Proposals of the final tick are never applied (the relay answers NGSTOP).
+- The relay releases tick t only when all N clients reported t with the same
+  game time, the same real time (or, with --relative-real, the same elapsed
+  real time t/hz since tick 0) and a 1/hz game step (--tick-hz, the clients'
+  native_gate_tick_hz, default 60). A changed retransmission
+  of any field, including the blob, fails: changed_state_while_waiting_tick_t.
+- Digest mismatches fail the session (battle_state_mismatch_tick_t) or, with
+  --observe, are recorded per tick with the slots that differ from slot 1.
+- The relay locks to the first admitted protocol. Protocol 2 needs
+  --clients 2; protocols 1 (no inputs) and 3 admit any N in 2..8.
+- The relay silently drops: wrong token, non-loopback sender, unknown slot,
+  non-canonical slot/tick, clients field different from --clients, blob with
+  uppercase/other characters, odd length or more than 480 characters, wrong
+  field count, datagrams above the size limit, and other protocol versions.
+- The gate stops with reason 56 when a permit returns a different blob for
+  its own slot, ignores malformed permits (the 60 s wait then ends with
+  reason 7) and stops with reason 8 on a datagram of 8,192 bytes or more.
+
+NATIVE LUA INTERFACE (x4lan_gate_64.dll; stable for input adapters)
+gate.wire(version, clients) -> 1 or 0
+  Call before gate.start/gate.boot. (2, 2) is the default; (3, N) with
+  N = 2..8 selects protocol 3 and needs lua_rawseti from X4's Lua runtime.
+  Once started, only the identical configuration returns 1 (UI reloads).
+  Slots 1..N are then admitted by gate.start/gate.boot.
+gate.propose(tick, blob) -> 1 or 0
+  Protocol 3 only; tick must equal s.issued; blob as on the wire. Before the
+  report of that tick it stages (and may replace) the proposal; after the
+  report it returns 1 only for the sealed blob.
+gate.report(tick, hash, blob) -> 1 or 0
+  Protocol 3: blob nil seals the blob staged for this tick, or the empty
+  blob; an explicit blob must be valid and agree with a staged one. A repeated
+  report of the same tick must carry the same blob. Protocol 2 is unchanged
+  (third argument: 8-hex command).
+gate.lookahead(k) -> 1 or 0
+  Protocol 4 window k = 1..8 (0 keeps protocol 3); after gate.wire(3, N),
+  before gate.start/gate.boot; once started only the identical k returns 1.
+gate.lookahead_status() -> "lookahead=k ready= ahead_max= idle= resends=
+  stale= duplicates=" (ready: frames whose permit had arrived before it was
+  needed; ahead_max: farthest permit received ahead of the completed tick;
+  idle: 25 ms receive timeouts while waiting).
+gate.poll() -> s
+  s.wire_version  2 or 3 (3 also for protocol 4)
+  s.clients       N
+  s.inputs        array [1..N]: admitted inputs of tick s.issued; protocol 3
+                  blobs, protocol 2 the two 8-hex commands
+  s.input1/input2 protocol 2 only, unchanged
+  s.lookahead     protocol 4 only: k
+  s.inputs_tick   protocol 4 only: the tick whose proposals s.inputs are
+                  (s.issued-1-k); absent while s.issued <= k
+
+PROBE CONFIGURATION AND INPUT ADAPTER (tools/dev/native_gate_probe.lua)
+X4LAN_CONFIG.slot = "pK"                 K = 1..N (lane token @X4LANE_SLOT@)
+X4LAN_CONFIG.native_gate_clients = N     enables protocol 3 (lane token
+                                         @X4LANE_CLIENTS@); absent: protocol 2,
+                                         slots p1/p2 only, as before
+The probe calls gate.wire(3, N) before boot and logs
+"NATIVE_GATE ARMED slot=pK hash_scope=... wire=3 clients=N".
+Optional global adapter X4LAN_NATIVE_INPUTS:
+  apply(tick, inputs, clients, slot) -> string or nil
+    Once per admitted tick, before the declared state digest. inputs[1..N]
+    are the admitted blobs (identical on every client). A returned string is
+    appended to the digest data. Without an adapter every blob must be empty.
+  proposal(tick) -> blob or nil
+    After the digest; a blob is staged with gate.propose(s.issued, blob) and
+    sealed by the report. nil leaves the empty blob, or whatever was staged
+    through gate.propose for this tick.
+The probe logs "NATIVE_GATE INPUTS tick=T blobs=b1,...,bN" when any admitted
+blob is non-empty.
+X4LAN_CONFIG.native_gate_lookahead = k   protocol 4 (needs native_gate_clients;
+                                         k = 0 or absent: protocol 3). The probe
+calls gate.lookahead(k) after gate.wire(3, N), appends " lookahead=k" to the
+ARMED line, adds "proposed=<s.inputs_tick>" to INPUTS lines, checks
+s.lookahead/s.inputs_tick every tick and logs "NATIVE_GATE LOOKAHEAD_STOP
+<gate.lookahead_status()>" at the end.
+
+PROTOCOL 4: LOOKAHEAD WINDOW (29 OCTOBER 2026, OPT-IN)
+Why: with protocol 3 every client sends its report of tick t and waits for
+the permit of t+1, which needs every client's report of t. A relay one round
+trip r away therefore costs r on every frame (vps-V2: 31 ms frames became
+42 ms, wait 11.2 ms = the round trip). Protocol 4 releases permits up to k
+ticks ahead (window k = 1..8, relay --lookahead k, probe native_gate_lookahead
+= k), so a frame waits only when the round trip exceeds k frames.
+
+Rule. The permit for tick T needs every client's report of tick T-1-k (and
+for T <= k+1 every client's report of tick 0, so the session still starts in
+step) and carries exactly the proposals sealed with tick T-1-k (all blobs
+empty for T <= k: there are no proposals before tick 0). A blob proposed with
+tick t is therefore applied at t+1+k on every client; protocol 3 is k = 0.
+The relay checks each tick (game step, clocks, digest) exactly as before and
+in tick order, only up to k ticks after the clients ran it; the hold tick
+delays the permit its reports release. A client never runs a tick whose
+inputs it has not received: every input it applies at T is in the permit
+for T, and a permit is released only after all reports it carries passed
+their checks. Nothing is predicted, guessed or rolled back.
+
+Messages (ASCII, '|', UDP; fields as in protocol 3):
+  NGSTATE|4|<token>|<slot>|<tick>|<game>|<real>|<digest>|<clients>|<k>|<blob>
+    k canonical decimal 1..8, equal to the relay's --lookahead; at most 649
+    bytes. Sent once when the tick is sealed; while waiting for a permit the
+    client resends each report of its window (ticks completed-k..completed)
+    at most once per 100 ms.
+  NGGO|4|<token>|<slot>|<T>|<k>|<blob 1>|...|<blob N>
+    the blobs sealed with tick T-1-k in slot order; at most 3,912 bytes. The
+    relay sends it to every client when released (tick 0 releases T = 1..k+1,
+    tick t > 0 releases T = t+1+k, never beyond --ticks) and to one client
+    again when that client resends a report of an already checked tick.
+  NGSTOP|4|<token>|<slot>|<tick>
+    for any tick that client reported (it may lag the newest by up to k).
+The relay accepts reports up to its highest released permit and drops later
+ones; out-of-order reports inside that range are kept and checked in order.
+
+Compatibility (explicit, fail closed). A relay serves either protocols 1-3
+(no --lookahead, behaviour and reports unchanged) or protocol 4 with exactly
+one k, never both. An authenticated, well-formed report of the other kind or
+another k fails the session (lookahead_mismatch_slot_S) and is answered with
+NGSTOP in the sender's protocol; malformed or unauthenticated reports are
+dropped as before. An older relay drops protocol 4 like any unknown version
+(the client then stops with reason 7 after its wait timeout); an older gate
+DLL has no gate.lookahead and the probe refuses (REFUSED lookahead=k).
+
+Client (lockstep_lookahead.h). It holds the sealed reports of ticks
+completed-k..completed and the permits received for completed+1..
+completed+1+k, reading queued datagrams without blocking every frame (a relay
+NGSTOP is seen at the next frame even while permits are held). It fails
+closed: a permit beyond that window or with non-empty blobs before tick 0
+stops with reason 102, a second permit for one tick with different blobs with
+103, a permit that returns a different local proposal with 56 (as in
+protocol 3); a stale permit (tick already run) is ignored.
+Malformed datagrams, the 60 s wait (7), oversize datagrams (8), game-time
+drift (5) and window close (6) behave as in protocol 3. Stop reasons 102 and
+103 are new (90-98, 100, 101 and 110 are taken).
+
+Input delays. The input wire now adds k ticks between proposal and arrival,
+so adapters whose blobs name an apply tick need delay >= k+1 for player
+orders (applied in the admitting tick) and >= k+2 for pilot records (staged
+one tick before they apply; the native pilot_arm refuses less). The probe
+checks both before loading; with the default delays of 3, k = 1 for pilot
+records and k = 2 for orders are the largest windows. The native hit claims
+(native_gate_hit_claims = true/'shooter'/'victim'/'first') reconstruct a
+claim's observe tick relative to the sealing tick r-1-k and widen their
+validation bound by k (reports/LOCKSTEP-HIT-CLAIMS-NATIVE-20261029.txt); the
+Lua test carrier ('carry') still assumes k = 0.
+
+Expected frame time. With frame cost f and round trip r between a client and
+the relay (relay processing negligible), the steady state satisfies
+(k+1)*P = max(k*P, r) + f, i.e. P = max(f, (r+f)/(k+1)): k = 0 gives f+r (the
+vps-V2 42 ms from 31 + 11), and the round trip disappears once k*f >= r.
+The slowest client and the largest round trip set P for everyone. Discrete-
+event model of the native client with the real relay code (SimulatedSession
+in tests/test_native_gate_lookahead.py, which asserts these values):
+  r=11 ms f=31 ms: k=0 42.0, k=1..4 31.0 ms
+  r=60 ms f=31 ms: k=0 91.0, k=1 45.5, k>=2 31.0 ms
+  r=100 ms f=31 ms: k=0 131.0, k=1 65.5, k=2 43.7, k=3 32.75, k=4 31.0 ms
+  one-way 5.5..25.5 ms uniform jitter, f=31 ms: k=0 65.6, k=1 34.6, k=2 31.0
+A digest mismatch is reported at most k ticks late, and a stopped session
+ends with clients up to k ticks past the failing tick.
+
+INPUT MULTIPLEXER (tools/dev/native_gate_inputs_core.lua, 29 October 2026)
+The probe's own inputs share one blob per slot and tick: pilot records (wire
+source), player orders and hit claims register as sections of the
+multiplexer, which is then X4LAN_NATIVE_INPUTS (owner 'mux'). An external
+adapter that is not the multiplexer still owns the wire alone (unchanged).
+Blob format: the container of src/native/engine/lockstep_hit_claims.h
+(input_mux_decode/encode): '' = no input; 28 bytes starting 0x01 = pilot
+record alone; starting 0x50 = orders alone (both legacy forms, byte-identical
+to the former exclusive adapters); otherwise 'M' 0x4d, version 1, sections
+kind|length|payload in ascending kind order (0x01 pilot, 0x48 hits, 0x4f
+octree, 0x50 orders). A container holding only a channel with a legacy form
+is refused (hits or octree alone use the container).
+Section adapter contract (per section, owner tag; same owner may replace):
+  apply(tick, inputs, clients, slot) -> receipt string or nil
+    inputs[1..N] = this section's payload of every slot, '' when absent or
+    when that slot's blob was refused.
+  proposal(tick, budget) -> payload or nil
+    budget = hex characters left in this slot's blob for the section.
+  refused(tick, reason) optional: the payload was dropped ('overflow').
+Proposal rule (local, deterministic): sections in priority order (default
+pilot, orders, hits, octree; native_gate_input_priority lists pilot, orders
+and hits, octree optional and last when omitted), each offered the bytes left
+after the container header and earlier sections (2-byte section headers);
+a payload larger than its budget is refused for this tick and logged
+(INPUT_MUX_OVERFLOW), later sections are still offered. 240 bytes per blob.
+Admission (every client): a blob that does not decode, or holds a section no
+adapter registered, gives that slot no sections (INPUT_MUX_REFUSED); the
+digest gets INPUTS_1|tick|<slot rows>|<section>:<slots present>/<bytes>|
+<section receipt or ->... for every registered section in kind order.
+native_gate_hit_claims = 'carry' registers a carrier for scripted claims
+(native_gate_hit_claims_script) that folds admitted claims into HITS_1
+receipts and never applies a hit. Report: LOCKSTEP-INPUT-MUX-20261029.txt.
+true/'shooter'/'victim'/'first' register the native 'hits' section with the
+pilot section instead: its apply stages every slot's payload
+(gate.hit_claims_admit), pilot_frame resolves the claims due
+(gate.hit_claims_resolve), its proposal returns this client's queued claims
+within the budget (gate.hit_claims_proposal); see
+reports/LOCKSTEP-HIT-CLAIMS-NATIVE-20261029.txt.
+native_gate_nav_octree = 'agreed' registers the 'octree' section (kind 0x4f,
+exactly 20 bytes): proposal = gate.nav_octree_report() (W u32 little endian,
+the first octree index not built on this client, then 128 bits for
+W+1..W+128; nil when every index is shown), apply = gate.nav_octree_agree(
+tick, clients, payloads joined by ','), receipt OCT_1|tick|shown|agreed|
+assigned|keys. Reports are cumulative, so the section is offered last and a
+full blob only delays it a tick (lockstep_nav_octree.h).
+
+TWO-PLAYER FEATURES
+These bind two players and protocol 2 commands and refuse protocol 3 or N > 2:
+native dock collider registration, construction ACK2 attach and creation RNG
+configuration, GetUp (agreed and diagnostic), portable capture/transport (all
+require protocol 2 with two clients natively); in the probe the command,
+management, construction, player, docking and creation-registry fixtures;
+validate_native_gate.py (refuses protocol 3 or clients != 2 reports); the
+command replay of build_native_gate_overlay.py (protocol 2 reports only); the
+live input CLI native_gate_input.py (protocol 2 commands, slots 1..2).
+
+TOOLS
+native_gate_relay.py --clients N (default 2). The report adds "clients" and
+  "digest_mismatch_slots" {tick: [slots whose digest differs from slot 1]};
+  protocol 3 state rows carry "blob".
+native_gate_relay.py --lookahead k (default 0): protocol 4. The report and
+  the --status-file add "lookahead" (the status also "permitted", the highest
+  permit released); "released_at" then names the tick whose reports released
+  the permit for tick+1+k. Refused together with --live-inputs.
+native_gate_relay.py --input-journal FILE (default off): before each release
+  the relay keeps the released proposals durable. Without it, a release whose
+  permit carries a non-empty blob rewrites the whole --report (every tick's
+  rows, indent 2) first: with pilot records on every tick that is ~2.6 ms at
+  tick 100, ~7 ms at 600, ~28 ms at 1,800 on the critical path of every
+  frame (play9/play11 waited 2.6 -> 8 ms over 600 ticks; cam-C1a without
+  inputs 0.3 ms). With FILE the relay appends each released tick (its rows:
+  digests, clocks, blobs) as one JSON line, flushed before the permits are
+  sent (0.08 ms per release at any tick), and checkpoints the full report
+  every 60 s and at the end; the final report is unchanged.
+validate_native_gate.py refuses protocol 3 and 4 reports alike.
+build_native_gate_overlay.py --session-clients appends
+  X4LAN_CONFIG.native_gate_clients = @X4LANE_CLIENTS@ (lane sessions only) and
+  adds ui/native_gate_inputs_core.lua before the probe (the sandbox and
+  players builders add it too).
+native_gate_inputs.py decode|encode: Python reference of the container.
+census_world/events/scripts/threads/jobs/perf.py, compare_native_world.py
+  detect client1..clientN. Two clients keep the original report; N > 2
+  reports {"clients": N, "reference": "client1", "pairs": {"clientK": <the
+  two-client report of client1 against clientK>}}.
+
+LANE SESSION
+The released lane runner (x4lane.py session) accepts --clients 2 or 3 and
+assigns slot pK, clientK/ output and @X4LANE_CLIENTS@ to its K-th client.
+Relay: --server-cmd "{python} .../native_gate_relay.py --port {port}
+--token {token} --clients {clients} ...". Probe: an overlay built with
+--session-clients, or --lua "X4LAN_CONFIG.native_gate_clients = @X4LANE_CLIENTS@".

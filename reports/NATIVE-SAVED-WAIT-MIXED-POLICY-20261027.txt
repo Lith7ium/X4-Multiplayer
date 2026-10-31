@@ -1,0 +1,99 @@
+SELECTED SAVED-WAIT MIXED POLICY - SOURCE CANDIDATE
+27 October 2026
+
+Reason and measured limit
+-------------------------
+World008 converged the two selected Wait scopes, while strict world motion still
+diverged at tick2. A separate later sequence appeared only on client1: owner
+6d940, pilot6d945, move.idle PC71 to67 and five commands at tick2/time7.116333333333.
+That sequence followed this owner's tick2 motion update. It is not evidence for
+the already observed tick2 motion mismatch, and its wake cause is still open.
+
+The saved pilot stack contains orders.base v7/index4/time0, order.move.recon
+v19/labelproceedtonextzone/index2/time0, and move.idle v4/labelstart/index5/
+time_text6.98333. The stock version-eligible blocking sequence identifies index5
+as the 100..500ms Wait. Its exact Windows saved-time bits are401beeee0f3cb3e6.
+This binds an independent read-only selection; it does not establish native
+slot70/PC71 for this owner's restoration. Those values were observed for another
+owner using the same program, and remain a candidate only for this third owner.
+
+The existing pinned b5a060 importer reads persisted index at b5a4a2, scans native
+program nodes through their version predicate, stores selected slot at b5a6df,
+restored time at b5a734 and program PC at b5a73d..745. Wait predicate1062a50
+compares the persisted version against action+70. The existing pinned1069000
+importer dispatches the selected action's restore method at1069bf9, returning
+1069bfc. No new hook, native layout or guessed program guard is introduced.
+Native arbitrary-predicate ordinal coverage remains explicitly unsupported.
+
+Schema2 policy contract
+----------------------
+The existing JSON schema1 experiment, wire, seeds and guards are unchanged.
+Schema2 remains an ordered 1:1 manifest with the existing snapshot-bound read-only
+selection list, bounded to eight entries and4095 wire bytes. Each entry has an
+explicit policy:
+- intervene: retains the same required slot, PC and since guards and key schema1;
+- observe: forbids those guard fields and derives no seed.
+
+All saved identity, name, version, blocking index, original time_text, constant
+range and snapshot bindings must match the read-only manifest exactly. The wire
+adds an explicit prefix and per-entry policy. For the three selected owners:
+
+WAIT_POLICY_2;<snapshotSHA>;1,intervene,70,71,0,6.91667;2,intervene,121,122,0,6.31667;3,observe,6.98333
+
+The snapshot remains
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+The first two keys remain41aa3ad655ad9a9c and8b0f91e8910d9f7c. The third selection
+is pilot6d945/move.idle/v4/index5/time_text6.98333/range0.1..0.5, with no asserted
+slot, PC or since. No default manifest or automatic activation is added.
+
+The observe branch returns before intervention TLS validation, TLS writes,
+restoration, used/apply/refusal effects or scope-open accounting. It counts an
+observation only. Existing raw owner/lifetime/caller/expression/phase validation
+continues. STOP overlap, missing or duplicate selected observations and changed
+native state still fail raw evidence. A nested observe call still invalidates
+an already seeded parent; it cannot make the parent scope acceptable.
+
+Receipts and strict evidence
+----------------------------
+Schema1 output remains unchanged. Schema2 WORLD_WAIT_RNG adds policy=1|2 and
+natural_after. An observe row requires zero applied/restored/domain/key_schema/
+seed/scoped-before/scoped-after/caller-restored and zero expected slot/PC/since.
+Its actual native slot/PC/since remain facts in the unchanged raw Wait rows.
+Caller-before and natural-after must match the raw input/output, with the audited
+single RNG step retaining its natural interpretation. Intervention rows retain
+the original seed/guard/restoration proof and natural_after=0.
+
+Schema2 STOP adds observed; selected/rows cover all selections, applied covers
+only intervention entries. The main validator parses policies before interpreting
+the raw RNG transition. A natural entry never inherits the global configured
+flag's scoped interpretation. Missing policies, extra guessed guards, incomplete
+receipts and any incompatible field fail closed.
+
+Paired diagnostics retain aggregate selected_outputs_equal and add separate
+intervene_outputs_equal and observe_outputs_equal. Invalid coverage yields no
+equality claim. A differing natural observation remains a strict raw difference;
+it is not hidden by equal scoped outputs. Whole-world and session failures remain
+independent and unchanged. No full lockstep, ambient RNG synchronization, native
+exception cleanup or cause of the third wake is claimed.
+
+Offline verification
+--------------------
+Actual-image C checks execute the production wrapper with two intervention
+entries and one natural entry. The first two parsed key/guard structs compare
+byte-for-byte with the legacy manifest. The third calls original once, advances
+naturally and leaves seed/restore/used/applied/refusal state untouched. Tests also
+cover malformed policy/extra guard/missing selection, natural duplicates, STOP
+inside original, changed raw version and nesting beneath a seeded parent.
+The production Lua status exporter is checked directly. C-exported raw rows,
+receipts and schema2 status independently parse without errors.
+
+Python tests mutate every natural receipt field and schema2 status field, remove
+coverage, change natural advancement and verify paired/whole-world failure
+separation. The main validator explicitly retains the third row's natural
+single-step interpretation. Existing schema1 tests continue to pass.
+
+Full offline native build/test with the pinned image, transition ABI/unwind and
+all42 portable transport cases plus boot/local-hold checks passed. The focused
+native-gate Python/Lua suite passed376 tests and637 subtests. These checks do not
+launch a game or prove a native third-owner restoration. A future integrated,
+frozen artifact and coordinated native pair require separate review.

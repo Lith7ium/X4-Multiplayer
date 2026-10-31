@@ -1,0 +1,135 @@
+Construction017: physical bank differences after matched scoped RNG
+==================================================================
+
+Result and limits
+-----------------
+The recorded physical banks differ. The captured motion/reference fields agree
+when read through the already audited native read/write roles. The large
+parameter differences at Nav return are explained by the native constructor
+populating only its selected write bank. Remaining bytes include constructor-
+untouched storage and process-local references. This is a field attribution,
+not a new comparison contract or proof that the complete native state agrees.
+
+The strict run remains failed: all 44 original errors, in their original order,
+are reproduced by the current independent validator. Enrollment, construction,
+independent-player authority and whole-RNG coverage remain unproved. No source
+implementation, evidence, bank order, hash, guard, engine state or installation
+was changed. No native process was launched for this review.
+
+Evidence boundary
+-----------------
+Read-only source basis: 03300446962eef6b1d788d53c1600f8d7b76e0fa.
+Closed input: construction017, the author's creation-rng run. Both complete
+logs were hashed against causal-observations.json, then independently decoded:
+59 records/client, schema2, 18 parts/record, zero creation capture errors.
+The creation header, contract header, passive reader, creation parser and passive
+parser were checked byte-for-byte after LF conversion against frozen56fe source.
+The separate chunked passive callback receipt was reassembled and validated,
+including its local runtime-reference joins. Runtime IDs and pointers remain
+only in private evidence. Native instructions were read from the exact Windows
+image SHA256 19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+Companion .PINS.json records the spans used below; raw disassembly is private.
+
+The four 416-byte blocks are physical nav0/nav1 at Agent+ad0/+c70 and physical
+parameter0/parameter1 at Agent+0/+1a0. They are not four interchangeable banks.
+The read selector is 38f4ee4, the write selector 2f4b6f4. The existing native
+mapping and its limits are documented in NATIVE-NAV-SEMANTIC-HASH-V2-20261028.txt.
+
+Exact attribution
+-----------------
+Stage                 nav0 nav1 parameter0 parameter1 differing bytes
+Agent return             2    2         24         23
+Nav return               2    2        230        223
+Builder callback         4    4          2          2
+
+1. Agent return. Both nav banks differ only at +8c/+8d. The nav constructor's
+   loop writes eight bytes at +80 and four at +88, then resumes at +90
+   (e855ba/e855be/e855c2). It does not initialize +8c..8f there. These bytes are
+   outside the six captured xyz vectors; they are not an observed pose delta.
+
+   Every parameter-bank difference lies in the following untouched ranges:
+     +5c..5f, +e9..eb, +f0..ff, +13c..13f, +19c..19f.
+   The leaf initializer 153730 writes through +58 as a float, sets only the
+   byte at +e8, writes +ec as a u32, and resumes at +100 through +13b.
+   Agent's loop e853c0..e853fd adds the explicit stores +140..19b.
+   All initialized bytes agree between clients at this point.
+
+   This proves gaps in the reviewed initialization, not universal non-use.
+   In particular, no pointer meaning or safe-to-ignore status is assigned to
+   +f0..ff from its numerical appearance. Alignment gaps and conditional data
+   are not silently relabelled as harmless padding. The current raw capture
+   remains a physical-byte observation, including these differences.
+
+2. Nav return. eac530 calls the Agent constructor, copies a separate input to
+   Agent+4e0, and calls e89b30. That helper compares the read/write parameter
+   banks' +178 times, copies the selected newer/equal bank through e84970 and
+   fills Agent+340. Then eac6e8 reads the native WRITE selector, multiplies it
+   by 1a0, and eac700 copies the creation parameters to that physical bank.
+
+   Thus client1 fills parameter0 while client2 fills parameter1 in this sample.
+   This accounts for the 230/223 physical-byte differences without a parameter
+   value divergence in the written role: WRITE banks match through +19b; their
+   only differences are +19c/+19d. READ banks retain matching initialized
+   defaults, with differences confined to the constructor-untouched ranges.
+   The full e84970 copy transfers bytes +0..19b and does not write +19c..19f.
+   Calling this merely a raw bank swap would miss the retained untouched bytes.
+
+3. Builder callback. Both parameter banks match through +19b; only +19c/+19d
+   differ. All nav differences are exactly:
+     +8c/+8d: the same constructor-untouched bytes already present at return;
+     +b0: the first byte of a u64 component runtime reference;
+     +c8: a u32 command-result field, 5 or 0 depending on the physical bank.
+
+   The passive reader resolves both +b0 references to the same imported sector
+   and reports zero unresolved references. Its private local-ID tuple matches
+   the creation callback's actual bytes. No pointer-to-saved-ID inference or
+   whole-object lifetime lease is substituted for that recorded lookup.
+
+   +c8 is native state, not padding: e8f9d8 writes the result of the active
+   command's vtable+78 into WRITE nav+c8; e8f9ac writes zero on another path.
+   At this callback the READ role holds 5 and WRITE holds 0 in both clients.
+   The native instruction proves storage and role, not an invented name for
+   the command enum. There is no direct record of which producer wrote this
+   particular sample, so temporal resemblance is not claimed as a call trace.
+
+4. Controller cursor and chronology. Nav/Agent return and the following
+   selected setter retain c0=-1, c8=2 in both clients. By callback c0 is the
+   same simulation time and c8 is 1/0 respectively. The read/write selectors
+   have opposite values across clients, and have reversed within each client
+   between the selected setter return and callback entry. The recorded cursor
+   is the WRITE/opposite role in both, using the previously reviewed mapping.
+
+   ea2a20 compares TLS time to c0 and the read selector to c8, then records
+   read in c8 when refreshing. eac170 swaps the two global selectors. These
+   pins establish the roles. The snapshots do not count swaps or prove the
+   exact interleaving/earliest cause of the already different selector phase.
+
+What agrees, and what is still missing
+-------------------------------------
+The callback's independently decoded 190-byte motion and 136-byte position/
+basis/reference subsets are byte-identical. Its 45-byte timing body differs
+only at byte12, the physical controller cursor. The raw selector fields remain
+different. No existing receipt or validator output was normalized or replaced.
+
+The larger WORLD_IMPORTED_2 tuple cannot be reconstructed from these creation
+snapshots: both pending entries Agent+ed0/ee0 and their second u64s are absent,
+as are some other controller/Agent fields. The passive callback captures the
+controller d8 gate, but does not fill this pending-state gap. Parameter+340 and
+the source at +4e0 are also outside these four blocks. Equality of the captured
+subset therefore does not prove an equivalent next update or whole-state hash.
+
+The observed differences do not justify another RNG rewrite, bank write,
+constructor zero-fill, admission exemption, or ignoring unknown bytes. Any
+future semantic comparison must keep its explicit supported fields and full
+required role-dependent state; a cursor-only comparison remains insufficient.
+The still-unenrolled builder and its first covered update remain separate
+authority/lifecycle blockers.
+
+Verification
+------------
+Private analyze.py independently verifies both input-log hashes, all recorded
+byte counts, all constructor-gap inclusions, the native-role comparisons,
+callback reference/receipt joins, and the exact image/span hashes. A fresh
+validate(run, 'battle') returns the unchanged ordered 44-error array and
+evidence_valid=false/session_pass=false. No gameplay tests were appropriate
+for this read-only report. Private raw analysis is retained separately.

@@ -1,0 +1,171 @@
+Linux saved-Wait compatibility follow-up - 27 October 2026
+
+Result and scope
+The selected constant-uniform Wait restoration algorithm can be matched across
+the two pinned builds. The Windows scoped-RNG experiment is not directly portable:
+Linux has different action/context/string/TLS layouts and a different observed
+Load owner. Its existing saved/runtime index is captured too late to select the
+earlier Wait call. Saved-time decimal conversion also differs for some literals.
+These are concrete coverage gaps; no Linux hook, RNG write or native mode was
+added. The passed observer and frozen portable artifacts remain unchanged.
+
+This extends b0400f5 and compares Windows source 35b835d, integrated as 3014391.
+Both exact executables are X4 9.00, Steam23660954, in-game611726. The companion
+JSON pins both images, 32 function roots and nine bounded instruction/data spans.
+ELF root ranges are next-known-start bounded and can include alignment padding;
+separate cold fragments are not claimed. Raw assembly remains private.
+
+Import selection and read-only field mapping
+Linux importer 0x10de190 reads descriptor+0x58 and writes a present, nonnegative
+saved version there at 0x10de684. Exec construction at 0x10df095 uses 0xd633a0.
+The XML blocking index is parsed at 0x10df23c. The loop 0x10df260..0x10df295
+visits native program entries, calls each node's vtable+0x10 version predicate,
+and increments the eligible ordinal only for a true result. A matching ordinal
+keeps the separate native slot counter. Wait's predicate 0xd58ac0 compares the
+action's since-version at +0x68 with that supplied saved version.
+
+The match branch at 0x10e065d returns to the bounds check; when not already
+blocked, 0x10e055b stores the native slot at Exec+0x20 and 0x10e0573 marks
+Exec+0x30. At 0x10df2d0, the saved time is converted and then stored at Exec+0x28.
+At 0x10df2df..0x10df2e7 the selected node's +0x20 value becomes Exec+0x18 PC.
+Thus XML ordinal, compiled slot and PC are three distinct values. A Windows
+observed slot/PC must not be silently reused as a Linux observation.
+
+The selected action accessor 0x109b210 checks blocked state, program bounds,
+nonnull node and its eligibility predicate with INT_MAX. Import calls its restore
+slot at 0x10df368, returning 0x10df36b for the AL success check. Linux ABI is
+RDI=action, RSI=Exec, RDX=context Value; Windows uses RCX/RDX/R8 at return1069bfc.
+The Linux Wait vtable is 0x3b2a650, restore slot+0x30 -> 0x10c12b0; Windows uses
+0x2c68d78, slot+0x28 -> 0x10a50d0.
+
+Field                                  Linux              Windows
+Wait listeners / timeout Value         +0x28 / +0x58       +0x30 / +0x60
+Wait since-version / Range             +0x68 / +0x70       +0x70 / +0x78
+Range mode/distribution/count          +0x08/+0x0c/+0x10   same relative offsets
+Range min/max/seed/basis Values         +0x18/+0x28/+0x38/+0x48, same
+Exec program / PC / native slot        +0x10/+0x18/+0x20   same
+Exec saved time / blocked / Value      +0x28/+0x30/+0x38   same
+Context from Value tag0x66 payload     payload-0xa0        payload-0xa8
+Context lifetime ID / entity           +0x08 / +0x120      same
+Context script descriptor              +0xd0              +0xd8
+Context current Exec / reason/deadline  +0x130/+0x18c/+0x190 same
+Descriptor saved version               +0x58              same
+
+Linux context vtable0x3b28df0 and descriptor vtable0x3b28db0 are independently
+identified by RTTI and constructor stores. Context construction 0x10c0a30 calls
+the registry allocator 0xeed870, which publishes a generation-bearing ID at +8;
+it stores its entity argument at +0x120. This is not a uniform eight-byte layout
+shift. Typed Value recovery 0x1e04890 explicitly requires tag0x66 and nonnull
+payload. Exec construction also links the recovered context to Exec at +0x130.
+
+The descriptor's first string is at +0x10. Linux constructor0x10d9a50 and string
+copy0x9d8dd0/0x9d8d30 establish data pointer at descriptor+0x10, length at +0x18,
+and inline storage or allocated capacity at +0x20. Destruction0x10c87e0 compares
+the pointer with descriptor+0x20. This differs from the Windows MSVC string's
+size+0x20/capacity+0x28. A later decoder must bound length, validate inline versus
+heap representation and stable reads, and match the expected script text; it
+must not call a script formatter/getter or copy the Windows decoder offsets.
+
+TLS and exact constant-uniform draw
+Linux range evaluation0xcf4f30 receives no explicit state from0x1d9b750 (R9=0).
+Its seed resolver0x1d9bd80 returns null when both seed and basis Value tags are
+zero. The fallback at0xcf54f7 reads FS:[0], then at0xcf5500 passes that pointer
+minus0x2720 to0x1a48e30. The RNG is an eight-byte state at FS:-0x2720. Current
+simulation time is the adjacent double at FS:-0x2728. Windows uses its actual
+native TLS slot0, clock+0x300 and RNG+0x318; these are different addressing models.
+An accessor using the instrumentation module's own TLS would be incorrect.
+
+For the positive finite selected ranges, both implementations:
+1. Subtract minimum from maximum in binary64 and narrow width to binary32.
+2. Advance state modulo2^64 by multiply5851f42d4c957f2d, add14057b7ef767814f,
+   then rotate-right30, storing the result as the next state.
+3. Convert unsigned low32 to binary32, multiply by exact binary32 2^-32,
+   then multiply by width in binary32.
+4. Widen the sample to binary64, add minimum, then add saved Exec time.
+Linux inlines step2 in0x1a48e30; Windows0x14ddd10 calls0x14ddc90. Distribution1
+or count<=1 returns the first sample. The selected experiment additionally
+requires count1. No FMA or x87 operation occurs on this inspected path.
+
+The deadline is computed before blocking setup. A valid existing context+0x190
+deadline no later than the candidate wins; otherwise reason2 and the candidate
+are published and queued. Therefore deadline-minus-start is not a reliable draw
+measurement. Invalid/nonfinite ranges and other distributions are outside this
+comparison. In particular the standalone samplers have different unordered
+comparison behavior for NaN widths; finite selected guards are essential.
+
+Ambient initialization is independently nondeterministic. Linux0x1a47fe0/83
+accepts a nonzero explicit seed; zero calls time(NULL), adds the low32 of
+SDL_GetCurrentThreadID, applies the above step twice, stores FS:-0x2720, then
+calls srand. The call at0xfcf8c8 explicitly supplies zero. Windows0x14dd110/196
+uses wall-clock seconds derived from GetSystemTimeAsFileTime plus
+GetCurrentThreadId, applies the same two steps and stores native TLS+0x318.
+This proves initialization paths, not that the later restoring thread still
+has that initial stream. Thread establishment, subsequent draws and floating-
+point environment remain separate runtime evidence requirements.
+
+Windows scoped experiment and Linux gaps
+The reviewed Windows experiment isolates the one selected original call with a
+semantic seed, then restores the caller's PRE-call RNG on normal return. This
+removes that draw from the continuing ambient stream. It neither preserves the
+unseeded baseline's naturally advanced stream nor synchronizes ambient streams.
+Any Linux counterpart would have to retain this exact interpretation and record
+caller-before, installed seed, scoped-after and restored-caller separately.
+
+The sequential WAIT_SV1 seed order is portable integer arithmetic: saved version,
+saved owner, FNV(script), XML ordinal, FNV(exact time text), min/max binary64 bits,
+then four big-endian hexadecimal snapshot-SHA words. Slot, PC, runtime pointer,
+thread and caller RNG are guards, not key inputs. Independent offline emulation
+reproduces both reviewed seed goldens and their one-step outputs. Equal native
+range values and FP environment remain prerequisites; this is not an engine run.
+
+The Windows phase literals (UI thread, view1, app0x26, VBIloading1, boot2) must not
+be transplanted. Linux's accepted observer establishes the actual Load and its
+completion on MoveWorker. A later read-only Wait observer should require the
+exact importer return and active native Load owner, retain original-once/AL and
+entry/exit lifetime evidence, and refuse unsupported nested/exception/stop cases.
+Neither a UI marker nor post-success frame admission repairs earlier import work.
+
+The accepted Linux saved/runtime map copy is at final clear inside Load, after
+these imports. It is not yet available at the earlier Wait entry. Read-only
+records can retain full runtime IDs and resolve them against the later immutable
+map. Selecting a mutation at entry would need a separately proved live-map lookup
+or earlier capture, including completeness/ownership and alias checks. This audit
+does not authorize that change or invoke any native tree/getter.
+
+Saved decimal time is a separate compatibility fault candidate
+The exact Linux chain is import0x10df2d0 -> XML reader0x1df4a70 -> parser0x1a3b1a0.
+An absent or empty attribute keeps the incoming current-TLS default. For present
+plain decimal text, the fractional step at0x1a3b3ff divides its scale by binary64
+10; Windows0x12fd30 ->0x14c3090 instead multiplies scale by binary64 0.1.
+Both perform separately rounded digit multiplication and accumulation. Selected
+time texts6.91667 and6.31667 and saved game7.083 happen to agree. Other texts do not:
+
+Text          Windows binary64       Linux binary64
+0.05          3fa999999999999b        3fa999999999999a
+0.0166667     3f9111134dba9df7        3f9111134dba9df6
+0.0333333     3fa1110ff2bc4aa1        3fa1110ff2bc4aa0
+
+Root's private exact-snapshot census predicts differences in2262 of38448 saved
+AI script rows, across13 distinct literals. These are arithmetic predictions
+from actual saved text, not measured imported memory. The result supersedes the
+earlier report's unestablished parser parity. No time was normalized. Expression
+min/max compilation is a separate path: do not infer its bits from this XML-time
+parser. The selected raw constants must be measured and compared independently.
+
+Next bounded coverage
+Add a read-only import-Wait record only after separate lifecycle review: actual
+owner/TLS, context generation, descriptor/name/version, Value tag, program bounds,
+XML ordinal provenance, compiled slot/PC/since, saved-time bits, complete constant
+Range tags/payloads, MXCSR, RNG before/after and deadline/reason before/after. Resolve
+owner runtime IDs after map capture and require normal returns. Compare actual
+imported Exec+0x28 for the predicted decimal cases in a later AI domain. Keep all
+of this outside portable-fixture-v1, whose twelve-ship closed subset covers no
+AI/RNG/Exec state. Do not broaden or reinterpret the current portable root.
+
+Validation and retained evidence
+Both exact image hashes, all listed roots/spans, TLS fallback, vtable targets and
+numeric constants were checked offline. Private audit_wait_scoped.py reproduced
+the two semantic-key goldens, one-step RNG outputs and seven decimal examples.
+The independent root census remains in its existing private evidence. No game,
+VPS, Ghidra job, engine-source modification or frozen artifact rebuild occurred.
+Private assembly and math results are in this worktree's .local/linux-static.

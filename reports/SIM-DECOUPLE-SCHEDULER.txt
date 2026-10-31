@@ -1,0 +1,294 @@
+X4 MULTIPLAYER - FIXED-STEP SIMULATION DECOUPLED FROM RENDERING (LINUX AGENT)
+25 October 2026 (rev. 2 after the native freeze) | INTERNAL DEVELOPMENT | branch contrib/ferrite-sim-decouple
+
+GOAL
+Run X4's simulation in fixed steps (1/60, 1/30 or 1/20 s) that track wall time, while rendering only
+occasionally (or never). Primary target: the headless Linux dedicated server, which
+renders on the CPU (lavapipe) at 1-2 fps and today throttles the simulation to the
+same rate. This is Stage 2 (bounded catch-up) plus a server render policy, built on
+the Linux LD_PRELOAD agent (rust/x4mp-agent). Opt-in, off by default, exact-build
+pinned (X4 9.00 build 23660954 Linux), fail-closed with full restore.
+
+1. SIM/RENDER HANDSHAKE (Linux addresses; static analysis of bin-linux/X4)
+Confidence: H = read in disassembly, M = inferred from structure, L = guess.
+
+Main loop 0x72f250 (SDL event loop):                                        [H]
+- frameInFlight byte 0x3d8d97b, initial value 1 in .data.
+- While set: timed wait (16 ms) on semSimDone 0x3daab20 (0x72f751), then clear
+  (0x72f7aa). Sync loading (appState 0x3daab04 bit 1) also clears it.
+- When no SDL event is pending and frameInFlight is 0: FrameTick(*0x3daaaf0,
+  loading) at 0x72fb16, then frameInFlight = 1 (0x72fb1b).
+- Because frameInFlight starts at 1, the first wait consumes semSimDone's initial
+  count. After that, each FrameTick is paired 1:1 with one simulation frame.
+Semaphores: 0x1a23be0 Release(sem,n) and 0x1a23cc0 Wait (mutex +0, condvar +0x28,
+count +0x58, max +0x5c); 0x1a23d90 TimedWait(ms).                            [H]
+
+FrameTick 0x2024fc0 (main thread), non-loading path, in order:              [H]
+ 1. dt = TimerBase clock delta (0x1a3b880, CLOCK_MONOTONIC_RAW; first frame
+    0.0333). If movie capture (0x4533d38): dt = [0x4533d40]. Otherwise
+    dt = min(1.0, dt) (0x2025260).
+ 2. Under the TimerBase lock: gameTime += dt*speed, unpausedRealTime += dt if not
+    paused, realTime += dt (0x2025280). This is the only time advance.
+ 3. 0x12029b0 with TLS view selector 0: publish the simulation's double-buffer
+    indices to the main thread (0x3e7742c := 0x3e77430, 0x3d8e2a4 := 0x3d8e2a8)
+    under the mutex at 0x3e4fec8.
+ 4. If FrameState+0x200 (read #1, 0x2025162) and not (0x4533ca2 & 4): pre-render
+    calls 0x224ceb0 and 0x218e2c0. 0x218e2c0 is the RENDER-LIST FLIP: it frees the
+    consumed half of the render-list double buffer and flips index 0x72a0fa0 (see
+    section 2). It must run on every frame.
+ 5. Renderer resource queue 0x21e8110; ProcessGraphicsStateChanges 0x2024070. If
+    the frame was consumed: release semSimStart and return.
+ 6. Release semSimStart 0x3e59e20 (0x20251f6). The simulation frame starts now.
+ 7. If FrameState+0x200 (read #2, 0x2025208):
+      render branch: BeginThreadedRenderFrame 0x2012510 (renderer frame advance
+      0x21e78d0 + render dt from realTime), scene render 0x2024c20 (views from
+      0x2022690 drawn by 0x20ab5e0 and finalized by 0x20965c0; movie screenshot
+      0x21fc6a0), 0x21eddf0, PresentAndFrameLimit 0x2014900.
+    else, the engine's no-render branch (0x2025430): renderer frame advance
+      0x21e78d0 and 0x2022810 (the same view list, finalized by 0x20965c0
+      without drawing). No present, no frame limiter.
+FrameState: a 0x2f0-byte object, constructed by 0x201d800 (stored at 0xfd10d8),
+which sets +0x200 = 1. A whole-binary scan of the 224 writes to [reg+0x200] found
+none in a function that touches the FrameState global or its methods. FrameTick is
+the only reader.                                                            [M-H]
+
+MoveWorker 0x1212490 (TLS view selector 1):                                  [H]
+ wait semSimStart; kick pathing (sem +0x70); sync TLS CurTime from gameTime;
+ VBI slots 0..16 in order; audio accumulator; release semSimDone; signal
+ MassTraffic/RegionManager.
+- Slot 3 GameClient::Move 0xfeaff0 runs the universe update, then swaps the
+  simulation's indices (0x12029b0 with selector 1: 0x3e77430 <-> 0x3d8e2a8, and
+  vfunc +0x10 on the registered listeners at 0x3ea9000).
+- Slot 10 GameRender::Move 0xfb0180 calls Render (vfunc +0x18) on the four
+  render-bank handlers (VBI table +0x110..+0x128): UI, characters, GameClient.
+Double buffer: yes. Component data has two copies selected by the view index, for
+example `obj + idx*0x80 + 0x118` and `obj + idx*0x2c0 + 0x20` (0x12021e0 returns
+the index for the calling thread). The simulation flips its index once per frame;
+FrameTick publishes it to the render side once per FrameTick.               [H for
+mechanism; M for exactly which copy each side reads]
+Consequence: one render may overlap exactly ONE simulation frame. A second
+simulation frame during the same render would flip the simulation back onto the
+copy being rendered. The 1:1 handshake guarantees this, and it is the hard limit on
+overlapping simulation with rendering.                                        [M-H]
+
+Windows equivalents (bin/X4.exe RVAs, read for this note):                 [H]
+FrameTick 0xfa2d70; render flag FrameState+0x1e4 (reads 0xfa339e, 0xfa3446);
+no-render branch 0xfa346e = 0x104d460 + 0xfa4030 (Linux 0x21e78d0 + 0x2022810);
+render branch 0xfa23a0 / 0xf9ff40 / 0xfa2ba0; dt clamp `minsd xmm6,[1.0]` at
+0xfa32f3; capture override 0xfa32fb-0xfa3304 (Stage 1 NOPs the je at 0xfa3302);
+FrameState global 0x6cf1578; frameInFlight byte 0x31c20cc (test 0x12ae9b5, set
+0x12ae9d7); semSimStart 0x3d79150, semSimDone 0x3d79108.
+
+2. NATIVE FREEZE, 25 OCTOBER 2026 (first version, e5620bb) AND ITS CAUSE
+Setup: VPS, headless X4 + Xvfb + lavapipe + VK_LAYER_X4MP_discard,
+X4MP_SCHED=fixed60, X4MP_RENDER_INTERVAL_MS=1000, X4MP_SCHED_MAX_CATCHUP=600.
+Observed (engine-agent.log, native log):
+- The scheduler armed at the first frame after loading. A simulation step cost about
+  33 ms, so 60 Hz was always behind: sps 27-31, game_wall about 0.47, dropped_ms
+  grew. Interval renders never fired (always behind).
+- Forced renders did fire (forced=1 at step 602, forced=2 at step 1203). The
+  logged max_skip_run was a per-window maximum, so it read 0 in idle windows.
+- The forced render after 600 unrendered steps took 2.7 s (normal: about 40 ms).
+- From about 200 unrendered steps on, the native log repeats
+  "PushBoneTransforms() out of space" (also "PushTextureTransforms").
+- The forced render after the next 600 steps never returned. Slot 13 waited the
+  full 10 s for the main thread (wait_timeouts=1). The main thread was at 77% CPU and
+  the MoveWorker idle. The supervisor killed X4 ("native simulation heartbeat
+  stopped").
+Cause (H, from disassembly):
+- FrameTick reads FrameState+0x200 twice. Read #1 (0x2025162) gates the pre-render
+  calls 0x224ceb0 and 0x218e2c0. Read #2 (0x2025208) chooses the render branch or
+  the no-render branch.
+- 0x218e2c0 is the only writer of the render-list double-buffer index 0x72a0fa0
+  (halves of 0x16a9b00 bytes at 0x454d9a0). It frees and resets the consumed half's
+  per-frame lists, zeroes the per-half counters (+0x240c8 texture transforms,
+  +0x16a9ae0) and flips. PushTextureTransforms (0x218b410) and PushBoneTransforms
+  (0x2198570) append to the producer half (index ^ 1) with a fixed capacity.
+- The first version wrote 0 to +0x200, which also turned off read #1. With no flip,
+  the producer half kept growing for every unrendered frame: bounded arrays
+  overflowed (the errors), and unbounded lists grew. The next render drained 600
+  frames of lists (2.7 s), and the one after that never finished.
+- So the earlier claim "the no-render branch consumes every frame's output" was
+  wrong. Its finalize step covers the views, not the render lists; the flip sits
+  before the branch, behind read #1.
+- The handshake itself was intact (exact=1202 fixed steps, no time faults): the
+  freeze came from render-side state, not from the semaphore pairing.
+
+3. CORRECTED DESIGN AND WHY IT IS SAFE
+Keep the engine's 1:1 FrameTick/simulation pairing; one FrameTick = one fixed step;
+no semaphore is touched and no engine function is called.
+- FrameState+0x200 is never written. Read #1 stays 1, so 0x224ceb0 and the
+  render-list flip run on every FrameTick, rendered or not. The producer half holds
+  at most one frame.
+- Decision patch (one aligned qword at 0x2025208): read #2 becomes
+  `cmp byte [rbx+0x201],0` instead of `[rbx+0x200]`. FrameState+0x201 is padding:
+  nothing in the binary accesses +0x201..+0x203 (+0x204 is a dword). The scheduler
+  sets it to 1 before patching and owns it from then on (M-H for the padding claim; a
+  foreign write is detected and faults).
+- The decision byte is written from VBI slot 13 only while frameInFlight == 1
+  (main thread outside FrameTick; it cannot re-enter before semSimDone), so it never
+  changes inside one FrameTick. It is read once per FrameTick.
+- Each frame's slot-10 render data is now discarded by the flip when not rendered.
+  This is the same work the engine does when it renders: the flip frees the
+  previous frame's lists either way. The no-render branch still advances the
+  renderer frame (0x21e78d0) and finalizes the views (0x2022810). It skips drawing,
+  the movie screenshot, 0x224eb00 (zeroes two per-frame fields of *0x72c13a8;
+  statistics, M) and acquire/submit/present (0x21eddf0), so no swapchain image is
+  ever left half-used.
+- Fixed dt, two aligned qwords at 0x2025260 / 0x2025268: the clamp load is
+  retargeted to a `double 1/hz`, and `minsd` becomes a 4-byte NOP.
+    fixed60: .rodata 0x2e24578 (1/60);  fixed20: .rodata 0x2e270c0 (1/20);
+    fixed30: the image has no 1/30. The agent maps one anonymous page with
+    MAP_FIXED_NOREPLACE at 0x300000 (fallbacks 0x200000, 0x380000: below the image,
+    clear of the brk heap, within rip reach), writes 1/30, makes it read-only and
+    keeps it for the process lifetime. No engine data is written for any rate.
+- Patching (all three qwords, one 8-byte compare-exchange each, every intermediate
+  state valid) happens while the main thread is parked. Restore is safe from any
+  thread at any time: decision compare first (read #2 goes back to the engine flag,
+  which is 1), then dt in reverse order, then the decision byte's original value
+  (unread by then).
+
+4. BOUNDED CATCH-UP (src/scheduler.rs, unit-tested)
+- Step clock: step k may not be followed by the next FrameTick before
+  epoch + k/hz s (exact integer arithmetic). Slot 13 sleeps until then.
+- Behind (one or more whole steps late): skip scheduled renders.
+- Forced renders, in every policy including `never`, even while behind:
+    * after X4MP_SCHED_MAX_CATCHUP consecutive no-render steps (hard cap 3600);
+    * after X4MP_SCHED_MAX_RENDER_GAP_MS without a render (default 5000; 0 disables).
+- Spiral-of-death guard: lateness above X4MP_SCHED_MAX_LAG_MS is dropped (dropped_ms).
+- Loading, or a FrameTick without time advance: render, rebaseline.
+- Save countdown (tempPauseCount): render when the interval allows, even behind.
+- Pause/SETA: no rule; game time advances speed/hz per step, monotonic.
+- Time guard per step: realTime +1/hz exactly (or 0 at load end), otherwise FAULT
+  and full restore. Game time + speed/hz is counted as exact, anything else as
+  irregular.
+- Stall watchdog (worker thread, every 250 ms): while armed and not loading
+  (appState bit 1 or VBI loading flag), if no slot-13 callback completes for
+  X4MP_SCHED_STALL_MS (default 10000), log STALL, restore everything and disarm.
+  X4MP_SCHED_WAIT_MS (default 5000) must be below the stall limit.
+
+5. SERVER MODE AND STEP RATE
+- Throughput limit (inherent, double buffer): one simulation step per render. Game
+  time tracks wall time only when render_cost / interval + step_cost * hz < 1.
+- With the measured 33 ms steps, 60 Hz cannot keep up (a ratio of about 0.5 at best).
+  fixed30 needs step_cost < 33 ms minus the render share: borderline on this core.
+  fixed20 (50 ms budget) has headroom. A lower rate is coarser but still a fixed
+  step.
+- `never`: no scheduled renders. The gap bound still renders every
+  X4MP_SCHED_MAX_RENDER_GAP_MS unless it is set to 0. With the flip fixed, nothing
+  known accumulates; whether hours without a single render are harmless is still
+  native-unproven.
+
+6. IMPLEMENTATION (rust/x4mp-agent)
+- src/scheduler.rs: policy (hz, render gap, catch-up cap), check_step(dt),
+  StallWatch, slot13_step (generic Engine), SCHED log line, plus unit tests.
+- src/sched_live.rs: Linux live side. Admission, three code patches, decision byte,
+  the fixed30 constant page, restore (slot or worker; worker takes the scheduler
+  lock, at most 3 s), watchdog, statistics.
+- src/agent.rs: the worker polls the watchdog every 250 ms. Disarm paths restore
+  first.
+- src/config.rs: X4MP_SCHED=fixed60|fixed30|fixed20|off,
+  X4MP_RENDER_INTERVAL_MS, X4MP_SCHED_MAX_CATCHUP (1..3600, default 120),
+  X4MP_SCHED_MAX_RENDER_GAP_MS (0..600000, default 5000), X4MP_SCHED_MAX_LAG_MS,
+  X4MP_SCHED_WAIT_MS (default 5000), X4MP_SCHED_STALL_MS (1000..600000, default
+  10000). Invalid values refuse the whole agent.
+- src/pinned.rs: decision-compare and constant addresses; site 25
+  rodata_one_twentieth. x4mp-sigcheck checks every original patch qword, both
+  constants, frameInFlight's initial value, and that the constant pages are outside
+  the image.
+- tests/sim_harness.rs: real threads; fake main loop/FrameTick (two flag reads,
+  render-list flip on read #1) and fake MoveWorker (slot 10 fills a bounded producer
+  half; the render drains the consumed half at a cost per item), running the real
+  slot13_step.
+
+7. VALIDATION (offline only; no native run by this task)
+WSL Ubuntu 24.04, cargo 1.99.1, three consecutive runs:
+- cargo test -p x4mp-agent: 37 unit + 7 harness PASS.
+- cargo clippy --all-targets -D warnings: clean.
+- x4mp-sigcheck on bin-linux/X4: build-id + 25 sites and all scheduler
+  preconditions PASS.
+Harness:
+- The legacy variant (scheduler clears the flip flag) reproduces the freeze
+  mechanism: the producer half overflows and stays full.
+- The fixed variant never overflows, and the producer half holds at most one frame,
+  in every scenario: rare renders, never-render, 33 ms steps at 60 Hz, 30 Hz, client,
+  overload.
+- 33 ms steps at 60 Hz with interval 1000 ms and 600 catch-up steps: renders now come
+  within the 1000 ms gap bound (previously about every 20 s).
+- 25 ms steps at 30 Hz give game/wall 0.9-1.05 and 26-31 steps/s.
+- No torn decisions, no writes while the main thread was in FrameTick, no render
+  overlapping two simulation frames, and every step exact.
+
+8. NATIVE RETEST PROCEDURE (lead session, VPS)
+Build: libx4mp_agent.so from this branch (release); sha256 is reported in the
+handoff. Keep the vk-discard setup. Set variables in the supervisor's environment;
+X4 inherits it, and the supervisor adds LD_PRELOAD, X4MP_AGENT=1 and
+X4MP_AGENT_LOG=<work>/engine-agent.log.
+Run order. Stop at the first failure and keep the logs.
+ A) X4MP_SCHED=fixed20 X4MP_RENDER_INTERVAL_MS=1000 X4MP_SCHED_MAX_RENDER_GAP_MS=2000
+    (largest step budget; proves the freeze fix). 10 min.
+ B) X4MP_SCHED=fixed30, same render settings. 10 min.
+ C) X4MP_SCHED=fixed30 X4MP_RENDER_INTERVAL_MS=never
+    X4MP_SCHED_MAX_RENDER_GAP_MS=10000. 30 min, with a client connected.
+ D) Optional: X4MP_SCHED_MAX_RENDER_GAP_MS=0 with `never` (truly no renders).
+    10 min.
+Expected log lines:
+  X4MP_AGENT VERIFIED build=23660954 version=9.00 (611726) sites=25 pid=...
+  X4MP_AGENT SCHED CONFIG mode=fixed20 render=IntervalMs(1000) max_catchup_steps=120
+    max_render_gap_ms=2000 max_lag_ms=1000 wait_ms=5000 stall_ms=10000
+  X4MP_AGENT SCHED ARMED dt=1/20 step_const=0x2e270c0
+    patch=0x2025208,0x2025260,0x2025268 decision=FrameState+0x201
+    flip_flag=FrameState+0x200(untouched)
+    (fixed30: step_const=0x300000, or 0x200000 / 0x380000)
+  then every second:
+  X4MP_AGENT SCHED state=armed hz=20 sps=20.00 rps=... skip_run=... forced_steps=...
+    forced_gap=... dropped_ms=... irregular=... max_wait_ms=...
+  and CADENCE with tls_dt=0.050000 (fixed20) / 0.033333 (fixed30).
+Pass criteria (steady state, speed 1, after the first 30 s):
+  - no "PushBoneTransforms/PushTextureTransforms ... out of space" lines in the
+    native log after arming (the freeze signature);
+  - max_wait_ms (about the render time) stays near the unscheduled render cost (tens
+    of ms with vk-discard) and does NOT grow from render to render;
+  - sps = hz +-1 and game_wall >= 0.95, ddropped_ms 0 outside loads and saves. If
+    sps < hz with ddropped_ms > 0 throughout, the step cost exceeds 1/hz: go one
+    rate down (that is a capacity limit, not a fault);
+  - renders at least every max_render_gap_ms (rps > 0 in every 2-3 lines in A and B);
+  - no FAULT, no STALL, the supervisor heartbeat stays alive; irregular stays 0
+    apart from loads and saves.
+Disarm: touch <work>/engine-agent.log.disarm. Within about 1 s expect
+`X4MP_AGENT DISARMED reason=disarm_file_present sched=restored ... restore=worker`.
+Or restart without X4MP_SCHED.
+Watchdog: a stall prints `X4MP_AGENT SCHED STALL no_step_ms=... main_frame_in_flight=...`
+followed by DISARMED reason=scheduler_guard sched_reason=simulation_stalled. If
+the main thread is itself stuck (in_flight=0), restoring cannot unstick it; the line
+is diagnostic, and the supervisor still restarts X4.
+
+9. RISKS / LIMITS
+- One simulation step per render is a hard limit (double buffer). Must stay
+  single-step: the FrameTick/semaphore pairing, and every FrameTick's time advance,
+  publish and render-list flip.
+- FrameState+0x201 is padding by static evidence (M-H). A foreign write faults with
+  a restore.
+- Unrendered frames skip 0x224eb00 (zeroes two per-frame fields; M) as well as
+  drawing, the screenshot and present. No other render-only drain was found, but
+  the render path (0x2024c20) was not audited instruction by instruction: watch the
+  native log for new "out of space" messages.
+- `never` with gap 0 is native-unproven.
+- Large render dt (realTime since the last render) on render frames.
+- Lua UI/input/Steam run once per step (hz), not once per render.
+- Cross-modifying code: aligned atomic 8-byte stores, applied while the main thread
+  is parked, plus membarrier SYNC_CORE when available. Restore from the worker relies
+  on store atomicity.
+- Fixed timing reduces divergence; it is not determinism.
+
+10. WINDOWS PORT NOTE (fixedtick.c; not implemented here)
+Same structure: render flag FrameState+0x1e4. Read #1 at 0xfa339e gates the pre-render
+calls 0x1034530 / 0xf46e20 (with `xor [..],1` at 0xfa33d5: most likely the Windows
+render-list flip (M), which must keep running every frame). Read #2 is at 0xfa3446, with the
+no-render branch at 0xfa346e (0x104d460 + 0xfa4030). frameInFlight is 0x31c20cc
+(test 0x12ae9b5, set 0x12ae9d7); FrameState global 0x6cf1578; dt clamp
+`minsd xmm6,[1.0]` at 0xfa32f3; Stage 1 already gives a fixed dt via the capture
+branch. Port: retarget only read #2 (0xfa3446 `cmp byte [rdi+0x1e4],0`) to a
+FrameState padding byte that is verified unused; never touch +0x1e4. In the slot-5
+callback, wait (bounded) for [0x31c20cc] == 1, write the decision, and pace with the
+same scheduler. Not implemented: it needs its own padding audit, FFI and a native run.

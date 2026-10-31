@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Disposable, explicit-plan construction. No force-completion or time scaling. -->
+<mdscript name="X4LAN_NativeConstruction" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="Setup" namespace="this">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeConstruction'" control="'Setup'"/></conditions>
+   <actions>
+    <do_if value="player.module == 'custom_creative' and player.ship">
+     <set_value name="$resources" exact="[]"/>
+     <set_value name="$seeded" exact="[]"/>
+     <set_value name="$planned" exact="false"/>
+     <set_value name="$deployrequested" exact="false"/>
+     <create_station name="$station" macro="macro.station_gen_factory_base_01_macro" owner="faction.player" sector="player.sector" state="componentstate.construction" rawname="'Disposable Construction Station'">
+      <position x="20km" y="100km" z="0m"/><rotation yaw="0deg"/>
+     </create_station>
+     <set_build_plot object="$station" x="2km" y="2km" z="2km" paid="false"/>
+     <set_object_account object="$station.buildstorage"/>
+     <raise_lua_event name="'X4LAN_NativeConstruction.Station'" param="$station"/>
+     <raise_lua_event name="'X4LAN_NativeConstruction.Storage'" param="$station.buildstorage"/>
+     <raise_lua_event name="'X4LAN_NativeConstruction.Boundary'" param="1"/>
+     <create_ship name="$builder" macro="macro.ship_arg_xl_builder_01_a_macro" sector="player.sector" seed="19221">
+      <owner exact="faction.player" overridenpc="true"/>
+      <loadout flags="engines shields shieldgroups thrusters software"><level exact="1.0"/><variation exact="0"/></loadout>
+      <pilot><select faction="faction.argon" tags="tag.aipilot"/></pilot>
+      <position x="20km" y="100km" z="5km"/><rotation yaw="0deg"/>
+     </create_ship>
+     <raise_lua_event name="'X4LAN_NativeConstruction.Boundary'" param="2"/>
+     <debug_text text="'[X4LAN] NATIVE_GATE CONSTRUCTION_CREATE_RETURN asset=2 macro=ship_arg_xl_builder_01_a_macro'"/>
+     <raise_lua_event name="'X4LAN_NativeConstruction.Boundary'" param="3"/>
+     <raise_lua_event name="'X4LAN_NativeConstruction.Builder'" param="$builder"/>
+     <raise_lua_event name="'X4LAN_NativeConstruction.Boundary'" param="4"/>
+     <debug_text text="'[X4LAN] NATIVE_GATE CONSTRUCTION_EVENT_RETURN asset=2'"/>
+     <raise_lua_event name="'X4LAN_NativeConstruction.Boundary'" param="5"/>
+     <add_units object="$builder" category="unitcategory.build" mk="1" exact="30"/>
+     <raise_lua_event name="'X4LAN_NativeConstruction.Boundary'" param="6"/>
+     <raise_lua_event name="'X4LAN_NativeConstruction.Boundary'" param="7"/>
+     <create_order object="$builder" id="'Wait'" default="true"/>
+     <raise_lua_event name="'X4LAN_NativeConstruction.Boundary'" param="8"/>
+     <debug_text text="'[X4LAN] NATIVE_GATE CONSTRUCTION_FIXTURE shell=1 builder=1 unpaid_plot=1 unarmed_builder=1'"/>
+    </do_if>
+   </actions>
+  </cue>
+  <cue name="Plan" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeConstruction'" control="'Plan'"/></conditions>
+   <actions>
+    <set_value name="$a" exact="event.param3"/>
+    <do_if value="not Setup.$planned and $a.$asset == 1 and ($a.$slot == 1 or $a.$slot == 2)">
+     <set_value name="Setup.$planned" exact="true"/>
+     <add_build_to_expand_station object="Setup.$station.buildstorage" buildobject="Setup.$station" constructionplan="'x4lan_native_construction_base'" result="Setup.$build"/>
+     <do_if value="Setup.$build.exists and Setup.$build.isexpansion and Setup.$build.constructionsequence.count == 1 and Setup.$build.constructionsequence.{1}.macro == macro.struct_arg_base_02_macro">
+      <set_value name="$needed" exact="Setup.$station.buildstorage.buildresources.{Setup.$build}.table"/>
+      <set_value name="$wares" exact="$needed.keys"/>
+      <sort_list list="$wares" sortbyvalue="loop.element.id"/>
+      <set_value name="$valid_resources" exact="$wares.count gt 0"/>
+      <do_all exact="$wares.count" counter="$i">
+       <set_value name="$ware" exact="$wares.{$i}"/>
+       <set_value name="$amount" exact="$needed.{$ware}"/>
+       <append_to_list name="Setup.$resources" exact="$ware"/>
+       <append_to_list name="Setup.$seeded" exact="$amount"/>
+       <add_wares object="Setup.$station.buildstorage" ware="$ware" exact="$amount" result="$added"/>
+       <do_if value="not $added or Setup.$station.buildstorage.cargo.{$ware}.count != $amount">
+        <set_value name="$valid_resources" exact="false"/>
+       </do_if>
+       <debug_text text="'[X4LAN] NATIVE_GATE CONSTRUCTION_RESOURCE_SEED ticket=%s ware=%s amount=%s'.[$a.$ticket,$ware.id,$amount]"/>
+      </do_all>
+      <do_if value="$valid_resources"><raise_lua_event name="'X4LAN_NativeConstruction.Ack'" param="'%s|plan|1|struct_arg_base_02_macro'.[$a.$ticket]"/></do_if>
+      <do_else><raise_lua_event name="'X4LAN_NativeConstruction.Error'" param="'resource_seed_readback'"/></do_else>
+     </do_if>
+     <do_else><raise_lua_event name="'X4LAN_NativeConstruction.Error'" param="'build_task_readback'"/></do_else>
+    </do_if>
+    <do_else><raise_lua_event name="'X4LAN_NativeConstruction.Error'" param="'duplicate_or_invalid_plan'"/></do_else>
+   </actions>
+  </cue>
+  <cue name="Deploy" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeConstruction'" control="'Deploy'"/></conditions>
+   <actions>
+    <set_value name="$a" exact="event.param3"/>
+    <do_if value="Setup.$planned and not Setup.$deployrequested and $a.$asset == 2 and $a.$slot == 2 and Setup.$builder.isoperational">
+     <set_value name="Setup.$deployrequested" exact="true"/>
+     <create_order object="Setup.$builder" id="'DeployToStation'" immediate="true" name="$order">
+      <param name="station" value="Setup.$station"/>
+      <param name="waitduration" value="-1s"/>
+      <param name="abandonbuildtime" value="-1s"/>
+     </create_order>
+     <do_if value="$order.exists and $order.id == 'DeployToStation'">
+      <raise_lua_event name="'X4LAN_NativeConstruction.Ack'" param="'%s|deploy|1|DeployToStation'.[$a.$ticket]"/>
+     </do_if>
+     <do_else><raise_lua_event name="'X4LAN_NativeConstruction.Error'" param="'builder_order_readback'"/></do_else>
+    </do_if>
+    <do_else><raise_lua_event name="'X4LAN_NativeConstruction.Error'" param="'duplicate_or_invalid_deploy'"/></do_else>
+   </actions>
+  </cue>
+  <cue name="Sample" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeConstruction'" control="'Sample'"/></conditions>
+   <actions>
+    <set_value name="$tick" exact="event.param3.$tick"/>
+    <set_value name="$resource_state" exact="''"/>
+    <do_all exact="Setup.$resources.count" counter="$i">
+     <set_value name="$ware" exact="Setup.$resources.{$i}"/>
+     <set_value name="$resource_state" exact="$resource_state + '%s,%s,%s;'.[$ware.id,Setup.$seeded.{$i},Setup.$station.buildstorage.cargo.{$ware}.count]"/>
+    </do_all>
+    <find_object_component name="$modules" object="Setup.$station" class="class.module" multiple="true"/>
+    <set_value name="$total" exact="0"/><set_value name="$complete" exact="0"/>
+    <do_all exact="$modules.count" counter="$i">
+     <do_if value="$modules.{$i}.macro == macro.struct_arg_base_02_macro">
+      <set_value name="$total" operation="add" exact="1"/>
+      <do_if value="$modules.{$i}.isoperational"><set_value name="$complete" operation="add" exact="1"/></do_if>
+     </do_if>
+    </do_all>
+    <set_value name="$module" exact="Setup.$station.buildstorage.buildmodule"/>
+    <raise_lua_event name="'X4LAN_NativeConstruction.State'" param="'%s|%s|%s|%s|%s|%s|%s|%s|%s'.[$tick,if @Setup.$build.exists then 1 else 0,if @Setup.$build.isprocessing then 1 else 0,if $module.constructionvessel == Setup.$builder then 1 else 0,if $module.constructionvesseldeployed then 1 else 0,$total,$complete,if Setup.$station.isoperational then 1 else 0,$resource_state]"/>
+   </actions>
+  </cue>
+ </cues>
+</mdscript>

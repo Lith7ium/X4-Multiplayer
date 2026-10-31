@@ -1,0 +1,126 @@
+X4 MULTIPLAYER — REMOTE PLAYER MOTION AT HIGH SPEED / IN HIGHWAYS
+25 October 2026; branch contrib/ferrite-proxy-motion; source and static analysis only
+
+STATUS
+Source change plus LuaJIT/Python tests. Nothing was run in X4. The 7.5.0 symptom (map jumps /
+"flicker" of the other player at high speed and in highways, both directions, gone when the
+players were close) is NOT reproduced or proven fixed. The native test plan below is required
+before acceptance. Static engine findings come from original analysis of a private copy of the
+9.00 executable (build 23660954); no decompiled code is in this repository.
+
+HYPOTHESES (what the source and the static analysis support)
+H1 pose writes fight native velocity (sawtooth). Partly supported. The engine side does NOT let
+   the replica's flight model overwrite a pose write: SetObjectSectorPos on a ship with a
+   NavigationController writes the current pathing slot immediately and queues an order that
+   rewrites both slots after the next pathing pass, before the buffer flip. Every frame therefore
+   shows the last requested pose; native velocity cannot displace it between writes. What native
+   velocity does at highway speed: a free replica with a set velocity of several km/s keeps that
+   vector in physics/collision and in its pathing state while its steering model brakes it, and
+   every temp-zone change revokes and re-arms it (H2). That is useless at best, so outside normal
+   flight the replica is now driven by pose only.
+H2 zone parent changes toggle VelocityFence. Supported. SetObjectSectorPos looks up the zone at
+   the new position and creates a temporary zone when none exists, then re-parents the ship.
+   applyVelocity() revokes and re-fences velocity whenever GetContextByClass(ship,'zone')
+   changes, and the MD watchdog cancels on a parent change. At km/s in open space this repeats.
+   Now no velocity is applied outside normal mode, so no fences churn there.
+H3 motion.lua reset re-baselines the offset (time hop). Supported in a narrower form. At steady
+   highway speed the distance rule (d > 10 km + |v|dt) does not fire. A stale gap (> 0.75 s,
+   e.g. a sender hitch while streaming at speed, or loss) did reset samples AND the clock offset;
+   the new offset came from one sample with arbitrary latency, so the render time moved back and
+   then ratcheted forward in steps as faster samples arrived. Every step is a jump of speed x
+   step (150 m at 1 km/s per 0.15 s, 1.5 km at 10 km/s). Both peers stamp NAV2 with
+   GetCurRealTime(), so the clock mapping survives pauses and gaps of the same source process.
+   Related: offset = running minimum never rises, so a faster observer clock (crystal drift,
+   tens of ppm) slowly eats the 0.15 s interpolation delay during a long session; more
+   extrapolation, more horizon freezes, again amplified by speed.
+H4 observer-side low attention for a distant proxy. Not decided here (task A). Static notes: a
+   low-attention ship has no physics body, its Ship::Update skips detailed work, and attention is
+   inherited from the zone, i.e. from the temp zones the replica keeps entering. The pose path
+   above (slot write + order) does not depend on attention. "Stopped when near" also fits plain
+   speed: near each other the players were not both at highway speed.
+Also found: in a superhighway the sender's sector context is 0 (game UI code handles the same
+case), so NAV2 stops until the ship reaches the destination sector; the replica freezes at the
+prediction horizon and is then warped. Expected; unchanged.
+
+CHANGES
+extension/x4_lan_lab/ui/coop_game.lua
+ - Sender: NMODE after every NAV2 (same seq, same source time). Mode: 'highway' if
+   GetContextByClass(ship,'highway',false) is non-zero and not the sector; for the piloted ship
+   'travel' (GetPlayerSpeed travel flag, fallback GetPlayerActivity()=='travel') or 'boost'
+   (GetPlayerSpeed boost flag); otherwise 'normal'. An owned ship that is not piloted reports
+   'normal' (boost/travel are only exposed for the player's ship).
+ - Receiver: NMODE stored per entity/epoch/source lease. Effective mode from the declared mode, or
+   'fast' when no mode is declared (old sender/relay) and the sampled speed exceeds 1200 m/s
+   (leave below 900 m/s), held for 1 s after the last non-normal indication.
+ - Outside 'normal': no native velocity (one VelocityFence revoke, then nothing), pose-only
+   per-frame SetObjectSectorPos.
+ - Mode-specific interpolation delay/horizon (normal .15/.35 unchanged; boost .20/.35; fast and
+   travel .25/.50; highway .30/.60 s), reached through a bounded-rate render clock (10% speed
+   deviation) so a delay or offset change never makes the replica hop.
+ - Tracks keep their clock offset across stale resets and sector changes of the same source
+   lease; the offset may rise by 2 ms per second (drift allowance) and is pulled down by any
+   faster sample. FIRE2 playback uses the same render target as the pose.
+ - Opt-in diagnostic: config motion_diagnostics = seconds (true = 0.5). Rate-limited
+   [X4LAN] MOTION_DIAG rows per remote ship: effective/declared mode, rendered speed, requested
+   step, drift (engine pose vs last requested pose, last and max over the interval), range to the
+   local player in the same sector (-1 otherwise), writes/frames, VelocityFence count, motion
+   resets, effective lag, native velocity on/off. No lease, token or player name is logged.
+   Absent or false (default, all generated configs): nothing is computed or logged.
+extension/x4_lan_lab/ui/motion.lua: modes/profiles, M.clock (bounded slew), M.renderAt (explicit
+   horizon), M.classify, opt-in track fields retainClock/leak/mode. Without them M.push and
+   M.render behave exactly as before (NPC replicas in universe_game.lua are unchanged).
+   Discontinuity rule: unchanged in normal mode. In a declared boost/travel/highway mode the
+   allowance uses max(|v_last|, min(|v_new|, cap)) with cap 20 km/s (boost/travel) and 50 km/s
+   (highway). A real teleport is still reset: the sender zeroes velocities above 100 km/s, and
+   a jump not explained by the sampled velocity still exceeds the threshold.
+x4lan/coop.py: NMODE validation and forwarding (before NAV2).
+extension/x4_lan_lab/ui/config.lua: inert motion_diagnostics = false.
+
+PROTOCOL: NMODE (version 1)
+ pilot -> relay   NMODE|1|<lease>|<entity>|<epoch>|<navSeq>|<sourceTime>|<mode>        8 fields
+ relay -> peer    NMODE|1|<recipient lease>|<sender lease>|<entity>|<epoch>|<navSeq>|
+                  <sourceTime>|<mode>                                                  9 fields
+ entity 1|2; epoch = current movement authority epoch; navSeq = the seq of the NAV2 it
+ accompanies (monotonic per lease+epoch); sourceTime = that NAV2's source time (0..1e12);
+ mode in normal|boost|travel|highway. Relay accepts only from the entity's current owner,
+ drops dead ships, drops it on authority transfer, forwards for 0.75 s like NAV2, never back
+ to the owner, and emits it before NAV2 in each snapshot. NAV/NAV2 are unchanged.
+ Compatibility: an older relay drops NMODE (unknown kind) and still forwards NAV2; an older
+ client ignores NMODE (no handler, no side effect). A new receiver without NMODE falls back to
+ speed inference. Mixed versions therefore keep working; matched packages remain the norm.
+
+TESTS (WSL Ubuntu 24.04, LuaJIT via lupa; rsync of this worktree, dev/bootstrap.py, dev/check.py)
+ 647 tests: 646 pass, 1 known unrelated failure (test_world_launcher
+ ...retry_retains_evidence, WSL mtime race; same as the 8a56415 baseline 635/636).
+ New: relay NMODE validation/order/epoch fence and legacy NAV2 (test_coop); render-clock slew,
+ retained clock, drift leak, mode-aware discontinuity rule, classification (test_motion);
+ sender NMODE per NAV2, highway pose-only without velocity/fence churn including per-frame zone
+ changes and resume after the hold, legacy fast inference, diagnostics inert/rate-limited
+ (test_coop_adapter). Adjusted: test_fire2 delayed-reset case now asserts the retained mapping
+ (-40 instead of re-baselined -38); its guarantees (no backward cutoff, no replay, fresh edge
+ plays) are unchanged. These are engine doubles, not native evidence.
+
+NATIVE TEST PLAN (disposable world, profile 45841, both directions = host pilots/guest observes
+and guest pilots/host observes; motion_diagnostics = 0.5 in BOTH test configs)
+ 1 Normal flight 300 m/s, 5 min: no visible change from 7.5.0; MOTION_DIAG mode=normal,
+   velocity=native, drift small, fences stable; NPC target speed of the replica nonzero.
+ 2 Boost and travel drive in open space, observer 20+ km away and observer nearby: mode
+   boost/travel, velocity=off, writes==frames, no backward jumps on the map or in view.
+ 3 Local highway entry, travel, exit, observer far and near; and both players in highways.
+   mode=highway, fences constant during the run, resets 0, no flicker on map or in view.
+ 4 Superhighway / gate to another sector: one warp at arrival, then smooth; no oscillation.
+ 5 Long session (60 min) at mixed speeds: lag stays near the profile delay (drift leak).
+ 6 Regression: docking, ship exchange/boarding, FIRE2 at the replica after a highway exit,
+   pause/resume during travel.
+ Record: MOTION_DIAG excerpts per step, human observation, both logs; compare with the 7.5.0
+ report. A pass in one direction does not prove the other.
+
+LIMITS
+- No native run: the effect on the reported jumps is unproven; observer low attention (H4) may
+  still contribute and is task A's area.
+- In boost/travel/highway the replica has no native velocity, so NPC lead aim and the target
+  speed readout of a remote player at speed are not meaningful (they were not reliable there).
+- Speed thresholds, delays and caps are engineering estimates from source, not measured values.
+- An owned but unpiloted ship cannot report boost/travel (no API for it found); highway is
+  reported for any owned ship.
+- RE details (addresses, layouts) live in the private x4-re workspace report motion.md.

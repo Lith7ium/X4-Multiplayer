@@ -78,7 +78,7 @@ xml='''<?xml version="1.0" encoding="utf-8"?>
    <do_if value="$ship.dock and $ship.dock.container != $station"><undock ship="$ship"/></do_if>
    <do_if value="$ship.assigneddock and $ship.assigneddock.container != $station"><remove_docking_request ship="$ship" container="$ship.assigneddock.container" immediate="true"/></do_if>
    <do_if value="$ship.distanceto.{$station} lt 8km and not $ship.dock">
-    <do_if value="not $ship.assigneddock"><request_docking ship="$ship" container="$station" requiretrading="true" allowplayeronly="true" queuedresult="$queued" grantedresult="$granted"/></do_if>
+    <do_if value="$ship.owner != faction.player"><set_owner object="$ship" faction="faction.player"/></do_if><do_if value="not $ship.assigneddock"><request_docking ship="$ship" container="$station" requiretrading="true" allowplayeronly="true" queuedresult="$queued" grantedresult="$granted"/></do_if>
     <do_if value="$ship.assigneddock"><dock ship="$ship"/></do_if>
    </do_if>
    <do_if value="Market.$lastRemoteDock != $m">

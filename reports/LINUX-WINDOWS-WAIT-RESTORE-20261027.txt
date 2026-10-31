@@ -1,0 +1,114 @@
+Linux/Windows saved WaitAction restoration comparison — 27 October 2026
+
+Scope and result
+Both inspected executables implement the same important source of initial-state
+entropy: restoring a blocked random wait evaluates its range again, using the
+restored action-start time as the deadline base. The saved blocking index is a
+version-filtered ordinal, not the compiled program slot. An earlier installed
+deadline can win over the newly calculated deadline. This is static evidence;
+it does not prove which selected wait was restored in a native run, or establish
+Linux/Windows simulation parity. No engine source, hooks or runtime were changed.
+
+The binaries are the independently pinned Linux and Windows X4 9.00,
+Steam build 23660954 / in-game build 611726. The accompanying JSON records image
+hashes and exact contiguous function-root hashes. Linux root extents are bounded
+by the next known start and exclude separately emitted cold fragments. Labels
+were search aids; the conclusions below follow actual callsites and data flow.
+The Windows comparison is reports/NATIVE-WAIT-RESTORE-OBSERVER-20261027.txt and
+NATIVE-WAIT-IMPORT-PINS-20261027.json from world-motion commit fc37405.
+
+Import and saved-index selection
+Linux AIDirector import at 0x10de190 contains the relevant context and ExecState
+import inline, unlike the separately named Windows 0x1063750 / 0xb5a060 roots.
+At 0x10de5d6 it reads the script descriptor's version at +0x58. A present saved
+version attribute is parsed, clamped to at least zero, and written to +0x58 at
+0x10de684. The descriptor is installed at Linux context+0xd0 (Windows +0xd8).
+
+The imported ExecState is constructed at 0x10df095 through 0xd633a0, with the
+compiled program and saved version. The XML blocking index is parsed at
+0x10df23c. The loop at 0x10df260..0x10df284 visits every native program node,
+invokes node vtable+0x10 with the saved version, and increments the eligible
+ordinal only for a true result. The compiled slot counter advances for every
+node. A match writes the compiled slot to ExecState+0x20 at 0x10e055b and marks
+ExecState+0x30 blocked. The WaitAction predicate at 0xd58ac0 returns whether
+action+0x68 is no greater than the supplied version. Thus the raw XML ordinal
+must never be treated as a native action PC or compared across different script
+versions without this selection step.
+
+At 0x10df2bc the current thread simulation clock is the default for a missing
+saved time. XML double reader 0x1df4a70 reads the time attribute at 0x10df2d0;
+0x10df2d9 stores the result into ExecState+0x28. That reader returns its incoming
+default if the attribute is absent/empty and otherwise uses the engine's own
+decimal parser 0x1a3b1a0, not a direct operating-system strtod call. Bit parity of
+that parser with Windows was not established by this bounded audit.
+
+The selected blocking action is obtained through 0x109b210 and dispatched at
+0x10df368, returning 0x10df36b to an AL success check. SysV inputs are RDI=action,
+RSI=ExecState and RDX=context Value. Linux WaitAction vtable 0x3b2a650 has restore
+slot +0x30 -> 0x10c12b0; Windows vtable 0x2c68d78 uses +0x28 -> 0x10a50d0.
+These are equivalent logical calls with different vtable and object layouts.
+
+Wait deadline and clock semantics
+Linux WaitAction's Range starts at action+0x70 and its range mode is +0x78;
+Windows uses +0x78 and +0x80. Linux restore 0x10c12b0 reads ExecState+0x28,
+evaluates the range through 0x1d9b750 at 0x10c1302, and adds saved start at
+0x10c1307. Its normal Execute at 0x10c11b0 instead uses current thread time
+FS:-0x2728. Windows has the same saved-time/current-time distinction, with
+the current simulation clock at its thread block+0x300.
+
+After blocking setup, Linux restore compares the candidate with the exact
+double sentinel -0.9999, then with context+0x190. A valid existing deadline
+less than or equal to the candidate is retained. Otherwise it writes reason
+2 to context+0x18c, writes the new deadline to +0x190 and enqueues it through
+0x10c1080. Windows 0x10668b0 implements the corresponding retention rule.
+Consequently after_deadline minus saved_start is not necessarily the sampled
+duration. Range mode zero performs blocking setup without this random deadline
+calculation. Context recovery is typed: Linux 0x1e04890 requires Value tag0x66
+and a nonnull payload, then subtracts 0xa0 to recover the context base.
+
+Random and numeric path
+Linux 0x1d9b750 requests numeric type8 from range evaluator 0xcf4f30. Both type8
+and type9 use double payloads in its return conversion. For a positive min/max
+width, the evaluator uses an explicitly supplied RNG state first, then a seed
+attribute, then the current thread RNG at FS:-0x2720. Windows 0xc58da0 follows
+the same preference and falls back to its thread block+0x318. A nonpositive
+range returns the minimum without this sampling call; the integral-width +1
+bitmap excludes type8.
+
+For the inspected uniform positive finite path, both implementations narrow
+the double width to float, sample in float, widen that result to double, add the
+minimum in double, then add the saved start in double. Linux 0x1a48e30 inlines
+the RNG step that Windows 0x14ddd10 calls at 0x14ddc90. Both advance the 64-bit
+state using multiply 0x5851f42d4c957f2d, add 0x14057b7ef767814f, rotate-right30,
+then convert the unsigned low32 bits to float and multiply by exact float
+2^-32 and the float width. Uniform distribution1, or sample-count <=1, returns
+that first draw. No FMA or x87 arithmetic occurs on this inspected path.
+
+The often suggested Linux 0x1a491c0 / Windows 0x14ddc90 label match is not an
+ABI match: the Linux function uses implicit thread state whereas the Windows
+function receives a state pointer. The correct explicit-state Linux behavior
+is inside 0x1a48e30. Hooking solely from the label would be unsafe.
+
+No arithmetic discrepancy was established for equal finite range inputs,
+equal RNG state and equal floating-point environment. Thread RNG initialization,
+earlier draw order, thread selection, expression inputs and MXCSR remain separate
+runtime questions. NaN/invalid-range error paths and arbitrary distribution
+modes were not proven portable. Re-evaluation itself is sufficient to explain
+different initial deadlines when the restoring thread's RNG differs.
+
+Concrete next diagnostic
+Observe the import restore boundary and the selected WaitAction before/after,
+without invoking expressions or getters: saved owner/context identity, script
+version, selected native slot, saved start bits, mode, thread ID, TLS time and
+RNG before/after, existing/resulting deadline and reason, and normal return.
+Retain saved XML ordinal as a separate field. Record the candidate at the
+existing range-return boundary only if exact sampled duration becomes necessary;
+do not infer it from the possibly retained deadline. Correlate these records with
+the first native IRQ/caller and manager enqueue. A post-load admission barrier
+alone cannot reverse random wait reconstruction or work already queued by Load.
+
+Private evidence is retained under the static worktree's .local/linux-static:
+lin-10de190.asm, lin-10c12b0.asm, lin-10c11b0.asm, lin-d633a0.asm,
+lin-109b210.asm, lin-d58ac0.asm, lin-1df4a70.asm, lin-1a3b1a0.asm,
+lin-1d9b750.asm, lin-cf4f30.asm and lin-1a48e30.asm, plus corresponding
+Windows range/RNG roots. These files and raw engine excerpts are not committed.

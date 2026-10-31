@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Disposable native gate fixture. Both games create and simulate their own
+     seeded 6v6 actors. There is no host pose/health replication in this test. -->
+<mdscript name="X4LAN_NativeGate" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="Spawn" namespace="this">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeGate'" control="'Spawn'"/></conditions>
+   <actions>
+    <do_if value="player.module == 'custom_creative' and player.ship">
+     <set_value name="$ships" exact="[]"/>
+     <warp object="player.ship" sector="player.sector">
+      <position x="0m" y="100km" z="0m"/><rotation yaw="0deg" pitch="0deg" roll="0deg"/>
+     </warp>
+     <do_all exact="12" counter="$i">
+      <create_ship name="$ship" macro="if $i le 6 then macro.ship_arg_s_fighter_01_a_macro else macro.ship_xen_s_fighter_01_a_macro" sector="player.sector" seed="4711 + $i">
+       <owner exact="if $i le 6 then faction.argon else faction.xenon" overridenpc="true"/>
+       <loadout><level exact="1.0"/><variation exact="0"/></loadout>
+       <pilot><select faction="if $i le 6 then faction.argon else faction.xenon" tags="if $i le 6 then tag.aipilot else tag.pilot"/></pilot>
+       <position x="if $i le 6 then -400m else 400m" y="100km" z="500m + (($i - 1) % 6) * 100m"/>
+       <rotation yaw="if $i le 6 then 90deg else -90deg"/>
+      </create_ship>
+      <append_to_list name="$ships" exact="$ship"/>
+      <create_order object="$ship" id="'Wait'" default="true"/>
+      <raise_lua_event name="'X4LAN_NativeGate.Actor%s'.[$i]" param="$ship"/>
+     </do_all>
+     <raise_lua_event name="'X4LAN_NativeGate.Ready'" param="$ships.count"/>
+     <debug_text text="'[X4LAN] NATIVE_GATE FIXTURE spawned=%s'.[$ships.count]"/>
+    </do_if>
+   </actions>
+   <cues>
+    <cue name="Engage">
+     <conditions><event_ui_triggered screen="'X4LAN_NativeGate'" control="'Engage'"/></conditions>
+     <actions>
+      <do_all exact="$ships.count" counter="$i">
+       <create_order object="$ships.{$i}" id="'Attack'" immediate="true">
+        <param name="primarytarget" value="$ships.{if $i le 6 then $i + 6 else $i - 6}"/>
+        <param name="pursuetargets" value="true"/>
+        <param name="allowothertargets" value="false"/>
+       </create_order>
+      </do_all>
+      <debug_text text="'[X4LAN] NATIVE_GATE FIXTURE engaged'"/>
+     </actions>
+    </cue>
+   </cues>
+  </cue>
+  <cue name="RestoreActors" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeGate'" control="'RestoreActors'"/></conditions>
+   <actions>
+    <do_if value="Spawn.$ships? and @Spawn.$ships.count == 12">
+     <do_all exact="12" counter="$i"><raise_lua_event name="'X4LAN_NativeGate.Actor%s'.[$i]" param="Spawn.$ships.{$i}"/></do_all>
+     <raise_lua_event name="'X4LAN_NativeGate.Ready'" param="12"/>
+     <raise_lua_event name="'X4LAN_NativeGate.Restored'" param="player.age"/>
+    </do_if>
+    <do_else><raise_lua_event name="'X4LAN_NativeGate.Missing'"/></do_else>
+   </actions>
+  </cue>
+  <cue name="InspectAttention" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeGate'" control="'InspectAttention'"/></conditions>
+   <actions>
+    <set_value name="$nearby" exact="0"/>
+    <do_all exact="Spawn.$ships.count" counter="$i">
+     <set_value name="$ship" exact="Spawn.$ships.{$i}"/>
+     <do_if value="$ship.attention ge attention.nearby"><set_value name="$nearby" operation="add" exact="1"/></do_if>
+     <debug_text text="'[X4LAN] NATIVE_SNAPSHOT ACTOR id=%s nearby=%s attention=%s distance=%s'.[$i,$ship.attention ge attention.nearby,$ship.attention,$ship.distanceto.{player.ship}]"/>
+    </do_all>
+    <raise_lua_event name="'X4LAN_NativeGate.Attention'" param="$nearby"/>
+   </actions>
+  </cue>
+ </cues>
+</mdscript>

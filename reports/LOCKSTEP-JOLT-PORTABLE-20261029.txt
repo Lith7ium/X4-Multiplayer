@@ -1,0 +1,280 @@
+PORTABLE JOLT: ONE PHYSICS ON WINDOWS AND LINUX
+29 October 2026 | Offline | branch contrib/ferrite-jolt-portable on 3d106479
+
+SCOPE
+
+Brief: make physics identical across the Windows and the Linux X4 by replacing
+the embedded Jolt Physics with our own builds of Jolt 5.5.0, compiled with
+JPH_CROSS_PLATFORM_DETERMINISTIC, one per platform ABI, and redirecting both
+executables' Jolt functions to them (key native_gate_jolt_portable, Windows stop
+reason 165, Linux side in the Linux gate). Feasibility verdict with numbers
+first, then build, redirect and an offline cross-platform test.
+
+No game, lane, relay or remote machine was started or contacted. Both
+executables were only read; the Linux one was additionally mapped into an
+offline test process (below). Nothing of the game is stored in the repository:
+the test loader reads the owned executable at run time, size and SHA-256
+pinned. Builds: X4.exe 55,412,768 B, SHA-256 19750a65...6891 (MSVC 14.29);
+Linux X4 60,459,280 B, SHA-256 113f73d7...045f20 (GCC 14.2). Labels: PROOF =
+executed or read from both instruction streams; INFERENCE = reasoned, not run;
+COUNT = mechanical census (tools named below, rerunnable).
+
+VERDICT
+
+1. Our builds agree across platforms. PROOF: Jolt 5.5.0 (tag commit 23dadd0e)
+   built with MSVC 19.44 (MSVC ABI) and with g++ 13.3 (Itanium ABI), both
+   deterministic, run the same 600-frame scenario bit-identically: 611 of 611
+   output lines, final 4f3ae95571a6944d, with 1 and 4 job threads. The MSVC
+   /fp:fast control build differs from frame 1.
+2. Linux needs no redirect. PROOF: X4's own, unmodified Linux Jolt, driven by
+   the same scenario inside a test process, produces the same 611 lines
+   (final 4f3ae95571a6944d) with 1 and 4 threads. X4 Linux was built with
+   GCC without fast-math and without FMA (0 FMA instructions), which for
+   Jolt's source gives exactly the deterministic semantics; the determinism
+   define only adds the version bit. Redirecting all 2,975 redirectable X4
+   Linux Jolt functions to our build also gives the same 611 lines (the
+   redirect mechanism itself works). Scope limit: the scenario exercises the
+   shape kinds, constraints, character and queries listed below, not every
+   Jolt function X4 calls.
+3. Windows needs the redirect, and that is a mapping project. PROOF (static,
+   LOCKSTEP-CROSSPLATFORM-FP-INVENTORY): X4.exe's Jolt is fast-math code
+   (SphereShape volume (r*r)*(r*4.18879) versus ((r*r)*r)*4.18879; 66 of 74
+   paired Jolt functions have different FP profiles). X4.exe has no symbols
+   and its Jolt classes no RTTI, so every redirected entry needs a verified
+   name. The prototype matcher maps 586-729 of 2,621 candidate functions at
+   90-96% agreement with the independent x4-re pair table; a redirect needs
+   all entry points at ~100%. Feasible, but not done in this pass.
+4. ABI and layouts match. PROOF: our MSVC and g++ layouts equal X4.exe's and
+   X4 Linux's (SphereShape::mRadius +0x30 / +0x2c, read from both
+   executables' code; our g++-compiled scenario code operates on X4 Linux's
+   Jolt objects for 600 frames without a single differing bit).
+5. Residue outside Jolt is small. COUNT (Linux): 401 engine functions carry
+   Jolt code inline, only 12 of them with FP arithmetic (238 scalar, 169
+   packed ops); 30 engine classes derive from Jolt classes, 6 of them with FP
+   in their overrides (19 scalar, 111 packed). On Linux this residue is
+   already strict-IEEE; on Windows it stays fast-math after a Jolt redirect
+   and belongs to the engine reimplementation list (section RESIDUE).
+
+THE BUILDS (tools/dev/jolt_portable_build.py)
+
+fetch clones tag v5.5.0 from github.com/jrouwe/JoltPhysics into
+.local/jolt/JoltPhysics-5.5.0 and refuses any other commit or local change;
+third_party/JoltPhysics-5.5.0 holds the MIT licence and the pin, NOTICE.txt and
+tools/distribution/THIRD-PARTY.txt name it. All 133 Jolt units are compiled in
+X4's configuration: single precision, JPH_OBJECT_STREAM (X4's feature word
+0x400), no asserts/profiler/debug renderer, SSE2 baseline (no SSE4.1/AVX/FMA),
+NDEBUG, static runtime on Windows.
+  deterministic  JPH_CROSS_PLATFORM_DETERMINISTIC; MSVC /fp:precise /fp:except-;
+                 g++ -ffp-contract=off -msse2 -mfpmath=sse
+  control        no define; MSVC /fp:fast (X4.exe-like); g++ default
+  mapping        Windows: control plus /GL and /LTCG like X4.exe, linked whole
+                 with a map (jolt_all.exe), only for the Windows matcher
+The determinism define changes no class layout (checked with layout probes on
+both compilers) but sets a feature bit: X4's RegisterTypesInternal aborts on a
+different version word, so code that calls X4's Jolt (the harness) uses the
+control configuration, which under g++ produces the same code paths.
+
+THE SCENARIO (src/native/jolt/jolt_determinism_scenario.cpp, our code)
+
+160 dynamic bodies from a fixed LCG over box, sphere, capsule, cylinder,
+convex hull, static and mutable compound (children modified during the run),
+rotated-translated, offset-centre-of-mass and mesh shapes; a kinematic platform;
+hinge, distance and point constraints; a CharacterVirtual with ExtendedUpdate;
+impulses, torques and velocity changes; ray casts and shape casts each frame;
+JobSystemThreadPool. Per frame it prints a hash over all body positions,
+rotations and velocities and a hash over the query results; every 60 frames a
+hash of PhysicsSystem::SaveState; at the end a hash over everything.
+
+Results (.local/jolt-portable/results, this PC):
+  Windows MSVC deterministic, 4 / 1 threads   final 4f3ae95571a6944d
+  Linux g++ deterministic,    4 / 1 threads   final 4f3ae95571a6944d (identical)
+  Linux g++ control                           identical to deterministic
+  Windows MSVC control (/fp:fast)             final 8d9352fd1079e836, differs at
+                                              frame 1 (body hash)
+  X4 Linux's own Jolt, 4 / 1 threads          identical (611/611 lines)
+  X4 Linux Jolt, 2,975 functions redirected   identical (611/611 lines)
+
+THE LINUX TEST HARNESS (src/native/jolt/x4_linux_jolt_loader.cpp, test only)
+
+jolt_portable_build.py x4-harness --x4 X4 [--redirect] and x4-run. The
+loader maps the pinned executable's PT_LOAD segments at their fixed addresses
+in a test binary linked above 0x10000000, gives every thread the executable's
+0x2740-byte TLS block (the test program's only thread-local data, so the
+local-exec offsets land in it), resolves imports against the process, points
+the executable's own operator new/delete at the process's, runs its merged
+static initializer 0x9a2d70 (Jolt's file-local tables such as cCylinderTopFace
+live there; without it cylinders diverged at frame 42) and leaves its exit
+handlers alone (_Exit). The scenario's Jolt references are bound to the
+executable's .dynsym addresses by a generated linker script. With --redirect
+our deterministic Jolt is linked in renamed to namespace QPH (same mangled
+length); the 32 shared data objects (allocator hooks, Factory::sInstance,
+PhysicsMaterial::sDefault, Body::sFixedToWorld, CollisionGroup::sInvalid,
+dispatch tables, shape registry, constant tables) stay the executable's, and
+X4_JOLT_REDIRECT=all patches 2,975 function entries (14-byte absolute jump, or
+a 5-byte jump to a thunk; 40 stubs under 5 bytes left, 1 function without a
+twin, the two version checks kept). This is the offline model of an in-game
+redirect; on Linux it is not needed (verdict 2).
+
+INLINING, VTABLES, ALLOCATOR, JOBS (COUNT: tools/dev/jolt_portable_feasibility.py)
+
+Linux X4 (names from .dynsym):
+  Jolt functions             3,155 (2,516 JPH members, 414 templates, 225
+                             unnamed functions only Jolt calls), 1.51 MB
+  engine -> Jolt calls       135 sites in 91 engine functions to 87 Jolt
+                             functions (BodyInterface, shape settings Create,
+                             MutableCompoundShape, CharacterVirtual,
+                             PhysicsSystem Init/Update, NarrowPhaseQuery,
+                             RegisterTypes ...)
+  Jolt inline in engine      401 engine functions (allocator hooks 347,
+                             Jolt vtables 194, Jolt statics 19, Jolt function
+                             addresses 5); FP arithmetic in 12 of them (238
+                             scalar, 169 packed ops); with the 91 callers 469
+                             functions, 1,218 FP ops of 76,832 engine FP ops
+  engine subclasses          30 classes (namespace XPhys: XJobSystem/XBarrier,
+                             XTempAllocator, XBroadphaseLayer, object/layer/
+                             body/shape/group filters, XContactListener,
+                             XBodyActivationListener, SysCharacter, JoltFileStream,
+                             collectors, and the shapes XWrapperShape,
+                             XDefinedMassShape, XCompoundChildShape,
+                             XNPCCompoundChildShape, XPartCompoundChildShape);
+                             37 vtables, 236 engine-override slots, 51 slots
+                             still Jolt's
+Windows X4.exe (tools/dev/jolt_portable_winmap.py and scratch counts):
+  69,071 functions; only 20 Jolt classes have MSVC RTTI (Jolt built without
+  /GR); 26 engine classes with Jolt bases have RTTI. The x4-re pair table
+  names 151 of the Linux Jolt functions on Windows (128 high, 23 medium). The
+  matched Jolt vtables lie together in .rdata, 0x2ca3360-0x2caa3c8. JPH::Free
+  is the qword at 0x38f53f8 (from matched function pairs); the neighbouring
+  qwords 0x38f53d8-0x38f5400 are used like the other hooks; 395 X4.exe
+  functions reference that block (inline Jolt plus Jolt's own; Linux: 347).
+
+How a redirect meets them:
+  vtables / RTTI   The redirect patches function entries, not vtables. Every
+                   vtable slot that still points at a Jolt function (X4's own
+                   classes and the engine subclasses' 51 inherited slots)
+                   reaches our code through the patched entry; engine
+                   overrides stay engine code. Jolt's own RTTI and Factory
+                   stay the executable's (shared data), so objects created
+                   through X4's factory get X4 vtables whose slots lead to
+                   our functions.
+  allocator        X4 sets JPH::Allocate/Free/... to the engine allocator. Our
+                   build must use the executable's hook variables (Linux
+                   harness: bound by the linker; Windows: patch our code's
+                   references to them, or copy the values after X4's
+                   RegisterDefaultAllocator).
+  job system       X4 brings XJobSystem (JobSystemWithBarrier) and
+                   XTempAllocator: Jolt calls them through vtables, they stay
+                   engine code, no FP. JobSystemWithBarrier's own functions are
+                   Jolt functions and are redirected with the rest.
+  statics          Body::sFixedToWorld, PhysicsMaterial::sDefault,
+                   CollisionGroup::sInvalid, Factory::sInstance and the
+                   collision dispatch tables must be one object for X4's inline
+                   code and our functions. Inline engine code reads
+                   CollisionDispatch::sCollideShape directly, so the
+                   executable's tables must hold our functions after our
+                   registration.
+
+RESIDUE ON WINDOWS (engine functions to reimplement in shared code, if wanted)
+
+A Jolt redirect makes Jolt's own functions identical. These stay engine code
+compiled with X4.exe's fast-math options:
+  - engine functions with Jolt code inline and FP arithmetic: 12 on Linux
+    (0x1473750, 0x16417b0, 0x1a6dc30, 0x1a8f1d0, 0x1ae9f00, 0x1aebe60,
+    0x1df0920, 0x1e57f70, 0x2007d40, 0xee8830, 0xeee3a0, 0xefde90; four of
+    them sit inside the Jolt address range and may be Jolt clones without a
+    symbol). X4.exe was built with link-time code generation, so Windows may
+    have more; not counted yet.
+  - engine subclasses with FP in their overrides: 6 classes, SysCharacter,
+    XCollideShapeCollector, XCastShapeCollectorClosestHit,
+    XPartCompoundChildShape, XDefinedMassShape, XNPCCompoundChildShape
+    (19 scalar, 111 packed ops in their override functions).
+Together about 20-40 functions, small next to the engine-wide class C
+(~3,000 simulation functions, FP inventory). Packed SSE intrinsic math (Jolt's
+Vec3/Mat44 code) is compiled one instruction per intrinsic and is not changed
+by /fp:fast (INFERENCE); the scalar parts are what differ.
+
+WINDOWS MAPPING: STATE AND PLAN
+
+tools/dev/jolt_portable_winmap.py compares X4.exe with our mapping build
+(same source, same compiler family, MSVC layouts; extents from .pdata plus
+frame-less leaf functions; features: mnemonic sequence, ordered calls,
+virtual-call slots, struct displacements, float and integer constants,
+strings, imports). Rounds: unique strings, unique constant keys, vtables,
+call-graph neighbours, with a score threshold and a margin. Our candidate set
+is limited to the Jolt functions the Linux X4 links (2,621 in the LTCG build).
+Results against the x4-re pair table (itself inferred; some of its Jolt pairs
+are visibly wrong):
+  threshold 0.85   586 pairs, 55 vtables, 79 agree / 3 disagree
+  threshold 0.80   670 pairs, 63 vtables, 96 agree / 7 disagree
+  threshold 0.70   729 pairs, 64 vtables, 108 agree / 12 disagree
+A structural vtable pass (equal length, mean slot similarity) places 94 of 231
+Jolt vtables with score >= 0.75 and margin >= 0.05 (1,239 slots); sibling
+classes with identical inherited slots (constraint settings) need the
+neighbourhood order in .rdata to separate them.
+
+Plan to a Windows redirect (default off, key native_gate_jolt_portable,
+stop reason 165 on any mismatch):
+  W1 Map the entry points, not every function: (a) all Jolt vtables, by
+     structure plus .rdata order plus slot anchors; their slots name the
+     virtual functions exactly; (b) the X4.exe Jolt functions the engine calls
+     directly, named twice independently: by our build's similarity and by
+     the Linux engine call sites (135 sites) carried over through x4-re's
+     engine pairs (the k-th call in a paired engine function); (c) function
+     pointers Jolt registers at run time (dispatch tables, shape registry):
+     re-registered by our own RegisterTypes and copied into X4's tables.
+     Internal X4 Jolt functions reached only from redirected ones become dead
+     and need no name.
+  W2 Verify offline on Windows like on Linux: load X4.exe into a test process,
+     patch the mapped entries to our deterministic build, drive the scenario
+     through X4's entry points: it must reproduce 4f3ae95571a6944d bit for
+     bit; reversed (our entries to X4's functions) it must stay close to our
+     /fp:fast control and must not crash.
+  W3 Shared statics on Windows: our DLL references its own statics RIP-
+     relatively; generate the relocation list for the shared objects at build
+     time and point them at X4's (DLL placed within 2 GB of X4.exe), or copy
+     values for the read-only ones.
+  W4 MSVC STL: X4.exe uses MSVC 14.29's static std::mutex (_Mtx_* with an
+     internal vtable), ours 14.44 (constexpr constructor). Objects created by
+     one and locked by the other must be safe: build with
+     _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR and route _Mtx_* to X4's, or build
+     with the 14.29 (v142) toolset (needs a Build Tools component install on
+     this PC; not done).
+  W5 Gate module: pin table {RVA, length, SHA-256} for every patched entry,
+     install before the physics system is created, stop 165 on any pin
+     mismatch; our Jolt and its licence in the package.
+Linux side in the Linux gate: verify the pin (build SHA already pinned by the
+gate) and the Jolt version word at VerifyJoltVersionIDInternal 0x1b0aab0;
+nothing to patch. The loader's redirect code is the template if a future
+Linux build ever needs it.
+
+LIMITS
+
+- The scenario is broad but not X4's workload: X4's XPhys shapes, its contact
+  listener and its queries go through engine code. Agreement of X4 Linux's
+  Jolt with ours is proven for the functions the scenario reaches; the rest
+  rests on the same compiler semantics (INFERENCE, strong: same source, GCC
+  without fast-math, no FMA).
+- Linux results are from WSL Ubuntu 24.04 (glibc 2.39). Jolt computes its own
+  trigonometry; its only libm calls are sqrtf errno fallbacks (94) and fmodf
+  (6), both exact.
+- No Windows redirect module exists yet; nothing was patched in a game.
+
+FILES
+
+  tools/dev/jolt_portable_build.py        fetch, build, run, compare, x4-harness, x4-run
+  src/native/jolt/jolt_determinism_scenario.cpp   the scenario (our code)
+  src/native/jolt/x4_linux_jolt_loader.cpp        test-only loader for the owned Linux X4
+  tools/dev/jolt_portable_feasibility.py  Linux census above (JSON)
+  tools/dev/jolt_portable_winmap.py       Windows matcher prototype
+  tests/test_jolt_portable.py             pin, licence, flags, renaming, compare,
+                                          recorded results when present
+  third_party/JoltPhysics-5.5.0/          LICENSE (MIT) and PIN.txt
+
+Reproduce (Windows, then WSL):
+  python tools/dev/jolt_portable_build.py build --variant deterministic
+  python tools/dev/jolt_portable_build.py run --variant deterministic --jobs 4 --out .local/jolt-portable/results/windows-det-j4.txt
+  python3 tools/dev/jolt_portable_build.py build --variant deterministic
+  python3 tools/dev/jolt_portable_build.py run --variant deterministic --jobs 4 --out .local/jolt-portable/results/linux-det-j4.txt
+  python3 tools/dev/jolt_portable_build.py x4-harness --x4 <owned X4> [--redirect]
+  python3 tools/dev/jolt_portable_build.py x4-run --x4 <owned X4> [--redirect all] --out .local/jolt-portable/results/x4linux-own-j4.txt
+  python tools/dev/jolt_portable_build.py compare A B

@@ -1,0 +1,222 @@
+SHARED SAVED-EULER IMPORT CORRECTION DESIGN - 2026-10-27
+
+Status
+
+Source-only proposal. No native hook, executable mutation, game launch or frozen
+artifact change is authorized by this report. Confirmed native divergence and
+its separate pins remain in LINUX-WINDOWS-ROTATION-IMPORT-20261027.txt/JSON.
+The proposed common evaluator is independently authored; no native machine code
+or decompiled implementation is distributed. VPS agent owns the pure reference
+and portable arithmetic tests (eca3685). This report owns native boundaries,
+input semantics, lifetime and proposed refusal behavior.
+
+Numeric input is part of the contract
+
+Both native XML readers select the first matching attribute and use +0 for an
+absent or empty rotation attribute. Windows 0x129150 calls 0x14c2bd0; Linux
+0x1df0550 calls 0x1a3ac40. Both accumulate in binary64, then narrow to binary32.
+The decimal fraction accumulation differs, as in the earlier saved-time audit.
+A shared trigonometric function alone cannot guarantee equal inputs.
+
+Exact native-parser instruction emulation of 2,024 synthetic inputs found 338
+unequal results among 2,000 deliberately generated binary32 midpoint decimals.
+This is an adversarial test, not an estimate of real-save prevalence. Example:
+  text 0.8875748217105865478515625
+  Windows degree bits 3f63381b, Linux degree bits 3f63381a
+  after degree conversion: 3c7dce66 versus 3c7dce65.
+
+Ordinary samples including 0.05, 0.0166667, 0.0333333, 6.91667, 6.31667, 0.1,
+45.5 and 89.9999 agree as binary32. The independent faction census of the exact
+owned snapshot found 43,095 unique explicit yaw/pitch/roll strings among 374,230
+values in 230,767 rotation elements. Every string was supported by the native
+parser emulator and every pair of binary32 results matched. That is actual-save
+static arithmetic evidence; no live parser output was captured by this census.
+It does not eliminate the synthetic counterexample for other saves.
+
+The proposed common input rule is explicit, not a promise to duplicate either
+native parser: at most 256 ASCII characters, optional leading minus, at most one
+decimal point, and at least one digit. Missing/empty attributes map to +0 and
+explicit -0 retains its sign. Parse the exact decimal rational and round once
+to binary32, nearest-even; reject nonfinite or overflowing results. Reject plus,
+whitespace, exponents, suffixes and other grammar in this initial contract.
+Native tests accept some leading spaces and a semicolon terminator; those are
+intentionally unsupported by the initial common rule. Native '+90' and malformed
+suffixes return the supplied zero default in the tested reader; the common mode
+must refuse rather than silently inherit that fallback.
+
+Multiply degree bits by the exact binary32 constant 0x3c8efa35 with one explicitly
+defined nearest-even binary32 multiplication. Do not replace it with an implicit
+host double pi/180 or host strtof. A future broader grammar needs a separately
+reviewed input version, preflight and goldens.
+
+Basis convention and independent validation
+
+Let p, y and r be pitch, yaw and roll radians; sp/cp, sy/cy and sr/cr their sine
+and cosine. The three stored vectors are mathematically:
+  v0 = (cr*cy + sr*sp*sy, -sr*cp, -cr*sy + sr*sp*cy)
+  v1 = (sr*cy - cr*sp*sy,  cr*cp, -sr*sy - cr*sp*cy)
+  v2 = (cp*sy, sp, cp*cy).
+These are stored basis vectors; no extra row/column or handedness convention is
+assumed by the adapter. The initial native positive-yaw example points the first
+basis toward negative z and the third toward positive x.
+
+Native Linux staged vector products were independently derived from 0x1e02200
+and checked against instruction emulation for eight mixed-angle cases, including
+all three angles nonzero and negative. All nine scalar bits matched the staged
+expression with identical supplied sin/cos values. Private evidence:
+ .local/linux-static/audit_rotation_composition.py
+ .local/linux-static/rotation-composition-check.json
+This validates the convention independently of the new reference implementation.
+The small convention test supplies rounded Python-math trig outputs; it is not
+a native-library accuracy result.
+
+The new common evaluator deliberately fixes one arithmetic grouping, binary32
+rounding and signed-zero policy for both platforms. It need not reproduce both
+incompatible native groupings. All trigonometry, degree conversion and matrix
+rounding must be defined without platform libm or compiler-dependent FMA. The
+VPS integer-only reference and independent high-precision oracle are the first
+step. A shared native C implementation still requires separate cross-compiler
+bit tests before linking either engine adapter; Python execution on two hosts
+is not native compiler verification.
+
+Minimal proposed sites and ABIs
+
+Windows: change only the rel32 displacement of the tail JMP at 0x47f828, which
+currently targets XML rotation reader 0x49cbb0. The containing aligned 16-byte
+word starts at 0x47f820; displacement bytes are offsets 9..12. The offset reader
+has already restored its stack frame before this tail transfer. The adapter
+receives RCX=basis output and RDX=the selected rotation XML node. The original
+caller return address remains on the stack. Select only Agent-import returns
+0xe86d18 and 0xe87101, corresponding to current and other saved banks.
+
+This site covers the Windows inlined rotation computation, unlike patching the
+standalone matrix function 0x34bff0. Patching other-bank CALL 0xe870fc using one
+aligned-16 displacement CAS would be invalid because its displacement crosses
+the boundary. The proposed tail site avoids that problem. All other callers
+of this shared tail continue to the original unchanged and are counted as
+outside the selected scope.
+
+Linux: the two direct offset-reader CALLs at 0x13e67fb and 0x13e69f3 target
+0xd4d870. Their aligned words start at 0x13e67f0 and 0x13e69f0; displacement
+bytes occupy offsets 12..15 and 4..7 respectively. Both fit one aligned-16 CAS.
+The adapter receives RDI=bank output and RSI=offset XML. It selects the rotation
+child using the native first-match semantics. The expected call returns are
+0x13e6800 and 0x13e69f8. The offset reader includes numeric conversion and its
+tail to 0x1e02200, so a common text parser can replace the complete result.
+
+At these callers the native result is used for its memory output; incidental
+RAX is not consumed. Use ABI-correct void adapters, preserving nonvolatile
+registers and stack alignment/shadow space. Do not assume the standalone Linux
+matrix argument order equals Windows: Linux XMM0=pitch, XMM1=yaw, XMM2=roll.
+No SIMD argument adaptation is needed at the proposed XML/output boundaries.
+
+Borrowed XML and output lifetime
+
+The output belongs to an already allocated Agent: Windows bank base +0xad0,
+Linux +0xaf0, both stride 0x1a0. Windows tail output points another +0x10 into
+that bank. The containing Agent import remains on the stack until the adapter
+returns. The input XML node is borrowed from the in-progress Load tree. Copy
+bounded attribute text into private scratch before calling the original; retain
+neither native XML pointers nor output pointers after the adapter returns.
+No lazy transform getter or evaluator is needed.
+
+Read-only native XML layout needed by the adapters:
+  Windows children: +0xc8 storage, +0xe8 capacity, +0xf0 count;
+  Linux children: +0xd8 storage, +0xf8 capacity, +0x100 count.
+A capacity of four selects inline child pointers; otherwise storage is a pointer.
+  Windows attributes: +0x18 storage, +0xb8 capacity, +0xc0 count;
+  Linux attributes: +0x20 storage, +0xc0 capacity, +0xc8 count.
+Attribute entries have stride 0x28 and tag at +0. Windows string begins at +8,
+length at +0x18, capacity at +0x20; capacity below 16 selects inline bytes.
+Linux string pointer is +8 and length +0x10, including its inline representation.
+Every vector/string bound, accessible span and pointer arithmetic must be checked.
+A duplicate attribute follows the same first-match rule on both; duplicate or
+unsupported parent shapes must be addressed by the exact-snapshot preflight.
+
+Native exclusion evidence, not universal quiescence
+
+On the normal Windows Load path, 0x9eee35 invokes 0xd20d0 on manager+0x40 and
+enters its CriticalSection at +0x48. Load marks manager+0x89=1. Its cleanup
+0x9777d0, called at 0x9f0d0a, clears that flag and leaves the same section.
+The pathing worker 0xeae3c0 must enter manager+0x48 at 0xeae471 before traversing
+agents. Allocation/registration in 0xeac530 also uses the section, but returns
+before Agent import; therefore allocation alone is not a publication barrier.
+The enclosing normal Load guard supplies the exclusion.
+
+Linux Load 0x1cdd4a0 takes manager lock-object+0xf8 through 0x1a23650 at
+0x1cdd794, then marks manager+0x199=1. That lock helper calls pthread_mutex_lock
+on its argument+8, hence the actual mutex is manager+0x100. Worker 0x13e35e0
+takes the same lock object at 0x13e37b0 before traversal. The normal Load tail
+clears +0x199 and unlocks through 0x1a236a0 at 0x1cde2d4.
+
+The design must require the exact active native Load owner thread, manager/module
+identity and loading-phase flag, not merely a process-wide loading label. Failure
+and reset branches must remain unpublishable. This exclusion is specifically
+against the audited pathing worker and the synchronous caller's use of the
+result; it does not assert all engine/render workers are globally parked.
+The complete exceptional guard cleanup remains a native integration review item.
+
+Proposed wrapper lifecycle
+
+Install only under the existing fresh, owned pre-load handshake and exact image
+pins, before issuing Load. Use owned near W^X thunks and aligned-word displacement
+CAS preserving opcode/neighbors, complete installation rollback, synchronized
+instruction visibility and retained foreign-restoration failure. Preserve the
+passed observer and existing portable mode as separate immutable artifacts.
+
+For a selected invocation, verify owner/scope and capture bounded input; evaluate
+the complete candidate into private scratch; call the original exactly once with
+its original arguments and no agent/session lock held; verify normal return,
+unchanged input/ownership and no STOP; then replace only the three basis vectors
+before returning to Agent import. Preserve position, reference IDs, other bank
+fields, all timers, flags, native RNG and clocks. The initial writer should preserve the vector fourth lanes and all other bytes;
+do not silently broaden nine scalar stores into an unreviewed 48-byte overwrite.
+Final writer width requires explicit review with the C port.
+
+Unsupported selected input, changed identity, cancellation, missing return or
+arithmetic failure records a sticky failure and makes the entire loaded session
+unpublishable. The original is still called once; do not grant NGP frames or
+claim successful initialization after a partial correction. Restore owned sites,
+retain failure evidence and discard the isolated failed world through its normal
+owned cleanup. No waiting for the network, Lua, another worker or a new save
+occurs inside this import adapter.
+
+Capability and coverage
+
+Start with an exact snapshot preflight and an explicit shared Euler-import math
+version/digest agreed by both participants. Preserve existing diagnostic roots
+and compare real engine state exactly. The capability is imported navigation
+Euler banks at the selected sites, not all rotations in the executable. The exact snapshot census has 10,008 navigation records, each with one read and
+write offset. Each bank has 10,005 Euler rotations and three omitted orientations;
+there are no quaternion children, duplicate rotations, unknown offset children or
+invalid proposed-grammar values. Thus expect 20,010 selected Euler conversions.
+The six no-orientation offsets retain the native existing basis: absence of the
+rotation element is NOT the same as a present rotation with all attributes absent.
+Never synthesize identity for those six. They are a pinned native pass-through
+category with initialization outside this correction. Windows sees only Euler
+tails at the proposed patch, while Linux sees all 20,016 offset calls; compare
+semantic conversion counts rather than equating raw hook counts. The twelve
+fixtures all have Euler rotation in both banks.
+
+Quaternion children, changed input shape, other movement controllers, component
+transform copies and later runtime Euler/trig consumers need explicit coverage/
+refusal rules. The exact-snapshot preflight must reject an unreviewed shape change.
+Do not claim a global rotation fix or playable cross-platform lockstep from this
+initial scope. The fixture comparison must still fail on any later real mismatch.
+
+Before a native experiment
+
+1. Review the original shared C port against the reference and independent oracle;
+   compile/run the same corpus with Windows Zig/Clang and actual Linux GCC/Clang.
+   Include decimal halfway cases, signed zero, subnormals, extreme finite inputs,
+   noncardinal and combined angles, invalid grammar and bounded cost.
+2. Test pure bounded Windows/Linux XML adapters with synthetic layouts, missing
+   attributes, invalid capacity/length/pointers, duplicate tags and input changes.
+   Keep native parser goldens as evidence; the common rule has its own goldens.
+3. Test the exact proposed production wrappers offline: both selected roles and
+   unknown callers, original once, output sentinel preservation, STOP before and
+   after original, active/missing-return lifecycle, installation rollback and
+   foreign patch restoration. Confirm every untouched output byte is preserved.
+4. Pin/freeze new native artifacts and their accessors/bridges; obtain review of
+   exact per-call scope, exclusion, exception handling, counters and manifest.
+   Only then consider an isolated mixed-native run. This report grants no launch.

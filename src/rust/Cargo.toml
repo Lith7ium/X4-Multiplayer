@@ -1,0 +1,18 @@
+[workspace]
+members = ["x4lan-net", "x4lan-relay", "x4mp-agent", "x4mp-save"]
+resolver = "2"
+
+[workspace.package]
+version = "7.5.0"
+edition = "2021"
+publish = false
+rust-version = "1.82"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+# panic stays "unwind": x4lan-net must let Lua errors (SEH/DWARF unwinds raised by
+# luaL_error inside LuaJIT) pass through its "C-unwind" frames. Neither crate panics
+# on the hot path; see README.md.

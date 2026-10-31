@@ -1,0 +1,546 @@
+LOCKSTEP SANDBOX: TWO HUMANS FLY TWO SHIPS IN ONE LOCKSTEP SESSION
+29 October 2026 | first human session sandbox-play1 (693 ticks in sync, ended by
+the map); parking, menus and orders reworked since (sandbox3-smoke: 602 ticks,
+0 differing); X4's own controls (--controls native) built offline, not yet live;
+slot 1 through X4's own player path (--controls stock): smoke E/I1 pass (build84);
+slot 2 too (--stock-slots all) built offline, not yet live
+
+WHAT IT IS
+
+Two native X4 clients on one PC run the same imported snapshot in lockstep
+(protocol 3, relay in observe mode). Each human flies one ship. Every client
+simulates both ships through their own native Steering model from per-tick pilot
+records ("pilot by wire", reports/NATIVE-LOCKSTEP-PILOTING-20261029.txt): a
+human's input is sampled on their own client at tick t, sent over the input
+wire, and applied on every client at tick t+3 (50 ms at 60 Hz, 100 ms at 30 Hz,
+plus wire time; native_gate_tick_hz, the relay's --tick-hz).
+X4's own flight controls are parked on both clients, so X4 itself does not fly
+anything; a mod-owned device sampler reads keyboard/mouse or an XInput pad.
+--controls native (default off) gives each human X4's own controls instead
+(section "X4's own controls"). --controls stock (default off) flies slot 1 with
+X4's own player control path on every client (section "Slot 1 through X4's own
+player path").
+The point of the sandbox is to try to break lockstep. The relay tells you when
+you did.
+
+Default slots (snapshot capture 005, all in the same zone of Argon Prime):
+  slot 1 00000000000ae79c  the player's Argon scout; both clients sit in it.
+                           Client 1 flies it with keyboard and mouse.
+  slot 2 0000000000176ad5  fixture actor 3, an Argon S fighter about 0.8 km
+                           ahead (zone offset -395/0/+700 m from slot 1); the
+                           driven ship of live pilot tests A, B and C. Client 2
+                           flies it with an XInput pad.
+The scripted fixture battle runs (Engage at tick 10): Argon 1..6 at x=-395 m
+fight Xenon 7..12 at x=+395 m, z=500..1000 m. Slot 2 is hunted by Xenon actor 9
+and its own AI fires back; its Attack order is what keeps its Steering model
+alive. --battle calm skips Engage, but a waiting fixture has no Steering solver
+(sandbox-play1 smoke: s2 applied 0, no_solver=571), so slot 2 cannot be flown.
+Keep both slot ships in one sector: the physics scene is still chosen from each
+client's local player/camera sector.
+
+BUILD (coordinator)
+
+  ZIG=<path to zig.exe from the engine-patches toolchain>
+  C="$ZIG cc -target x86_64-windows-gnu -mcx16 -std=c11 -O2 -Wall -Wextra -Werror -fms-extensions src/native/engine/portable_rotation.c"
+  $C -shared src/native/engine/lockstep_gate.c -lbcrypt -lws2_32 -o .local/sandbox/x4lan_gate_64.dll
+  python tools/dev/native_gate_sandbox.py overlay --base .local/census/overlay-PilotB \
+      --gate-dll .local/sandbox/x4lan_gate_64.dll --probe tools/dev/native_gate_probe.lua \
+      --out .local/census/overlay-Sandbox3
+
+The base must be a protocol-3 full-stack overlay with the snapshot boot (like
+overlay-PilotB) with agent, ship, bullet and nav RNG keying; the builder refuses
+bases with protocol-2 fixtures, the request observer, the player tour, camera
+perturbation or the war fixtures. A base with a scripted player orders block
+(build_native_gate_overlay.py --player-orders PLAN, "players": 2, no capture_ui)
+is kept: orders and pilot records share each slot's blob through the input
+multiplexer (ui/native_gate_inputs_core.lua, which the builder adds). It replaces the keys it owns,
+drops the per-row script RNG log (--full-logs keeps it), and appends:
+
+  native_gate_pilot_inputs/slots/source='wire'/delay=3/window={30,18000}
+  native_gate_pilot_suppress_local = true          both clients park X4's controls
+  native_gate_pilot_device = {'kbm','xinput'}      per client slot
+  native_gate_pilot_pad = {0,0}                    XInput controller index per slot
+  native_gate_pilot_capture = true                 PILOT_CAPTURE row per tick
+  native_gate_pilot_ship_state = true              both ships in every tick's digest
+  native_gate_render_rng_split = true              render draws off the simulation word
+  native_gate_bullet_cadence = 'every'             far bullets hit-tested every frame
+  native_gate_nav_cadence = 'far'                  nav refresh without camera distance
+  native_gate_actor_diag/weapon_diag = true        fixture guns registered and keyed
+  native_gate_view_points = 'players'              attention from the pilot slot ships
+  native_gate_actor_rng_all = true                 every portable ship's Move/Agent keyed
+  native_gate_world_hash_stride = 1800             world census every 30 s, ~3 s pause each
+  native_gate_trace_stride = 60                    per-actor diagnostic rows every 60th tick
+  native_gate_pilot_block_orders = true            menu/map orders, travel, SETA refused
+
+Other options: --device1/--device2 kbm|xinput|both|none, --pad1/--pad2 0..3,
+--invert pitch,yaw,roll,strafe_x,strafe_y (every client), --delay, --window,
+--world-stride, --trace-stride, --battle calm, --no-capture-log,
+--observe-native (adds the native channels to each PILOT_CAPTURE row),
+--camera-follow (variant 2, below), --controls native (X4's own controls,
+below; replaces the device lines), --no-native-requests, --script-pilots (both
+slots fly the deterministic script: a smoke without human input). "python tools/dev/native_gate_sandbox.py
+config" prints the block only; "... ships --snapshot <save>" lists where
+candidate ships are (read only).
+
+Log thinning for play (hand-added, default off): X4LAN_CONFIG.native_gate_status_stride = N
+(1..3600) writes an admitted tick's output (status lines, state rows, drained rows, traces)
+only for the first N ticks, every Nth tick and world capture ticks, batched into calls of up
+to ~6000 bytes; module status lines are built on those ticks only (the STOP lines carry every
+module's final status). FRAME_TIMING, hit claims and refused flight inputs are always
+written. The ticks held since the last written one (up to 16) keep their state rows, rows and
+RNG/INPUTS lines and are written after a STATUS_HELD line before a stop or a probe error.
+Sampling, digests and reports are unchanged. Census tools compare the written ticks only, and
+validate_native_gate.py needs every tick: leave it off for census runs.
+X4LAN_CONFIG.native_gate_probe_profile = true (default off) adds one PROBE_PROFILE line per
+60 admitted ticks: mean QPC microseconds per probe section (drains, inputs, pilot, modules,
+sample with actor/health/orders/fleet/bodies, capture, digest, log; ~25 us of its own).
+--controls stock (section below) replaces the device lines with native_gate_pilot_stock,
+capture source {'stock','device'} and device {false,<device2>}; --stock-script demo adds a
+scripted stock input sequence on client 1. --stock-slots all (section "Slots 2..N")
+makes client 2 capture slot 2 through the stock path too; --stock-script2 demo2 scripts it.
+X4LAN_CONFIG.native_gate_virtual_players = 'observe' (hand-added, default off; needs
+native_gate_serial_pathing): read-only step 1 of reports/LOCKSTEP-VIRTUAL-PLAYERS-RE-20261029.txt.
+Per admitted frame the canonical player's control state block (input bank, controller
+environment, coefficients, triggers, assist/activity/aim fields) is hashed per class and its
+changes counted (VPLAYER rows, VPLAYER_STOP/REGIONS/UNDECLARED), and the registered input
+handlers are listed once (VPLAYER_MAP). VPLAYER_HASHES (tick 1, every 300 ticks, stop) has
+one hash per region, VPLAYER_RAW class=config|option (tick 1, stop) the raw bytes of those
+classes, so differing settings between lanes can be named. No game write; the relay
+digest is unchanged. 'construct' (default off, stop reason 160; step 3 spike, report
+section 14) also builds one second U::Player with X4's own factory at the admitted tick
+X4LAN_CONFIG.native_gate_virtual_players_construct_tick (default 20), unparented and
+unseated, and puts the canonical player back (VPLAYER_SPIKE rows on every stage change).
+
+START
+
+1. Coordinator: run the pair with the interactive runner, relay ticks = window
+   end + 2 (controls are handed back at tick 18001; with --controls native or
+   stock window end + 3, handed back at 18002):
+     .local/census/runPlay.sh sandbox3 .local/census/overlay-Sandbox3 b1,b2 18002 2
+   Sessions with pilot records: add --input-journal {outdir}/native-inputs.jsonl
+   to the relay --server-cmd (otherwise the relay rewrites its whole report
+   before every permit; the client wait grows ~1 ms per 100 ticks).
+   Optional status file: add --status-file {outdir}/desync-status.json to the
+   relay --server-cmd.
+2. Start the desync watcher in a console you can see (or hear):
+     python tools/dev/native_gate_desync_watch.py --log <collect>/server.log --beep --toast
+   (--status <collect>/desync-status.json instead of --log reads the status file;
+   --status-out FILE writes one line for a dashboard.)
+3. Hands off the controls until flying starts: before tick 27 X4's own controls
+   are live on both clients and any input moves the shared ship on one client
+   only. Controls park at tick 27; flying starts at tick 30. Each client logs
+   PILOT_DEVICE_ARMED kind=... xinput=1/0. Window 1 (client 1) needs the
+   keyboard focus; window 2 does not (pad).
+
+CONTROLS (device sampler, fixed; X4 default input map libraries/inputmap.xml,
++ = sandbox addition; with --controls native each player's own X4 bindings apply)
+
+Keyboard and mouse (client 1; only while its X4 window has the focus):
+  A / D          strafe left / right          W / S        strafe up / down
+  X / Z          throttle up / down (ramp, ~1 s from 0 to full; stays set)
+  Backspace      throttle 0                   Tab          boost (full forward)
+  Q / E          roll left / right            Left/Right   yaw
+  Down / Up      nose up / nose down          Space        fire primary (carried only)
+  Shift+Space    toggle mouse steering        hold LMB     mouse steering
+  Mouse steering: cursor offset from the window centre = turn rate; full rate at
+  half the smaller window side; 10 % dead zone. Prefer Shift+Space: a held left
+  button also clicks into X4 (selects targets).
+Pad, XInput controller 0 (client 2; works without focus):
+  left stick     strafe                       right stick  yaw / pitch (up = nose up)
+  LT             throttle while held (analog) LB           full reverse while held
+  + RB held      left stick x rolls instead of strafing
+  + D-pad up/down cruise throttle up / down (ramp; stays set). X4 also maps
+                 them to target lock / next target action: if X4 reacts to
+                 them in a window, fly with LT/LB instead.
+  + R3           cruise throttle 0            L3           boost
+  RT             fire primary (carried only)
+Not used: face buttons, Start, Back, D-pad left/right (X4 UI, target and
+weapon-group actions). Flight assist is always on; Ctrl+Space does nothing.
+Directions are assumed (+pitch nose down, +roll left, +yaw right in X4's
+channels). If an axis flies the wrong way, rebuild with --invert <axis>.
+
+MENUS, MAP AND ORDERS
+
+Parking now holds one share of X4's own control-deactivation count, the same
+mechanism every menu frame and the map use. Opening the map, an interaction menu
+or the options menu adds the UI's own share on top; the session keeps running.
+While a UI holds controls on a client, that client sends neutral records (no
+steering, strafe or roll; throttle setpoint held), so typing into the map or a
+menu never flies the ship. Closing the UI returns to normal input. Escape (the
+options menu) pauses X4 on that client; that is untested under the gate, avoid
+it. The session stops only if a pass finds that X4's PlayerController would
+move the ship itself (stage=authority_lost, stop 91).
+Orders, travel mode, SETA and autopilot started from the interaction menu or
+the map would run on one client only, so the sandbox refuses them (log line
+PILOT_ORDER_BLOCKED menu=... entry=...). Scripted player orders can now ride
+the same blob as the pilot records (input multiplexer, docs/LOCKSTEP-NSLOT-
+WIRE.txt); the orders UI capture stays off in the sandbox because it would wrap
+the same menu entries as this block (the probe refuses both together).
+
+CAMERAS
+
+Variant 1 (default): both clients stay in the cockpit of slot 1, which both
+occupy, so both cameras are identical. Client 2's human watches slot 2 from
+slot 1's cockpit. Keep it that way: no external/target/free views (F2, F3,
+mouse look).
+Variant 2 (--camera-follow): client 2's camera follows its own ship through the
+stock external target view (SetPlayerCameraTargetView, as the UI's "target
+view"). Attention now comes from the pilot slot ships (view_points) and the
+render RNG, bullet and nav cadences no longer depend on the camera; still
+camera- or local-player-dependent: the physics scene per player/camera sector,
+XS-ship detail, mass-traffic temporary components and the shape refresh
+distance. Treat variant 2 as an experiment.
+Camera follow is presentation-side in this code: the switch's thread-RNG draws
+are kept off the simulation word, AutoIDMap insertions are counted (PILOT_CAMERA
+... ids=N), the view is re-applied at most once a second (64 attempts) if the
+game resets it, and the occupied ship's client never switches. Not undone: the
+switch posts event_player_activated_external_target_view (only a tutorial cue
+listens), calls the player view hooks, inserts into the zone recent-trees and
+requests the external camera input contexts.
+
+X4'S OWN CONTROLS (--controls native, DEFAULT OFF)
+
+Build with --controls native (native_gate_pilot_capture_source = 'native'; a
+table sets it per client). Both clients park at tick 27 as before (the stock
+handoff: flight control off, the Steering model queued, identical on both
+clients); at tick 28 the gate installs src/native/engine/lockstep_pilot_native.h
+and gives X4's controls back: your key bindings, mouse steering (Shift+Space
+toggles it, cursor offset = turn rate), direct mouse steering, joystick and pad
+axes, the throttle axis, mouse wheel and throttle keys are processed by X4
+itself, and the record carries what X4 computed. X4's flight-control flag stays
+off, so X4 never moves a ship on its own: every client still flies every slot
+ship through its Steering model from the records.
+The pieces (all removed at the window end or on any stop):
+- the authority predicate (0xd8dd50) answers "Agent" for the player's
+  controller; its transform/velocity/acceleration (vtable slots 6/7/10) come
+  from the Agent;
+- the SPACE context callback (0xd88710) is replaced by its input side only
+  (mouse steering, timers, channel reset): no flight-control handoff when a
+  menu or the map opens or closes;
+- cursor/direct mouse steering (0xd88a10), the throttle axis and full forward
+  run with flight control set for exactly their own call;
+- accelerate/decelerate, full reverse, the mouse wheel and Backspace (stop) run
+  as input-only versions of X4's handlers (the stock ones also touch the
+  occupied ship's engines);
+- refused and logged (PILOT_NATIVE_REFUSED tick=... kind=... input=...): boost,
+  travel mode, SETA, scan modes, autopilot, flight assist toggle and suspend,
+  dock, undock, get up, deploy (satellite, beacon, probe, mine, laser tower,
+  repeats), countermeasures, turrets, drones, squad orders, weapon group and
+  ammo selection, cover, stance, reduced speed, scan/comm/teleport actions,
+  match speed, loot magnet and all fire inputs (buttons and triggers); X4's
+  own fire never runs, but the trigger still reaches the record, so with
+  --fire record your ship fires on every client (native_gate_pilot_fire);
+- X4's controller computes its own velocity requests every frame; they are
+  recorded and replaced by zero for the controller (its private integration
+  never follows local input). For slot 1 (the ship both clients sit in) the
+  record carries those requests (mode bit 0x10), so slot 1 flies with X4's
+  own feel: auto-roll when yawing, the roll limits during loops, flight assist.
+  Slot 2's record carries the processed channels (no auto-roll: X4's scheme on
+  client 2 runs against slot 1's ship). --no-native-requests uses the channels
+  for slot 1 too.
+Menus and the map: they exclude SPACE as before; the session keeps running and
+the record is neutral (no steering, strafe or fire; throttle as X4 left it)
+while a UI holds controls. Turn off the game option "stop ship in menus" for
+these sessions: it makes X4 zero the throttle on every update while flight
+control is off (status field stopship=1; local only, not a desync).
+Not refused: target selection (next target, target lock, mouse click), camera
+views, mouse look, HUD toggles, auto-roll and aim-assist options, menus.
+Stops (reason 113, stage in PILOT_INPUTS ... native=...): flight control found
+on, autopilot, a highway, X4's own predicate no longer "Agent", flight assist
+off, a player activity (travel/scan/SETA) or a suspended assist, a changed
+controller or ship, a lost patch, or a refused precondition inside a handler.
+After a stop open and close any menu to get X4's flight control back; after a
+normal window end it comes back by itself one tick later (tick 18002).
+Status: PILOT_INPUTS rows end with native=live auth=routed/natural/override
+natural=1 flight=0 assist=1 vf=... space=on/off cursor=... windows=...
+dispatch=... refused=... req=calls/records uihold=... stopship=...
+
+Smoke first (coordinator, no humans): --controls native --script-pilots, both
+clients, 600 ticks. Pass: relay pass and census 0; every PILOT_INPUTS row from
+tick 28 has native=live natural=1 flight=0; auth routed rises every tick and
+override stays 0; vf counts rise; space=1/0 after start; PILOT_CAPTURE records
+change only when someone touches the input; opening and closing the map on one
+client (by hand or a scripted menu) raises uihold, leaves the session running
+and returns to space=2/1. Then the human session: START above with an overlay
+built with --controls native (relay ticks window end + 3); each human flies
+with X4's own bindings and tries to break it.
+
+SLOT 1 THROUGH X4'S OWN PLAYER PATH (--controls stock, DEFAULT OFF)
+
+Step 2 of reports/LOCKSTEP-VIRTUAL-PLAYERS-RE-20261029.txt: slot 1, the ship both
+clients sit in, is flown by X4's own player control path on every client, not by the
+Steering model and not by the assisted mapping. Build with --controls stock
+(native_gate_pilot_stock = true, capture source {'stock','device'}, device
+{false,<device2>}); client 2 keeps the device sampler for slot 2 as in the default
+sandbox. The gate installs src/native/engine/lockstep_pilot_stock.h together with the
+dispatcher, SPACE and cursor entries of lockstep_pilot_native.h in their stock mode;
+the authority predicate stays stock (the PlayerController flies the ship).
+- Client 1 (capture): X4 dispatches your input as always, but every control id of
+  the replay set (steering and strafe keys and axes, roll, throttle axis,
+  accelerate/decelerate, full forward/reverse, stop, boost, travel mode, long
+  range scan, SETA, flight assist toggle and suspend, turret mode, loot magnet)
+  is recorded as (kind, id, value) in dispatch order instead of running. Menu and
+  map open/close edges (the SPACE context) are recorded in the same order; cursor
+  and direct mouse steering record their three outputs per frame; the aim point of
+  slot 1's weapons (your crosshair: the camera pick or the cursor ray, as a point in
+  the ship's frame) and the mouse steering flag are recorded per frame.
+  One record per tick rides the input wire (section 'stock', kind 0x53).
+- Every client, at the admitted tick (capture + 3): the record is replayed through
+  the stock dispatcher handlers (only X4's own flight and player handlers are
+  accepted; anything else registered under a replayed id stops the session), the
+  SPACE edges through the simulation half of X4's own callback (flight control,
+  handoff to the PlayerController, Flight Started/Stopped), and the recorded cursor
+  outputs feed this frame's control step. X4's control scheme, solver, boost,
+  travel/scan/SETA (md/modes.xml) and flight assist then run stock everywhere.
+  Slot 1's weapons aim at the replayed point on every client: X4's own aim
+  function (PlayerShootController slot 21, 0x7e8650) runs with the replayed point
+  and mouse steering flag in place of the local camera pick, from the first tick of
+  the session (straight ahead until the first replayed record), so gimbals and
+  turret-like guns pose the same everywhere. Slot 1's view (cockpit or external
+  camera, the FOV factor, floating view) also rides the record: X4 scales the
+  controller's rotation coefficients by the cockpit FOV, gives the engines a cockpit
+  factor, filters cockpit-view physics queries and switches manual gun control off
+  in floating view; every client answers those reads from slot 1's replayed view
+  (cockpit, factor 1 until the first record). The soft target is recorded too (for
+  per-slot readers); it is not applied yet.
+- Client 2 runs no control id of the replay set for slot 1 (counted as dropped): it
+  flies slot 2 with its pad.
+- Camera, menus, map, mouse look, target selection and walking stay local on each
+  client. Refused everywhere (PILOT_NATIVE_REFUSED): fire and weapon groups (a
+  later step; the aim itself is replayed), match speed and scan mode (they follow
+  the local soft target), autopilot, dock/undock, get up, squad orders, deploys,
+  countermeasures, drones, cover/stance and the option toggles.
+- --hit-claims combines with --controls stock (claims are keyed by the slot ships;
+  the stock section is packed first, claims wait for room in the 240-byte blob).
+- The per-tick receipt (PSTOCK_1:tick:events:record hash:flight:settings) is in the
+  digest. It includes a fingerprint of the settings the stock path reads that are
+  user options (autoroll, stop ship in menus, aim and collision assist, boost toggle,
+  force shooting at cursor, throttle axis mode, invert flags, roll mix, timings,
+  wheel step, aim assist angle and range, mouse response curve): differing settings
+  between clients are a relay desync at the first tick.
+  Use the same input settings on both test profiles.
+Stops (reason 155 in PILOT_INPUTS_STOP; stage in PILOT_INPUTS ... stock=...): a
+missing or late record (stock_missing, stock_delay_mismatch), more than 33 events in
+one tick (stock_overflow), a foreign handler, unreadable settings, flight control
+found different from the replayed state (stock_flight_drift), a changed controller,
+ship or input object, slot 1 not the occupied ship, the aim slot not installable or
+replaced (stock_aim_install, stock_aim_lost), an aim call without player, ship or
+zone (stock_aim_resolve), a view site not installable or replaced
+(stock_view_install, stock_view_lost). Aim calls off the frame thread
+(presentation) keep the stock result and are counted (foreign).
+Status: PILOT_INPUTS rows end with mode=stock ... stock=capture|replay slot=1
+flight=f/known recorded= dropped= replayed= records= staged= space=local/replayed
+cursor= injected= overflows= max_events= settings= aim=installed/calls/replaced/
+neutral/samples/sample_failures/foreign view=installed/fov/engine/ship/weapon/
+neutral/samples/unportable (calls per site group) view_threads=simulating,main,other,
+rendering (the same four counts per phase; X4 renders on the frame thread in VBI slot
+10: only the rendering share may differ between clients).
+Smoke first (coordinator, no humans): --controls stock --stock-script demo
+--window 30 600 (relay ticks 603, the builder prints them). Pass: relay pass and
+census 0; PILOT_STOCK_ARMED capture=1 on client 1 and capture=0 on client 2; from
+tick 31 every PSTOCK_1 receipt equal on both clients, flight=1 after the first
+replayed SPACE edge; the demo's boost, throttle and steering visibly fly slot 1 the
+same way on both screens; injected counts on client 1, dropped stays 0 without
+input on client 2; aim=1/... calls and replaced rise together on both clients,
+samples rise on client 1 with sample_failures 0, neutral stops rising at tick 31.
+Then client 1 flies by hand (client 2 hands off or flies slot 2) and moves the
+crosshair: slot 1's guns must turn the same way on both screens.
+
+SLOTS 2..N THROUGH X4'S OWN PLAYER PATH (--controls stock --stock-slots all, DEFAULT OFF)
+
+Section 16 of reports/LOCKSTEP-VIRTUAL-PLAYERS-RE-20261029.txt. With --stock-slots all
+(native_gate_pilot_stock_slots = 'all', capture source {'stock','stock'}, device
+{false,false}) slot 2 flies through X4's own player control path too: client 2 records
+its own stock input for slot 2 exactly as client 1 does for slot 1 (no device
+sampler), and every client runs X4's PlayerController for slot 2's ship with slot 2's
+own player entity and input state (src/native/engine/lockstep_pilot_slots.h, stop
+reason 161). Slot 1 stays the ship both clients sit in; their cameras, HUD and menus
+stay on slot 1 unless --present is given (below).
+- Tick window start-5: slot 2's player is built by X4's own factory (not connected to
+  the world); start-4: it takes control of slot 2's ship inside slot 2's scope (a
+  PlayerController on that ship); from then on every frame runs slot 2's control
+  update after slot 1's, in its scope. stop+1 releases the ship.
+- Client 2: your keys, mouse steering, throttle, boost and flight assist toggle drive
+  slot 2; SPACE/menus toggle its flight control as for slot 1. Travel mode,
+  long-range scan and SETA are refused for slot 2 (they are mission-director
+  activities of slot 1's player); fire and the other refusals are as for slot 1.
+- --stock-script demo (client 1, slot 1) and --stock-script2 demo2 (client 2, slot 2)
+  give the scripted smoke: native_gate_pilot_stock_script = {'demo','demo2'}.
+- Excluded with --stock-slots all: --predict1/--predict2, --script-pilots. --fire record reads
+  the trigger of each slot's stock record, --fire script fires on a fixed schedule
+  (lockstep_pilot_fire.h, primary guns, straight ahead).
+Refused before tick 1: NATIVE_GATE ERROR ... pilot stock refused: <reason>, a stage or
+a pin table with the RVA (report section 16.2). Stops: 155 for a stock record problem
+(stock_missing_slot when slot 2's record did not arrive), 161 for a slots invariant (PILOT_INPUTS ... slots=failed slots_why=...).
+Status: PILOT_INPUTS rows add slots=stage slots_why= slots_mask= hook= updates=
+routes= s2=seated/predicate/room/scopes/updates/upkeep/environment/owner/replays/
+refused getters_out= (slot:calls of the controller's stock entries outside its scope and
+outside render slot 10: this holds the simulation and also the audio, effect and camera
+code that runs outside slot 10) getters_render= (the same in slot 10); every 600 ticks
+PILOT_STOCK_CALLERS names the getters_out callers (slot:rva:count); the receipt adds
+|S2:events:hash:flight.
+Smoke first (coordinator, no humans): --controls stock --stock-slots all
+--stock-script demo --stock-script2 demo2 --window 30 600 (relay ticks 603). Pass
+criteria: report section 16.4 J.
+
+PRESENTING SLOT K ON CLIENT K (--present, DEFAULT OFF)
+
+With --stock-slots all, --present makes client k's stock camera, HUD and UI present slot
+k's ship as the player (src/native/engine/lockstep_pilot_present.h, stop reason 162;
+report sections 16.10 and 16.12). X4's own code runs for it in a presentation scope: X4's
+own player takes slot k's identity (its room, ship and control state) for that time, and
+the simulation never sees it. Client 1 stays as X4 presents it.
+- From the window start to stop+1: X4's own camera on slot k's ship, X4's own UI and HUD
+  asking about slot k's ship. --present camera leaves the HUD's 3D anchor on slot 1's
+  cockpit (if a census difference appears only with the anchor).
+- Simulation writes from the UI (for now: selecting a target) are refused, discarded,
+  counted refused=sim/player/lastregion. They are to become recorded events.
+- Excludes --camera-follow and the camera anchor; needs the render split (the sandbox
+  sets it).
+Status in PILOT_INPUTS: present=stage present_why= present_slot= scopes= ui= render= local=
+refills= skipped= refused= faults= camera_mode= asks=ship/controlled/zone (what X4 answered
+in the scope at the start) hud=mode/moves rng_moved= present_restored= and, after a fault,
+present_fault=addr= write= registers chain=rva>rva>... (image RVAs, @address elsewhere). Stop
+162 names the invariant or the X4 code that faulted (<entry>_fault:<rva>).
+Check by screen capture of client 2 during the window: ship k's own cockpit and HUD.
+Pass criteria: report section 16.10 K.
+
+A SHIP'S DEATH (--death, --respawn TICKS; native_gate_players.py; DEFAULT OFF)
+
+Without --death a stock slot's ship dying ends the session (stop 155 or 161). With it the session goes
+on (src/native/engine/lockstep_pilot_death.h, stop reason 163; report section 16.17):
+- The slot is dead from the first pass that sees its hull at zero, the same tick on every client. Its
+  records are still consumed and hashed, none is applied; PSTOCK_1 carries the dead mask (|D<hex>),
+  PILOT_SHIPS the row /dead. A controller change without a dying ship still stops with 155.
+- Slot 1 is X4's own player, and X4 itself ejects it: the emergency eject builds a spacesuit next to the
+  ship and moves the player in it, on every client. Client 1 sees that suit with X4's camera and HUD.
+  The eject has a user option; a client with it off refuses to arm (death_eject_off).
+- Slot k: its seat ends and client k presents X4's own player without the overlay, so it watches
+  slot 1 (its cockpit, or its suit) until the slot is back. Its local input is dropped.
+- --death-suit (needs --death and --present; default off, adds the same MD file): a dead slot k waits in a
+  spacesuit of its own, 100 m above where it died, built by MD and taken by the slot's own seat, so
+  client k sees its own suit with X4's camera and HUD, as client 1 does. A gap of 5 ticks shows slot 1's
+  view first. suit_no_ship, suit_gone name a suit that did not arrive (163). Its records stay ignored.
+- A hit test where slot 2 dies: --fire script --fire-slots 1 (only slot 1 fires).
+- A respawned slot 2..N ship has an AI pilot in its seat and a Wait order, as the saved ships it replaces
+  (an empty seat stands in front of the presented eye); slot 1's has none (the player takes the seat).
+  Its colour trim is the slot faction's (LAN Player 2 is pink), as X4 paints a ship built for that owner.
+- --crash-note (default off): an unhandled exception writes one CRASH line (tick, X4 RVA, access, registers,
+  unwound chain, thread) to x4lan-crash.txt in the lane profile, and to x4lan-debug.txt if X4 shares it,
+  then X4's own crash handling runs. Collect x4lan-crash.txt before the profile is reused.
+- X4's game over is out of reach: with the session running the call to it in U::Player::vfunc9 is
+  ours. A player killed some other way stops the session as player_killed (163): no game over flag, no
+  menu, no load prompt, no save touched.
+- --respawn TICKS (needs --death; adds md/native_gate_pilot_respawn.xml): after that many ticks MD
+  builds a ship of the slot's macro at the slot's pose at the window start, X4's create_ship and for
+  slot 1 X4's teleport_player, on every client in the same frame. 15 ticks later every client takes the
+  slot back: flight control is off, input starts from nothing held (hold a key: press it again).
+  respawn_no_ship, respawn_unresolved, respawn_not_in_control name a respawn that did not arrive (163).
+Status in PILOT_DEATH_STATUS (every 600 ticks) and PILOT_INPUTS: death=stage death_why= dead=mask delay=
+suit= guard= game_overs= seats=released/retired d<slot>=state/deaths/respawns/last dead tick[/suit]. Rows:
+PILOT_DEATH tick= die:<slot>, suit:<slot>, insuit:<slot>, nosuit:<slot>, create:<slot>, live:<slot>;
+PILOT_RESPAWN_NOTE, PILOT_RESPAWN_CREATED, PILOT_RESPAWN_SUIT from MD.
+Known: X4's own reactions to slot 1's eject run on every client, as they are simulation (Betty's
+line, the first-time help text, a client's camera going back to the cockpit).
+
+Human session (report section 16.14; live so far without people: st-C2, a scout with a real
+cockpit, census 0). Slot 1 stays the player's scout, slot 2 is an Argon scout MD moves 2 km in
+front of it, facing it. Use the players builder, it has the slot ships and starts:
+  python tools/dev/native_gate_players.py overlay --base <base overlay> --gate-dll <dll> \
+      --probe tools/dev/native_gate_probe.lua --out .local/census/overlay-Human1 \
+      --players 2 --source stock --present --fire record --battle calm --relations hostile
+  .local/census/runPlay.sh human-1 <overlay dir> b1,b2 72002 2
+  python tools/dev/native_gate_desync_watch.py --log <collect>/server.log --beep --toast
+That is 20 minutes (72000 ticks); --window 40 18000 and relay ticks 18002 for 5. World captures
+come every 5 minutes with a pause of a few seconds. Same input settings on both profiles
+first (settings are hashed). Two people need two PCs or a pad each; with one PC, one person
+alternates by clicking into a window: keyboard and mouse only reach the window with the focus,
+and a control that engages is recorded only with the focus, so a pad flies the focused
+window only (unfocused= counts the rest). Slot 1 and slot 2 keep flying on what they last got.
+Works, with the bindings of the profile (X4's own): steering and strafe keys and axes, roll,
+throttle, full forward and reverse, stop, boost, flight assist, SPACE for mouse steering,
+primary fire, target selection, camera keys, map and menus; on client 1 also travel mode,
+long range scan and SETA.
+Rows with firing on: PILOT_RECEIPT and PILOT_FIRE_GUNS every 60 ticks (slot:gun:active:last shot
+bits:magazine:controller). Limits: primary guns only, the active group, straight ahead (no gimbal
+aim, no missiles, no secondary group, no group change). On client 2 no travel, long range scan or SETA. Match
+speed and scan mode refused everywhere. Orders from menus blocked. A selected target shows on
+that client's HUD only. Slot 1's messages and its travel panel also appear on client 2.
+
+THREE AND FOUR CLIENTS (tools/dev/native_gate_players.py)
+
+This sandbox has two clients; native_gate_players.py builds the same kind of session for
+2..4 (report section 16.11, reports/LOCKSTEP-PLAYER-IDENTITY-20261029.txt): one slot ship
+per player, each with its identity plan. Rebuild the overlay with --players N; an overlay
+built for another count fails at the identity bind (player identity plan has M slots for
+N clients). --source script flies the slots by the pilot script, --source wire by device,
+--source stock through X4's own player path as above (--stock-script demo without humans,
+--present). Both builders take --tick187 observe|canonical (tick-187 rows and loadout
+order), --fp default|observe (FP modules) and --set native_gate_KEY=VALUE. Four clients
+need a lane tool without the 3-client cap and four lanes.
+
+WHAT COUNTS AS A DESYNC
+
+Every tick each client reports a SHA-256 of its declared state: the twelve
+fixture rows (position, hull, shield, raw state, orders), the pilot receipt
+(the request values applied this tick), both slot ships' position, rotation,
+hull and shield (PILOT_SHIPS), and the latest world census hash. The relay
+compares the digests per tick. In observe mode it keeps going and prints
+  NATIVE_GATE DESYNC tick=N slots=2 first=F mismatches=K
+on the first differing tick (repeated every 600 ticks while it lasts) and
+NATIVE_GATE RESYNC when the digests agree again. The watcher turns that into a
+console banner, a beep and a toast. Afterwards the census tools compare the
+world captures (every 1800 ticks) object by object.
+Not a desync: input latency (3 ticks), a frozen session (the relay waits; a
+clock or transport failure ends it with failure=...), local UI differences.
+
+KNOWN LIMITS / LIKELY DESYNC SOURCES THAT ARE NOT FLYING
+
+- Firing is captured (record trigger bit) but not applied by the record; slot 2's
+  own AI fires in the engaged battle.
+- Boost and travel: boost forces full forward on the request value only; the
+  ship's own boost/travel state and limits do not change. Travel is never set.
+- Flight assist off is not modelled (the assisted mapping is always used).
+- Driven ships have no collision avoidance (the replaced requests contained it).
+- An AI order that switches the driven fixture away from its Steering model
+  (docking, travel, Spline) stops substitution; PILOT_INPUTS s2=.../applied
+  counts show it.
+- Target selection is local player state. Clicking ships (LMB), T, the pad's
+  B/A/X/Y or D-pad can change the soft target, which MD scripts read
+  (event_player_changed_target): expect such actions to desync on their own.
+- Whether X4 itself reads the pad in an unfocused window, and whether parked
+  X4 still uses the right stick as a UI cursor, is unverified (check first).
+- Whether parked X4 keeps the OS cursor free for mouse steering is unverified;
+  the arrow keys always work.
+- Two players maximum in this kit; the pilot window ends at tick 18000.
+- Logs: a few GB per client for the full window (world captures, script and
+  event rows; per-actor rows only every 60th tick).
+
+HOW TO STOP
+
+The session ends by itself at relay tick 18002 (controls are handed back at
+18001, STOP reason=1 restored=1). To stop early, let the coordinator stop the
+lane pair (x4lane stop); the gate releases its parking share and its hooks on
+every orderly stop (PILOT_INPUTS_STOP restored=1). Do not quit through the X4
+menu while the gate runs.
+
+FIRST LIVE SESSION CHECKS (smoke first, then the user session)
+
+Smoke (no human input, 600 ticks, overlay with --window 30 600 --observe-native):
+1. PILOT_DEVICE_ARMED on both clients, controls_owned=1 from tick 27 with
+   park=<base>/<count>/0/0/1 (contexts 0, flight 0, authority 1 = the Agent moves
+   the ship), s1/s2 driving=1 with about six substitutions each per tick.
+2. PILOT_CAPTURE native=... rows are all zero while parked (X4's channels are
+   not fed); record=... rows carry zero input without a human.
+3. Open and close the map and an interaction menu on client 2: ui_passes and
+   neutral grow on that client, park count rises by one per open UI and falls
+   back, no stop, no DESYNC. Try an order from the map: PILOT_ORDER_BLOCKED.
+4. Relay verdict pass, census 0.
+User session: as above with the full window; then fly, try to break it.
+
+OPTIONAL LATER: IN-GAME INDICATOR
+
+A protocol flag would let the clients show the desync in X4 itself: the relay
+appends "|D<first>" to NGGO while diverged, the probe shows a HUD message.
+This changes the wire (docs/LOCKSTEP-NSLOT-WIRE.txt) and is not implemented;
+the console/toast watcher needs no wire change.

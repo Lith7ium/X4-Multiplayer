@@ -339,7 +339,9 @@ class HealthAdapterTests(unittest.TestCase):
         self.assertIn('pilot_health = false', (UI / 'config.lua').read_text())
         bubble = (ROOT / 'src/extension/x4_lan_lab/md/x4lan_bubble.xml').read_text()
         self.assertEqual(bubble.count('@$healthLive.{'), 4)       # Publish: hull and shield of both ships
-        self.assertTrue('<do_if value="not @Arena.$healthOwn.{$i}"><set_object_hull object="$ship"' in bubble, '<do_if value="not @Arena.$healthOwn.{$i}"><set_object_hull object="$ship"')
+        own = '<do_if value="not @Arena.$healthOwn.{$i}"><do_if value="($ship.hullpercentage - '
+        self.assertTrue(own in bubble, own)                          # guest skips its own ship; writes only changes
+        self.assertEqual(bubble.count(' gt 0.25"><set_object_'), 6)   # both ships', targets' and ships 3+ (ApplyExtra) hull/shield
         self.assertTrue('le (if @Arena.$healthOwn.{$i} then 0 else 1.01)' in bubble, 'le (if @Arena.$healthOwn.{$i} then 0 else 1.01)')
         guards = (ROOT / 'tools/dev/life_guards.py').read_text()          # the generator keeps the same guards
         for text in ('@$healthLive.{%d}', "'not @Arena.$healthOwn.{$i}'", 'le (if @Arena.$healthOwn.{$i} then 0 else 1.01)'):

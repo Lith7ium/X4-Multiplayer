@@ -1,0 +1,151 @@
+WORLD015: VALIDATED POSITION INPUTS AND SEPARATE WAKE DIVERGENCE
+28 October 2026 | one internal disposable two-native-client diagnostic
+
+RESULT
+
+The one authorized pair stopped at the first strict mismatch, tick 2. Evidence
+validity and session pass remain false. The frozen validator retains exactly
+the same ordered 56 errors as World013. The new Position schema2 receipts are
+locally valid: three complete, supported receipts per client, joined to their
+parent Action and downstream Value records. World014 and its 64 errors remain
+unchanged; its failed schema1 receipts were not promoted or rewritten.
+
+The first sampled patrol-position receipt has equal captured evaluated inputs
+and unequal incoming RNG, followed by unequal radius and position output. This
+is valid bounded evidence of a specific source of position divergence. It does
+not establish the upstream reason for unequal RNG or global engine coverage.
+
+Both native clients completed owned graceful WM_CLOSE with exit 0. Both lane
+and snapshot restoration receipts succeeded. Fresh released inventory showed
+b1/b2 idle and unlocked, no X4 processes and no queued jobs. Runner duration
+was 89.562 seconds; this is not a per-frame engine performance measurement.
+No retry, new seed, state repair, tolerance or hash exclusion was performed.
+
+EXACT FROZEN INPUTS
+
+Source and DLL source: c85ceb7793c462dcb0f4ee2a52001319a526a9e5.
+Source archive: 552 LF files; native/build closure: 186 inputs.
+DLL: 805376 bytes, SHA256
+588a955dee0e873ec7bafa85ab812677d78d341927c1c1453f043a2d3b843557.
+Root freeze manifest SHA256:
+d7f0697557dabaca131fdc3296fa869d7657291de08c21beca53fc8def89c68d.
+Overlay manifest SHA256:
+12db308f16b784062e615bb7d1f3306fdaebf87e98177903afc76d688264d6ac.
+Exact proposed command SHA256:
+91901f6b66e4f129bbe541e002ba0168aa0853e89a2dcc8e09c6a962f63b1f9a.
+
+Configuration is byte-identical to World014:
+7b58aeaccf6adc468c08f0999965efd9c166a962d8e78eef606d116ad9c36886.
+The same snapshot, MD fixture, six ship watches, three Wait/Action manifests,
+two scoped Wait seeds, single-use Find seed, WORLD_IMPORTED_2/stride 1, 12-tick
+ceiling, 260-second runtime and 900-second admission limits were retained.
+The third Wait remains natural observation; no candidate third seed was used.
+
+Only DLL and probe differ among the eleven payloads; the other nine are exact
+World014 bytes. The intended change is Position schema2 branch evidence. The
+cumulative DLL also includes reviewed registry/rejection work, whose optional
+features remained unconfigured. This is not a single-feature DLL comparison.
+
+Before launch, the wrapper rehashed all source/native/payload files, the three
+input manifests and Find binding, snapshot, 110 base files, X4 executables,
+Python executable/runtime and lock helper. The independently reviewed complete
+524-file canonical release inventory, including its four bytecode caches, was
+also checked exactly, with missing/extra files refused. The canonical release
+was 5d5a680ec6ef; its removed RAM threshold and six-process cap were unchanged.
+Independent artifact reproduction and cache/source verification preceded the
+single invocation. Native invocation and environment were not changed.
+
+POSITION RECEIPTS
+
+Both STOP records report schema2, wire size 5320, three reserved/complete events
+and 63 exported rows. Failures, dropped records, open scopes, restore overlap,
+owned sites and protection/flush/patch failure debt are all zero. Every selected
+event has supported=true and an empty validation-error list.
+
+The three native call/return vectors (outer, transform, radius, sampler) are:
+
+  Action 30, patrol pilot 9d3a4, order.fight.patrol v10, slot 215/PC216: [1,0,1,1].
+  Action 48, trader pilot 80d54, move.idle v4, slot 60/PC61:          [1,1,0,0].
+  Action 55, patrol pilot 9d3a4, move.seekenemies, slot 5/PC6:        [1,1,0,0].
+
+For Action 30, both copied branch snapshots have kind 0, coordinates 0, space
+expression tag 0, reference tag 0 and range kind2. No transform or reference
+evaluation occurred; their inactive sections are zero. Captured base is zero.
+Minimum is tag 0/bits 0; difference is tag 5 and span bits 47435000, float 50000.
+Distribution and parameter are both 1. Captured FP modes also match. The first
+receipt's compared semantic inputs all agree, excluding RNG and outputs.
+
+                    client 1                    client 2
+sampler RNG input   1931000819909235428          2347225455300380795
+sampler result      455aba35                    46fa9998
+radius (float)      3499.637939453125            32076.796875
+sampler RNG output  4464683014901402540          9286439721636705140
+outer RNG output    3143526028023502550          2830579656850560303
+
+The native sampler's one-step RNG transition validates. The later direction
+work matches a two-step endpoint relation; individual direction samples are
+not captured. Both final positions differ and join the downstream Values.
+There was no Position RNG intervention. Equal evaluated radius inputs do not
+imply equality of all earlier Action execution or the global continuing stream.
+
+Actions 48/55 validly execute transform/reference work with range kind 0 and no
+radius/sampler section. Their incoming base/transform data already differs,
+and their recorded RNG is unchanged within these scopes. This distinguishes
+unequal input propagation from a new random radius draw inside those calls.
+It does not explain the earlier trader base-generation path completely.
+
+The actual evaluated-null-space witness was not exercised in this native pair.
+All accepted records retain partial boundary reread scope: no lifetime lease or
+byte-identical ABA exclusion is claimed. Enclosing Action/Values abnormal-path
+cleanup limitations remain explicit; this run completed normally.
+
+WHOLE-WORLD AND SEPARATE WAIT/QUEUE EVIDENCE
+
+Both complete V2 census streams reconstruct without errors. Each includes
+521929 imported IDs, 426799 present objects and 32607 unknown-motion objects.
+Frame 1 roots agree. At frame 2 the captured motion differences are exactly
+6d940, 80d4f and 9d39b. Captured topology, health, logical timing and inventory
+comparisons agree. Unknown coverage prevents a universal-world parity claim.
+Raw navigation witnesses remain retained alongside the V2 canonical fields.
+
+All six watched lifetimes bound successfully. Trace events are61/54; queue
+events 33/22. Both trace and queue parsers report no errors; queue provenance,
+restoration and outstanding-token accounting are clean. Client1 has 15
+enqueues/15 dispatches/3 appends; client 2 has 10/10/2.
+
+The extra five client 1 enqueues belong to ship 6d940, pilot 6d945, move.idle PC67,
+gate phase 3/tick 1/time 7.099666666666667. Each source exactly joins its earlier
+import Wait's local Exec/context/lifetime/thread tuple. That natural Wait's
+deadlines are 7.092851410800517 and7.330945769505501. Each natural one-step RNG
+transition validates. This supports unequal wake eligibility in the captured
+interval; the actual scheduler pass/reason remains unobserved. It is separate
+from Position sampling and from the two existing scoped Wait interventions.
+Neither 930fc nor 92efa emits an extra watched command batch in this run.
+
+The two existing Wait corrections still match without Wait/RNG parser errors.
+The selected Find scope remains valid locally, returns saved 29 on both clients
+and restores caller RNG. Neither result proves global RNG parity.
+
+Unknown Action counts are 2061/2058. Six selected Values failures per client and
+all aggregate coverage failures remain. Four copied unknown samples per client
+are locally complete, but canonical leaf identity remains false; saved ancestry
+is not substituted for that identity. These failures were not suppressed to
+obtain the successful selected Position result.
+
+REPRODUCTION AND NEXT BOUNDED QUESTION
+
+Private immutable raw run: .local/native-lockstep/world-motion-015/.
+Frozen source-015 produced validation.json and world-difference.json.
+Read-only analyses: selected-causality-summary.json, queue-trace-analysis.json
+and position-selected-analysis.json. The latter has SHA256
+dc42f7da9796ae589252e5cec9f200a7c17e51f1f460085705998bc176e99956.
+Adjacent launch, artifact/cache audit, live-identity and cleanup receipts retain
+exact private paths and native lifecycle. Raw player logs are not in Git.
+
+The next source-only decision is whether a tightly selected native Position
+scope can deterministically cover the proven radius plus direction work while
+preserving caller RNG, exact original execution, identity guards and all raw
+failure evidence. Seeding only the radius would leave the two direction draws
+uncontrolled. This report authorizes no implementation or native run. The
+separate third-Wait candidate also remains outside this run and requires its
+own reviewed experiment. Existing World014 invalid evidence remains intact.

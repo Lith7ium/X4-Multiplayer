@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Disposable management fixture. Planned construction is not completed construction. -->
+<mdscript name="X4LAN_NativeManagement" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="Setup" namespace="this">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeManagement'" control="'Setup'"/></conditions>
+   <actions>
+    <do_if value="player.module == 'custom_creative' and player.ship">
+     <create_station name="$station" macro="macro.station_gen_factory_base_01_macro" constructionplan="'x4lan_native_management_dock'" owner="faction.player" sector="player.sector" state="componentstate.construction" rawname="'Disposable Management Station'">
+      <position x="20km" y="100km" z="0m"/><rotation yaw="0deg"/>
+     </create_station>
+     <set_build_plot object="$station" x="2km" y="2km" z="2km" paid="false"/>
+     <set_object_account object="$station.buildstorage"/>
+     <do_if value="player.money lt 100000Cr"><reward_player money="100000Cr - player.money"/></do_if>
+     <raise_lua_event name="'X4LAN_NativeManagement.Station'" param="$station"/>
+     <raise_lua_event name="'X4LAN_NativeManagement.Account'" param="$station.buildstorage"/>
+     <!-- A construction-state station shell is not yet a container/account. -->
+     <create_station name="$operatingstation" macro="macro.station_gen_factory_base_01_macro" constructionplan="'x4lan_native_management_dock'" owner="faction.player" sector="player.sector" state="componentstate.operational" rawname="'Disposable Operating Account Station'">
+      <position x="-20km" y="100km" z="0m"/><rotation yaw="0deg"/>
+     </create_station>
+     <set_object_account object="$operatingstation"/>
+     <raise_lua_event name="'X4LAN_NativeManagement.OperatingAccount'" param="$operatingstation"/>
+     <do_all exact="2" counter="$i">
+      <create_ship name="$ship" macro="macro.ship_arg_s_fighter_01_a_macro" sector="player.sector" seed="9810 + $i">
+       <owner exact="faction.player" overridenpc="true"/>
+       <loadout><level exact="0.0"/><variation exact="0"/></loadout>
+       <pilot><select faction="faction.argon" tags="tag.aipilot"/></pilot>
+       <position x="20km" y="100km" z="1000m * $i"/><rotation yaw="0deg"/>
+      </create_ship>
+      <create_order object="$ship" id="'Wait'" default="true"/>
+      <raise_lua_event name="'X4LAN_NativeManagement.Ship%s'.[$i]" param="$ship"/>
+     </do_all>
+     <debug_text text="'[X4LAN] NATIVE_GATE MANAGEMENT_FIXTURE planned_station=1 operating_account_station=1 ships=2 paid_plot=0 seeded_minimum_credits=100000'"/>
+    </do_if>
+   </actions>
+  </cue>
+ </cues>
+</mdscript>

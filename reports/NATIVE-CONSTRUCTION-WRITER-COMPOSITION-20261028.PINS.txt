@@ -1,0 +1,222 @@
+CONSTRUCTION WRITER COMPOSITION: VERIFIED SOURCE / IMAGE PINS
+28 October 2026 | No game execution or hook installation
+
+Frozen source 95791d7e4015708fa0a263c2872d0c1e9f12640e
+Audit base 300b817ff73de0e73749ad84072ec38ab7db9396
+Observer prerequisite 74ced4a03126b214df8757dfd89edc1d14764c69
+Image SHA256 19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891
+Historical DLL SHA256 8d3c2db89c439d2a1658b77a3e167d535b26242a34166cc545c7d91d74ff13fe
+Overlay017 manifest SHA256 438722082b6ebf7782a5ced751d2031ddd837902c66ed0188356278bcb1e5b6c
+
+SOURCE / BUILD COPY SHA256 (line-ending-only representation differences)
+src/native/engine/lockstep_flight.h
+  Git cb7c7246e56ded135c4e26809e798db144a5e7185749798a96f94d8dcd08a003
+  Build 48740cda1950fcd8fc0b2a40d4266c49058b03dbbf5dc409323231ee3b1ccbcb
+  Unchanged at audit base: True
+src/native/engine/lockstep_ai.h
+  Git 2520286bde097465e324cca2dc17fd125e77cbaf03f43ecba5bab779f38b5eb0
+  Build b4a0b61e9e3aa152c039765ee5109c38ac8ef72fba2de66c03c8460e9e78bb82
+  Unchanged at audit base: True
+src/native/engine/lockstep_agent.h
+  Git bcaf0be20b518da59e2ad4fd61c62416367e3278a7d145ca79940448f3dfc35c
+  Build c7fb45b9fd84196b36f5be884c194c54f6da24a389d13babd34c2f47eb37658d
+  Unchanged at audit base: True
+src/native/engine/lockstep_ship.h
+  Git eb8c03eecc0383d6f221053dec02543a1f77a5cca8ebe1bfc447257f9912f5c1
+  Build acfc0088518be93c43591c649b3038f64507e1301c1e8eecf33971e7b2dd306d
+  Unchanged at audit base: True
+src/native/engine/lockstep_weapon.h
+  Git 40fb18712dd01a76107280828e6613cb2d40c1ae79bbeda7e3cc85a583da147d
+  Build e02e9900eab8a5605ad862c06c08cde6921269c1fe2dea667dd58c6c4ea0fee7
+  Unchanged at audit base: True
+src/native/engine/lockstep_nav.h
+  Git 14a6474765f49b55ae40993fa9b3c8f09ddb584ae8e5ce82a3577470f86d51f8
+  Build bc0e986c8a58fb4b8cae41c44ca9f4d682345421ae06f64511a5c3680b9ea0df
+  Unchanged at audit base: True
+src/native/engine/lockstep_shape.h
+  Git 2a9b282e8edb73fb7c9255428506a5adddeef2df857c1a32b4bab2362b6dbac2
+  Build 1416240b3a49556bd34ebc5f2eff72d64f87a9ced4047b232adddb96c2639035
+  Unchanged at audit base: True
+src/native/engine/lockstep_bullet.h
+  Git 44186ccbaf2886a9a3fb02e873de99ff71330bfc249101a825d58be526dd5bb9
+  Build d7d4ba9b12ae0b9c4e23b0e95d4bccfe126dd0e8979afefff38e6b8a3ef7f9da
+  Unchanged at audit base: True
+src/native/engine/lockstep_death.h
+  Git 4f11ad6a404bd563083a49002368f43d4341d7b4ebf88cb97589a1c6da1e55ea
+  Build 2af2bbbdb40e99872da31b565d84e761044c03b619ba319f68b83e96e35990f8
+  Unchanged at audit base: True
+src/native/engine/lockstep_attention.h
+  Git f4dbe1db3e30bb2de2d728fa54c56cf96b5742ea7920e0d465cb08e9628beff5
+  Build e3d14be898f913f438b3ef77a876184d5b00629c7934f2ed7275a08bb46413c0
+  Unchanged at audit base: True
+src/native/engine/lockstep_gravidar.h
+  Git 3f3e5b675330c74d99a604077d3bdef4794055cdbd226f147c2d8297d13c17d8
+  Build 566bdcdb10ecbb433d44dd126f286cc83aca7092fe1136b8b9a2ba2a617e8c9f
+  Unchanged at audit base: True
+src/native/engine/lockstep_interrupt.h
+  Git c24bf14890e77e21115045c38ca553ddba7aa66eec10967e672cf9043b777597
+  Build 5e6b8449851a7a949028eab7a86ca618799184cba8f3a5f2054c421ffc1f90f5
+  Unchanged at audit base: True
+src/native/engine/lockstep_registry_native.h
+  Git 344f3144b34b53e3b38ea9ff7a57dc382cb65d5b82429ef826b2e656d70a2c32
+  Build 8f6e9871ec333111de42d7b947e07e307ad4e27e23c3ed42654ef579de3650df
+  Unchanged at audit base: True
+src/native/engine/lockstep_seed.h
+  Git 65b862e434aeb58190d164247d41b69195f196a59ce75f952033a6933b41412d
+  Build ed54011fa4d884f7df0f3e5e7bda36f6f15e3b1017d125aed2e9dfb53dd8f901
+  Unchanged at audit base: True
+src/native/engine/lockstep_gate.c
+  Git ca27b0f88f9c02740b51f0c68e11851d07ede09f0f4e550be47e83c35b54a301
+  Build 13d2cf4337c1b3d5b148cd8ca4be9b142432d749ce12601907e9b2ae069f610e
+  Unchanged at audit base: False
+tools/dev/native_gate_probe.lua
+  Git 57f97275c4fc3849619a266957606c6bd178f47de213703c737932e53c040213
+  Build fad471a529a3ebd521aaafdb0b6f72fd7f1ea325ca47ee1aa570d3c99905faec
+  Unchanged at audit base: False
+tools/dev/native_creation_evidence.py
+  Git 0b78fe25c517ca89351e60b82af44062e80c0278a2919b4d48b1f18455078e98
+  Build 7af23753a67d53fbaef52f545e3b57afff786ef5e450b5c473b35381ea5d0baa
+  Unchanged at audit base: True
+tools/dev/native_creation_evidence_v2.py
+  Git 6aa9d7bffe3902922b81d0a0f4f0047adfb6b1e6fbd4327966c61b4e1954734e
+  Build a1cc25332324ad867d0d298378270ffadc67bdb56c64443d3acb8efde91d0586
+  Unchanged at audit base: True
+tools/dev/native_registry_md_evidence.py
+  Git 35971b35244c0ed6da58faa54231e61781a5794815009aa7cbe56990fce2602a
+  Build d9574ac75a9bc5351e242228216688f10c0f2695c449d177b12b0c3e928ec974
+  Unchanged at audit base: True
+
+EXACT IMAGE CODE RANGES (RVA, byte length, SHA256)
+0xec7200 32 20c822202b85f4ecfcc9892f075241b6fddced6cc71ea149c42c224145ff066b src/native/engine/lockstep_flight.h
+0xec40c0 1532 799fa233b280c0cb8f818b124e06ba31e7e63204cc386726721a2f5be9397dcf src/native/engine/lockstep_flight.h
+0x14ddc90 32 b979e629881a2dacae664e2e1849bc808bf1f2e12be10ab9deeb875f076fc027 src/native/engine/lockstep_flight.h
+0x106e3e0 48 fad322a196c7bfa17c02d56cf2e0c1ff711a3e81dc61573d16314c19f8cfe20a src/native/engine/lockstep_ai.h
+0xb58bb0 303 7509510d2582f326fb87c58a23b715d1f7499577bf681c67377347314e3aa759 src/native/engine/lockstep_ai.h
+0xeaed50 48 b7217cf64eecbc09931e473bd1ad2eecc9fb32c6fcf5ed940484233f954a06b2 src/native/engine/lockstep_agent.h
+0xe8f250 32 2b6565dd2dcb1f98be975bb39d5722950f962be5c9d21edd7de343910ee27405 src/native/engine/lockstep_agent.h
+0x7cc810 1503 a0346a6203409b640354b5bef3df9521b06d53da40fd23a1c701e562a863ec8b src/native/engine/lockstep_ship.h
+0x8132d0 32 2f3c1a7982a384fd4036b3bbd5051f9bee25ce0946e9211136c7ddbfb1217993 src/native/engine/lockstep_weapon.h
+0xea77f0 32 acc248e006b7b6889930478f2b42aa2d7a011fc1107095b78229142f08336964 src/native/engine/lockstep_nav.h
+0xbff80 32 95c3e58aa23320b393d50359ccc7f572d401e805e81855895fb46480cb988232 src/native/engine/lockstep_shape.h
+0xc0010 227 6ef0773000f2b5a6c8b881e0906902b68212df148ba99bb8ba6f6708062b4eb4 src/native/engine/lockstep_shape.h
+0xcc220 268 5ead430da168fdfe1f4dfb0eb328b7dd6b04cf1dc6a5ee56ea3bcfb133916bd2 src/native/engine/lockstep_shape.h
+0xbff80 138 8278ac79100ba088a0d26da942aefbfc9254e98b84c8c44d3807726250460321 src/native/engine/lockstep_shape.h
+0xc2c00 904 ce34f4bbe700f06364ec545aaa2fe9e7be198c751ad0ed0e06239ecf0b56cdf4 src/native/engine/lockstep_shape.h
+0xc2810 996 af541073310dc1a7ac2e0d773dd87c041c76021abbda46e9b6309e1ef4d4aee9 src/native/engine/lockstep_shape.h
+0x83b500 32 888c3c759fbd81b7da71c3005dc04088abc8dca28695bb53950761e6dc4b641d src/native/engine/lockstep_bullet.h
+0xd4f090 32 5c2c66d25003bf15ecb36c641c6e46659067754dd45460a4b3575c1382e587bc src/native/engine/lockstep_bullet.h
+0x7cd610 180 acf5deebe3cd68de95084938ccf71d601f4c5f1d1f18b2ecf4826ee85d43a99e src/native/engine/lockstep_death.h
+0x6d1ff0 188 b89efdd1ce0a8d0901c88c63c0d7ac54f14cc90138459ccf7bf8e7835b19401f src/native/engine/lockstep_attention.h
+0x10b2dc0 181 43ced4fa9f55c0b96d47b6f3252a10fe3fcf3c7d6b9d95042f242ff9d9671840 src/native/engine/lockstep_gravidar.h
+0xef45d0 32 4aa7f759764741aba58f7f43083af1205437074ae9821d0793d99e20c735e1f8 src/native/engine/lockstep_gravidar.h
+0x10b12c0 317 89362a2325ff0149e2e41e08628ad92eb2405e592c3dfc6f3e3e148667399daa src/native/engine/lockstep_gravidar.h
+0x10ae0e0 4686 7fdbcc2998badaec41dea9b363938be23b24be94c881eb74c203cfd899be342c src/native/engine/lockstep_gravidar.h
+0x10acd70 2262 a1f8ae33a9b8c9494c231878651d7a146767b3a44b5fd94f651afcafc04ab6df src/native/engine/lockstep_gravidar.h
+0xb58ce0 741 748506325f4a887950dcd5993f0464dc5383e51862e1795af859ed6a73c25848 src/native/engine/lockstep_interrupt.h
+0x1066750 343 0dd52bfd8ecef79bdc5743c2532d96f815451265c26e26ff209deac51eb5291a src/native/engine/lockstep_interrupt.h
+0x2cbe008 4 b7d41d79e52b4090852073f63ecbadf7dbc031e0004382988b247b05c125ac72 lockstep_creation_trace_contract.h
+0x4fdfe0 5668 330561122ba3b0f0793aec2383694f483b54d0ebe696aec5340c04b85ec96092 lockstep_creation_trace_contract.h
+0x5012f0 589 3d63d65ff92215d2242059703e1e3fd137920c327a4a15997d6361655b43e188 lockstep_creation_trace_contract.h
+0x505fb0 13427 c8649473700b5cf6a1e0e9bfe1a9d887512116de7efc8b0f2f02c5279cd28789 lockstep_creation_trace_contract.h
+0x50e4a0 4119 bb77fd0b832098a6478588b40f756ee84ab6c6a9af321826c742900ae428761c lockstep_creation_trace_contract.h
+0x51b710 32 924d84d3ca43cfd32ed104d4ea7a7545f9b593bd1ee240f4aa96227aa4250bd5 lockstep_creation_trace_contract.h
+0x6bd830 256 37a40a4e25d23a4cb6e93767836171e396e4cee1c2224df8c596f0564ed57e80 lockstep_creation_trace_contract.h
+0x6c65c0 2880 5a2f095fea01699a535cdc9b9dfcb51767661815b09c784b47808dc30a086e09 lockstep_creation_trace_contract.h
+0x745700 533 c9f9f2b472bd1073b8aba6d14ae9bc5d3c47b30192ba35a2ceaefff9343788e8 lockstep_creation_trace_contract.h
+0x746980 766 c0e3af96eb9ff0715dc0180cecf023d4e47e8a6ffe25063791fc87e9fe0772b6 lockstep_creation_trace_contract.h
+0x14ddd10 257 1db1ba392a17c5d2bd2cbca21a6d2f7234bbf6e6c726a0ef0d72594c19acf921 lockstep_creation_trace_contract.h
+0xba1890 3012 eac00a81382d825a10008bc4f48960df8b77ff6e59b012779142655381bd51c6 lockstep_creation_trace_contract.h
+0xc841b0 1090 ed86616b763698739cd1635d6de0e430f804971eb10f63e9c1ae78e856b7cb5e lockstep_creation_trace_contract.h
+0xc82060 3073 fbfd2881e3e95f5225c74c2646046cf2ca3b7f27f9c9f3f77fb3e37becdf78ba lockstep_creation_trace_contract.h
+0xc7d4c0 674 2db9de7694668281ec0229ff0ba597508b6dc6852a07297103b0ebe3589a7966 lockstep_creation_trace_contract.h
+0xea8cf0 1332 8d94c7bcd214c10c531b48f7bcd8f3ddb87b49025a437416d0a9123c429a0615 lockstep_creation_trace_contract.h
+0xe85360 1368 c565989a8232aecf63974a4ae52a53edcaae07c632a0d8c5cb3e5b540f8f4a7e lockstep_creation_trace_contract.h
+0x745e00 711 acd257ef830505bca734583af1fbb2460f8bb09d2bb07d323cbe4596856343b2 lockstep_creation_trace_contract.h
+0x14ddc90 120 584854a7bdbf956043c7756157888674152bd0ffc0a307c00f29537332e8780e lockstep_creation_trace_contract.h
+0x99a210 468 0e3ed2e1d468f72dd886645a3270366cf4eca25fb29f06fb58e0128d53c4dede lockstep_creation_trace_contract.h
+0x99a3f0 807 5ca12a5d17041238645af6d6028c718bb3714cc53e9dd6963769d51827087c0d lockstep_creation_trace_contract.h
+0xeac530 582 7b02058e82f6d8acf92e189f5982eae449af06dc045fcb41be1d182ea374267c lockstep_creation_trace_contract.h
+0x6cd8b0 39 9317be9e33cdf30695ab01f4dfb062d85b836a872a3019c103cf9279c4ff2a32 lockstep_creation_trace_contract.h
+0xea4a00 375 c55b28f9e7b1f10a740d2436077b498e29a6940031da6d5d0c04afeeb8fba117 lockstep_creation_trace_contract.h
+
+READ-ONLY VTABLE SLOT -> TARGET RVA
+0x2c4ea38 -> 0xec7200
+0x2b813c8 -> 0x7cc810
+0x2b9af98 -> 0x7cc810
+0x2b69788 -> 0x8132d0
+0x2b03e98 -> 0x8132d0
+0x2c51260 -> 0xea77f0
+0x2b67d90 -> 0x83b500
+0x2c43fd8 -> 0xd4f090
+0x2b7fef8 -> 0x7cd610
+0x2b99ac8 -> 0x7cd610
+0x2c67648 -> 0x10acd70
+0x2b9bc10 -> 0x7cefb0
+
+POSITIVE DIRECT CALL EDGES (not a closed call graph)
+0xba1b86 -> 0xc841b0 return 0xba1b8b
+0xc8452c -> 0xc82060 return 0xc84531
+0xc8224a -> 0xc7d4c0 return 0xc8224f
+0x7cf01a -> 0x10bcd70 return 0x7cf01f
+0x10bce18 -> 0x106eac0 return 0x10bce1d
+0x106eb1e -> 0x106ebb0 return 0x106eb23
+0x106ec2c -> 0x106f3b0 return 0x106ec31
+0x106f6b8 -> 0x1066ba0 return 0x106f6bd
+0x1066dc1 -> 0xb58ce0 return 0x1066dc6
+0xea4b59 -> 0xea8cf0 return 0xea4b5e
+0xea8ff7 -> 0xeac530 return 0xea8ffc
+0xeac5fa -> 0xe85360 return 0xeac5ff
+0xe8552c -> 0x14ddc90 return 0xe85531
+0xea9069 -> 0x99a210 return 0xea906e
+0xea90dc -> 0x14ddc90 return 0xea90e1
+0xea9105 -> 0x99a3f0 return 0xea910a
+0x106e3f6 -> 0xb58bb0 return 0x106e3fb
+0xeaed6f -> 0xe8f250 return 0xeaed74
+
+SUPPLEMENTARY CALL-INVENTORY RANGES (SHA256, indirect calls retained privately)
+0xc841b0 1090 ed86616b763698739cd1635d6de0e430f804971eb10f63e9c1ae78e856b7cb5e
+0xc82060 3073 fbfd2881e3e95f5225c74c2646046cf2ca3b7f27f9c9f3f77fb3e37becdf78ba
+0xc7d4c0 674 2db9de7694668281ec0229ff0ba597508b6dc6852a07297103b0ebe3589a7966
+0xea8cf0 1332 8d94c7bcd214c10c531b48f7bcd8f3ddb87b49025a437416d0a9123c429a0615
+0xe85360 1368 c565989a8232aecf63974a4ae52a53edcaae07c632a0d8c5cb3e5b540f8f4a7e
+0xeac530 582 7b02058e82f6d8acf92e189f5982eae449af06dc045fcb41be1d182ea374267c
+0x7cefb0 1985 84d907362fa18c23c320bc987feed2b8a4b14aae44533b41a5664a403d65ee47
+0x10bcd70 207 ba9145e181d676d74e3ba9b42bef7c0bdc4d96bc018d84a71d9ab237088e624c
+0x106eac0 237 ca2bd5b6cab9ba510f040d0473978e90cb5b3403752f9857d0159025d3ffe94c
+0x106ebb0 228 1fff0aae2f0beaba80e94bc66c08e5b6383d6d23b385c8f0fe6b5527a724aaa1
+0x106f3b0 849 629e5622dd63bf4ff32f882a7e2255c77cad4fc4d39dcf072b2a6fc056e5fc3c
+0x1066ba0 613 ab00b7598d2b6cce00d9d0135844f47bd2c9a94d9a9fcc1cf9508a994a8d9434
+0x99a210 468 0e3ed2e1d468f72dd886645a3270366cf4eca25fb29f06fb58e0128d53c4dede
+0x99a3f0 807 5ca12a5d17041238645af6d6028c718bb3714cc53e9dd6963769d51827087c0d
+
+INVALIDATED PRE-CORRECTION WITNESSES (NDEBUG disabled assertions; not test proof)
+Source version 300: exit 0 diagnostic output only; assertion-backed evidence INVALIDATED
+  Witness source SHA256 712e827d6baf7d396001804ee780e5d72228987fb2e76d9f1be1a38f9fc3eb03
+  Test executable SHA256 f7a6877d48f181bfae24c99cf4979b44a98a14a9ed2cb944d36f0445d743fa1d
+  Output SHA256 808137429410090ddb2fa1d77c3d4b5ecc4c6074e703aa4146f75a050012b9b7
+Source version 74: exit 0 diagnostic output only; assertion-backed evidence INVALIDATED
+  Witness source SHA256 712e827d6baf7d396001804ee780e5d72228987fb2e76d9f1be1a38f9fc3eb03
+  Test executable SHA256 b6e5aca6342662ce0294772226003852318ac8d59bdfa51651b33d0c0d7b8e8f
+  Output SHA256 808137429410090ddb2fa1d77c3d4b5ecc4c6074e703aa4146f75a050012b9b7
+
+These hashes identify source-only review and local tests. They are not new native
+gameplay evidence, a successful construction result or permission for an intervention.
+
+CORRECTED ALWAYS-ON CHECK WITNESSES
+The old hashes above remain invalidated. Only these fresh runs are check-backed.
+RaiseException input: code e0427777, flags 0, parameter count 0, arguments NULL.
+Caught record on this Windows build: code e0427777, flags 0x80, parameter count 0.
+Ten individual checks per writer; thirteen for weapon; all twelve reached.
+Fourteen additional argument/reach/total checks; 137 always-on checks per executable.
+Source version 300: exit 0; 137 always-on checks
+  Witness source SHA256 76e28d1b77519db15268f0f01447bd4e61d26ff56f3e8c6b22b20e726da9af44
+  Test executable SHA256 8997348e7bf4921e72200d479c7e4f7cc5e565e31a2902470c10763596ba0de5
+  Passing output SHA256 ee1ccd5ddb0ac919cce79db12cf6e76ac8a771ce9a8998a4ee9023268ea71307
+  Probe --force-fail: exit 97; output SHA256 fac9c76d9ca04ced34f428e88710e0c41b5ec346e71531ceb6c8e244f1e7d09d
+  Probe --expect-restored: exit 97; output SHA256 91962b3aea51b15f95f8857b33b4ab7fb258b2749e0d1c03817c9a36c6869a79
+Source version 74: exit 0; 137 always-on checks
+  Witness source SHA256 76e28d1b77519db15268f0f01447bd4e61d26ff56f3e8c6b22b20e726da9af44
+  Test executable SHA256 cf99bd04d08f64823e6051af3b96ead24f931fffa94ebf18f63104719568b17c
+  Passing output SHA256 ee1ccd5ddb0ac919cce79db12cf6e76ac8a771ce9a8998a4ee9023268ea71307
+  Probe --force-fail: exit 97; output SHA256 fac9c76d9ca04ced34f428e88710e0c41b5ec346e71531ceb6c8e244f1e7d09d
+  Probe --expect-restored: exit 97; output SHA256 91962b3aea51b15f95f8857b33b4ab7fb258b2749e0d1c03817c9a36c6869a79

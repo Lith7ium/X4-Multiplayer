@@ -1,0 +1,138 @@
+CONSTRUCTION 016: ACCEPTED CREATION OBSERVATIONS, ENROLLMENT STILL REFUSED
+28 October 2026
+
+The one authorized two-game diagnostic produced valid schema-2 constructor and
+lazy-navigation observations on both clients. It did not complete construction
+or establish lockstep. The unchanged registry guard refused both builders for a
+covered update before binding: STOP reason 75, completed tick 5, restored 1.
+The complete validator remains false with 41 errors. No retry was performed.
+
+Frozen inputs and lifecycle
+---------------------------
+The run used integrated source 95791d7, frozen DLL SHA-256
+8d3c2db89c439d2a1658b77a3e167d535b26242a34166cc545c7d91d74ff13fe,
+and overlay017 manifest
+438722082b6ebf7782a5ced751d2031ddd837902c66ed0188356278bcb1e5b6c.
+All 15 payloads and 144 frozen build-source entries were independently reviewed.
+Compared with build015, twelve payloads were identical. Only the DLL, schema-2
+reader and explicit schema marker changed. Fixture, MD, seed, actions, options,
+snapshot and read-only construction adapter were unchanged.
+
+The released admission runner used the authorized b3/b4 lanes, 120-tick cap,
+260-second native timeout and 900-second admission limit. No RAM floor applied.
+The actual attempt lasted 61.969 seconds. Both games closed gracefully with exit
+code 0; the runner stopped its relay. Both lane and snapshot restoration receipts
+are true. The collected staged snapshot hashes match the pristine input. A fresh
+authoritative status showed no X4 processes, queue entries or held lane locks;
+all four owned runner/game/relay PIDs were absent. The profiles' save-file warning
+describes the wrapper's staged snapshot, which was collected and restored.
+
+Independent evidence acceptance
+-------------------------------
+Analysis imported the exact committed 95791d7 archive, with bytecode writes
+disabled. Each client has 59 complete records of eighteen parts, maximum depth
+four, one Generate/Initialize/Pilot/Navigation/Agent/final setter, and separate
+closed A/B stages. Native capture failures, dropped/open records, restoration
+overlap/failures and remaining owned hooks are all zero.
+
+The independent creation parser accepts both traces. Mandatory MD, first-origin
+and origin-identity joins also have zero errors. This acceptance is restricted
+to the captured call/identity evidence. It does not remove the complete run's
+41 failures, including failed enrollment, incomplete construction, incomplete
+later observers and no exercised battle. Whole-RNG coverage, sector-pose support
+and enrollment support remain explicitly false.
+
+The call forest has the same record kinds, parents, callers, stages and subject
+categories on both clients. Client 2's selected intervals are two shared ordinals
+later because earlier unrelated observed events remain in the shared sequence.
+The following are client 1's exact ordinals; client 2 adds two throughout:
+
+  Boundary1 return              9
+  Generate                     10..110
+    Initialize                 47..109
+      Pilot                    48..59
+      orders.base startup     102..104  first covered origin at 103
+      combat startup          105..106
+      engineer startup        107..108
+  Static controller publish   111..112
+  Boundary2 entry             113
+  native Builder event        117..118
+  last MD boundary return     128
+  observed Director AI        129
+  Navigation initializer      130..141
+    Agent initializer         131..134
+      Agent timer FloatState  132..133
+    event query               135..136
+    event timer FloatState    137..138
+    actual PostEvent          139..140
+  Nav controller publication  142..143
+  parsed bind callback        144..145
+
+Initialize and Pilot borrow the generator's local reference, distinct from its
+outer result reference; the corrected object/runtime joins pass. Pilot entry has
+the selected XL identity and true player owner but no published controller.
+The later Navigation entry receives the exact previously published Static pointer
+as its prior-controller argument. Its return has matching controller/Agent/owner
+relationships; the subsequent setter publishes that exact Nav pointer. The bind
+callback observes the same lifetime and execution tick, before the unchanged
+registry refusal. This is presence and ordering evidence, not lifetime exclusion.
+The observed outer lazy-navigation trigger is still not a captured stack: caller
+ea4b5e and adjacency after the Director receipt do not alone prove a Wait action.
+
+Measured RNG and timer divergence
+--------------------------------
+All selected native clock samples equal 7.183 on both clients. Generate already
+enters with different TLS RNG state. Of 21 captured FloatState calls, all nineteen
+TLS-backed calls have different input states and results. The two non-TLS helper
+calls have equal actual input states and equal results. Every sampled state
+transition and rounded float result passes the exact scalar arithmetic check.
+
+The two selected navigation draws cause real timer differences, independently
+of the physical bank labels:
+
+  Sample                         Client 1             Client 2
+  Agent FloatState(0.5)           0.39859774708747864   0.41133445501327515
+  Agent timer                    8.081597747087478     8.094334455013275
+  Navigation FloatState(2)        0.6705837249755859    1.0972700119018555
+  actual posted event due        15.853583724975586    16.280270011901855
+
+The actual event query returns false on both clients. Agent timer bits equal
+now + 0.5 + the widened native float result; PostEvent's actual due argument bits
+equal now + 8.0 + its widened native float result. Both equations were checked
+bit-for-bit against the captured doubles and exact-image constants. No query or
+event was replayed. The Agent timer difference is about 12.74 milliseconds; the
+posted event difference is about 426.69 milliseconds.
+
+The nineteen ancillary RNG records include seventeen TLS draws and two non-TLS
+draws. Seven other-object setters and eighteen unresolved-at-admission setters
+remain counted and retained. These are not claimed as selected-builder writes.
+The observer does not cover all possible RNG consumers or explain every TLS
+advance between captured calls; no full-constructor RNG conservation is asserted.
+
+Raw banks and remaining interpretation limits
+---------------------------------------------
+At Nav/Agent return both clients have refresh time -1 and cursor sentinel 2.
+At the later callback both have refresh time 7.183, but cursor 1 versus 0 and
+global read/write selectors 0/1 versus 1/0. Each cursor then equals its own write
+selector, so the raw 0/1 disagreement must retain its bank-phase context. No
+selector, cursor, bank or timer was changed or normalized by this diagnostic.
+
+The canonical passive before-bind motion, raw position/basis/reference subset
+and normalized reference identities match. Timing differs only at byte 12, the
+raw controller cursor. This narrow equality does not cover Agent timers or full
+parameter/state banks. Complete private 416-byte banks are retained. Comparing
+them by the sampled read/write selectors still finds raw differences, including
+parameter float fields and unmapped bytes. These require field-level attribution;
+unknown bytes, padding or local identities are not declared gameplay divergence.
+
+Private reproducible artifacts are under .local/creation-trace/build-016:
+result.json, validation.json, creation-analysis.json, accepted-causality.json,
+raw-comparison.json and cleanup-proof.json. Exact source/overlay inventories and
+prepared command are retained in the adjacent overlay-017-review directory.
+Old build012/014/015 evidence and their original failures remain untouched.
+
+The next proposed experiment is separately keyed, bounded RNG scoping around the
+exact selected native constructor and later same-lifetime navigation initializer.
+It needs source review before implementation. It must preserve original calls,
+caller/TLS state restoration, raw clocks, incomplete-coverage reporting and the
+strict late-update refusal. This report grants no new native run or enrollment.

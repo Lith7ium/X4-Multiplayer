@@ -25,3 +25,4 @@ installed-before/
 CLAUDE.local.md
 /.claude/settings.local.json
 /.claude/worktrees/
+/src/rust/target/

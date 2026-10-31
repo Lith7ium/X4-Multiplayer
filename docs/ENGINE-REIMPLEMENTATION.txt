@@ -1,0 +1,65 @@
+X4 MULTIPLAYER - ENGINE PATCHING AND REIMPLEMENTATION RULES
+29 October 2026 | INTERNAL DEVELOPMENT
+
+BASIS
+
+Egosoft's fan policy (https://www.egosoft.com/community/fanpolicy_en.php,
+section 3 "Game Mods & Patching Tools") permits non-commercial mods for a
+designated X game to modify and use game assets when:
+- the mod requires a legally acquired copy of the base game (and of any
+  expansion whose assets it uses);
+- no complete original game data containers are distributed;
+- patching uses binary diffs, local patch utilities or installer scripts that
+  generate modded files on the user's own system; publishing the source code of
+  such patch tools and technical documentation on public repositories is
+  permitted provided no original Egosoft assets are in the repository;
+- no standalone copies of essential game components are distributed and game
+  files are not made usable outside the game environment;
+- nothing is ported between X games, and the mod stays free of charge.
+The project's runtime approach (the gate DLL verifies the exact installed
+X4.exe and patches the running process in memory; nothing is written to game
+files) is a local patch utility in that sense. Official releases remain the
+project owner's decision (AGENTS.md).
+
+WHAT THIS ALLOWS
+
+- Hooking, redirecting or replacing engine functions at runtime in the user's
+  own installed game, Windows and Linux builds alike.
+- Reimplementing engine functions in our own code (C or Rust) and redirecting
+  the game to them, including implementations chosen so that the Windows and
+  Linux builds compute identical results (cross-platform determinism).
+- Rebuilding open-source libraries the game embeds (e.g. Jolt Physics, MIT;
+  Recast/Detour, zlib) from their official sources with their licences kept,
+  and redirecting the game to those builds.
+
+RULES WE KEEP
+
+1. Our code only. Replacement functions are written by us. Never commit
+   decompiler output, disassembly listings of game code, copied game code,
+   game binaries or extracted game data. Reverse-engineering notes, Ghidra
+   projects and labels stay in the local research workspace (x4-re), not in
+   this repository.
+2. Requires the game. Everything verifies the exact owned build at runtime and
+   fails closed on a mismatch; nothing runs without the user's installed game.
+3. Free of charge, no game assets in releases, no porting between X titles.
+4. Third-party sources keep their licence files and are listed in NOTICE.txt /
+   tools/distribution/THIRD-PARTY.txt.
+5. Default off and pinned: every replacement is opt-in per configuration key,
+   pinned by hash to the exact build, restored on stop. One exception:
+   native_gate_macro_arena keeps its free route (the call at 0xa27148 in
+   U::Macro's deleting destructor) after stop, until the process exits, because
+   macros placed in the arena still exist then and the native allocator cannot
+   free them. It is installed only with that key, handles only pointers inside
+   the arena and passes every other pointer to the native free. Sessions end
+   with the process anyway.
+
+CROSS-PLATFORM PLAN (see reports/LOCKSTEP-CROSSPLATFORM-FP-INVENTORY-20261029.txt)
+
+The Windows engine (and its Jolt copy) was compiled with fast-math-style
+rewrites; the Linux build was not. Hooks at library boundaries (math library,
+decimal parser, denormal mode, approximate rcp/rsqrt instructions, our own
+deterministic Jolt and Recast builds) remove the shared-component share of the
+difference. For the engine's own code the method is census-driven: run a
+Windows and a Linux client in one session, find the function where the two
+first part, reimplement it once in our own code, redirect both builds to it,
+repeat. Only functions that actually cause divergence are reimplemented.

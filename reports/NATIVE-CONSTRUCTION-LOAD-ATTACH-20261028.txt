@@ -1,0 +1,141 @@
+CONSTRUCTION LOAD REATTACHMENT: EXPLICIT ACK2
+28 October 2026 | source-only correction | base 227d53e
+
+Construction018 failed before creating the builder. Initial configuration was
+accepted, LOAD_REQUEST advanced native boot_phase, and the saved UI reload then
+called registry configuration again. Both registry and constructor RNG setup
+required phase zero even for an already configured session. ACK1 also printed
+and parsed literal phase zero. Its earlier two-VM test never crossed native Load.
+The frozen018 failure remains intact; no game was launched for this correction.
+
+EXPLICIT AGREEMENT
+
+ACK1 retains its original phase-zero grammar, capability and bootstrap bytes.
+ACK2 requires native_gate_creation_rng_ack_schema=2 and the separate native
+capability creation_rng_ack2_schema=2. The old creation_rng_ack_schema capability
+remains1. The composer defaults to1 and requires --creation-ack-schema 2 explicitly.
+The exact suffix order is manifest, |CREATION_RNG_ACK_2, then the optional
+|REGISTRY_CREATION_1;handle=0000000500000003;policy=observe marker. Mixed, repeated,
+unknown or out-of-order markers refuse. The SHA256 bootstrap agreement changes;
+constructor keys and math do not. Epoch1 vectors remain:
+  A 8b34a17d4ae84a2f; B 5311c417920e6e36.
+ACK2 bootstrap vectors:
+  without registry:643 bytes,
+    792966722d11de00bbd39f887142ad17e73e9ff8c4cbd248c6c29f13c1c0286a
+  with registry:702 bytes,
+    12674fe96e5dd2db165934cb30fc50d88ee5047c5036cbba38738ef127e29586
+
+INITIAL SETUP AND ATTACHMENT
+
+Both first configurations remain phase0-only. ACK2's immutable prepared binding
+is created under creation_lock after the existing common guards and successful
+CNG, with valid published last. It binds exact image/UI owner, native boot start,
+slot, port, secret, digest, options, epoch, manifest, mode and local nonce. This
+record is prepared identity, not successful attachment or native lifetime lease.
+CNG does not consume game RNG. ACK1 retains its original nonce generation point.
+
+Only an already configured healthy session may attach in native phases1..3.
+Every attachment rechecks immutable binding, zero issued/selected activity,
+records/open scopes, failures/restoration debt, installed pins/composition and
+STOP/closing. No state or cursor is reset. First/reattach comes from the native
+ordinal, limited to8. Phases cannot regress. Registry attachment requires its
+ordinal equal the RNG ordinal; it advances once. RNG then requires the registry
+ordinal exactly one greater before committing its own acknowledgement. Without
+registry, the registry counter must remain0. A half-pair cannot be repaired by
+another registry call. First RNG initialization after LOAD_REQUEST still refuses,
+even when an initial registry claim exists. Refusal retains counters, keys and
+nonce; public configuration refusal stops the gate as before.
+
+Creation and registry locks are acquired separately. Registry copies and checks
+the prepared boot binding under creation_lock, releases it, then commits under
+registry_creation_lock with fresh STOP/active/no-activity checks. Configuration
+is restricted to the exact UI owner; foreign calls cannot poison its binding.
+The final native accepted phase is captured, not replaced with a caller value.
+Registry phase may precede RNG phase during natural1-to2-to3 progress. These
+numbers describe boot state, not proof that all game loading has completed.
+
+EVIDENCE AND FAILURE RETENTION
+
+ACK2 rows have this exact field order:
+  schema ordinal boot digest slot phase registry_phase reattach registry_acks
+  issued state records scopes attempted
+ACK2 footer:
+  schema acks registry_acks boot digest slot phase registry_phase failed
+The parser requires matching configuration/ACK pairs, one exact snapshot
+LOAD_REQUEST between initial and subsequent attachments, monotone phases,
+matching boot/digest/counters and ordered final closure. Partial pairs fail.
+The existing registry observation schema1 remains unchanged and separately
+validates registry-config/RNG-config/ACK ordering and cardinality.
+
+The probe creates both protected drain closures before attempting registry or
+RNG configuration. It still activates registry first. Thus a registry refusal
+does not prevent the abort handler from draining already resident RNG evidence.
+Each Lua activation saves its returned receipt; a logging interruption resumes
+that receipt without invoking native configuration again. Native scope rows,
+keys, late-update refusal, bind semantics and no-publication policy are unchanged.
+
+VERIFICATION
+
+Full build_native_gate.py --test --native-image passed against the pinned image:
+19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+This includes existing ABI/unwind/foreign-SEH/STOP and real loopback transport
+tests, the 1820-check constructor RNG suite, 2617-check registry suite, and the new
+4125 active-CHECK Load lifecycle suite. The deliberate CHECK control exits97.
+All tests use owned memory/mapped image bytes; no game process or native engine
+constructor executes. The new fixture models an owned configured boot and calls
+production lua_boot, trace/config APIs, lua_load_requested, boot_next and STOP.
+It is not an end-to-end engine load test.
+
+Eight scenarios use actual native C returns through two distinct LuaJIT VMs and
+the independent Python parser: registry absent/present at phases1/2/3, plus
+registry1-toRNG2 and registry2-toRNG3 movement. They also interrupt ACK/footer
+logging and prove one native call per attachment. ACK evidence succeeds while
+whole constructor evidence deliberately remains false because no constructors
+ran. Synthetic poll metadata and empty row providers are test adapters only.
+
+Native negatives cover64 mutation categories across applicable registry/RNG
+stages: boot/nonce/options/manifest/preimage/owner changes, activity/debt/STOP,
+unknown/regressing phase, mode mixing, unmatched/duplicate claims, ordinal8-to9,
+foreign thread, CNG failure, STOP between binding publication and registry
+commit, STOP after registry claim, and initial RNG after Load. Eight compiled
+semantic omission controls are detected: old phase0 rule, nonce binding, boot
+start binding, both registry pair checks, RNG pair check, final STOP checks,
+CNG refusal and falsely printed phase0. Seven exit97 in active C checks; the
+false printed phase reaches Lua and exits1. Removing only the redundant initial
+registry pair check survives because its final commit check still refuses;
+that control is retained separately rather than claimed detected.
+
+Python native discovery:735 tests,728 pass and7 unchanged Linux-only skips.
+All LuaJIT tests execute. New tests include actual production probe abort drain
+ordering, composer capability/source preservation and malformed receipt controls.
+Read-only revalidation preserves exact ordered historical errors and stored
+validation bytes:012=41,014=43,015=43,016=41,017=44; all remain invalid. Frozen018
+still lacks its barrier report, so its sealed reader failure is retained
+separately. No synthetic barrier or passing018 result is created.
+
+INDEPENDENT REVIEW FOLLOW-UP
+
+Review of81d0fcd reproduced three gaps, corrected in a separate follow-up.
+The ACK2 parser now requires each registry phase to be at least the previous
+RNG-accepted phase; separate monotone arrays were insufficient. It also requires
+LOAD_REQUEST before any native activity/STOP or first registry reattach header,
+including a valid no-reload run with only one ACK. Genuine registry1-toRNG3
+movement remains valid. Both independent malformed-log witnesses now refuse.
+
+The RNG final ACK2 commit now performs InterlockedCompareExchange64 on issued.
+The atomic observation prevents reuse of its earlier ordinary load while phase3
+remains unchanged. A test-only comparison adapter advances issued after the
+early guard for registry-free and registry-bound cases; both refuse, retain the
+previous receipt/keys/ordinal and stop. This models the source race; it is not
+evidence that the live018 run encountered that schedule. Optimized assembly
+contains lock cmpxchgq against stats at the final branch before ACK publication.
+Removing this final check fails an active native CHECK with exit97; removing
+either parser correction fails its new regression. ACK1 is unchanged.
+
+LIMITS
+
+This corrects an observed setup/reload refusal. It does not demonstrate a live
+successful builder, station construction, READY, operational actor publication,
+independent player control or whole-universe lockstep. The original raw physical
+bank/timing differences and current strict refusals remain. A new immutable
+artifact and separately reviewed one-run authorization are still required.

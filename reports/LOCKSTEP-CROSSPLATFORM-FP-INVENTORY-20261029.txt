@@ -1,0 +1,491 @@
+LOCKSTEP ACROSS WINDOWS AND LINUX: FLOATING-POINT AND ORDERING INVENTORY
+29 October 2026 | Offline static analysis | branch contrib/ferrite-fp-inventory from ebaa63b8
+
+SCOPE
+
+What differs between the Windows and the Linux X4 executable that can make one
+simulation step produce different bits, where is it, how much of it is there,
+and what can be patched? This is the work list for the portable math library
+and for the Linux gate port. No game, lane, relay or remote machine was started
+or contacted. Both executables were only read. Small leaf math routines of
+X4.exe were executed in the unicorn emulator, and the WSL host glibc 2.39 libm
+was called from a nongame C harness. Addresses are Windows RVAs (image base
+0x140000000) or Linux ELF VAs of X4 9.00 only.
+
+Builds (unchanged from LOCKSTEP-LINUX-FEASIBILITY-20261029.txt): Windows X4.exe
+55,412,768 B, SHA-256 19750a65...6891, MSVC 14.29, static CRT. Linux X4
+60,459,280 B, SHA-256 113f73d7...045f20, GCC 14.2 (Steam Runtime 3), ET_EXEC,
+build ID 77cf7ac0...b711d, dynamically linked to the host libm.so.6/libc.so.6.
+Both are Steam build 23660954, in-game build 611726.
+
+Labels used below: PROOF = read from both instruction streams, executed, or
+measured. INFERENCE = reasoned from code shape, documentation or knowledge of
+the toolchains, not verified in a running game. COUNT = mechanical census; the
+domain split (simulation / non-simulation) is a name-based triage aid.
+
+VERDICT
+
+1. Mixed Windows + native Linux lockstep stays out of reach. The dominant
+   difference is not the math library but compiled engine arithmetic: the
+   Windows engine was compiled with fast-math-style optimisations (reciprocal
+   substitution, reassociation, factoring, evaluation in float instead of
+   double, NaN-blind compares, inline floor emulation). The Linux engine was
+   compiled without them (GCC, strict IEEE, errno-preserving sqrt). These
+   differences are spread over thousands of simulation functions; a bounded
+   set of hooks cannot remove them. D10 in DETERMINISM-PLAN.md stays correct
+   for native mixed sessions; this report supplies the counts.
+2. Everything else is patchable and bounded: about 30 Windows CRT entry points
+   and 3 packed sine/cosine helpers, 28 Linux libm imports, 4 decimal parser
+   functions, the MXCSR setup at 4 places, about 2,500 rcp/rsqrt instructions,
+   qsort. These patches are needed anyway for Linux-only lockstep across
+   different glibc versions and CPUs, and for Windows-Windows lockstep across
+   CPUs.
+3. The user decision "Linux gate port instead of Wine" (commit ebaa63b8) gives
+   Linux-only lockstep. Mixed sessions need every peer to execute the same
+   machine code, i.e. X4.exe under Wine/Proton on Linux peers, or vendor
+   builds compiled for determinism. The decision should be re-confirmed with
+   that consequence in view.
+
+RANKED DIFFERENCE CLASSES (impact on a mixed session, most severe first)
+
+ #  class                                  size (Windows / Linux)                   patchable
+ C  compiler FP code generation             ~3,000 / ~2,900 simulation functions     no
+                                            with FP arithmetic; >=438 reciprocal
+                                            sites, ~870 NaN-blind compares (est.),
+                                            72% of high-confidence sim pairs have
+                                            different FP operation profiles
+ M  math library (CRT vs glibc)             1,738 / 1,850 transcendental call        yes
+                                            sites (1,174 / 1,059 simulation);
+                                            0.03%-15.8% of results differ, the
+                                            Windows sincos helper cos lane 81%
+ P  save decimal parser                     2 / 2 functions, 319 / 1,080 call sites  yes
+ A  rcp/rsqrt approximations                1,337 / 1,188 instructions (1,181 / 947  yes (mechanical)
+                                            simulation); placement differs in
+                                            121 sim pairs; bits are CPU-vendor
+                                            specific
+ O  sort tie order (std::sort, qsort)       ~99 introsort-shaped instantiations on  partly
+                                            Linux (64 classified simulation);
+                                            32 Linux qsort sites
+ D  CPU-dependent dispatch inside one       14 FMA3-dispatched CRT entries;         yes
+    platform                                 glibc ifunc FMA variants; glibc
+                                            version
+ E  floating-point environment (MXCSR)      Windows FTZ on the main thread only;    yes
+                                            Linux never writes MXCSR
+ -  no difference: FMA contraction, AVX in engine code, x87 arithmetic, std::
+    unordered containers in simulation code, Jolt/Detour hash containers
+
+Classes C and M interact: replacing the math library makes both platforms call
+the same function, but the arguments already differ because of class C. Class M
+alone cannot make a mixed session agree.
+
+C. COMPILER CODE GENERATION (unpatchable)
+
+Scale (COUNT). Functions with SSE arithmetic (add/sub/mul/div/sqrt/min/max/
+rcp/rsqrt): Windows 5,291, of which 3,025 classified simulation with 71,839
+operations; Linux 5,260, 2,912 simulation with 84,533 operations. The x4-re pair
+table gives a high/medium twin to 1,667 of the Windows and 1,758 of the Linux
+simulation FP functions; the rest have none.
+
+Profiles of paired functions (COUNT, fp_inventory.py 'pairs.profiles'). Of the
+2,008 high-confidence pairs that contain FP arithmetic or a libm call, 546 (27%)
+have identical operation counts on both sides; in simulation 389 of 1,377
+(28%). Differences found in simulation pairs: different add/sub/mul counts 825,
+vectorisation 394, min/max 395, single/double precision or conversions 267,
+fewer divisions on Windows 256, rounding/truncation 134, approximations 90,
+sqrt 78. Equal counts do not prove equal arithmetic (example 2 below has equal
+counts). Different counts do not prove different results either (common
+subexpressions, unrolling). The proven subset is below.
+
+Proven transformations (PROOF; each read from both instruction streams):
+
+1. Reciprocal substitution. Linux divides by a constant c, Windows multiplies by
+   the rounded reciprocal fl(1/c). Automated over all paired functions with a
+   Linux constant division: 438 division sites in 220 functions (140 simulation)
+   are substituted on Windows; in only 60 sites does Windows also divide; 284
+   sites are unmatched (folded differently or mispaired); 11 are exact powers of
+   two. Most frequent divisors: 100 (113 sites), ln 10 (74), 2.55 (36), 255
+   (35), 10000 (35), 1000 (26), 10 (21), 3 (16), 3600 (8). Example: Windows
+   0x14dd4c0 computes (a-b)*0.333333343 at 0x14dd50c/0x14dd510, Linux 0x1a48100
+   computes (a-b)/3.0 at 0x1a4817a/0x1a4817e. x/3 and x*fl(1/3) differ for many x.
+2. Reassociation. Jolt SphereShape volume (Windows 0xb4c20, Linux 0xed49a0):
+   Windows (r*r)*(r*4.18879032), Linux ((r*r)*r)*4.18879032. Same operation
+   counts. The radius field is at +0x30 on Windows and +0x2c on Linux (MSVC and
+   Itanium class layouts differ).
+3. Factoring. U::Path::DockBehaviour::vfunc22 (Windows 0xed4b00, Linux
+   0x13cbd90): Windows (a+b)*1.1 at 0xed4db5/0xed4dbd, Linux a*1.1 + b*1.1 at
+   0x13cbf91..0x13cbfa2.
+4. Float instead of double. U::Defensible::vfunc153 (Windows 0x4cf360, Linux
+   0x17a7b30): Windows adds 1.5f in binary32 (0x4cf3e7) and then widens
+   (0x4cf403); Linux widens first and adds 1.5 in binary64 (0x17a7c25/0x17a7c29).
+5. Constant folding plus reassociation plus floor emulation. Windows 0x78c990:
+   (y*x)*(z*7.99999977e-09)+0.5 and a cvttss2si/cvtdq2ps floor sequence
+   (0x78ca05..0x78ca31, valid only below 2^31). Linux 0x12a55f0: ((8*x)*y)*z
+   / 1e9 + 0.5 and roundss floor (0x12a5653..0x12a568e).
+6. NaN-blind compares. In simulation functions Windows follows 1.0% of its
+   11,417 comiss/ucomiss compares with a parity check (jp/setp/cmovp); Linux
+   8.3% of 11,842. Outside simulation code (CRT, OpenSSL, third-party) Windows
+   keeps parity checks. Estimate (the two sets are not paired one to one):
+   about 870 simulation compares treat NaN as unordered on Linux and as
+   equal/greater/less on Windows. Example:
+   U::CylinderBoundary::vfunc1 (Windows 0x971440 returns true for a NaN
+   distance via comiss/ja at 0x9714ea, Linux 0x18eac00 returns false via
+   comiss/setae at 0x18eacc0). Only matters once a NaN exists.
+7. Different approximations in the same function. Bullet::UpdateFlight
+   (Windows 0xd4f240, Linux 0x1948840): Windows computes two lengths as
+   rcp(rsqrt(x)) at 0xd4f5aa/0xd4f5ae and 0xd4f5fb/0xd4f5ff; the Linux body has
+   no rcp/rsqrt at all. Across simulation pairs the rcp/rsqrt count differs in
+   90 high and 31 medium pairs.
+8. Decimal parsing (class P) is the same mechanism (*0.1 versus /10).
+
+Compiler settings implied (INFERENCE from 1-7): Windows engine and Jolt code
+were built with /fp:fast or equivalent. The Linux build is not fast-math: 286 of
+287 sqrt/sqrtf PLT calls sit next to an inline sqrtss/sqrtsd as GCC's
+errno fallback (-fmath-errno), parity checks are kept, no crtfastmath MXCSR
+write exists, and divisions by non-power-of-two constants are kept.
+
+Other code-shape differences (COUNT): Linux engine code is compiled for SSE4.1
+(10,716 SSE4.1 instructions in 4,252 functions: pinsrq 6,894, insertps 889,
+blendps 666, blendvps 577, roundss/sd 480, dpps 16); Windows engine code is
+SSE2 (118 SSE4.1 instructions, all integer, mostly in __isa_available-dispatched
+loops). SSE4.1 itself only moves data or rounds exactly, except dpps, which sums
+(x*x'+y*y')+(z*z'+0): equal to the SSE2 order (x+y)+z, but not to the x+(y+z)
+order that both builds also use in other inline vector code.
+
+Why this class cannot be patched: the differences are semantic rewrites by the
+optimiser, not calls. Matching them means proving, per function, which order,
+precision and constant each side uses and rewriting the machine code of one side
+to the other's. That is about 3,000 functions per binary with no symbols, about
+half without a reliable twin, different struct layouts (example 2; CylinderBoundary
+fields at +0x8/+0x18 versus +0x10/+0x20), different ABIs (MSVC passes __m128 by
+reference) and different inlining. It amounts to recompiling the engine by hand.
+Replacing only the paired, proven sites would still leave the unpaired and the
+unproven ones. The only ways to identical arithmetic are: the same machine code on
+all peers (X4.exe under Wine/Proton on Linux), or vendor builds compiled for
+determinism (/fp:precise /fp:contract-, -ffp-contract=off, one libm, Jolt with
+JPH_CROSS_PLATFORM_DETERMINISTIC), or state authority (the hybrid).
+
+M. MATH LIBRARY (patchable)
+
+Windows static CRT entries (PROOF: each executed in unicorn and compared with
+Python's math module; FMA3 users read __use_fma3_lib). FMA3-dispatched (flag
+0x38edec0, set by __crt_init_fma3 0x1a310b0 when CPUID.1:ECX has FMA, AVX and
+OSXSAVE and XCR0 & 6 == 6):
+  sinf 0x1a19480 (108 call sites), cosf 0x1a19b80 (98), tanf 0x1a240d0 (34),
+  powf 0x1a1a790 (189), expf 0x1b43ed0 (9), logf 0x1b44940 (87), log10f
+  0x1b44460 (25), sin 0x1a26f80 (50), cos 0x1a260d0 (42), tan 0x1a274f0 (1),
+  exp 0x1a26650 (8), log 0x1a26a50 (6), log10 0x1a38060 (7), pow 0x1a1e840 (49).
+Not dispatched: atan2f 0x1a1a398 (477), asinf 0x1b43ce0 (174), acosf 0x1a19250
+  (30), atanf 0x1a23e64 (12), exp2f 0x1a11848 (17), log2f 0x1a10928 (6; it sets
+  edx=-1 and jumps to 0x1a10798), asin 0x1a25460 (5), acos 0x1a251c0 (11),
+  atan 0x1a256e4 (2), atan2 0x1a258fc (4), exp2 0x1a250cc (1), log2 0x1a24744 (2).
+Exact operations (identical bits on both platforms, keep): fmodf 0x1a1a080,
+  fmod 0x1b44180, sqrtf 0x1b44d38, sqrt 0x1a1a2cc, roundf 0x1a1c794, round
+  0x1a051ac.
+Compiler sincos helpers with a lane ABI (MSVC merges sinf(x)/cosf(x) into them):
+  0x1750210 (181 sites): xmm0=x -> xmm0=[sin x, cos x]; cos is evaluated as
+    sin(|x|+pi/2) through the packed sine kernel, except for tiny |x|.
+  0x1750253 (101 sites): xmm0=a, xmm1=b -> xmm0=[sin a, cos a, sin b, cos b].
+  0x1b42f20 (2 sites): binary64 version of 0x1750210.
+  The packed kernels 0x17501f0 and 0x1b42f00 dispatch on __isa_available
+  0x2f3f220 (>= 2: SSE4.2 path) and have no other callers. No other vectorised
+  (__vdecl/SVML-style) math call exists. (x4-re labels 0x17502c0 as
+  OPENSSL_ia32_cpuid; it is MSVC __isa_available_init: it tests the Atom models
+  0x106c0, 0x20660, 0x20670, 0x30650-0x30670.)
+Windows totals: 1,738 non-CRT call sites to transcendental entries (1,174 in
+simulation), 164 to exact ones. All are direct calls; the only address-taken
+uses are in SPIR-V-Tools constant folding (0x19c3c20, not simulation).
+
+Linux imports (PROOF: PLT/GOT from the ELF; COUNT of call sites). All engine
+calls go through the PLT; no transcendental is inlined. Transcendental
+imports and call sites (simulation sites in brackets):
+  atan2f 490 [373], sincosf 274 [167], powf 249 [121], asinf 173 [132], pow 167
+  [10], logf 91 [90], sinf 81 [47], cosf 57 [35], sincos 44 [2], acosf 43 [23],
+  log10f 37 [0], tanf 34 [19], sin 19 [6], acos 14 [7], atan2 14 [3], atanf 12
+  [6], exp 10 [7], expf 10 [3], log 7 [4], log10 7 [0], log2f 4 [2], asin 3 [1],
+  atan 2, cos 2, exp2f 2 [1], log2 2, exp2 1, tan 1. Total 1,850 [1,059].
+Exact imports (keep): sqrtf 227 and sqrt 60 (errno fallbacks after inline
+sqrtss/sqrtsd), fmodf 73, fmod 22, round 28, roundf 18, floor 9, floorf 6,
+frexpf 2. Inline fmod: GCC also expands fmodf into x87 fprem loops (104 fprem in
+58 functions); fprem is exact, so these agree with the Windows CRT fmodf.
+PLT stub and GOT slot of every import: LOCKSTEP-CROSSPLATFORM-PATCH-TARGETS-
+20261029.json. 13 binary64 imports (acos, asin, atan, atan2, cos, exp, exp2,
+log, log2, pow, sin, sqrt, tan) are GLOB_DAT (.plt.got) because SPIR-V-Tools
+takes their address; LD_PRELOAD interposition covers both forms.
+glibc ifunc (PROOF for the WSL glibc 2.39 symbol table): IFUNC symbols among the
+imports are atan, cos, cosf, exp2f, expf, floor, floorf, log2, log2f, logf,
+powf, sin, sincos, sincosf, sinf, tan; exp, log, pow, asin, acos and atan2
+dispatch internally (__ieee754_* IFUNC). On FMA-capable CPUs the FMA variants
+run.
+
+Measured disagreement (PROOF, fp_libm_compare.py, 20,000-22,000 fixed inputs
+per function; Windows = SSE2 path of the X4.exe entry in unicorn; glibc 2.39,
+libm SHA-256 fce00b6f...ccd0, FMA variants active on an AMD Zen 5):
+  function   differ    max ULP     function   differ    max ULP
+  atan2f     15.83%    1           sin         3.40%    1
+  acosf       7.81%    1           cos         3.56%    1
+  atanf       6.38%    1           acos        7.62%    1
+  log10f      6.26%    2           exp         0.49%    1
+  asinf       3.80%    1           pow         0.14%    1
+  tanf        3.75%    1           atan2       0.13%    1
+  cosf        1.32%    1           log         0         -
+  sinf        1.26%    1           fmodf       0         -
+  logf        0.11%    1
+  powf        0.06%    1           sincosf helper 0x1750210:
+  expf        0.04%    1             sin lane 24.9% (2 ULP), cos lane 81.1%
+                                     (89,566 ULP near the zeros of cos)
+                                   sincos helper 0x1b42f20: sin 60.5% (3 ULP),
+                                     cos 72.1% (41,804 ULP)
+The helpers' cos lanes (sin(x+pi/2) through the same kernel; the Euler import
+uses 0x1750253) are the difference seen at mixed002 frame zero
+(LINUX-WINDOWS-ROTATION-IMPORT-20261027.txt). Not measured: the Windows FMA3
+paths (unicorn has no AVX); every FMA3-capable Windows PC runs those.
+
+Patch plan M:
+- One portable library for both platforms (correctly rounded binary32 and
+  binary64 functions are the safest choice: any correct implementation gives the
+  same bits). It must define sincosf(x) as (sinf(x), cosf(x)) exactly.
+- Windows: overwrite the first 5 bytes of each transcendental entry above with
+  jmp rel32 to a thunk in a page within +-2 GB; the original body is never
+  needed, so no prologue relocation. MS x64 ABI: arguments xmm0/xmm1, result
+  xmm0, xmm6-xmm15 preserved. Three helpers need lane thunks: 0x1750210,
+  0x1750253, 0x1b42f20 (ABI above; preserve xmm1-xmm5 as well until the callers'
+  register use is checked). Also 0x1a10798 (internal log2f, edx flag). Keep the
+  exact entries. 30 entries in total; pin each entry's bytes like the gate pins.
+- Linux: interpose the 28 transcendental symbols in the LD_PRELOAD agent (or
+  rewrite their GOT slots). Keep the exact ones.
+- Verification: re-run fp_libm_compare.py against the portable library on both
+  platforms; then the census.
+Effort: S-M. Payoff in a mixed session: none on its own (class C); in Linux-only
+sessions it removes glibc-version and CPU dependence; in Windows-Windows sessions
+it removes the FMA3/SSE2 split.
+
+P. SAVE DECIMAL PARSER (patchable)
+
+PROOF. Windows 0x14c3090 (binary64) and 0x14c2bd0 (binary32 result) accumulate
+digits in binary64, scale the fraction with scale *= 0.1 (0x2cbe6e8 = 0.1) and
+apply the exponent with CRT pow 0x1a1e840. Linux 0x1a3b1a0 and 0x1a3ac40 use
+scale /= 10.0 and glibc pow (PLT 0x659318). Only these four functions contain
+the digit-accumulation constant 48.0 (no inlined copies). Call sites: Windows
+89 + 230, Linux 274 + 806 (Linux inlines the XML attribute readers less).
+Earlier measurement: 2,262 of 38,448 saved AI times import 1 ULP apart
+(NATIVE-SAVED-TIME-PLATFORM-CENSUS-20261027.txt).
+Patch: replace all four bodies with one portable correctly rounded decimal
+parser (binary32 result: round once from the decimal, or define the binary64-
+then-narrow double rounding explicitly; both sides must use the same rule).
+Check the grammar the originals accept (sign, '.', exponent, leading/trailing
+space) before replacing. Effort S. Impact: every float and double read from a
+save at frame zero; needed for any mixed session and harmless elsewhere.
+Locale: the Linux binary imports no setlocale; newlocale/uselocale appear only
+in WStrToUTF8Str/UTF8StrToWStr (0x2a8ea30, 0x2a8ee70). strtod (27 Linux sites)
+and sscanf (9) serve the command line, configuration and third-party code, not
+the save loader.
+
+A. RCP/RSQRT APPROXIMATIONS (patchable, mechanical)
+
+COUNT. Windows 1,337 instructions in 428 functions (simulation 1,181 in 372):
+rsqrtss 753, rcpss 582, rsqrtps 2. Linux 1,188 in 384 (simulation 947 in 288):
+rsqrtss 690, rcpss 495, rsqrtps 2, rcpps 1. Jolt and other third-party code use
+none on Linux. 485 (Windows) and 416 (Linux) rsqrtss are immediately followed by
+rcpss on the same register: an approximate length rcp(rsqrt(x)).
+INFERENCE (architecture): only the relative error bound (1.5*2^-12) is
+specified; Intel and AMD return different bits. Same-binary lockstep between an
+Intel and an AMD PC therefore also diverges here; all Windows lockstep evidence
+so far is from one AMD Zen 5 PC.
+Patch: replace each rcp(x) by 1/x and rsqrt(x) by 1/sqrt(x), and each
+rsqrtss+rcpss pair by sqrtss, through per-site trampolines (the instruction is
+4-5 bytes; a jmp needs 5, so neighbours move into the trampoline). About 2,500
+sites in both binaries, fully automatable with pins. Changes results relative
+to stock on both platforms. Removes the vendor dependence; for Windows/Linux it
+helps only where both sides compute the same expression (example C7: Windows
+rcp(rsqrt) versus Linux exact). Effort M.
+
+O. ORDERING (sorting partly unpatchable; the rest low)
+
+- std::sort/partial_sort/nth_element: templates are inlined into engine code.
+  Heuristic count: 99 libstdc++ __introsort_loop-shaped functions on Linux (self-
+  recursive, 16-element threshold), 64 classified simulation, none paired.
+  MSVC sorts up to 32 elements by insertion sort (stable) and uses different
+  pivots; libstdc++ uses insertion sort only up to 16. INFERENCE: lists of more
+  than 16 elements with equal keys come out in a different order. Not patchable
+  statically (the comparator semantics decide whether ties exist); find by
+  census and fix per site with a stable tie key, like the Windows pointer-tie
+  fixes. Jolt sorts with its own JPH::QuickSort/InsertionSort (same source on
+  both sides).
+- qsort: Linux 32 call sites in 22 functions (Recast rcBuildContours 0x2282e90,
+  particle system frk*, OpenSSL, engine 0x1de9f90); Windows CRT qsort candidate
+  0x1a111a0 (pair votes). MSVC and glibc qsort order ties differently, and glibc
+  changed its qsort in 2.37 (INFERENCE). Patch: one stable sort behind both
+  entries. Low.
+- std::unordered_*: in engine simulation code effectively unused. libstdc++
+  _Prime_rehash_policy::_M_need_rehash 0x2c547a0 has 186 call sites, none
+  classified simulation (glslang, SPIR-V-Tools, std); std::_Hash_bytes 0x2c52080
+  45 sites, none simulation. Jolt's hash containers use its own FNV-1a on both
+  sides (53 / 51 functions with the FNV offset basis). std::map/set iterate in
+  comparator order and std::list in insertion order (84 simulation insert
+  sites): identical as long as the keys are not addresses.
+- Address order: heap addresses differ between processes even on one platform;
+  the Windows gate already replaces those ties (lockstep_ai_schedule.h and
+  others). They need porting, not new work.
+- rand(): Linux 5 sites, none simulation. Both thread-seeding paths also call
+  srand (Windows 0x14dd16d into CRT srand 0x1a19238, per-thread state; Linux
+  0x1029fd3 into glibc srand, one process-wide state).
+- Worker threads: Windows uses physical cores - 2 (0x14bcf80), Linux
+  sysconf(_SC_NPROCESSORS_ONLN) - 2 clamped (0x730d96..0x730dc8): different on
+  SMT machines. The gate's inline job execution must not depend on it. Jolt
+  BodyManager::Init 0x1a817a0 reads std::thread::hardware_concurrency (mutex
+  count; INFERENCE: no effect on results).
+- Not measured: wchar_t (2 versus 4 bytes) and long (4 versus 8 bytes) in hashes
+  or arithmetic.
+
+D. CPU-DEPENDENT DISPATCH (patchable)
+
+- Windows CRT: the 14 FMA3-dispatched entries run a different code path on CPUs
+  with FMA3+AVX (all current Intel and AMD) than without. Not measured. Patch:
+  class M, or force __use_fma3_lib 0x38edec0 to one value on every peer.
+- Windows packed sine kernels: SSE2 path (__isa_available 1) and SSE4.2 path (5)
+  gave identical bits on all 84,000 measured lanes.
+- Windows engine loops dispatching on __isa_available 0x2f3f220 (e.g.
+  0x143de50-0x1447070) choose between SSE2 and SSE4.1 forms of the same
+  element-wise or integer work; no FP effect seen.
+- glibc: the same glibc 2.39 with FMA variants disabled (GLIBC_TUNABLES
+  glibc.cpu.hwcaps=-AVX2,-FMA) gave identical binary32 results on all measured
+  inputs, but binary64 sin, cos, exp, pow, atan2, acos and sincos differed in
+  0.02%-0.08% of inputs. Different glibc versions differ more: 2.41 replaced
+  several binary32 functions with correctly rounded CORE-MATH code (INFERENCE
+  from release notes; X4 imports atan2f, asinf, acosf, atanf, tanf, log10f).
+  The VPS runs glibc 2.42 (earlier report), WSL 2.39. INFERENCE: Steam Runtime 3
+  ships glibc 2.31 and its container uses the host's glibc when that is newer,
+  so a Steam-launched Linux peer gets its host's libm too. Patch: class M on Linux, or pin the libm file hash.
+
+E. FLOATING-POINT ENVIRONMENT (patchable, low impact)
+
+PROOF. Windows 0x14dd0e0 sets MXCSR bit 15 (flush to zero) with ldmxcsr at
+0x14dd105 after seeding the thread RNG; it is called once, from
+X4::GameClient::Init 0x1223ce0 at 0x1225ee7. The Windows thread-start hook
+0x96350 (pointer g_ThreadStartHook 0x38f9d58) seeds the RNG but writes no MXCSR.
+Other Windows ldmxcsr writers are CRT internals (fmodf 0x1a1a080 and powf
+0x1a1a790 save/restore; 0x1a31b20, 0x1a37bb0, 0x1a37ce8). The Linux ELF has no
+ldmxcsr, fesetenv, fesetround or fldenv-based environment setup in engine code:
+GameClient::Init calls Random::SeedThreadState 0x1a47fe0 at 0xfcf8c8 without the
+FTZ step, and the Linux thread-start hook 0x1029f80 seeds inline.
+INFERENCE: Windows starts each new thread with the default MXCSR 0x1F80, so only
+the main thread flushes denormals; Linux threads inherit the creator's MXCSR,
+which nothing changes (unless a loaded library does). The simulation itself runs
+on U::MoveWorker (time report), i.e. with default MXCSR on both, so the
+difference is limited to main-thread arithmetic that produces denormals.
+Patch: write one fixed MXCSR value (suggest 0x1F80 everywhere, or FTZ everywhere)
+at GameClient::Init (Windows 0x1225ee7 / Linux 0xfcf8c8) and in both thread-start
+hooks, and log stmxcsr on MoveWorker and the job threads at frame zero to
+confirm. Effort S.
+
+NO DIFFERENCE FOUND
+
+- FMA/contraction: Linux has 0 FMA instructions. Windows has 173, all in the CRT
+  FMA3 paths (14 entries plus the range reducers 0x1a315b0, 0x1a317a0) and 2
+  undecodable bytes inside glslang's yyparse tables. Neither compiler contracted
+  engine code.
+- AVX/AVX2: VEX code exists only in OpenSSL assembly (CPU-dispatched) on both and
+  in the Windows CRT FMA3 paths. Engine code is SSE only.
+- x87: Linux uses x87 only for exact fprem (inline fmod) and in libstdc++/printf
+  internals. Windows engine x87 hits (2,691 in 404 functions) are linear-sweep
+  artefacts: 375 of those functions also contain undecodable bytes, i.e. MSVC
+  jump tables inside .text. MSVC x64 emits no x87 arithmetic.
+- RNG integer code: identical (earlier report). Time sources: same design.
+
+THIRD-PARTY LIBRARIES
+
+- Jolt: statically linked in both. Linux VerifyJoltVersionIDInternal 0x1b0aab0,
+  RegisterTypesInternal 0x1b25060 and PhysicsGlobals 0xefd5d0 compare with
+  0x400050500 = Jolt 5.5.0 with features 0x400 (ObjectStream only): no
+  JPH_CROSS_PLATFORM_DETERMINISTIC, no double precision, no asserts. On Windows
+  the constant is folded away (RegisterTypesInternal 0x13bfff0 has no check), so
+  the Windows feature word cannot be read directly. Jolt computes its own
+  trigonometry; on Linux its 2,513 named functions call only sqrtf (94 errno
+  fallbacks) and fmodf (6) and contain no rcp/rsqrt and no SSE4.1. Windows Jolt
+  code shows class C (example 2) and different class layouts. Of 74 paired Jolt
+  functions with FP arithmetic, 8 have identical profiles. Jolt therefore does
+  not give identical physics across the two builds.
+- Recast/Detour: statically linked in both (237 named Linux functions); used by
+  U::CrowdAgentController and Scripts::GetFloorPositionAction (NPC walking on
+  stations). 21 paired FP functions, 3 identical profiles, 2 with reciprocal
+  substitution. rcBuildContours uses qsort.
+- LuaJIT: separate library on each platform (lua51_64.dll / libluajit-5.1.so.2);
+  UI and mod scripts only; its math library calls the platform libm.
+- glslang, SPIR-V-Tools, OpenSSL, SLikeNet, FCollada, libxml2, curl, NVSDK and
+  the frk particle system: not simulation.
+
+PATCH PLAN (order of work)
+
+For Linux-only lockstep (current target) and Windows-Windows across CPUs:
+1. M: portable math library, 30 Windows entries + 3 helper thunks, 28 Linux
+   symbols (patch-targets JSON). Removes glibc version, glibc ifunc and CRT FMA3
+   dependence.
+2. E: fixed MXCSR at GameClient::Init and both thread-start hooks; frame-zero
+   MXCSR log on all simulation threads.
+3. A: rcp/rsqrt to exact operations on both binaries, or require one CPU vendor
+   per session. Needed for Intel/AMD mixes even on one platform.
+4. O: qsort replacement; std::sort ties as the census finds them.
+5. P: only needed when saves cross platforms (mixed sessions or a Windows-made
+   save loaded on Linux peers); cheap, so do it with M.
+For mixed Windows + Linux lockstep: 1-5 plus class C, which has no patch. Use
+X4.exe under Wine/Proton on the Linux peers (same machine code; then only M or D,
+A and E across machines remain), or keep mixed sessions on the hybrid sync.
+
+UNPATCHABLE
+
+- C, compiler FP code generation: thousands of semantic rewrites in unnamed,
+  partly unpaired functions with different layouts and ABIs. See C.
+- O, std::sort tie order in general: inlined templates; whether ties occur
+  depends on data and comparator. Only individual sites found by the census can
+  be fixed.
+- Jolt and Recast/Detour cross-platform agreement: consequences of C, with the
+  same answer (one binary or a deterministic vendor build).
+
+METHOD AND LIMITS
+
+- Census: fp_inventory_scan.py linearly decodes every .pdata function of X4.exe
+  (55,522 roots plus 26,702 uncovered pieces split at int3) and every FDE of the
+  ELF (99,494 plus 1,555 pieces) with capstone 5.0.7. Data embedded in code
+  (MSVC jump tables) decodes as noise; counts of rare classes (x87, FMA) were
+  checked by hand.
+- Domains: Windows names from x4-re symbols.csv, labels/merged.tsv and
+  labels/lockstep.tsv (lockstep families mapped to domains), Linux .dynsym
+  names, transfer through pairs.tsv, then caller-majority propagation. Windows:
+  25,355 functions simulation, 15,557 non-simulation, the rest unknown. Treat
+  the split as triage.
+- Pairs: x4-re pairs.tsv (SHA-256 e71fb650...5a08), high (2,008 FP pairs) and
+  medium (648), plus the verified known pairs. Precision about 98-99% at high.
+- Reciprocal detection matches a Linux constant divisor c (memory operand or a
+  register loaded from a constant) with the binary32/binary64 constant fl(1/c)
+  anywhere in the Windows twin and no Windows division by c. A coincidental
+  constant can create a false match; the examples above were read by hand.
+- Emulation: only CRT leaf routines (SSE paths). A broader attempt to execute
+  paired engine functions on identical synthetic inputs was discarded: struct
+  layouts and argument passing differ, so equal inputs could not be guaranteed.
+- glibc results are from WSL glibc 2.39 on one AMD CPU, not a traced game call.
+- Nothing here was observed in a running game.
+
+REPRODUCTION
+
+  python tools/dev/fp_inventory_scan.py --windows <X4.exe> --linux <X4>
+  python tools/dev/fp_inventory.py --scan .local/fp-inventory/scan.pkl \
+      --windows <X4.exe> --linux <X4> --pairs <x4-re>/data/xfer/pairs.tsv \
+      --x4re <x4-re> --json <inventory.json> --tsv <sites.tsv> --patch-json <targets.json>
+  python tools/dev/fp_libm_compare.py --windows <X4.exe> \
+      --workdir .local/fp-inventory/libm --linux-cmd "wsl -d Ubuntu-24.04 --" \
+      --no-fma --json <ulp.json>
+  python tests/test_fp_inventory.py   (synthetic inputs, no game files)
+The scan cache (68 MB, addresses and counts only) and the emulator inputs stay
+under .local/ and are not committed. Needs capstone, unicorn and numpy; the
+ELF/PE readers and the build pins come from lockstep_linux_map.py.
+
+FILES
+
+reports/LOCKSTEP-CROSSPLATFORM-FP-INVENTORY-20261029.json   summary (all counts)
+reports/LOCKSTEP-CROSSPLATFORM-FP-SITES-20261029.tsv        per function/site rows:
+    libm_caller (both platforms), approx, mxcsr_write, reciprocal, pair_profile
+reports/LOCKSTEP-CROSSPLATFORM-PATCH-TARGETS-20261029.json  entries, PLT/GOT
+    slots, helper ABIs, parsers, MXCSR anchors
+reports/LOCKSTEP-CROSSPLATFORM-LIBM-ULP-20261029.json      CRT versus glibc
+tools/dev/fp_inventory_scan.py, tools/dev/fp_inventory.py,
+tools/dev/fp_libm_compare.py, tests/test_fp_inventory.py

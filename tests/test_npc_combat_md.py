@@ -47,7 +47,7 @@ def evaluate(expr, env):
     return eval(text,{},env)
 
 
-def run(A,S,R,O,P,action="Apply"):
+def run(A,S,R,O,P,action="Apply",nodes=None):
     env=dict(A=A,S=S,R=R,O=O,P=P);effects=[]
     def execute(nodes, env=env):
         chain=False
@@ -82,11 +82,11 @@ def run(A,S,R,O,P,action="Apply"):
                 nested=dict(env) if shield.get('namespace')=='this' else env
                 execute(ACTIONS['Shield'],nested)
                 if O['hp']<=0:O['isoperational']=False
-            elif tag in ('set_object_min_hull','destroy_object'):effects.append(tag)
+            elif tag in ('set_object_min_hull','destroy_object','set_object_hull','set_object_shield'):effects.append(tag)
             elif tag=='raise_lua_event':effects.append(node.get('name'))
             elif tag=='debug_text':pass
             else:raise AssertionError('Unsupported action '+tag)
-    execute(ACTIONS[action]);return effects
+    execute(ACTIONS[action] if nodes is None else nodes);return effects
 
 
 def fixture():
@@ -153,3 +153,47 @@ class NpcNativeFenceTests(unittest.TestCase):
         self.assertEqual(run(a,s,r,o,p).count('attack'),2)
         self.assertTrue(r['dead']);self.assertEqual(r['counts'][2],3)
         self.assertNotIn('attack',run(a,s,r,o,p))
+
+
+def bind_write():
+    """The guest's queued host-health write inside Bind (identity checks are covered above)."""
+    return next(n for n in ACTIONS['Bind'].iter('do_if') if n.get('value')=='$a.$sequence gt $r.$seq')
+
+
+class NpcReplicaHealthWriteTests(unittest.TestCase):
+    def write(self,hull,shield,local_hull,local_shield,sequence=2):
+        a,s,r,o,p=fixture();s['host']=False
+        a.update(hull=hull,shield=shield,sequence=sequence);r['seq']=1
+        o.update(hullpercentage=local_hull,shieldpercentage=local_shield)
+        return run(a,s,r,o,p,nodes=[bind_write()]),r,s
+
+    def test_unchanged_host_readback_never_rewrites_shield(self):
+        # The host bumps the sequence on every 10 Hz readback. Rewriting the same value
+        # re-shows the HUD shield bar of every bound replica, which made it flash.
+        for local in (100,99.6,100.4):
+            with self.subTest(local=local):
+                effects,r,s=self.write(100,100,local,local)
+                self.assertNotIn('set_object_shield',effects);self.assertNotIn('set_object_hull',effects)
+                self.assertEqual(r['seq'],2);self.assertFalse(s['applying'])
+
+    def test_real_host_change_is_still_written(self):
+        effects,r,_=self.write(80,40,100,100)
+        self.assertEqual((effects.count('set_object_hull'),effects.count('set_object_shield')),(1,1))
+        effects,_,_=self.write(100,40,100,100)
+        self.assertEqual(effects,['set_object_shield'])
+        effects,_,_=self.write(50,100,100,100)
+        self.assertEqual(effects,['set_object_hull'])
+
+    def test_old_sequence_writes_nothing(self):
+        effects,r,_=self.write(10,0,100,100,sequence=1)
+        self.assertEqual(effects,[]);self.assertEqual(r['seq'],1)
+
+    def test_every_guest_shield_write_is_guarded_or_a_callback_restore(self):
+        # Periodic writers must compare first; only damage-callback restores may write directly.
+        for name in ('x4lan_npc_combat.xml','x4lan_bubble.xml','x4lan_health.xml'):
+            text=(MD.parent/name).read_text(encoding='utf-8')
+            for m in re.finditer(r'<set_object_shield object="([^"]+)" exact="([^"]+)"',text):
+                with self.subTest(file=name,write=m[0]):
+                    before=text[max(0,m.start()-400):m.start()]
+                    restore='$o.shield + $amount' in m[2]
+                    self.assertTrue(restore or before.rstrip().endswith('gt 0.25">'),m[0])

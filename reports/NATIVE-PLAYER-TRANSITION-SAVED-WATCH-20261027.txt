@@ -1,0 +1,167 @@
+SEPARATE SAVED PLAYER TRANSITION WATCH: SOURCE AND OFFLINE EVIDENCE
+27 October 2026 | Default off, read only, no native game launched
+
+Result and scope
+
+The schema2 observer can bind an imported saved Small ship whose initial
+controller is either NavigationController or PlayerController. Its private model
+order ledger operates independently of the fixed-controller raw world watches.
+The existing world-watch binder, raw queue records, parser and strict errors are
+unchanged. This removes the observer's initial-PC selection limitation; it does
+not make a controlled-ship action fixture pass or supply independent players.
+
+No input/control writer, GetUp call, chair action, ownership assignment, native
+getter invocation, new hook site, thunk or numeric option bit is added. Existing
+controller transfer/publication/activation and manager enqueue/dispatch hooks
+remain the only observation sites. Shared immutable thunk emission, exact pins,
+original-once dispatch and owned restoration remain unchanged.
+
+Implementation
+
+lockstep_transition_identity.h reads the exact ComponentRegistry::Find layout
+audited in the preceding design report. It verifies the indexed slot's occupied
+status/type mask4, 16-bit generation, object pointer and full component runtime
+ID. Registry/page/block arithmetic is bounded. Two matching guarded snapshots
+are required. The full ced70/184 pin is checked, plus existing macro and true-
+owner getter pins, without invoking these native getters in production.
+
+lockstep_transition_watch.h owns a separate manifest of one or two sorted saved
+identities, expected Small macro/true owner, initial Nav/Player controller and a
+model-queue observation limit of1..120 ticks. The builder verifies these against
+the exact compressed snapshot digest and saved component/movement records. The
+native wire is schema2 and at most319 bytes. First configuration is UI-only,
+before loading and before transition-hook publication; an identical UI reload
+can resume, but changed/late configuration and closing state refuse.
+
+The existing import observer supplies saved ID, full runtime and object only.
+Selected missing/duplicate/conflicting/late imports refuse. Complete layout reads
+begin at the joined main boundary after the original world-watch binder succeeds.
+Initial type/player flag/Agent ownership, full registry identity, macro and true
+owner must agree. Saved/runtime/object/Agent stay fixed through later observed
+controller changes. The old controller is not read after publication returns.
+
+All native reads are sequential diagnostics. No native reference is retained;
+destruction, owner mutation, eventual generation wrap and Agent/controller child
+allocation reuse are not atomically excluded. The exported atomic_lease,
+generation_exclusion and faction_exclusion fields remain0. Prebind selection is
+counted and excluded; early_import_coverage remains0.
+
+lockstep_transition_queue.h owns at most256 private tickets and uses the existing
+512-event transition ledger. Optional callbacks run outside raw-watch selection;
+the existing world queue wrappers still make the sole native original call.
+
+Before enqueue transfers ownership, the callback validates selected recipient,
+fresh identity/Agent/owner, manager and stable16-byte model-order input. It assigns
+a unique ticket. Outstanding address reuse refuses; retired addresses get new
+tickets. The receipt completes before original, and the return callback receives
+no command pointer. An immediate consumer is therefore supported without a
+post-enqueue dereference.
+
+At dispatch, one exact outstanding command/runtime/Agent ticket, the eacf66 caller,
+stable typed input, completed source receipt and unchanged source controller are
+required. The ticket is claimed once before original, and retired only after
+matching result identity and unchanged command bytes are captured before the
+native destructor. Missing/changed/duplicate/stale receipts fail and stay visible.
+Other in-image command types and unknown recipients have explicit excluded counts;
+this ledger does not establish that the manager, detached lists or producers drain.
+
+The private queue window may extend beyond the unchanged raw12-tick window.
+An enqueue inside the selected window whose dispatch is later excluded leaves an
+outstanding ticket and fails final evidence. Transfer/activation observations keep
+their pre-existing active-session scope. No gate continuation is exempted.
+
+Callbacks admit and increment open accounting under the transition lock before
+selection. STOP closes admission under that lock, retains restore_open, and never
+waits while holding a lock over a native original. Late returns can complete into
+resident storage, but cannot erase the earlier open-at-restoration failure.
+
+Exports and independent evidence
+
+Consuming initial-watch rows are bounded at1024 bytes; ticket rows at768; ordinary
+events retain their2048-byte bound. Ticket export is available only after closing
+with zero open callbacks. Schema2 footer reports watched/imported/bound counts,
+private queue calls/returns/exclusions/failures, ticket/outstanding counts and
+consuming cursors. All these records explicitly report raw_world_coverage=0.
+
+native_gate_transition.lua configures before loading, drains immutable watches
+and events, resumes consuming cursors on UI reload and emits the STOP footer even
+when final ticket export refuses an open call. The independent parser checks
+initial lifetime, exact event/ticket joins, typed header/mode bytes, before/after
+identity, retirement, bounds, cursors, no outstanding ticket and restoration.
+Configuration equality across replicas uses only the saved manifest and window;
+runtime pointers/IDs join local records and never enter portable equality.
+
+A causal mode0 takeover completion still requires transfer, publication, active
+callback, enqueue and completed dispatch with the observed expected PC/player/
+model result. Boolean acceptance or activation alone cannot satisfy it. Release
+model-result semantics and action-origin proof remain unimplemented. Parser fields
+action_origin_proven and independent_player_context remain false.
+
+Validation
+
+Full build_native_gate.py --test --native-image passed: gate actual-image tests,
+transition ABI/pins/unwind/restoration tests, codec and Windows decoder, plus30
+production transport/boot cases using owned memory and real loopback UDP.
+All367 test_native_gate*.py tests passed with LuaJIT and no skips. The final
+additional PC-to-Nav publication fixture passed the actual-image transition C
+harness. These are offline tests, not an X4 gameplay result.
+
+New native test coverage includes:
+- Forty registry lane/page/generation cases compared with the real pinned ced70
+  resolver executing on owned synthetic pages; status/type/generation/full-ID
+  mismatches, between-read replacement and inaccessible memory refuse.
+- Initial Nav and PC binding with zero raw world watches; object/Agent/owner/
+  generation replacements and duplicate imported identity refuse.
+- Actual production transfer/publication wrappers in both directions, with the
+  old controller made inaccessible after publication. PC-to-Nav is a structural
+  observer fixture only; no release model-completion claim is made.
+- Enqueue at30 and dispatch at90 while raw coverage ends at12; retired address
+  reuse, missing/changed/claimed tickets and stale controller/runtime refuse.
+- Consumer completing before enqueue returns; input becomes PAGE_NOACCESS on
+  enqueue return; no extra original and no post-transfer input access.
+- STOP while an enqueue original is open: restore_open remains1 after late return,
+  admission stays closed, original returns once and no lock spans it.
+- Byte-identical raw queue rows and lifetime tokens with private callbacks off/on,
+  both before and after a controller replacement. Raw error256 is preserved even
+  when the separate receipt is valid.
+
+Production C synthetic exports independently parsed as evidence_valid=true and
+observed_model_completions=[5], with atomic_lease=false and no independent-player
+context. Forged header/mode/runtime/owner/generation, missing/duplicate/partial
+receipts, failed STOP and differing replica manifests/windows refuse. Legacy raw
+queue failures remain strict in the main validator and never become session_pass.
+
+Next boundary
+
+Source review and integrated artifact validation are required before a native
+probe. Existing broad-world mismatches still block later admitted actions. The
+legitimate GetUp/deferred event and same-ship chair re-entry paths are documented
+in NATIVE-PLAYER-TRANSITION-WATCH-DESIGN-20261027.txt and the associated action pin
+manifest. No guessed action index, new opcode, replay, direct pointer mutation,
+AI firing/order substitute or exception to singleton authority is implemented.
+No task-owned native game, queue entry or process handle remains active.
+
+Independent review follow-up
+
+Review found that the original schema2 parser accepted four impossible diagnostic
+mutations: dispatch caller1 instead of eacf66, a command pointer wider than64 bits,
+unaccounted queue calls, and two saved watches aliasing one native lifetime. The
+parser now validates emitted hex/decimal syntax and native32/64-bit widths,
+boolean fields, bounded row lengths and aggregate record capacity. It requires
+the exact dispatch caller and exhaustive queue accounting. Initial saved watches
+must be mutually distinct in saved/runtime/object/Agent/controller identity; an
+ambiguous pair invalidates both. Initial native binding now explicitly refuses
+shared Agent/controller identities too. Sequential guards remain non-atomic.
+
+All four reported mutations and additional width/syntax/row-capacity regressions
+refuse. Incomplete queue accounting cannot report a model completion. The existing
+production C synthetic export remains valid with completion[5]. Updated evidence:
+369 Python/LuaJIT tests and the actual-image transition C harness pass; no native
+game, input writer or hook change was introduced by this follow-up.
+
+The queue review also found that the preliminary vtable read was not compared
+against the two stable full input copies. A changed but stable header could
+therefore become a native positive receipt, although the independent parser
+already rejected it. The native decoder now requires the copied header to equal
+the verified model vtable. An injected reader changes the header between the
+initial and full reads; the actual-image C harness confirms this now refuses.

@@ -1,0 +1,86 @@
+WINDOWS PORTABLE LOCAL HOLD GUARDS
+27 October 2026 | read-only diagnostic admission
+
+A held portable frame previously compared canonical state with one fresh sample.
+Physical read/write selectors were checked only inside each sample. Swapping two
+identical banks could therefore leave canonical bytes equal while changing the
+physical boundary. The unpaused-real clock was also absent from the local hold.
+
+The initial two-pass capture now retains raw finite game, real and unpaused-real
+clock bits and both physical selectors. Each complete sample checks these before
+and after reading the twelve actors. Both samples must agree in local guards and
+canonical bytes, with a final fresh local check before retaining the boundary.
+Retransmission and GO/STOP acceptance take the same two fresh full samples and
+compare them with the retained boundary. Acceptance then rereads the clocks and
+selectors twice inside the existing cancellation lock immediately before changing
+issued/draining state. Full actor/registry reads remain outside that lock.
+Every local read also repeats the established main/fixed-dt/import ownership
+guards, exact speed1 and table loading0 checks. The initial frame argument and
+native table pointer are retained separately. There is no assumption that these
+two pointers denote the same native object: the former is the owned FrameTick
+call argument, while the latter is the existing TABLE_RVA loading source.
+
+These are local invariants for one held tick. New admitted frames establish new
+local boundaries, so clocks and selectors may advance between frames. Physical
+selector numbers and real/unpaused clock values are not portable identity and
+are not added to portable-fixture-v1 or NGP packets. The schema and wire format
+are unchanged. No native state is written or reconciled by these checks.
+
+NATIVE CLOCK CONTRACT
+
+The pinned Windows reader at4b5e50 reads the unpaused-real double at6b60e48 under
+the native clock lock. Its complete57-byte function hashes to
+966a7e1a514a5efd1fa5b17080ae88c684a8a60fbee16ddcbe6c9e730ac11dfa.
+FrameTick atfa2d70 writes game6b60e38, real6b60e40 and unpaused-real6b60e48 at
+fa3341,fa3372 andfa335e. Its complete2127-byte span hashes to
+5a966bc940eec10249ced85daf2751984ee5f1a2bfd28889d812831b221519be.
+The observer reads raw memory and invokes neither the getter nor an engine lock.
+
+Configuration pins both complete functions. The only permitted FrameTick change
+is the existing owned fixed-dt branch atfa3302. The copied branch must be9066;
+only that word is reconstructed to0874 in private memory before hashing. The
+main hook and active fixed-dt ownership, exact1/60 data word and disabled flag
+are checked before and after pinning. A stale restoration state or foreign word
+refuses. The same known ownership guards now also apply during the hold. A
+foreign word introduced before STOP therefore refuses admission before draining;
+conditional restoration still leaves that foreign word untouched. No new hook,
+pause offset or native write is introduced.
+Failure publication uses the existing admission/stop lock: if cancellation wins
+during an unlocked reread, its legitimate hook restoration is not counted as a
+new native failure. The finish routine remains outside that lock. A deterministic
+cancellation-during-hold mutant reproduced the spurious count before this guard
+and now preserves zero failures, one restored original and no issued frame.
+
+VALIDATION AND LIMITS
+
+The actual-image C test verifies both full pins, modified reader/writer tails,
+the unpaused store, fixed-dt word/data, foreign main ownership, and stale restore
+state. It changes only an independent private mapping of the executable.
+
+The production transport harness preserves all27 existing transport and3 boot
+watchdog cases. Added real-memory mutants refuse unpaused-clock and identical-
+bank selector changes at GO, STOP and after full sampling but before acceptance.
+Direct held-frame tests prove that canonical bytes remain equal while the new
+local comparisons refuse, and that mutations within or between initial passes
+publish no frame. The retained boundary is never rebased to the mutation. A
+positive case permits clock/selector changes between admitted frames. Infinity
+and unsupported selector values refuse. Source guards retain the wire/schema
+boundary, two-pass verification, final acceptance ordering and owned pin rules.
+Additional GO mutants cover foreign main/import hooks, fixed-dt data/branch,
+speed, table replacement and loading. Caller-frame mismatch, loading argument1
+and absent table also refuse without issuing a frame. The fixture stores the
+actual1/60 fixed_dt_bits. Foreign restoration refusals remain explicit.
+The complete actual-image C/build checks pass, including42 transport cases,
+3 boot watchdogs and2 local mutation groups. The portable Python/Lua suite passes
+66 tests with4 existing Linux-specific skips.
+
+A successful fresh two-pass read reports stage=complete just like the initial
+capture. The combined terminal-status harness calls the production Lua reader
+from the post-stop diagnostic thread and verifies the terminal adapter's stage
+expectation on actual CLOSED results. Failed reads retain their detailed stage;
+stage alone does not establish wire or session success.
+
+The synthetic UDP peer is not a Linux engine or gameplay result. No game was
+launched. Repeated stable reads do not exclude an unobserved change-and-restore
+between observations and do not establish global producer quiescence. The
+existing cancellation lock orders admission/stop, not native world writers.

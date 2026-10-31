@@ -1,0 +1,65 @@
+SAVED AI TIME: WINDOWS/LINUX PARSER DIFFERENCES
+27 October 2026
+
+The two audited decimal parsers predict different imported time bits for 2,262
+of the 38,448 saved AI script records in the current test snapshot. All 38,448
+time strings fit the bounded plain-decimal grammar; there are 399 distinct
+strings, of which 13 produce different results. This is static arithmetic
+evidence on actual saved inputs, not a live cross-platform state comparison.
+
+Windows 14c3090 uses separate binary64 fractional operations with scale *= 0.1.
+Linux 1a3b1a0 uses scale /= 10.0. Both then multiply the digit by the scale and
+add it to the accumulated value. The XML readers are Windows 12fd30 and Linux
+1df4a70. The saved ExecState time stores are Windows b5a734 and Linux 10df2d9.
+Full paths and exact-image pins are retained in the saved-decimal conversion
+and Linux/Windows Wait-import reports. No engine function is executed by this
+audit, and no native value is rounded, replaced or excluded.
+
+The affected saved text and record counts are:
+  0.0166667   1112
+  0.0333333    338
+  0.683333     134
+  0.766667     128
+  0.966667     117
+  0.883333     114
+  0.583333     105
+  0.0833333     59
+  0.0666667     46
+  0.05          40
+  0.166667      30
+  0.116667      22
+  0.183333      17
+
+For example, saved owner 6a8b9 has orders.base/index4/time0.0166667. The audited
+Windows arithmetic yields 3f9111134dba9df7; Linux yields 3f9111134dba9df6.
+Its order.fight.patrol/index4/time0.05 gives 3fa999999999999b versus
+3fa999999999999a. These candidate records provide concrete targets for a future
+read-only native import trace. They are not assumed to retain these values after
+load-tail AI execution or to be active WaitAction nodes.
+
+The affected script names include orders.base, patrol, escort, seek-enemies,
+movement, building, mining and docking. This does not establish a gameplay
+failure in every listed feature; it identifies imported state which a broader
+cross-platform hash must cover. The three previously selected literals6.91667,
+6.31667 and7.083 still produce matching platform results.
+
+Validation used the immutable snapshot SHA256
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8,
+checked before and after streaming the exact aidirector/entity/script ancestry.
+Two original executable arithmetic probes, one on Windows and one under WSL,
+use explicit SSE2 operations with round-to-nearest checked. Each agrees with
+the Python audit for all399 snapshot strings plus two additional distinct
+controls (401 cases). Both emit identical dual-parser results. These probes
+execute our arithmetic test code, not copied native parser bodies.
+
+Private evidence remains under.local/native-lockstep/: audit_saved_time_parity.py,
+saved-time-platform-parity.json, saved_decimal_arithmetic.c,
+check_saved_decimal_arithmetic.py and saved-time-platform-arithmetic-check.json.
+The probe source SHA256 is
+a39a450531df0afc6ad88893e7f937e90db640113cc3e850fd60d91a5a4dba83.
+
+The first mixed-native twelve-ship schema omits AI execution state. It can test
+its declared subset while this risk remains, but cannot establish whole-world
+lockstep. Next evidence should read selected differing ExecState time values
+during native import on both platforms, before deciding on a common conversion
+policy. No conversion intervention or new native test is introduced here.

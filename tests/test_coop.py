@@ -114,3 +114,33 @@ class CoopTests(unittest.TestCase):
   for bad in (packet(2,'9'),packet(2,'nan'),packet(2,'11','100001'),packet(2,'11','100',2)):
    self.s.receive(bad,P1,.4);self.assertEqual(self.s.navigation[1],old)
   self.s.receive(packet(2,'11'),P1,.5);self.assertEqual(self.s.navigation[1]['seq'],2)
+
+ def test_motion_mode_is_authenticated_forwarded_before_nav2_and_fenced_by_epoch(self):
+  def nav2(seq=1,time='10',slot=1,epoch=1):
+   return f'NAV2|1|{self.a if slot==1 else self.b}|1|{epoch}|{seq}|sector_macro|1000|0|0|0|0|0|0|3|{time}|9000|0|0|0|0|0'.encode()
+  def mode(seq=1,time='10',value='highway',slot=1,epoch=1):
+   return f'NMODE|1|{self.a if slot==1 else self.b}|1|{epoch}|{seq}|{time}|{value}'.encode()
+  self.crew()
+  for bad in (mode(value='warp'),mode(time='nan'),mode(time='-1'),mode(slot=2),mode(epoch=2),mode()+b'|x'):
+   self.s.receive(bad,P2 if b'|'+self.b.encode()+b'|' in bad else P1,.1)
+  self.s.receive(mode(),FOREIGN,.1);self.assertFalse(self.s.motion_modes)
+  self.s.receive(nav2(),P1,.2);self.s.receive(mode(),P1,.2)
+  rows=[p.decode().split('|') for a,p in self.s.snapshots(.3) if a==P2 and p.startswith((b'NMODE|',b'NAV2|'))]
+  self.assertEqual([r[0] for r in rows],['NMODE','NAV2'])
+  self.assertEqual(rows[0],['NMODE','1',self.b,self.a,'1','1','1','10','highway'])
+  self.assertFalse(any(p.startswith(b'NMODE|') for a,p in self.s.snapshots(.3) if a==P1))  # never echoed to the owner
+  self.s.receive(mode(1,'10','normal'),P1,.4);self.assertEqual(self.s.motion_modes[1]['fields'][-1],'highway')
+  self.s.receive(mode(2,'10.05','travel'),P1,.4);self.assertEqual(self.s.motion_modes[1]['fields'][-1],'travel')
+  self.assertFalse(any(p.startswith(b'NMODE|') for _,p in self.s.snapshots(1.3)))      # stale after .75 s
+  self.crew(seq=2,control=0,aboard=1);self.crew(2,seq=1,control=1,now=1.4)          # authority moves to p2
+  self.assertNotIn(1,self.s.motion_modes)
+  self.s.receive(mode(3,'11'),P1,1.5);self.assertNotIn(1,self.s.motion_modes)        # old owner/epoch rejected
+  self.s.receive(mode(1,'20','boost',slot=2,epoch=2),P2,1.6)
+  rows=[p for a,p in self.s.snapshots(1.7) if a==P1 and p.startswith(b'NMODE|')]
+  self.assertEqual(len(rows),1);self.assertTrue(rows[0].endswith(b'|1|2|1|20|boost'))
+
+ def test_legacy_nav2_without_motion_mode_is_unchanged(self):
+  self.crew()
+  self.s.receive(f'NAV2|1|{self.a}|1|1|1|sector_macro|1000|0|0|0|0|0|0|3|10|100|0|0|0|0|0'.encode(),P1,.2)
+  kinds=[p.split(b'|')[0] for a,p in self.s.snapshots(.3) if a==P2]
+  self.assertIn(b'NAV2',kinds);self.assertNotIn(b'NMODE',kinds)

@@ -1,0 +1,121 @@
+WORLD013 UNKNOWN ACTION OWNERS - 28 OCTOBER 2026
+
+Result
+------
+The four retained reason-6 samples in each client describe a supported live
+NPC -> Cockpit -> ShipMedium -> saved Zone 0x3fd chain. The first three objects
+have no retained saved-ID mapping. This is a native object-identity gap, not an
+untyped Value accidentally interpreted as a Component or a missing saved class.
+The receipts do not prove the birth event, creation time, or cross-client
+identity of these unmapped leaves. No canonical identity or exemption follows.
+
+This is an independent read-only analysis of the completed, failed World013
+run. No engine call, hook, game launch, memory mutation or coverage rule changed.
+The CreatePosition plan remains a separate task and report.
+
+Copied evidence
+---------------
+Both raw logs were decoded again with the reviewed independent decoder. Its
+source SHA256 matches the frozen World013 copy:
+8fd4da337e06a980b090a4534b44332cd7e66a723577d782ded3abb3d6a8286b.
+There are four samples and twenty detail rows per client, no parser errors,
+closed export, zero open captures, and exact before/after copied bytes in every
+sample. Each capture used 144 reads and 2008 bytes, below the declared limits.
+
+All four samples independently establish orders.base, descriptor version 7,
+stored PCs 1, 4, 5 and 12, and actual observed program slots 0, 3, 4 and 11.
+The copied actual node equals the slot selected by stored PC minus one; this
+does not rely on a later current-node lookup. The same local Exec/context and
+object chain recur across those four samples within each process.
+
+The owner has RTTI NPC; its parent is Cockpit, followed by ShipMedium and Zone.
+All four objects have matching full native IDs, generation fields, occupied
+registry lanes and pointers, supported primary Component class metadata and
+read parent links. The NPC additionally has the Entity class bit. These are
+derived checks against copied registry/class bytes, not trusted success labels.
+The exact pinned registry layout is the one audited at Windows RVA 0xced70,
+global 0x6cf1500. The class metadata reader validates the normalized pure
+IsRealClass stub and reads its bitmap; it invokes no getter.
+
+Context tag 0x66, context vtable 0x2c6a270, descriptor vtable 0x2c69030 and the
+context-to-Entity link validate separately. The context lifetime is NOT claimed
+to be a Component registry ID. A coincident numeric value would not change that.
+Registry and repeated-read checks reject ordinary stale ID/pointer mismatches;
+they provide neither a reference lease nor exclusion of byte-identical ABA.
+
+Cross-client comparison
+-----------------------
+For each retained sample, the following agree exactly: script/version, stored
+PC and observed slot, node/Execute type RVAs, class chain, absence of saved IDs
+on its first three objects, saved ancestor 0x3fd, diagnostic eligibility/phase,
+and TLS/game/saved-time bits 0x401c54fdf3b645a2 (7.083).
+App flags are 0x20, VBI loading is zero, UI view is one and main is zero at each
+capture. These are pre-admission boot-2/tick-0 observations, not proof that all
+native loading work has completed or that no AI work ran earlier.
+
+Local real-time epochs differ. Process pointers are not compared as semantic
+identities. Even the saved Zone has different local runtime IDs between peers,
+while both map to saved 0x3fd. The equal local IDs seen for the unmapped NPC,
+Cockpit, ShipMedium and context lifetime are therefore diagnostic coincidence,
+not a portable identity proof. Matching script/class/ancestor is insufficient
+to distinguish arbitrary children of that Zone.
+
+The retained samples cover four calls per process, not every unknown owner.
+World013 records 2095 reason-6 calls in client 1 and 2058 in client 2; 2091 and
+2054 respectively were omitted by the existing bounded sample policy. Nothing
+here assigns those omitted calls to the retained chain. All global reason-6
+failures, other capture failures and the strict failed-run verdict remain.
+
+Pristine snapshot and imported census
+------------------------------------
+The pristine snapshot and both actual client copies have SHA256:
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+An independent XML census finds 428369 Component IDs, 90314 Connection IDs and
+3246 Area IDs: 521929 distinct imported IDs, no duplicates. Each client's first
+WORLD_OBJECT census has exactly that same set, with no missing or extra ID.
+Both import observers finish with calls=count=521929, late=0 and failures=0.
+All 23457 saved AI Entity references point to saved Components.
+
+This comparison deliberately selects the native imported domains. Other XML
+id attributes include references and independent order/account namespaces;
+treating every XML id as a unique imported UniverseID would be incorrect.
+
+Saved Zone 0x3fd is present under Sector 0x3fc. Its snapshot subtree contains
+three medium ships and the following pilot/cockpit/ship chains:
+
+  NPC 0x8925b -> Cockpit 0x89259 -> ShipMedium 0x89256 -> Zone 0x3fd
+  NPC 0x893dc -> Cockpit 0x893da -> ShipMedium 0x893d7 -> Zone 0x3fd
+  NPC 0x9bbca -> Cockpit 0x9bbc8 -> ShipMedium 0x9bbc5 -> Zone 0x3fd
+
+All nine imported objects remain registry-resolved at tick 1 on both clients,
+with matching class and parent relationships. The present flag is set for all;
+the NPC rows' additional unsupported-motion bit is not an absence flag.
+The observed unknown chain does not reuse any of these retained saved/runtime
+identities. Zone 0x3fd itself has matching imported topology on both clients.
+
+What is and is not established
+-----------------------------
+The three unmapped objects are outside the complete saved import identity set.
+They are not evidence of an omitted saved NPC/cockpit/medium-ship class, and
+their current full-ID registry checks do not show a stale owner pointer.
+The supported saved ancestor is real and portable; its children are not yet
+portable. Creation or reconstruction during/after loading is a plausible
+explanation, but no receipt records the relevant birth or replacement event.
+Unsaved/generated or surviving native state cannot be distinguished here.
+Numeric searches for runtime IDs inside the save cannot answer that question.
+
+A future portable identity would require a proved creation/import transition
+and its causal owner/order, not a name, local ID, class, Zone or script tuple.
+The existing receipt is sufficient to choose a bounded forensic investigation,
+not to assign that identity, seed its RNG, suppress reason 6 or enroll the chain.
+No new interception or canonical-ID design is proposed by this report.
+
+Private reproducibility
+-----------------------
+Raw evidence stays in the World task's ignored world-motion-013 directory;
+frozen source is world-motion-source-013. This task's ignored create-position
+directory retains the raw decode, snapshot census, semantic comparison and
+their three original helper scripts. Raw log SHA256 values are:
+client 1 c7774ba0b9d85dfa43932c92f54b548ca7a5fa336b8db99d8c0ae50f76df6e1f
+client 2 952eae84676de63b6799cf326fc1fb0f950a76304ec74901f43c2663604625ef.
+No raw log, snapshot, runtime pointer or proprietary code excerpt is committed.

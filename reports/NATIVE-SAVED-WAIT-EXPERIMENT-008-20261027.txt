@@ -1,0 +1,173 @@
+NATIVE WORLD008: SELECTED WAIT DEADLINES CONVERGE; WORLD STILL DIVERGES
+27 October 2026
+
+Result
+------
+One approved disposable Windows pair completed and was restored. Both exact
+selected saved-Wait RNG scopes applied once, produced identical sampled output
+and restored each caller's pre-call RNG. Both resulting deadlines match exactly.
+The trader now publishes its five-command batch at boot2/tick0/time7.083 in both
+clients, where007 observed boot2/tick0 versus boot3/tick2.
+
+Full lockstep still fails at tick2. All521929 imported-ID roots match at tick1;
+tick2 differs only in motion for saved80d4f and9d39b, the same two as007.
+No hash, raw failure, coverage limit or state value was excluded or corrected.
+Matching these roots at tick1 does not mean pending commands or all engine state
+were equal: the separate queue observer already sees different target positions.
+
+Frozen inputs and lifecycle
+---------------------------
+Integrated source30143916927fac77e9ba1ffc644f52b1dfa68506.
+All261 copied native/tool sources and110 build-source hashes verified.
+DLL555008 bytes:
+ded854cd9cbb59cf769c54c6ba7eb470154bc5b294674d5774a9397fe0d7c39a
+Overlay manifest, all11 declared files verified, no extras:
+988462af67bd11b1c5673303852921d955f4896c18d16ed72b9b3327559823ce
+Unchanged25320681-byte snapshot:
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8
+Schema2 observation manifest:
+4d33bbb2a95e18129587f6a59b43ae70cc97909d899f1b61d1ddbbcbfbe16ee7
+Separate two-entry scoped-RNG manifest:
+53de628455bd6aec8e565b33e8b835b7865b006cc9db80c1f12c890875e64715
+
+Relative to007, only DLL, exact integrated probe, config and overlay manifest
+changed. The config delta is the trader's audited native saved-time bits
+401baaab8a5ce5b4 ->401baaab8a5ce5b5, plus the separate selected-RNG wire.
+Fixture/options, snapshot, four world watches, stride1, early queue provenance,
+12-tick bound/first strict mismatch stop,260s runtime and900s admission wait are
+unchanged. No NPC seed/deadline or player-transition intervention was enabled.
+
+Released runner used b1/b2, profiles45850/45851. Prelaunch admission showed no X4,
+32.0GB available and unchanged6-game/14GB-start/28GB-pair limits. Runtime82.328s.
+Both owned games closed gracefully with exit0; lane and snapshot restoration
+succeeded for both. Coordinator stopped; subsequent status showed no games,
+no lane locks and no instance mutex. No retry was made.
+
+Selected Wait evidence
+----------------------
+Each client:18943 importer calls, two complete selected events/eight raw rows,
+unknown0/failures0/dropped0/open0/restore_open0 and restored1. RNG receipt: two
+applies, refused0, open0/restore_open0, closed1. All independent Wait/RNG parser
+errors are empty. Actual before/after phase is boot2/tick0/UI1/main0/view1,
+app flags0x26/VBIloading1, equal TLS/game/saved clock7.083. This remains a
+pre-admission sample, not proof of being inside a full native Load bracket.
+
+80d54 move.idle v4, persisted XMLindex5, native slot70/PC71/since0:
+  saved start6.916670000000001, original exact text6.91667;
+  seed41aa3ad655ad9a9c; scoped outputcdac4aec1239b429;
+  due before -1; due after7.0451471956503395 in both clients;
+  deadline minus saved start0.12847719565033877, reason2.
+9d3a4 order.fight.patrol v10, XMLindex1, slot121/PC122/since0:
+  saved start6.31667, original text6.31667;
+  seed8b0f91e8910d9f7c; scoped output705c386f20d0c9a3;
+  due before -1; due after6.4457276735734945 in both clients;
+  deadline minus saved start0.1290576735734943, reason2.
+
+Both are due by the observed7.083 clock. Caller RNG states still differ between
+clients and each is restored exactly; the raw Wait comparison retains four
+caller-before/after differences. Natural one-step interpretation is explicitly
+disabled for these experimental captures. Selected experiment outputs compare
+equal, global_rng_synchronized=false and exception_cleanup=false.
+
+Remaining position input divergence
+-----------------------------------
+For both affected owners, the first four typed control commands have identical
+interpreted command fields, with differing raw local RNG evidence. Their fifth
+AddOrderTransform command (Windows vtable2c513d8) first carries unequal native
+target vector0 at manager enqueue. Other interpreted payload fields, destination
+reference, source identity/PC and boot2/tick0/time7.083 match.
+
+Trader80d4f, source80d54 move.idle PC67, saved reference95, deadline -1:
+  client1 [37839.21875,1173.4754638671875,-4816.9365234375]
+  client2 [33154.953125,-8494.6103515625,-12449.8115234375]
+  enqueue RNG48978bd444a4f7ec versus9e3c64e9f58dea54.
+Destroyer9d39b, source9d3a4 move.seekenemies PC48, reference428af, deadline -1:
+  client1 [-2488.484375,-1859.962890625,-3358.453125]
+  client2 [-4651.234375,812.85546875,-14976.046875]
+  enqueue RNGf47cc9fabb961ddc versus9ec2be70fc492b01.
+
+These are raw local target coordinates in the command's reference frame, not
+world-resolved positions. Unlike007, the destroyer's selected reference matches
+in008; coordinate generation still differs. The queue observer sees publication,
+not the original decision or every earlier RNG draw.
+
+For80d4f and9d39b, loaded/first-path captures retain differences in raw local RNG
+and Agent constructor timer. The known banks/model/queues otherwise compare
+equal at those observed boundaries. Order5 and its nested append introduce the
+unequal vector into pending0. Frame1 baseline already holds that unequal vector.
+At Agent tick2 entry, banks/model still match while pending target differs;
+matching dt/time/cheap inputs and unchanged per-call RNG are observed. The
+original Agent consumes the command and produces unequal model/bank outputs.
+Both clients have the same raw read/write bank phase. This is a semantic target
+input difference, not a bank-index naming artifact or evidence of solver drift.
+Constructor timer differences are retained; no causal use of that field is
+inferred from its mere presence.
+
+Separate unselected pilot scheduling difference
+----------------------------------------------
+Client1 has15 enqueue/15 dispatch/3 append events; client2 has10/10/2. All queue
+captures are complete/restored, failures0/preimport_calls0/outstanding0/open0;
+both provenance error lists are empty. The extra five commands and one append
+belong to ship6d940, pilot6d945, move.idle PC67 at boot3/tick2/time
+7.116333333333333. Target reference4d, position
+[41883.58203125,-1446.183837890625,19411.515625], deadline -1.
+
+Client1's same-owner trace proves Agent event35 completes69..70, path_after
+event37 completes73..74, then AI event41 executes81..82 with PC71->67 and RNG
+advance, followed by order events42..46 and pending append47 (92..93, nested
+under order46). Agent main/pending are0/0 at its completed tick2 update; the
+new pending record arrives afterwards. Client2 has the Agent/path captures but
+no corresponding AI batch before STOP. This extra batch therefore does not
+explain the two already observed tick2 motion hashes; it is another scheduling
+difference with possible subsequent effects.
+
+The unchanged snapshot gives pilot6d945 orders.base v7 ->order.move.recon v19
+->move.idle v4, top persisted index5/time_text6.98333. It has the same saved Wait
+selector shape as the trader but was deliberately outside the two-entry
+experiment. Its restored native due time was not captured, so a Wait/wakeup
+cause is a specific candidate, not established evidence.
+
+Whole-world and strict validation
+--------------------------------
+Independent reconstruction errors: empty. Both have521929 imported IDs,
+426799 present, unknown_class0, unknown_motion32607, unknown_references0.
+Tick2 topology/health/timing and inventory all match; motion differs for exactly
+80d4f/9d39b. No bank/hash relabeling or floating tolerance was applied.
+Main validator: evidence_valid=false, session_pass=false, first_mismatch2;
+40 existing strict short-run/coverage failures remain. Both battles stopped
+before engagement. The selected Wait success cannot promote the overall result.
+
+Next source boundary proposal (no further mutation or run approved here)
+----------------------------------------------------------------------
+Current ai_run bypasses fixture seeding unless boot_phase3 and a registered
+actor exists. These boot2 outside-fixture target generators therefore remain on
+their native ambient RNG; --ai-rng is not a correction for this path.
+
+The already installed b58ca0 Action::Execute dispatch can support a separate
+default-off, read-only selected-owner early action observer without a new site.
+Require native CURRENT ==exec, a matching live NPC provenance TLS bracket,
+tag66/context lifetime/canonical pilot, exact descriptor/version, frame==exec+38,
+and a bounded immutable program node at PC-1 (the interpreter increments PC
+before dispatch). Copy/revalidate exact action identity, input references and
+RNG before/after; keep foreign/unresolved/nested/overflow/STOP failures explicit.
+Do not widen existing fixture, NPC trigger or phase3 RNG eligibility.
+
+The stock move.idle path generates temp/randpos through get_safe_pos before
+move_to. order.fight.patrol creates random base_pos/y then a safe position before
+passing it to move.seekenemies, whose own safe-position action can adjust it.
+Publication PCs67/48 do not identify which sampling action caused the unequal
+coordinates. Existing ExecState chance evaluation can also draw atb58c6f BEFORE
+the action dispatch, so an action-only observer must not claim coverage of that
+earlier draw. Exact action type/function, PC/input guards and stable semantic
+seed domain need evidence/review before any target RNG correction.
+
+Preserved private evidence
+--------------------------
+.local/native-lockstep/world-motion-008/:
+  result.json,validation.json,world-difference.json;
+  world-trace-difference.json,world-queue-difference.json;
+  world-wait-difference.json,world-rng-difference.json;
+  wait-queue-sequence-summary.json,selected-native-phase-sequence.json;
+  watched-saved-stacks.json and both raw client logs.
+Freeze/source/file audits are world-motion-{freeze,source-manifest,artifact-audit}
+-008.json beside that directory. All007 artifacts remain unchanged.

@@ -1,0 +1,758 @@
+NATIVE NPC COMMUNICATION DIAGNOSTIC - 27 October 2026
+
+Finding
+The co-op docking experiment still fails strict equality. At tick 8579, fixture
+actor 6 executes the same AI SignalObjects instruction with the same starting RNG.
+The first differing nested MD branch is a loop in GetAssignedActorCue: one client
+enters the active-usecase list and returns an assigned cue; the other skips the
+empty list and returns null. Both enter and leave that branch with the same RNG.
+Different random consumption follows the differing active-usecase state.
+The earlier event that made that state differ in that run is not yet established.
+No chatter suppression or behavior correction was applied to either baseline.
+
+Observer
+The existing interrupt instruction hook did not observe MD's separate inlined
+action loop. A separate read-only dispatch observer now records executed nested
+actions with explicit interrupt/instruction/nested parents, context type, depth,
+stable program-shape hash, PC transition, action type and RNG before/after.
+The original dispatch runs exactly once. The whole 303-byte interpreter is
+SHA-pinned; an aligned 16-byte CAS changes only the six-byte dispatch sequence,
+preserves neighboring instructions, and restores only its own patch. Bounded
+buffers, failed reads, malformed links and missing restoration fail validation.
+
+Evidence
+Source 561cb33, one disposable native pair, 10000 admitted ticks. The lane runner
+reached its stop condition and restored both lanes. Independent strict validation
+fails on interrupt RNG, interrupt instructions, and nested action equality:
+6401 versus 6573 nested actions. There are no trace completeness/restoration
+errors. Ordered contact inputs, native damage, radar scan timing and saved fixture
+identities match. Each client completed four dockings and two departures.
+The native C refusal/CAS/restoration checks and 77 Python/LuaJIT checks pass.
+These are functional comparisons; concurrent native runs preclude timing claims.
+
+Wider lifecycle baseline
+Source 53531fd adds named NPC_UseCases action observation outside fixture
+interrupts. A second 10000-tick pair completed and restored both lanes, but strict
+validation fails named lifecycle equality (9616 versus 9634 actions). Fixture
+interrupt instructions and all 6573 nested actions match in this run. This is not
+a successful session: the wider observer exposes differences the fixture missed.
+The first independent UseCase execution occurs at tick 298 versus 309; both take
+the same abort path. Successful UseCaseStart executions occur at ticks 3238 and
+3239 in both clients, but the second starts with different RNG. Native selection
+consumes that differing stream before speech begins. Speech-finished actions then
+occur at ticks 3374 versus 3395, with subsequent speech at 3397 versus 3457.
+This does not establish which prior lifecycle event caused the first baseline's
+active-usecase difference. In this second run both relevant uses finish by 8520,
+so the fixture interrupt at 8579 happens to match.
+
+Next diagnostic and explicit experimental limit
+The independent --npc-diag option observes actual SpeakNextLine inputs/results:
+saved speaker identity, page/line, duration/start, state, clock and RNG, with
+explicit named-action ownership. Runtime entity IDs and audio handles are local
+auxiliary evidence. The observer calls the original exactly once and does not
+change selection, playback or deadlines. Full function/layout pins, bounded
+records, exact counts, valid ownership and owned restoration are required.
+Strict validation compares selected inputs, timing, RNG and named actions.
+
+A separate DEFAULT OFF --npc-rng hypothesis experiment scopes RNG before native
+MD execution and restores the caller stream afterwards. It records the original,
+scoped and resulting RNG. Keys use cue name, program shape, start PC, admitted
+tick and a per-key invocation ordinal. This ordered invocation identity does NOT
+distinguish duplicate instances semantically or correct differing scheduling.
+It is not an established fix; whole named downstream action traces must match.
+The baseline remains available independently of the experiment.
+
+Coverage failure and ownership bridge
+The first unseeded speech-observer run completed 10000 ticks and restored both
+lanes, but captured zero speech-selection records. Strict validation rejects both
+clients for missing speech coverage and differing named lifecycle traces (9366
+versus 9597 actions). Fixture interrupt, nested action, contact, damage and radar
+comparisons match. Zero speech coverage does not establish speech equality.
+
+The native Speak action resolves its line vector and calls EntitySpeakData::Speak
+to enqueue the request. SpeakNextLine may run during that call or later. The
+revised observer therefore associates saved speaker identity with the named MD
+action before the original enqueue call, records resolved page/line inputs and
+acceptance, and follows subsequent starts. Rejected requests restore the prior
+association without overwriting a newer nested request. Coverage counters expose
+unowned calls and foreign-thread calls; strict validation checks the enqueue link
+and rejects missing coverage. This is observation only, still independently usable
+with the RNG experiment disabled.
+
+Native C refusal/CAS/restoration tests and 81 Python/LuaJIT tests pass for the
+ownership bridge, including immediate and delayed starts and rejected requests.
+The revised bridge completed an unseeded 5000-tick native baseline at f8a9d81.
+Each client records three enqueue requests and three starts, with zero unowned
+or foreign-thread calls, zero observer failures and clean restoration. Strict
+validation fails only named lifecycle, speech selection/timing/RNG, and enqueue
+argument equality. Fixture interrupt, nested action, contacts, damage and radar
+comparisons match. The shorter run covers two dockings, not departure acceptance.
+
+At tick 3239, the same saved speaker and recipient request page 10101 but lines
+10062 versus 10063. Both start at tick 3284 with initial duration estimate 2.84
+seconds, yet the MD
+finished cue runs at 3374 versus 3395. At tick 3280, another identical saved
+speaker/recipient pair requests page 10103, lines 10074 versus 10023; both start
+at 3325 but their initial estimates are 3.00 versus 1.88 seconds. The third request has
+the same line and duration, starts at 4389 and reaches the finished cue at 4527
+on both. The unpaused clock has a different initial offset between clients.
+
+These records prove differing line selection before differing lifecycle state.
+They do not yet distinguish native speech completion from the MD cue's separate
+skip-signal path. A read-only native OnSpeakFinished observer now captures caller,
+interruption flag, active start ownership, state, page/line, duration/start/clock
+and audio-enabled gate. Active ownership is kept separate from pending replacement
+requests. The pinned native tick also replaces the initial duration estimate with
+the audio object's duration after audio becomes ready. Finish records preserve
+that updated duration; it is not assumed equal to the initial estimate. C and 82
+Python/LuaJIT tests pass.
+
+First scoped-RNG experiment
+The first 5000-tick hypothesis run completed and restored both lanes. All three
+resolved page/line requests, enqueue RNG inputs/results, start ticks and updated
+audio durations align. Coverage is complete: three enqueue, start and finish
+records per client, zero unowned/foreign-thread calls and zero observer failures.
+Strict validation still fails: named actions are 6498 versus 6320 and scoped
+executions 206 versus 202; full lifecycle, enqueue, start and finish traces differ.
+The ordered-invocation RNG experiment is therefore not an accepted fix.
+
+Native completion now proves a separate cause. For the same page 10103/line10023,
+both starts occur at tick3325 and the updated audio duration is exactly
+1.1804761904761905 seconds. One client finishes at3397 through the native state4
+deadline path after1.20 simulation seconds. The other finishes at3355 through
+state5's audio-finished path after0.50 seconds, before that deadline. Neither is
+an explicit interruption. The third identical selected line similarly finishes
+through audio completion at4464 versus the deadline at4527. The second line uses
+the deadline path and finishes at3486 on both. These are native callbacks, not
+inferences from the MD cue's alternate skip trigger.
+
+Before any completion-policy experiment, observer lifetime handling now clears
+pending NPC ownership for a foreign accepted enqueue and preserves it on refusal.
+A direct action marker prevents a nested foreign action inheriting an NPC
+ancestor's ownership; local request generations prevent a rejected outer request
+overwriting a newer nested owner. Active page/line/start are retained separately.
+C lifecycle/restoration checks and82 Python/LuaJIT tests pass. No completion
+behavior change was used in the five native runs above. Raw game logs, decompilation output, saves,
+binaries and local run paths stay private.
+
+
+Bounded completion experiment, default off, not yet run natively
+The new --npc-deadline option uses bit49 and implies diagnostics only. It does
+not enable scoped RNG. It patches the state5 audio-finished comparison inside
+EntitySpeakData::Tick, routing only an exact active NPC request to the existing
+native deadline check. The native tick then owns state4 scheduling and its later
+completion callback. Interruptions, foreign requests, global audio settings and
+the native finish function remain unchanged. Observer bookkeeping retires the
+old active owner before native completion can synchronously start another line.
+
+The full tick function is pinned at RVA563d30, length1555, SHA256
+8567c0d7897abe3c839a6485e88f7330b1061d635d422a50ce9d8fce0c0ee576.
+An aligned16-byte CAS at563e80 changes only the whole8-byte compare at563e85.
+The adjacent original bytes are pinned too. Generated code at thunk1344 uses247
+bytes of the reserved320. It reproduces that compare exactly once. Audio!=11
+resumes563e93 without calling the helper. Audio==11 preserves flags, all volatile
+GP registers and XMM0..5, reserves32 bytes of shadow space, and calls the helper
+with the original self and already-resolved audio pointer. Both helper outcomes
+restore the complete saved state; false resumes563f71 and true resumes563f58.
+The Windows ABI preserves nonvolatile registers. There is no synthetic return.
+
+Eligibility requires matching saved speaker, active request/page/line/start,
+state5, no timer/interruption flags, finite positive actual audio duration at
+object+0x110 exactly equal to SpeakData+0x18, and a finite nonnegative elapsed
+clock. Unsupported owned states fail diagnostic completeness. Original and
+patched words are compared during execution and restored only while still owned.
+NPC_DEADLINE records tick, local ordinal, enqueue/action owner, saved speaker,
+page/line, duration/start/clock bits and whether completion was early. Coverage
+includes foreign and foreign-thread calls. The validator preserves all existing
+strict comparisons and requires exactly one finish for every observed start;
+non-interrupted finishes before their measured deadline are rejected.
+
+The executable C harness exercises all three generated-stub routes while its
+helper destroys every volatile GP/XMM register, arithmetic flags and all four
+shadow slots. It verifies original register/flag/stack state, helper alignment
+and route, plus ownership, unsupported state/flag/duration refusal, CAS-owned
+restoration and synchronous replacement during completion. Native C and83
+Python/LuaJIT tests pass. This is an intervention contract, not native evidence.
+
+Readiness evidence is captured separately because a client reaching state4 has
+already cleared its audio handle. A read-only observer now instruments the
+actual native duration store at563fb7, using an aligned16-byte CAS at563fb0. Its
+whole-function pin is the same563d30/1555 digest above. The exact neighbor word
+is c80f865d030000f20f114f18837f1000; only the five-byte store is redirected.
+The144-byte generated stub atthunk1664 saves flags, every volatile GP register
+and XMM0..5 with aligned32-byte shadow space. RCX receives self; original XMM1
+already holds the second double argument. After the read-only observer returns,
+all state is restored, the original duration store executes exactly once, and
+control resumes at563fbc, preserving the native compare and both branch outcomes.
+Readiness installs first. Policy installation reconstructs only that owned patch
+when verifying the full tick hash; both patches have independent owned restores.
+
+NPC_READY captures the exact active start ordinal, local request generation,
+semantic owner, actual and previous estimated duration, page/line/start/clock
+and repeat count. Local generations are guards, not seeds or cross-client IDs.
+Every new start resets readiness ownership. A repeated write must preserve the
+same generation, start and duration; a replacement cannot inherit the old record.
+Policy eligibility also requires that ready record for its active generation.
+The validator requires each non-interrupted completion to have actual readiness
+on its own client with exactly the final duration. Missing readiness, changed
+repeat/generation/duration, duplicate finishes and early finishes fail. Explicit
+interruptions remain native exits; they do not manufacture readiness evidence.
+
+The same executable ABI harness tests the readiness stub with a helper that
+clobbers all volatile registers/flags/shadow slots. It verifies incoming XMM1,
+the preserved original estimate during observation, the restored duration store,
+registers/flags/stack and continuation. Native C and84 Python/LuaJIT tests pass,
+including repeated readiness, replacements, invalid duration, refusal and owned
+restoration. No native run has yet used the completion policy or readiness hook.
+No broad deterministic NPC claim is supported.
+
+
+First native completion-policy run: intervention not exercised
+The frozen 5000-tick run at8fd30cf completed and restored both lanes. Each client
+has three enqueue/start/actual-ready/finish records, no unowned or foreign-thread
+calls, zero observer failures and owned restoration for every hook. All three
+actual durations and finish ticks match:1.1804761904761905 at3397,
+1.8150340136054421 at3486, and2.261904761904762 at4527. The first estimate was1.88,
+the second2.84 and the third4.12 seconds; actual readiness is now directly proven
+on both clients instead of inferred from matching final values.
+
+However, both policy call counters and seen counters are zero. All three lines
+naturally took the native deadline fallback, so this run cannot demonstrate that
+the intervention removes early audio completion. The strict validator correctly
+rejects missing early-intervention coverage. It also retains the five full NPC
+comparison failures. Earlier independent scheduling remains: the first named
+flow difference is an independent UseCase at tick613 on one client versus the
+other client's next fixture event at689; final action counts6197 versus6301.
+All5000 checked fixture state/physics observations,348 interrupt calls,5067 nested
+actions,8254 ordered contacts and271 damage callbacks match. These fixture checks
+do not establish whole-world determinism. No policy success is claimed.
+
+
+Unchanged repeat: early branch exercised, bounded correction proven
+The unchanged frozen build completed another5000 ticks and restored both lanes.
+On client2, the first speech reached the audio-finished branch at tick3355 after
+0.50 seconds. Native readiness at3328 had already proven the exact1.1804761904761905
+second duration on both clients. The guarded policy routed that early branch to
+the existing native deadline check. Each client then emitted exactly one native
+finish at3397 after1.20 seconds, using state4/caller564119, and the corresponding
+OnSpeakFinished MD actions matched at3397. This is the same early3355 opportunity
+observed without the policy in the first scoped-RNG baseline. The measured route
+therefore prevents that early finish without inventing a callback or completion.
+
+All three selected page/line requests, actual durations and final ticks
+3397/3486/4527 match. Each client has three enqueue/start/ready/finish records;
+policy calls are0 versus1. No foreign/unowned calls, observer failures, premature
+finishes, pending starts or restoration failures occur. The actual-ready and
+terminal lifecycle checks pass, including required early-intervention coverage.
+Fixture state/physics,348 interrupts and their instruction traces,8254 ordered
+contacts and271 damage callbacks match. This remains a short two-docking scope.
+
+Strict session validation still fails all five full NPC comparisons and now also
+the nested-action RNG comparison. The repeat directly demonstrates the documented
+ordered-invocation identity flaw. At tick444, an independent UseCase runs before
+the actor5 fixture interrupt on one client, taking invocation1 of the same cue
+key. The fixture interrupt then receives invocation2/seed78e28d8193f194f4. On the
+other client the same actor5 interrupt172/instruction908 receives invocation1/
+seeda874d9ae84546168. Its caller RNG before entry is identical on both, and the
+observer catches the resulting nested RNG difference at PC0 even though the
+outer interrupt restores its caller stream. Tick, cue name and invocation order
+are not sufficient semantic identity. No fields are removed from comparison.
+
+The audio-completion policy is still default off and proven only for the measured
+owned, audio-ready, non-interrupted requests. The RNG hypothesis is not accepted
+as a general fix. Independent scheduling, duplicate cue identity and absolute
+clock-offset differences remain unresolved; the full session does not pass.
+
+
+Observer-only fixture trigger identity candidates
+A separate fixture_trigger_v1 observer now shares the existing pinned b58bb0
+entry under --npc-diag. Bit47 retains the known-failing ordered_invocation_v1
+experiment unchanged. With bit47 off, the entry calls the original native body
+exactly once and never writes RNG. No new hook address, trampoline or boot bit
+is introduced. The first native observer result is recorded below.
+The native entry explicitly bypasses trigger observation when bit48 is absent;
+bit47 alone retains its prior counters and behavior even if the trigger buffer
+is full. The builder enabling both bits is not relied on for that isolation.
+
+fixture_trigger_v1 is a diagnostic specific to the pinned Windows build. Its
+caller/type/action RVAs and nested_program_hash of vtable RVAs retain useful
+native context, but are not Linux/Windows identities or stable across builds.
+All fields remain in the trace. Any future semantic RNG mode requires a verified
+canonical mapping of native operations and call sites across supported builds,
+as well as resolving the ownership and trigger limitations below. These keys
+must not be reused as cross-platform RNG identities.
+
+NPC_CAUSE records the existing parent IRQ, fixed fixture actor token, admitted
+tick, script hash, AI PC, begin/end/mode, native event code and occurrence/status.
+Only fixed fixture1..12 are currently eligible. Integration with the typed actor
+registry must use its role checks and full creation handle for dynamic actors;
+a dynamic slot is never accepted as identity by this implementation. All-zero
+parameter bytes are included as exact observed data, not interpreted as a proven
+variant type. Nonzero parameter fields are explicitly unsupported until a pinned
+semantic decoder can canonicalize them. Runtime IDs and pointers are not keys.
+
+A candidate root path combines that cause with the IRQ-local instruction visit,
+PC/type/action, direct child occurrence, child cue/program/entry PC and caller
+RVA. Descendants extend their parent key with the direct action's program,
+PC/type/action and execution-local visit/child occurrence. Global record ordinals
+are auxiliary cross-references only. Ambient executions cannot increment fixture
+cause, instruction or child counters. A TLS ownership stack tracks direct action
+and execution brackets; foreign action/execution boundaries cannot inherit a
+named ancestor. Reentrant IRQs establish their own cause. Unknown, foreign,
+parameter, actor, overflow and ambiguous cases remain explicit status values.
+
+Identical repeated causes are NOT asserted to be different semantic identities.
+The later occurrence is marked ambiguous. Validation also marks the first
+candidate unusable when that same cause recurs, even if it was already drained.
+The observer does not resolve ambient or duplicate cue identities, and candidate
+coverage is never reported as proof of semantic identity. A future RNG mode must
+refuse unsupported broad scope rather than invent keys for these cases.
+
+NPC_TRIGGER records cause/path fields, direct ownership, local visit and child
+indices, before/after RNG and whether the unchanged legacy experiment was enabled.
+Native calls retain their natural RNG consumption. The validator checks parent
+IRQ/instruction joins, recomputes candidate keys, detects missing/tampered records,
+compares usable fixture candidate keys separately, and reports unsupported and
+ambiguous counts. Every existing named instruction, RNG, enqueue/start/finish
+comparison remains intact. The new comparison does not replace them.
+
+Native C tests reproduce ambient-before/after permutations, repeated identical
+causes, repeated action PCs, nested siblings, foreign nesting, reentrant IRQs,
+foreign-thread TLS isolation and bounded overflow while preserving original calls
+and RNG draws. Entry routing also tests bit47 alone with empty/full trigger
+buffers, unchanged diagnostic counters and legacy RNG restoration, plus bit48
+observation. Native C and88 Python/LuaJIT tests pass. This instrumentation adds
+observation, not a new RNG intervention.
+
+
+Native008: observer-only fixture path coverage, full session still fails
+Source2d5e2f4 completed5000 ticks on both disposable clients using the same frozen
+snapshot and coop/docking workload. NPC diagnostics were enabled; the legacy NPC
+RNG and deadline interventions were OFF. The frozen DLL SHA256 was
+4e39c57406912ffd2b3e03f7407f78bbf21b3f1eb1838f03af8c9c5256321cbf.
+Both games exited normally, and the runner restored their lanes and staged save
+slots. Native trigger stops reported restored1/failures0 on both clients.
+
+Cause coverage: all231 cause records match exactly, comprising191 first candidate
+occurrences,12 repeated ambiguous occurrences and28 unsupported nonzero-parameter
+causes on each client. Repeated causes remain unresolved; their parameters were
+not assigned speculative semantic types. No observed trigger candidate belonged
+to one of the repeated causes.
+
+Path coverage: each client produced82 usable candidates, consisting of40 roots
+and42 nested children, spanning ticks35..4440. Their ordered keys match, as do
+their RNG inputs and outputs when joined by key. The trigger validator verified
+parent IRQ/instruction joins, local visits/child counts, key reconstruction,
+record counts and restoration without diagnostic-completeness errors.
+
+This is partial coverage: full execution counts are209 versus205, with127 versus
+123 unsupported executions. These consist of69/65 foreign-context executions and
+58/58 ambient executions. The foreign-thread counter is zero on both clients;
+foreign context means an ownership boundary, not a different operating-system
+thread. The validator reports candidate_coverage_complete=false and
+semantic_identity_proven=false. Equal candidate keys do not prove general
+identity, cross-platform identity, or complete NPC determinism.
+
+The first full named/trigger sequence difference occurs when client1 independently
+runs UseCase at tick652 while client2 next runs the fixture-owned UseCase at689.
+Both later share that fixture root's key and RNG input/output despite the extra
+independent execution. No RNG was replaced by this observer. All348 fixture IRQ
+calls/instruction traces and5208 nested actions match, as do5000 checked fixture
+state/physics ticks,8254 ordered contacts and271 damage callbacks.
+
+The full strict result is FAIL, with four retained comparisons failing: named
+NPC lifecycle decisions, speech selection/timing/RNG, enqueue arguments/results,
+and finish provenance/state. Named instruction counts are6531 versus6433. Both
+clients have three enqueue/start/finish lifecycles, but requests at3280 select
+page10103 lines10074/10075 and requests at4344 select10076/10077. The latter finish
+at4461/4527. The first request selects10101/10063 and finishes at3332 on both,
+through native audio completion after0.8 seconds despite a1.8150340136054421-second
+duration. The deadline policy is off; this result does not extend its prior
+bounded native007 proof or supply the separate actual-ready observation.
+
+No further unchanged run is implied. Unsupported ownership and semantic trigger
+types, duplicate instances, scheduling, and canonical cross-build native-operation
+mapping remain open before any new semantic RNG intervention.
+
+
+Ambient provenance observer: implementation pending native review
+The existing bit48 interpreter entry now supports a separate NPC_PROVENANCE row
+joined to every NPC_TRIGGER. No new hook site, thunk, boot bit or RNG behavior is
+added. Bit47-only routing remains isolated. Seventeen additional literal byte
+pins match the pinned executable; activation also checks the existing cue-name
+pins and object-signalled dispatch pointer. Other agents' AI wrappers can enclose
+this observer without changing its original-once call contract.
+
+The observer captures the cue's inherited event record, direct parent/template/
+instance-root/namespace names and local tokens, bounded ancestry, state/block and
+the native time field. Time is labelled by state as action_block_time,
+waiting_time or state_time; it is not asserted to be creation time. The immediate
+native parent ExecState is revalidated against a TLS execution bracket. Foreign
+AI ownership records its script and saved entity identity; foreign MD ownership
+records its cue name and local token. Missing saved identities, unbracketed
+parents, and unsupported context types remain explicit.
+
+Only the verified object-signalled event580, object Value slot, tag0a is decoded
+through the saved-ID map. Cue-signalled event637/tag12 may reference an already
+observed live cue by a local token. Unknown parameter tags and reference payloads
+remain unresolved and do not emit pointer bits. Null-source interpretation is
+limited to the proven event580/637 source-slot branch. Names and local tokens do
+not establish identity across clients or distinguish repeated semantic causes.
+
+For event637, the pinned111e370 routine tests the source in r12 at111e447 and
+branches to111e474 when null. At111e482..111e489 it clears the low source payload
+word and stores tag0; the nonnull path stores source+8 with tag12. This supports
+the narrow source-slot interpretation at that assignment only. The receiver was
+already used earlier in the routine; this is not a general Value-zero rule or
+proof that a null-source call reaches the branch in a normal native execution.
+
+The v1 serialized row is bounded to4502 characters plus its terminator:14 names of
+at most255 bytes, eight ancestry entries, four Values, and maximum-width unsigned
+32/64-bit numbers in every field. Thus each append remains inside the8192-byte
+buffer before pointer arithmetic; the bounds do not depend on actual log values.
+
+Native tests cover foreign AI/MD nesting, named reentry, foreign-thread isolation,
+pointer reuse with a changed lifetime ID, owner replacement, missing saved IDs,
+opaque payloads, cycles, ancestry/registry/record/stack limits, and legacy-only
+isolation. Validator negatives reject missing rows, wrong joins, leaked opaque
+payloads, decoding outside the proven event/slot, mismatched tokens/counters,
+wrong state-time labels and failed restoration. All existing strict NPC
+comparisons remain, with provenance compared as an additional diagnostic. The
+native008 result and its four failures are unchanged; no new native run has used
+this implementation yet.
+
+
+Native009: ambient owner identified, strict failure preserved
+The frozen150f232 observer completed5000 ticks with NPC diagnostics enabled and
+both legacy NPC RNG and deadline intervention disabled. Both games exited
+normally; both disposable lanes and their pristine snapshots were restored.
+DLL SHA256:61a91d0fa90f84f24cf795da383de6807e21f57f07957752e5b0f13002ad0308.
+The runner reached its stop condition, but full battle validation FAILED seven
+checks: the existing four named lifecycle/speech/enqueue/finish comparisons,
+cross-client provenance equality, and one provenance completeness check per
+client. This is not a session pass or complete semantic-identity observation.
+
+Each client recorded one provenance row per trigger:211 versus219. Native STOP
+records reported restored1, failures0 and overflows0. Unresolved Value counts
+were678/703; unowned observations40/41. The usable fixture trigger keys still
+matched, while candidate coverage remained incomplete. Fixture states, ordered
+8254 contacts and271 damage callbacks matched. All prior strict negatives remain.
+
+The first differing full execution sequence now identifies a concrete ambient
+owner: saved entity976ab executes move.flee PC47, SignalObjects action, at tick229
+on client1 and329 on client2. Both signal the saved player entity11e12; the cue
+event is580, with parent UseCaseManager. Names, local cue tokens and the two
+opaque parameter Values do not establish a shared semantic cause or occurrence.
+
+The pristine save maps976ab to the Scale Plate pilot of S transport976a6. Its
+saved ship already records lowattentionattack by Argon station3bdf0 at time
+4.36667. The saved AI stack is orders.base, order.trade.routine, move.idle;
+move.flee is therefore a later execution, not the saved top script. The stock
+move.flee source sends its npc_usecase signal immediately after setting the
+withdrawbattle command. Earlier branches can drop cargo, deploy a distraction,
+or run a docking subscript. The trade routine also includes AttackHandler,
+whose flee response can create an immediate Flee order. These source paths are
+investigation candidates; the run did not observe which trigger, branch or
+scheduling decision created the100-tick difference. No common cause with the
+separate destroyer movement investigation is established.
+
+The completeness failures are retained:32/35 bracketed AI parent records contain
+caller0. The observer reads an immediate return address outside the game image
+when an existing owned AI wrapper invokes the interpreter. Native context and
+lifetime guards still passed, but the caller field lacks explicit wrapper
+provenance. Per-row validation isolated failures to these records; the full
+verdict is unchanged. The next narrow correction must identify a verified owned
+wrapper call explicitly while leaving unknown foreign callers unsupported. No
+blanket caller-zero acceptance, RNG intervention or further native run is implied.
+
+
+Owned AI caller provenance: implementation pending native review
+The existing AI wrapper now retains its exact incoming native return address
+106e3fb only when the owned callsite word still matches and the ExecState's AI
+context and lifetime are readable. A separate marker exists solely around the
+wrapper's direct call to the original interpreter target. The existing bit48
+entry consumes that marker once, with the same ExecState/context/lifetime.
+Nested wrappers restore their preceding marker; subsequent same-ExecState
+reentry cannot reuse it. The original call and existing RNG behavior are kept.
+
+Provenance v2 retains owner_caller_raw and owner_caller_source separately from
+owner_caller. Sources distinguish a native image caller, this verified owned AI
+dispatch, and an unsupported foreign caller. Only the owned AI mapping may pair
+raw0 with canonical106e3fb. This is a pinned Windows diagnostic origin, not a
+cross-platform semantic operation or RNG identity. Unknown callers still fail
+completeness. The v2 maximum row size is4568 bytes including its terminator.
+
+The pure npc_provenance_current_matches callback lets another read-only observer
+test the current native ExecState against the active UI-thread TLS frame and its
+revalidated lifetime. False means unbracketed coverage, not no native producer.
+It reads the current frame's own ExecState, never its saved parent, and creates
+no additional interpreter hook or global execution state.
+
+The C harness executes the real wrapper through an ABI-aligned synthetic native
+CALL returning at106e3fb, then the original interpreter target, and checks one
+original call, unchanged RNG advancement and explicit caller attribution. It
+also covers changed patch ownership, wrong callsite/ExecState/lifetime,
+single-use rejection, nested restoration, foreign-thread isolation and bit47
+bypass.94 Python/LuaJIT tests pass, including versioned schema negatives. Full
+revalidation of native009 still yields exactly its seven failures. No native
+run has used this caller-metadata correction yet.
+
+
+Native010: owned-caller capture verified, divergence remains
+The frozen3dbdcba observer completed5000 ticks and cleaned both disposable lanes;
+both games exited normally and both pristine snapshots were restored.
+DLL SHA256:739f6cbb5a97da72a36d990a3a676c228786dad49252f214704cc368aa5859a5.
+Legacy NPC RNG and speech deadline intervention remained disabled.
+
+Full battle validation FAILED five comparisons: cross-client provenance and the
+four existing named lifecycle/speech/enqueue/finish comparisons. The two caller
+completeness failures from009 did not recur. All211/217 provenance rows passed
+their capture checks, including32/35 verified owned-AI dispatch origins retaining
+rawcaller0 with canonical106e3fb. No unsupported caller source was recorded.
+STOP reported restored1, failures0 and overflows0 for both clients. Unknown
+Values remained unresolved678/696 times, with40 unowned observations per client.
+
+Saved pilot976ab again reached move.flee PC47 at different ticks, now352/331,
+with the same verified owned-callsite origin on both clients. The changed
+between-run timing reinforces that these records identify an execution owner;
+they do not establish equal trigger occurrence or scheduling. Usable fixture
+trigger keys still matched, but candidate coverage and semantic-identity proof
+remain false. Three complete speech lifecycles were observed per client and
+their strict comparison still failed. Native009's original seven failures are
+retained as historical evidence; no old trace is reclassified as passing.
+
+
+Selected saved-pilot trace: implementation pending native review
+An additional default-off observer selects only saved pilot976ab through the
+existing saved/runtime map. --npc-pilot implies bit48 NPC diagnostics and writes
+the exact saved watch into the generated configuration. The watch must first be
+configured before snapshot loading, while phase0 and tick0 are active. Repeated
+UI initialization preserves the same immutable watch and accumulated evidence.
+Capture itself requires phase3. This does not observe pre-admission phase2 or
+establish the earlier cause of a loaded-world scheduling difference.
+
+The existing interpreter entry, interrupt execution and AI event wrappers record
+normal/interrupt/event kinds separately. Each original is called once with its
+existing arguments and return value; no actor enrollment, RNG write, reseed or
+new hook/bit is introduced. Normal/interrupt PC comes from ExecState; event PC
+comes from the stored AI context. Both the PC role and stored-context event role
+are explicit. Two parameter type tags are retained, but payload bytes remain
+opaque and are never read or decoded. Entry and return include script, PC, flags,
+native RNG and the observed interrupt range/mode where applicable.
+
+Context lifetime and entity ownership are checked before capture and revalidated
+after copying. Return capture distinguishes a stable context, retired lifetime,
+rebound ExecState, unreadable state and changed entity ownership. It does not
+invent an after-state when the original has retired or freed the context. The
+test harness actually frees the context inside the original to exercise this.
+Local context tokens are diagnostic labels, not semantic causes or RNG keys.
+Selected-scope nesting has balanced entry/exit sequence numbers; it is distinct
+from the separately checked direct native CURRENT parent. Verified/unbracketed/
+unknown parent provenance remains explicit, including the narrow owned-AI caller
+mapping from provenance v2. No missing parent is replaced with a fixture owner.
+
+The bounds are4096 rows per drain,1024 local context lifetimes and64 selected
+nested scopes. Overflow fails the diagnostic while still calling the original.
+Foreign selected calls, unreadable/unmapped owners, retired contexts and missing
+after-state have separate counters. The validator requires nonempty capture,
+balanced original-return intervals, exact STOP/coverage totals and restoration;
+it compares complete rows between clients without weakening existing checks.
+Partial kinds, unowned parents or unresolved coverage cannot claim complete
+coverage. Semantic identity remains unproven even when rows match. Serialization
+uses one bounded snprintf: maximal integer widths and bounded names require1645
+bytes including NUL, below the2048-byte buffer, with truncation checked.
+
+Activation uses the already pinned interpreter b58bb0/303, interrupt b58ce0/741
+and AI event1066750/343 paths plus the existing provenance/name/context pins.
+No new native offset or patch location is inferred. The unchanged native010
+artifact still fails exactly its five comparisons under the extended validator;
+its absent pilot configuration does not gain a new evidence requirement.
+
+Native C refusal/restoration and observer tests pass, including original-once
+nesting, natural RNG advancement, retained IRQ result, lifetime replacement,
+freed context, foreign thread, wrong watch, UI reload, capacity/depth limits and
+bit47-only bypass.100 focused Python/LuaJIT tests pass with no skips, including
+malformed/missing traces, false ownership, unbalanced intervals, opaque payloads,
+coverage counters and configure-before-load/drain-before-STOP ordering. No native
+run has yet used this expanded selected-pilot trace.
+
+
+Optional pre-admission ownership bracket: integration interface only
+The existing bit48 interpreter observer now offers a default-NULL pure callback,
+npc_provenance_early_eligible(void), for the separately reviewed world-queue
+observer. The external predicate must require explicit early configuration and
+manifest, active/open admission, boot phase2/tick0 on the configured UI thread,
+at most120 seconds since configured load, stable native application/VBI loading
+indicator reads and finite clock samples. This header independently checks bit48,
+enabled provenance, active boot mode, phase2/tick0 and exact UI thread. It does
+not supply the external predicate or activate early observation on its own.
+Those native indicators describe pre-admission state; they do not prove that
+the native Load call is still executing. Actual flags/clocks belong in the world
+observer's capture and validation, not in a guessed inside-Load classification.
+
+Each frame retains its entry phase. A pre-admission frame cannot later become a
+phase3 owned frame, and current_matches rechecks current eligibility and native
+context lifetime. Unknown early ExecState tags cannot match. Balanced leave is
+independent of later eligibility loss. A denied nested-entry barrier prevents a
+same-ExecState recursive call from exposing an older eligible frame when a
+temporary native read failure subsequently clears. The barrier only affects
+diagnostic ownership; the original execution still runs once.
+
+Trigger, selected-pilot, fixture AI, interrupt seeding and legacy NPC RNG gates
+remain phase3. Early frames do not consume the owned-AI caller marker or create
+named cue records. Unknown caller0 remains unsupported source3; a matching raw
+execution context is not proof of the caller's semantic identity. Phase3 named
+provenance cannot inherit ownership from a pre-admission ancestor. No new native
+hook, offset, boot bit, seed, global current-state writer or native call is added.
+
+The C harness verifies default/refused eligibility, original-once execution and
+natural RNG advancement, same-context nesting, transient loss/recovery, loss
+before return, phase transition, lifetime replacement, unknown/unreadable owners,
+foreign thread, boot/tick/active guards, legacy-bit47 isolation and unchanged
+phase3 behavior. Native refusal/CAS/restoration tests and100 focused Python/LuaJIT
+tests pass. The external world predicate and its actual-image pins require their
+own integration checks; this interface has no native run evidence yet.
+
+Independent selected-pilot review found an evidence-validation gap: separately
+balanced top-level records could move backwards in tick order and still claim
+complete coverage. The validator now rejects decreasing ticks in entry order;
+it never sorts or repairs them. A monotone positive case and reversed-tick
+negative case cover all three kinds.101 focused Python/LuaJIT tests pass. This
+changes validation only; the frozen pilot observer binary remains unchanged.
+
+
+Native011: pilot interruption precedes the communication divergence
+The frozen ede5ce4 pilot observer completed5000 ticks/5001 checked states. Both
+games exited normally, with both disposable lanes and pristine snapshots
+restored. NPC RNG, speech deadline intervention and the optional early callback
+were disabled. DLL SHA256:
+cb855afd531002fe993643850e15aa83cae3b2c1f6fd0fded2bbb89324197c2c.
+Validation with the monotone-tick hardening FAILED six comparisons: provenance,
+selected-pilot execution, named lifecycle, speech selection/timing/RNG, enqueue
+arguments/results and finish provenance/state. Runner completion is not a
+session pass. The usable fixture trigger keys still matched; semantic cause
+identity and complete candidate coverage remain unproven.
+
+The selected pilot produced13/48 records. Both clients exercised normal, IRQ and
+event wrappers and passed the record-schema, monotonicity, nesting, return and
+restoration checks. Both STOP records show restored1, failures0 and overflows0.
+No foreign selected call, unreadable owner, retired context or unresolved return
+was recorded. Coverage is still incomplete:4197/3814 calls lacked saved owner
+mappings, and client2 had one unbracketed native parent. These counters do not
+prove that the missing mappings belonged to the selected pilot.
+
+The earliest selected call is order.trade.routine IRQ at PC76, range0..97,
+mode0, at tick669 on client1 and525 on client2. RNG already differs at entry.
+On the following tick both clients run orders.base and move.idle interrupts,
+resume orders.base from PC3 to121, initialize move.flee in a nested IRQ and run
+its normal PC0..107 sequence. This places the observed timing difference before
+the NPC communication choice. The stored event/type fields are0/0/0, which does
+not identify or exclude the initiating event; the current observer does not
+capture the IRQ caller or separate temporary interrupt context.
+
+The later paths also differ. Client1 records one move.flee.boost event at676,
+then remains at its observed PC64 through the final capture, apart from a
+move.flee IRQ at1882. Client2 receives additional raw53b/53a events, repeats the
+flee sequence at3081, finishes it at4991 and enters order.repair at4992. These raw
+event keywords remain undecoded; no shared causal occurrence is asserted.
+
+The saved move.idle TimeOut69.4731 and order.trade.routine idleduration69.4731
+are script variables. The ship also retains lowattentionattack at4.36667 and an
+updateengineparameters event at9.04368. None alone proves the native pending
+interrupt deadline or clock domain. Static review identifies multiple callers
+of the IRQ interpreter, including AIDirector::Move and IncludeInterruptActions;
+mode0 does not select one uniquely. The next bounded observer addition will
+capture the immediate native IRQ caller with pinned callsite provenance. No
+RNG intervention or unchanged repeat is justified by this run.
+
+
+IRQ caller provenance v2: implementation pending native review
+The existing b58ce0 wrapper captures its return address immediately and passes it
+to a shared read-only interrupt_origin helper. Native arguments remain ExecState,
+program vector, begin, end and byte mode; the original executes once and retains
+the full return value, including the AL result consumed by native callers. Only
+the internal observer receives an additional caller argument. No new patch,
+trampoline, boot bit, RNG scope or phase eligibility is introduced.
+
+The shared helper pins six complete native caller spans:10661b0/742,
+1066ba0/613,106afb0/460,106d250/5134,106fd90/639 and10a7930/464. It also pins
+the full743-byte IRQ function, including its cold failure tail. For hashing it
+reconstructs only the exact16-byte AI and8-byte IRQ patches already owned by this
+gate; foreign ownership or changes elsewhere fail closed. Nine direct callsites
+are checked individually. Shared consumers call interrupt_origin_prepare after
+the existing hooks are installed; a failed later preparation revokes normalized
+origin authority. The pilot watch requires successful preparation to activate.
+
+Only verified native returns receive normalized caller identities:10662ef,
+1066d8d,1066dc6,106b082,106d8db,106e2f4,106e34f,106fef1 and10a7996. The record
+retains the raw image RVA separately. Sources distinguish a verified native
+call, an unknown image origin, an outside-image origin and a known site whose
+pin or ownership no longer verifies. Outside-image addresses export raw0; no
+owned adapter is guessed from a DLL or trampoline address. These Windows RVAs
+are diagnostic origins, never portable semantic identities or seed inputs.
+
+Selected-pilot v2 adds irq_caller_raw, irq_caller and irq_caller_source. Normal
+and event records use zero origin fields. Unknown IRQ origins remain explicit
+and fail diagnostic completeness. Generated pilot configuration marks v2; the
+validator retains the original v1 parser and requires matching fields/STOP
+version. Its maximal row is1734 bytes including NUL, below the2048-byte buffer.
+
+Native C tests pass for known, foreign, changed-callsite and changed-ownership
+origins, plus actual five-argument wrapper execution and unchanged original
+result. A private actual-image harness verifies all seven full spans, all nine
+callsites, exact owned reconstruction and rejection of body/callsite/ownership/
+original-byte/tail tampering.103 focused Python/LuaJIT tests pass. Full backward
+validation of frozen native011 remains exactly its six failures across5001
+states. No native run has used the new caller fields, and their future evidence
+must select the next investigation rather than assume mode0 identifies a cause.
+
+The static scheduling audit also limits what caller106d8db could prove. That
+AIDirector call is reachable from both an already-enqueued work pass and a timer
+pass. The timer pass tests native context+190 against simulation TLS+300 and
+selects pending flags+18c when due; the existing-work pass uses flags+188. Both
+can reach the bit40 interrupt-queue path. Before calling the IRQ interpreter,
+that path copies queued information into temporary context+1c0 and adjacent
+Values, separate from the stored event+18 observed by the pilot trace. The
+caller-v2 addition deliberately does not decode those temporary Values or claim
+which pass caused the observed call. It can first distinguish this shared path
+from the five other caller functions; pending deadlines and enqueue provenance
+remain a further evidence gap.
+
+
+Native012: first IRQ caller established, strict divergence remains
+The frozen219e49a observer completed5000 ticks/5001 checked states through normal
+released-lane admission. Both games exited gracefully, with both disposable
+lanes and pristine snapshots restored. Only pilot origin capture was added to
+the native011 configuration; NPC RNG, speech deadline intervention and the early
+callback remained disabled. DLL SHA256:
+0f9d3b9e87b572d9a1ddbdee308258a04610c31b597675b6b70dc08cdba7600d.
+
+Full battle validation FAILED the same six comparisons as011: provenance,
+selected-pilot execution, named lifecycle, speech selection/timing/RNG, enqueue
+arguments/results and finish provenance/state. Runner completion is not session
+acceptance. The usable fixture trigger keys, checked fixture states,8254 ordered
+contact callbacks and271 damage callbacks still matched. Three speech lifecycles
+per client remain unequal under the existing strict comparisons.
+
+The pilot produced13/23 rows, including six IRQ rows per client. Every captured
+IRQ has a verified source1 caller; their origin-completeness checks pass with zero
+unknown origins. Both clients also have zero foreign selected calls, unreadable
+owners, retired contexts, unresolved returns and unbracketed parents. STOP shows
+restored1, failures0 and overflows0. This is bounded to captured IRQs:4700/3669
+calls lacked saved owner mappings, so broader pilot coverage is incomplete and
+semantic-identity proof remains false.
+
+The first order.trade.routine IRQ is now tied to the same pinned AIDirector
+return106d8db on both clients, at tick586 versus320, PC76/range0..97/mode0.
+RNG already differs at entry. On the following tick, orders.base also reaches
+that callsite; move.idle and trade cleanup IRQs use106fef1, while move.flee
+initialization uses1066dc6. This establishes the initial native execution path,
+not which of its prequeued-work and timer passes admitted the context.
+
+The later paths differ as well. Client1 reaches the observed boost PC64 after
+event592 and records a separate move.flee IRQ at2407. Client2 receives further
+events, enters move.flee.highway at2947 and reaches another IRQ at4880 from
+verified return106e2f4. Raw event keywords remain undecoded. No RNG intervention,
+deadline reconciliation or unchanged repeat follows from this result. The next
+causal gap is the queued context's admission, temporary interrupt information and
+native deadline, including their relation to saved AI state.

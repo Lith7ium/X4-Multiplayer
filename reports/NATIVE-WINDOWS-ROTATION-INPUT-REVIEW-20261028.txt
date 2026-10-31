@@ -1,0 +1,149 @@
+Windows saved-Euler input refusal review -- 28 October 2026
+
+Scope and result
+
+This review starts from source 4296f67. Its Windows rotation implementation is
+identical to the frozen 51b4826 implementation used by mixed004. The native
+executable is the independently pinned Windows build, SHA256
+19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+No game, remote operation, artifact staging or Egosoft file modification was
+performed. Native disassembly, snapshot census and failed-run receipts remain
+private. The committed change corrects one guard address and adds an executable
+regression; it does not change the rotation capability, counts, hooks or ABI.
+
+The guard used RVA 6adfa00 as application flags. That DWORD is the graphics
+adapter setting. Pinned native Load uses application flags at 6adf9fc. The guard
+now reads the latter through ROTATION_APP_FLAGS_RVA and still requires bit 4.
+Every other ownership, input, restoration, count and publication check remains.
+
+Evidence for the address correction
+
+Native Load 9ee7a0, already pinned by production at length 9772 and SHA256
+38df90e5d9385e30279abbccfdb9f12f4789fe61cc2bed4632dc007cc2f54f9c,
+reads the DWORD at 6adf9fc at instruction 9ee7df, tests bit 4 at 9ee7e7 and
+publishes the OR of that bit at 9ee801. These are decoded instructions from the
+exact PE, not transferred labels or a source assumption.
+
+Configuration reader 121df00, inspected span 10488 bytes, SHA256
+a982fff5d501af6a57117bea1bfcedf85404658b63f8ab14c1d212a4de63d726,
+loads the literal "adapter" at 121dfbb, calls its configuration reader at
+121dfc5 and stores the returned DWORD to 6adfa00 at 121dfca. Configuration
+initializer fa7f90, span 2866 bytes, SHA256
+b6ede239d31699ec1a576595307d5a97025e9a81876a65ac73766aa135768dd2,
+initializes that distinct field to zero. The existing world-phase observer also
+uses 6adf9fc; it is corroboration, not the primary proof.
+
+The old rotation fixture wrote 4 to the same incorrect graphics address. Its
+positive guard tests therefore agreed with the implementation without proving
+that the native loading flag was sampled. The new exact-image test derives the
+flag address and mask from the pinned Load instruction operands. Independently,
+it derives the adjacent adapter address from the exact configuration store and
+checks its literal. On owned memory it exercises the production guard with the
+native loading bit present and adapter values 0, 1 and 4, then with loading bit
+absent and adapter 4. The latter must refuse. The tests execute no X4 function.
+A private build reverting only the guard constant to 6adfa00 fails the new case.
+
+What mixed004 establishes, and what it cannot establish
+
+The closed Windows receipt records one normal, true Load return, 10006 selected
+calls and returns per role, zero corrected Euler writes per role, first failure
+ROTATION_E_INPUT (6), and both owned code patches restored with no restoration
+error. UI replacement/reattachment and LOADED publication worked. Frame zero
+was never accepted. This remains a failed experiment; it is not retroactively
+reclassified by the source diagnosis.
+
+The faulty address is statically proved. The receipt does not contain the
+actual graphics DWORD or a first-guard subreason, so it cannot prove that this
+particular predicate was the first refusal in mixed004. The same status code
+also groups XML, lifetime, read and other guard failures. Correction of the
+address alone is not evidence that the remaining native path succeeds.
+
+ROTATION_E_INPUT is the wrapper's mapping for every nonzero x4rx result except
+X4RX_EVALUATOR, which maps to ROTATION_E_MATH. The possible helper results are
+ARGUMENT (-1), READ (-2), BOUNDS (-3), SHAPE (-4), DUPLICATE (-5), TEXT (-6),
+CHANGED (-7), STOP (-8), GUARD (-9), and KEEP_NATIVE (+1). KEEP_NATIVE cannot
+describe a successfully captured rotation node at these selected tail sites.
+Failures before capture, after the original, during input replay or while
+reading the output bank can therefore all produce the same status 6.
+
+The first failure is sticky. Once any rotation failure is set, the helper's
+stopped predicate refuses later preparation, while each selected original is
+still forwarded once and counted. Consequently zero Euler writes does not mean
+zero Euler XML elements or independently invalid input on all later calls.
+The 10006th call encounters the unchanged count limit as well, but that later
+reason cannot replace the first INPUT reason.
+
+Actual native argument path
+
+At the selected read and write calls in Agent import e86bb0, RDI is the Agent
+and the native offset output is Agent+ad0+selector*1a0. Offset reader 47f730
+selects the rotation child, puts basis output+10 in RCX and the rotation node in
+RDX, restores the caller's RDI, then tail-jumps at 47f828 to 49cbb0. The existing
+thunk forwards restored RDI in R8 without changing the native return address.
+Thus the wrapper's basis/XML/Agent argument interpretation and the ae0 basis
+offset agree with these native instructions. No ABI change is justified here.
+
+The XML layout agrees with the native readers: Windows children use c8/e8/f0,
+attributes use 18/b8/c0 with stride 40, and 129150 uses the attribute string's
+length at entry+18 and capacity at entry+20. The helper imposes additional
+bounded shape, text, replay and guard requirements. Static agreement does not
+prove their values or stability on the failed call; current receipts cannot
+identify which requirement refused.
+
+Separate hook/preflight coverage mismatch
+
+The immutable snapshot has 10008 movement class="navigation" records: per role,
+10005 have a rotation child and three do not. It additionally has one movement
+class="player" record with a rotation child in each role. The current preflight
+selects only class="navigation" and the capability expects 10005 selected tails.
+
+The selected native sites are not exclusive to NavigationController instances.
+Exact RTTI identifies constructor d83de0 as PlayerController (primary vtable
+2c39488). It directly invokes NavigationController import constructor ea4e90 at
+d83e25. The latter invokes eac380 at ea514d; eac380 invokes shared Agent import
+e86bb0 at eac498. NavigationController's primary vtable is 2c51158. Native factory
+d67970 has separate cases leading to ea4e90 and d83de0. The inspected constructor
+prefix/fragment hashes are retained below for reproducibility:
+
+  d83de0 / 2381 / b10ac28d4f6692b9731af4a9d08cfd241c2f131d7d6fa10cd9586eb9edbe1f28
+  ea4e90 /  925 / 866c1a72a063e9f56e225683d74d234b724b7e3c696bbb1bcc4e8b90282d4f50
+  eac380 /  421 / f2175c1111b65cb926d637d544d2ab5b3c20626de01588df983387c797935865
+
+The player pair and shared native base path explain why navigation-only static
+coverage is narrower than hook coverage, and are consistent with the observed
+10006 calls per role. The failed receipt does not identify each actual XML node
+or Agent, so this is not a runtime census joining all 10006 calls to saved
+objects. A future scope decision must explicitly reconcile semantic preflight,
+native class/import coverage and both platforms. This change does not increase
+the expected count, ignore the extra call or claim cross-role Agent set equality.
+
+Bounded diagnostic proposal, not implemented
+
+Retain one immutable first-refusal record for the selected wrapper, with an
+explicit completeness marker. Record role and ordinal, native return site,
+thread, Load serial/phase, the original helper result and an orchestration stage
+(pre-guard, capture, evaluation, original return, post-guard, replay, bank read,
+final guard). A guard failure should include a failed-predicate identifier and
+read-validity bits for its already sampled fields. Unread values must remain
+unobserved rather than look like valid zeroes. This distinguishes host/manager,
+thread, selectors, app flags, Agent/basis and owned-patch failures.
+
+For capture failures, preserve bounded data already copied by the helper:
+source/tag, vector capacities/counts, attribute tag/index, string length/capacity,
+the three owned angle strings when available, and the failed read's relative
+location/length. Do not reevaluate expressions, call a game getter, or dereference
+a retained XML pointer after the callback. If pre-guard refused, input remains
+explicitly uncaptured. No diagnostic may suppress the first failure, resume
+correction after it, replace the count gate or publish a partially written world.
+One separately bounded overflow receipt could identify the extra selected
+lifetime, but must not be represented as complete per-Agent import coverage.
+
+Validation and limits
+
+The exact-image/owned-memory Windows rotation suite passes 82788 checks,
+including original forwarding, restoration and the new field-separation case.
+The wrong-address mutant is rejected by that new production guard regression.
+Eleven focused portable-rotation Python tests pass. The full native build/test
+suite also passes, including production transport/hold tests. Neither these
+tests nor the static census establish a successful native Euler import or mixed
+run.

@@ -1,0 +1,123 @@
+MIXED006 LOCAL PREPARATION: LINUX FIRST-BOUNDARY GATE
+28 October 2026 | source-only design and inert preparation; not a launch approval
+
+Purpose
+Mixed005 cancelled Linux before its MENU callback.006 should allow the independently
+owned Linux participant to complete its import and reach the joined-main frame0
+wait before Windows X4 starts. This is a startup gate, not a successful native
+test or substitute for final combined evidence. Any Linux refusal stops startup.
+Any actual Windows refusal after launch retains the existing immediate failure.
+
+Frozen participants
+Linux99e6c96 agent d7198847e232d541ee147742d1e48cbf96deabe919362a7560fbc55dbc18e648
+and matched bridge122b18db5e146d9d8be80f30eb666b37c42bc0c4c31abdc3625be1b935b78f4a
+are reusable only with their exact accepted source/build pins. No native change.
+Windows6e0a1f5529e0c305b5f469d901fd7de81c2f2207 frozen DLL:
+782b29e0eca56d34f6bce47cfc606e0e9902346ef52b6abdf227f531c03c8d2c,785920 bytes.
+Use only prior005 Euler-v2 settings plus rotation_rejection_diagnostics=true.
+GetUp, world Position, creation and other optional native modes stay inactive.
+Common contract77b19d6f, snapshot78163510 and three common fixture files stay exact.
+The helper closure must include separately reviewed orchestration changes; the
+root Windows freeze alone is not the complete future execution source manifest.
+
+Order and bounds
+1. Same-supervisor preparation fully hashes all127 stock files, retaining their
+   fds/identities. No Windows runner/coordinator starts before PREPARED.
+2. The Windows wrapper performs normal released admission and preparation, starts
+   the owned bridge/server, and executes the original server-ready/network checks.
+3. An explicit Linux-first option waits immediately after original start_server,
+   before SessionRun.launch, launch-lock acquisition, instance release or start_x4.
+   Refresh each owned client reservation and quiet lock, never SessionRun's
+   reservation-reset method. Poll existing server failure/network checks.
+4. The controller publishes the existing owned Linux configuration/handoff, with
+   an additional closed prelaunch binding. Linux uses the normal MENU/request,
+   exact load/import, scheduler and joined-main runtime paths.
+5. Only independently joined native boundary evidence authorizes a one-shot
+   controller message to the waiting Windows wrapper. Missing, foreign, stale,
+   malformed or cancelled evidence is refusal. No timer/MENU substitute.
+6. Preserve the absolute600-second startup bound measured from start_server entry;
+   do not restart it after proof or Windows launch. Recheck deadline/fresh proof,
+   channel and server before start_sequence and the final start_x4 seam. Released
+   admission and final byte/identity checks still run. Expiration refuses rather
+   than extending the wait. Runtime120 seconds and12 ticks remain unchanged.
+
+Coordinator prerequisite (implemented; source-only tests pass)
+Exact SSH config optionally contains linux_first=true, allowed only with Euler-v2.
+Default configurations omit it and retain existing behavior. Persist/checkpoint
+once only after accepted authenticated slot2/frame0 and matching HELLO, slot1
+absent, released=-1, no stopping/failure. Call barrier.durable so actual disk faults
+retain strict persistence classification. The acceptedab7 checkpoint-output path
+stops on failed emission and retains first cause plus secondary diagnostic.
+Report stays incomplete, hello_slots=[2], frames={0:{2:...}}, empty terminal; no GO.
+An unchanged retransmission cannot emit unlimited readiness checkpoints.
+
+Independent Linux receipt (implemented; source-only validation)
+Acquire in the existing probe holding native PIDFD/read-only memory handles. Use
+an optional prelaunch path and a separate predicate: exact MENU/request/install;
+native first_boundary_ack1, tick/calls/returns/receipt0, waiting-kind1, no failure;
+provisional completed Load and exact completed per-class Euler ownership/counts;
+two independently original rotation words; fresh native/bridge/coordinator/socket
+identity joins; two equal three-clock reads; accepted coordinator slot2/frame0.
+Do not relax terminal predicates or fabricate a terminal native result.
+
+Bind the receipt to the complete wait-request/challenge, exact session/client run,
+Windows runner identity, participants/contract, ready receipt, actual Linux config
+raw hash/review, case/claim, producer PID/start/argv/source closure, native PID/start,
+and coordinator PID/start/socket. Bind decoded frame bytes and raw/canonical report
+hashes distinctly. Mark prelaunch-only and native_pair_verified=false. Check clean
+complete consumed logs before publication; final terminal log checks stay intact.
+
+A bounded read-only fetcher uses fixed derived owned paths, O_NOFOLLOW, regular
+private single-link files and stable fstat/lstat. It retains producer/native/
+coordinator PIDFDs and rechecks their generations around the read. Acquisition of
+engine evidence stays in the existing probe. Evaluate receipt age on Linux, then
+add bounded Windows time since fetch; never compare cross-host monotonic epochs.
+
+Controller channel and final review (helpers implemented; final bundle pending)
+One bounded JSON grant carries full receipt and fetch envelope, not valid=true.
+Wrapper recomputes all request/config/receipt joins. Its stdin belongs to the
+controller and remains open through pre-start checks; EOF, partial/extra messages
+or timeout cancel and run released cleanup. No silent default fallback. Absolute
+deadlines and proof freshness must also survive delayed launch-lock acquisition.
+
+Fresh006 output/config/stage paths and complete source/payload manifests will be
+generated only from frozen reviewed helpers and the exact artifacts above.005 and
+all earlier evidence remain immutable. Final independent native validators remain
+the success authority. No remote mutation, staging or native retry is authorized
+by this plan; no final runnable006 bundle exists yet.
+
+Implemented source seams
+native_portable_prelaunch.py defines closed raw/canonical request/receipt/grant
+bindings. linux_portable_prelaunch.py captures using the existing retained reader,
+publishes atomically without replacement, and independently fetches with retained
+supervisor/probe/native/coordinator PIDFDs. The fetcher verifies the actual preparing
+supervisor argv, request and accepted handoff, exact probe argv/parent, mapped
+agent/bridge inode and bytes, both socket owners and the unchanged report. It never
+opens native memory. Disarm/completed probe files refuse startup. Receipt age is
+at most10 seconds including remote acquisition and local Windows fetch elapsed.
+Later appends are explicitly outside the receipt's consumed log cutoff; normal
+probe fault/cancellation and unchanged native runtime guards remain active.
+
+native_portable_start_gate.py installs only under --linux-first with exact local
+PREPARED/review files. It preserves released reservations, server/network checks,
+all original launch/admission calls and cleanup. One actual pipe record is bounded
+to262144 bytes; partial/extra/EOF cancel, including after a valid grant before
+start_x4. The final proof check occurs after artifact leases, immediately before
+the original native launch call. No proof renewal on delayed launch is supported.
+
+native_portable_controller_gate.py joins the runner-created request to the owned
+Popen handle's creation identity and actual raw inputs, derives the private Linux
+handoff, and fetches until the unchanged absolute deadline. Only a complete receipt
+can write the single grant; the caller keeps stdin open and closes it on failure.
+Its rejection-log collection invokes the frozen passive parser separately and
+cannot satisfy native or session acceptance. The fresh private006 controller must
+call these helpers and collect their exact raw joins before bundle review.
+
+Validation:95 WSL focused source tests pass, including the original strict probe,
+terminal cutoff, same-supervisor preparation, SSH cases and new receipt/channel
+tests. New controller and atomic publication tests subsequently pass7 on Windows;
+the final focused Linux rerun is recorded in the commit handoff. Tests include real
+owned nongame PIDFD exit/identity refusal, private no-replace files, real Windows
+pipes, modeled retained native reads, per-field provenance mutations, changed
+sources/clocks/mappings/sockets, delayed launch expiry and failed child/no grant.
+No native X4 process, VPS connection, stage or final006 execution was performed.

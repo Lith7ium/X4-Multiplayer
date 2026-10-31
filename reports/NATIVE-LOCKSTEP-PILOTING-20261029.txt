@@ -1,0 +1,530 @@
+NATIVE LOCKSTEP PILOTING: INPUT MAP, PILOT RECORD AND DRIVE PROTOTYPE
+29 October 2026 | static analysis + offline prototype; no X4 launched, no live result yet
+
+SUMMARY
+
+Direct piloting under lockstep needs every client to simulate every player ship
+through the SAME native motion path from the same per-tick control values. X4
+flies the local player's ship through PlayerController (singleton input bank,
+own embedded solver, integrated in VBI slot 3 after the pathing join) and every
+other ship through its pathing Agent (Steering model, Agent solver, integrated
+inside the pathing pass). Both paths end in the same per-axis velocity request
+setter e5d380 on solver sub-objects with an identical layout, but they are not
+the same simulation. A ship flown by PlayerController on its owner's client and
+by the Agent elsewhere would diverge. The design is therefore "pilot by wire":
+every player ship, including the local one, is flown on every client by its
+Agent/Steering path, with only the value of the six existing Steering velocity
+requests replaced from that tick's pilot record. The local PlayerController is
+parked (native DeactivatePlayerControls) and never the motion authority.
+
+Implemented (default off, stop reason 91): a 28-byte versioned pilot record,
+local capture from the processed input channels, wire staging with explicit
+capture tick t and apply tick t+d, a per-tick frame table published before the
+pathing pass, request-value substitution for one designated saved ship per
+slot, an optional owned park of native player controls, a per-tick receipt in
+the declared state hash, status/STOP lines, and C/Lua unit tests. Not
+implemented: device capture while native controls are parked, firing, boost and
+travel semantics, and any presentation prediction.
+
+1. MECHANISM MAP (exact build 9.00, X4.exe SHA256 19750a65...6891, RVAs)
+
+Device input to processed channels
+  Win32 input reaches WndProc 12aea30 on the main thread and is queued in the
+  input object *(6cf1560) (CS +8e28). VBI slot 4 (XIn::Base) consumes it on the
+  MoveWorker and updates the process-global input bank. Flight actions reach
+  the bank only while the InputMapping contexts 8/0xf/0x10 (requester 6) are
+  requested; d8d9d0 adds and d9cc30 removes them.
+  Raw bank (roles inferred from consumers, medium): 2f4b720/724 mouse steering
+  2D (radial response via 14e0180 and *(6cf1538)+8), 2f4b738/73c/740 analog
+  rotation, 2f4b794/798/79c analog linear, 2f4b72c..734 and 2f4b7a0..7a8
+  keyboard ramps driven by key flags 2f4b7e8..7fe, 31c1fd8 input hold timer.
+  Processed channels (high): input_yaw 2f4b750, input_pitch 2f4b754, input_roll
+  2f4b758, input_x 2f4b78c, input_y 2f4b788, input_z 2f4b790 with desired
+  throttle 2f4b760 as fallback; smoothed throttle 2f4b764 (slot 33 d97e80).
+
+PlayerController update (local ship)
+  UniverseFrameUpdate 9fdef0 calls PathingManager::WaitAndSwapBuffers at 9fe29d,
+  resolves the controller with 9fc550(3d196f0) and calls d95180(controller,
+  game time) at 9fe2d7, i.e. after the NPC pathing pass has been joined.
+  d95180 (7221 bytes): memo on controller+f0, reentry flag 38f4db4, requires the
+  player's parent component to equal 6b661e8; builds the processed channels
+  from the raw bank; evaluates the data-driven control scheme (d6d420 on
+  *(6cf25d0); libraries/controlschemes*.xml; conditions ControlSchemeList::
+  Condition vfunc1 d69680); calls the integrator d93440 (step 1197fe0 with
+  solver controller+3b0); publishes into the pathing banks.
+  GetControllerValueID d8e5b0 / SetControllerValueID d8fb60 (jump tables at
+  d8f944 / d90828; names from the table at 2654c40):
+    input_x..input_roll 6c..71 read the processed globals plus per-controller
+    offsets controller+194d0..194dc, clamped to [-1,1];
+    limits: min_v_z +19438, max_v_x/y/z +1943c/40/44, max_v_pitch/yaw/roll
+    +194a0/a4/a8; targets stored at +19448.. and +194ac..
+    target_v_x/y/z 75..77 -> d90ed0/d91030/d91190 -> e5d380(controller+6db0,
+      v, axis 0/1/2) on the assisted branch (vfunc+188 true, 3d19b11 set,
+      6b661d0 clear, controller+3cf clear); otherwise an acceleration branch.
+    target_v_pitch/yaw/roll 83..85 -> d91da0/d91f40/d92110 -> d94680 (identity
+      unless controller+3d0) -> e5d380(controller+13080, v, axis 0/1/2).
+  controller+6db0 = solver(+3b0)+6a00 (linear) and +13080 = solver+12cd0
+  (angular): the same sub-object layout as the Agent solver below.
+  Default scheme with flight assist: target_v_x/y = input * max_v_x/y;
+  target_v_z = input_z * max_v_z (input_z>0) or * min_v_z (input_z<0);
+  target_v_pitch/yaw/roll = input * max_v_*; boost or travel force full forward;
+  assist off uses relative accelerations rel_a_*.
+  Scheme conditions: assist = controller vfunc+188(0); boost = ea7600(ctrl,
+  time); travel = ea7650(ctrl); travel charging = ea7690; full stop forced =
+  2f4b7d0|2f4b7d1; match speed = vfunc+78; autoroll = d9bd80.
+
+Agent / Steering path (every other ship)
+  Agent_UpdatePathing e8f250 runs the model's vfunc +70 inside the pathing pass.
+  SteeringFlightControlModel::Update ec7200 (vtable 2c4e9c8): r13 = Agent+340
+  parameters; desired local linear velocity at model+1d0 and angular at
+  model+1e0, clamped to the Agent's own limits: forward Agent+364, reverse lower
+  bound +36c, x +370, y +374; angular axis 0 +37c, axis 1 +378, axis 2 +380
+  (floats). Gains at solver+a258/+16528. Then the six request calls
+  ec91c7/ec91e9/ec920b (solver+12cd0, axes 0..2) and ec922b/ec924d/ec926f
+  (solver+6a00, axes 0..2, skipped when solver+31 is set), one step 1197fe0
+  at ec92c0 and publication at ec92cc..ec9325.
+  Axis semantics are shared with the player: linear 0/1/2 = local x/y/z (z
+  forward), angular 0/1/2 = pitch/yaw/roll. Values are m/s and rad/s.
+  e5d380(sub, value, axis, eps): value*gain, epsilon test against the stored
+  target and the previous unrounded request, rounding via 1a051ac, dirty flag.
+
+Player control ownership levers (for parking the local controller)
+  DeactivatePlayerControls 179760 / ActivatePlayerControls 175a00: owned flag
+  38f0a51, counter 2f4b7e4, then d9cc30 adds/removes the input contexts. The
+  context callback d88710 reaches d9c250 on deactivation: it zeroes the
+  processed channels and target velocities and queues SetFlightControlModel 6
+  (Steering), 5 or 2 via vfunc+198 -> d8dd00 -> eac900 (deferred dispatch).
+  PlayerController::GetTransform d8a680 (slot 6) defers to the Agent banks
+  (NavigationController::GetTransformImpl ea5a90) in autopilot (2f4b7d8 set),
+  on the assisted normal branch and when component+d1 is clear.
+
+Other player state used by capture
+  IsFlightAssistActive b09880 (player+6aac/6aad/6aae); soft target
+  *(6cf2210)+40 -> +50 runtime ID (GetSofttarget afebf0); trigger bytes
+  38f0728..72b (primary fire callback 7e8ef0); autopilot target 2f4b7d8.
+
+Wall-clock and presentation-dependent parts of local input
+  Mouse steering accumulates main-thread mouse deltas between frames, so the
+  per-tick amount depends on real time between gated frames; the response
+  curve, dead zones, inversion and sensitivity are local settings; key press
+  timing is wall-clock; throttle wheel/keys change 2f4b760 incrementally; the
+  UI may run onUpdate up to three times per frame; open menus deactivate
+  controls. All of these act before the processed channels. The record
+  therefore carries the processed, ship-relative channels quantized once by the
+  capturing client; every client, the capturer included, decodes the same
+  integers. Steering in X4 is ship-relative (mouse offset from screen centre =
+  rate request), so no camera transform enters the channels; free look and
+  external cameras do not steer. Remaining scheme inputs (pitch-dependent
+  autoroll, speed-dependent roll) read simulated state and stay deterministic.
+
+2. PILOT RECORD v1 (28 bytes, little endian, 56 lowercase hex on the wire)
+
+  0      version = 1
+  1      mode bits: 0 flight assist, 1 boost, 2 travel, 3 target unmapped
+  2..3   low 16 bits of the capture tick t
+  4..17  seven int16 Q15: input x, y, z, pitch, yaw, roll, throttle
+         (value = q/32767; -32768 invalid)
+  18     buttons, low nibble: native trigger bytes 38f0728..38f072b
+  19     zero (reserved: weapon group selection, v2)
+  20..27 saved ID of the soft target, 0 if none; mode bit 3 when the target
+         has no saved identity (runtime IDs never travel)
+Decoding refuses any other version, unknown mode bits, a non-zero reserved byte
+or high nibble, -32768 and an ID together with the unmapped bit. Apply tick =
+capture tick + agreed delay d; the capture tick is reconstructed from its low
+16 bits relative to the current tick. Blob multiplexing on the coming input
+wire must be agreed with its owner; this record is self-identifying (byte 0).
+
+3. PROTOTYPE (lockstep_pilot_inputs.h, lockstep_pilot_inputs_lua.h)
+
+Arming (before loading, boot snapshot only; requires serial pathing and saved
+identities; refuses the request observer, which owns the same entry):
+  gate.pilot_inputs(manifest, source, delay, start, stop, suppress)
+  manifest: 1..4 comma-separated 16-hex saved IDs, slot order; source 'script'
+  (delay 0) or 'wire' (delay 2..30, start > delay); window start>=5..stop<=18000.
+Hook: the existing e5d380 entry patch and thunk slot 2496/2528 of the request
+observer, installed at the first live pass. request_dispatch routes to the
+pilot only while it owns the entry. No new thunk space, no new native call in
+the Steering path, no transform or order writes.
+Per pass (path_release, before the pathing kick, MoveWorker): resolve each saved
+ship (reverse saved->runtime once, Find ced70, component/controller/Agent
+back-references, Agent+f80 solver), take this tick's records (script: from
+slot and tick; wire: staged ring entry, capture tick must equal t-d), publish
+the frame table. Missing or mismatched records stop with reason 91.
+Workers: an e5d380 call returning to one of the six Steering sites, on a
+driven slot's solver, with matching axis and tick, gets its value replaced by
+record * the ship's own Agent limits (scheme above, single precision); all
+other calls run the original once with unchanged arguments. Each substitution
+adds lockstep_seed(PILOT_DOMAIN, tick, saved, stream, value bits) to an
+order-independent per-tick receipt.
+Lua (tools/dev/native_gate_probe.lua): per admitted tick, wire mode stages
+s.inputs[slot] via gate.pilot_apply, captures and gate.propose()s the local
+record; logs "PILOT_INPUTS tick=N ..." and appends PILOT_1:tick:applied:receipt
+to the declared state hash; logs PILOT_PLAYER (occupied ship saved ID) at tick
+1, optional PILOT_CAPTURE rows, and PILOT_INPUTS_STOP (also on abort).
+Status fields: armed installed live source delay window slots frames
+frame_tick frame_applied frame_receipt applied receipt calls missing late
+unresolved no_solver bad_limits forced staged captures local_pending suppress
+controls_owned open restore_open restored stage failures, and per slot
+sN=saved/resolved/driving/player/angular_applied/linear_applied.
+Local suppression (opt-in): at start-3 DeactivatePlayerControls once with
+before/after ownership checks; every tick until stop the flag and counter must
+still be ours (else stop 91); ActivatePlayerControls at stop+1 or on stop. A
+foreign state is never touched; restoration reports restored=0 instead.
+Capture (gate.pilot_capture) calls the pinned getters d8e5b0 (6c..71),
+b09880, ea7600, ea7650 on the UI thread after this frame's native input update
+and never writes input state. gate.pilot_pending lists this client's proposed,
+not yet applied records with capture and apply ticks.
+Pins (full function SHA256, checked before use; all match the image):
+  e5d380/214, ec7200/10109, e95fb0/2048, Agent update e8f250/10613 (pre-patch
+  bytes via the travel snapshot helper) and the other request-observer pins;
+  ced70/184; capture 9fc550/277, d8e5b0/4712, b09880/91, ea7600/77, ea7650/56;
+  suppression 179760/54, 175a00/66, d9cc30/53, d8d9d0/493.
+
+Tests: test_lockstep_pilot_inputs.h (codec, script, mapping, manifest/config,
+staging ring with late/duplicate/conflict/echo, frame table with missing/delay
+mismatch/lost controls/unresolved ships, value substitution and pass-through,
+receipt, dispatch routing through a stub returning to the real Steering site,
+ownership/restoration with foreign states, pins against the actual image).
+test_lockstep_gate.exe exits 0 with and without the pinned X4.exe; the full
+build_native_gate.py --test --native-image suite passes; three new LuaJIT probe
+tests plus the 54 existing probe tests pass.
+
+4. DESIGNED, NOT IMPLEMENTED
+
+Local ship under the delayed record: park the PlayerController (lever above),
+put the local player's ship in its own slot, and drive it on every client with
+the same substitution. Parking removes the native flight input contexts, so the
+input bank is no longer fed and capture reads zeros. Capture while parked needs
+one of: (a) a mod-owned device sampler at the gate boundary (raw input/XInput)
+with its own bindings; (b) keeping the flight contexts requested by another
+requester without letting the controller retake motion authority (needs the
+d88710 activation gating); (c) an autopilot-like regime, where GetTransform
+already follows the Agent banks, if input processing stays live there. Each
+needs a read-only live observation first.
+Assist off: the scheme uses relative accelerations; the Steering path exposes
+only velocity requests. Prototype applies the assisted mapping (the record
+carries the assist bit). Boost/travel: full forward is forced like the scheme,
+but the driven Agent's limits do not change until its own native travel/boost
+state does; travel needs the per-ship native activation (ea7650 reads the ship).
+Fire: buttons and target are carried, not applied. Firing for remote players
+needs per-ship gun ownership, aim and the launch RNG scope already proved for
+the singleton (NATIVE-PLAYER-CONTROLS-20261027.txt).
+Weapon groups and match speed: reserved for record v2.
+
+5. RISKS
+
+Input latency: the local ship responds d ticks late (d>=2 on the current wire;
+2 ticks = 33 ms at 60 Hz plus wire time). See the prediction section.
+AI interplay: substitution happens only while the ship's Steering model runs.
+AI orders may switch to Spline (docking, travel), Forced or Highway models,
+re-target, or complete orders after the solver (e88160); weapons and turrets
+stay AI-controlled. Applied counts in the receipt show this; it is the same on
+every client if the world is. A pilot slot needs an exclusive authority/order
+lease (NATIVE-PILOT-AUTHORITY-DESIGN-20261027.txt) before real play.
+Collision avoidance: the replaced Steering request included avoidance; driven
+ships fly straight into obstacles (deterministically).
+Attention: low-attention ships take cheaper/less frequent updates; pick ships in
+the player's zone. Ship death or unresolvable IDs are counted, not driven.
+Parked controls: whether d93440 still publishes the player ship after
+DeactivatePlayerControls, and when the queued Steering model becomes active,
+is unobserved. UI code that reactivates controls stops the run (reason 91).
+
+6. FUTURE: LOCAL PRESENTATION PREDICTION (no code)
+
+Separation: the record carries its capture tick; the apply tick is capture+d;
+gate.pilot_pending exposes this client's unapplied records (capture, apply,
+bytes). A predictor needs exactly these d records plus the last simulated
+state of the local ship.
+Where presentation is derived: ship transforms are read through controller
+vfunc6 GetTransform (NavigationController::GetTransform ea5a70 ->
+GetTransformImpl ea5a90 from the pathing read bank; PlayerController override
+d8a680), velocity vfunc7 ea6280. These serve simulation and rendering alike and
+must not be changed. Camera controllers run in slot 3 (e.g. Player vfunc674
+7113e0) and Camera::vfunc3 983160 / vfunc5 984fd0 write view data into the
+producer half [idx^1] of the render double buffer on the MoveWorker; slot 10
+GameRender::Move 121c1f0 builds render lists into the same half (draw-item
+pushers f47870, f47360, f46fd0, f47260, f47170); the main thread renders [idx]
+(RenderView f874c0). A prediction offset belongs on the producer-half data of
+the local ship and camera after slot 3 (empty VBI slot 7 data-only handler, or
+camera/view output), never on components, controllers, pathing banks or the
+solver, and must use the render-side RNG split, never the simulation RNG.
+What diverges while the offset is non-zero: projectiles, beams and muzzle
+flashes start from the simulated gun transforms; aim and target lead are
+computed from simulated position/velocity; HUD target leads, crosshair and
+UI positions read simulated state through FFI; collisions, docking prompts and
+proximity triggers happen at the simulated pose; positional audio and other
+players' views follow the simulation. Mouse steering is ship/screen-relative,
+so a predicted camera does not change the meaning of the captured channels.
+The offset must converge to zero as each pending record is applied.
+
+7. LIVE TESTS FOR THE COORDINATOR (not run here)
+
+A. Scripted drive of two NPC fixtures, no input wire needed. Base: the full W600
+census overlay (battle, snapshot 7816351056..., 600 ticks), DLL from this
+branch. Actors 1/2 dock in the coop docking plan, so drive Argon fixtures 3/4:
+  X4LAN_CONFIG.native_gate_pilot_inputs = true
+  X4LAN_CONFIG.native_gate_pilot_slots = {'0000000000176ad5','0000000000176b36'}
+  X4LAN_CONFIG.native_gate_pilot_source = 'script'
+  X4LAN_CONFIG.native_gate_pilot_window = {30,600}
+  X4LAN_CONFIG.native_gate_pilot_capture = true
+Pass: relay verdict pass (the receipt is in the declared state), census 0
+differing objects at every capture, identical PILOT_INPUTS frame_applied and
+frame_receipt per tick on both clients, s1/s2 resolved=1 driving=1 with about
+six substitutions per ship per tick while their Steering model runs, positions
+of both fixtures change visibly: full forward from tick 30, turning in opposite
+directions from 150, pitching from 270, strafing/rolling from 390, neutral
+from 510. STOP reason=1 restored=1 and PILOT_INPUTS_STOP restored=1.
+PILOT_CAPTURE rows change when a human moves the mouse or presses flight keys on
+one client while census stays 0 (capture does not touch simulation).
+B. Wire capture, after the input wire lands: as A with source 'wire' and
+native_gate_pilot_delay >= wire latency + 1 (start with 3). One human flies on
+client 1. Pass: both clients drive fixture 3 identically from client 1's
+records, late=0 missing=0, census 0. 'late_record' (reason 91) means raise the
+delay; 'echo_mismatch' means the wire altered the local record.
+C. Parked local ship, scripted: slots {'00000000000ae79c','0000000000176ad5'}
+(confirm the player ship with PILOT_PLAYER), source 'script',
+native_gate_pilot_suppress_local = true. Pass: controls_owned=1 from tick 27,
+s1 player=1 driving=1 with non-zero applied counts, the player ship follows
+the script on both clients, a human pressing keys on client 1 has no effect,
+census 0, controls returned at tick 601, restored=1. If s1 applied stays 0,
+the queued Steering model never ran for the parked ship; if census diverges,
+the parked PlayerController still publishes. Either is the observation sought.
+
+8. SANDBOX ADDITIONS (29 October 2026, offline; no X4 launched)
+
+Live results of tests A-C as recorded by the coordinator: A scripted fixtures
+3/4 for 600 ticks, B source='wire' over protocol 3 with delay 3 (598 records
+staged, none missing or late), C slots ae79c/176ad5 scripted with parked local
+controls (the parked player ship was driven on both clients, controls restored
+at stop); census 0 divergence in all three. How-to: docs/LOCKSTEP-SANDBOX.txt.
+
+Capture while parked (section 4 option a), lockstep_pilot_device.h: a
+mod-owned sampler at the existing capture point, default off
+(gate.pilot_device(kind, pad, invert); native_gate_pilot_device 'kbm' |
+'xinput' | 'both', per client slot). Keyboard/mouse only while this process
+owns the foreground window (GetForegroundWindow + GetWindowThreadProcessId);
+GetAsyncKeyState; mouse steering = cursor offset from the client centre
+(GetCursorPos/ScreenToClient/GetClientRect), 10 % radial dead zone. XInput
+from xinput1_4.dll (xinput9_1_0.dll fallback) via LoadLibraryW/GetProcAddress,
+read regardless of focus; no library = pad off. user32 entry points are
+resolved at arming, so the link line is unchanged. One sample and one mapping
+per capture tick (pilot_device_map, pure); throttle setpoint and mouse toggle
+are capture-side state; record v1 unchanged (assist always set, boost bit,
+trigger bit 0 for primary fire, soft target as before). No hook, no engine
+call, no engine write. Bindings from libraries/inputmap.xml (default profile)
+plus documented pad additions; axis signs are assumed and have an invert mask.
+
+Camera follow, lockstep_pilot_camera.h (gate.pilot_camera_follow /
+gate.pilot_camera(tick); native_gate_pilot_camera_follow, needs the render RNG
+split): the stock target view SetPlayerCameraTargetView 0x1b9230 -> 0x9faad0,
+guarded by IsPlayerCameraTargetViewPossible 0x1b3750 (same worker with
+check_only=1, returns at 0x9fac24 before any change) and checked with
+GetExternalTargetViewComponent 0xafd280 (pure read of camera +0x770 -> +8).
+The calling thread's RNG word is kept (draws of 0x97f5b0 land on a discarded
+copy), AutoIDMap insertions are counted, rate 1 attempt / 60 ticks, 64 in all,
+never for the occupied ship. Static reading of 0x9faad0 shows effects that are
+not undone: event_player_activated_external_target_view (only a tutorial cue
+listens), GameClient/player view hooks (0x6cf1520 +0x3b8 vfunc +0x108/+0x2b0,
+0xa37d10 on 0x6cf2230), the zone recent-trees insert 0x8419b0 (pruned by
+Zone::Move) and the external camera input contexts 0xd/0xe. The coordinator's
+analysis adds that attention and some systems read the camera list / player
+position, so camera follow is a known desync source until the deterministic
+viewpoint fix lands; the sandbox builds without it by default.
+Camera-dependent simulation sites known so far: render thread RNG (split,
+667ff7e), far-bullet hit-test cadence U::Bullet::UpdateFlight 0xd4f240 /
+0xd503ea (native_gate_bullet_cadence, a4439f7), navigation refresh interval
+NavigationController::vfunc33 0xea77f0 (squared camera distance against 1e6 /
+25e6 at 0xea7953 / 0xea7c02 with branch-dependent draws through 0x14ddc90;
+native_gate_nav_cadence, ddaac1f), attention via Camera::GetOffset (open).
+
+Declared state: native_gate_pilot_ship_state adds every slot ship's position,
+rotation, hull and shield (PILOT_SHIPS_1) to each tick's digest; the occupied
+player ship is not a fixture, so before this only the world census saw it.
+native_gate_battle_engage=false keeps the restored fixture idle (rows still
+hashed). The relay prints NATIVE_GATE DESYNC / RESYNC in observe mode and can
+keep a live --status-file; tools/dev/native_gate_desync_watch.py alerts on it.
+tools/dev/native_gate_sandbox.py builds the overlay from a protocol-3 base.
+
+Firing (stretch, not implemented). The record carries trigger bit 0 and the
+soft target. (1) The parked player ship (slot 1): X4's primary fire path is
+the singleton PlayerShootController (trigger evaluator 0x7e8bc0 on the global
+trigger bytes 0x38f0728..72b, aim data of the local controller); it is parked
+here, so applying a remote record needs per-ship gun ownership, aim and the
+launch RNG scope proved only for the singleton (NATIVE-PLAYER-CONTROLS-
+20261027.txt). (2) AI-piloted slot ships (slot 2): the stock AI action
+<shoot_at object target primary fixedtarget/> (aiscripts.xsd) in an own order
+script, raised identically on all clients at the apply tick through an MD cue
+(the orders adapter pattern), is plausible: AI fire is already lockstep-clean
+in the census battle. It fires at the record's target when the AI weapon
+logic finds an opening (no free aim), needs an order without movement actions
+(the default Wait order's stop_moving / move_to would fight the driven
+Steering when it resumes), and target identities by saved ID only.
+
+Unverified (needs the first live run): direction signs of the X4 channels;
+whether parked X4 keeps the OS cursor free for mouse steering; whether X4
+reads the pad in an unfocused window or uses its right stick as a UI cursor
+while parked; whether a fixture in its Wait order runs Steering every pass
+(calm build); what the camera switch does at run time beyond the counted RNG
+draws and ID insertions.
+
+9. X4'S OWN CONTROLS, MENUS AND THE MAP (29 October 2026, static; after sandbox-play1)
+
+sandbox-play1 (two clients, 693 ticks in sync, client 2 with 72 human ticks)
+ended when client 2 opened the map: UI views (0x3060e0, from CWidgetController
+SetUpView/UpdateFrame and Lua HideView) add a share to the control
+deactivation count 0x2f4b7e4 and remove it on close; the per-tick check
+required the count to equal ours (stage controls_lost, reported as
+restore_refused because restoration then refused a count it did not own).
+
+Input path (decompiled, build 9.00):
+  contexts      requester 6 (PLAYERCONTROLLER) requests SPACE 8, SHIP 0xf and
+                FLIGHT 0x10 (d8d9d0) iff a controller exists, 0x2f4b7e0 is set
+                and the count is 0 (d9cc30); removal 0x1252850 only edits the
+                request set, activation callbacks run on the next input update.
+  callback      d88710 (registered by d898c0 in the input object's context
+                callback vector) on SPACE: inactive -> zero processed channels,
+                save/disable mouse steering, flight control 0x2f4b828 = 0,
+                d9c250 (Steering model 6, AbortPathOrder, reference order);
+                active -> flight control = 1, d9c590 (model 0, controller adopts
+                the Agent transform, ChangedEnvironmentObjectEvent).
+  exclusions    WIDGET_FRAME (every menu frame), MAP, MAP_FOCUS*, CUTSCENE,
+                DETAILMONITOR_* exclude SPACE (libraries/contexts.xml).
+  bank          key states d870b0 (2f4b7e8..7fe), ranges d87f70 (mouse 2f4b720..
+                728, strafe 2f4b794/798, steering 2f4b744..74c), cursor mouse and
+                joystick steering d88a10 (-> 2f4b738..740), all consumed by d95180.
+  gates         d88a10 returns zero unless flight control is set; d87f70's
+                throttle axis (4) and mouse wheel (10) need flight control and no
+                autopilot; keyboard states and strafe/steering ranges are ungated.
+  authority     d8dd50 = autopilot || (!flight control && assist && !0x6b661d0)
+                || !ship+0xd1; the same expression is inlined in PlayerController
+                vfunc6 (GetTransform), 7, 10, 22, 33, 34, 50, 52, 53, d9c250,
+                d9c590, d8a310, d9c050. d95180 integrates the controller solver
+                every frame, then copies the Agent transform when d8dd50 is 1, or
+                publishes its own state (d96dc0, d85700 zone/warp handling).
+  scheme        controller velocity requests (e5d380 from d90f4e/d910b1/d91211,
+                d912f0, d91e46/d91fed/d921bd) are made only on the assisted
+                branch; the default scheme also sets minmax_v_roll/minmax_a_roll
+                and target_roll from input_pitch/input_yaw/input_roll.
+Consequence: X4's mouse/joystick processing needs flight control, which is the
+PlayerController's motion authority; menus toggle the SPACE handoff whenever the
+contexts are live; and substituting only the controller's velocity requests
+would leave input-derived limits and targets local. Options (b) and (c) of
+section 4 are therefore not reachable without new engine patches: an entry
+replacement of d8dd50 (12-byte absolute jump, no thunk slot), the
+PlayerController transform/velocity vtable entries routed to the Agent branch,
+the SPACE callback entry swapped in the callback vector, and a block of the
+local flight actions that change ship state (boost d870b0 case 0x11, travel,
+SETA, dock, deploy, fire). Each needs a live observation first; not built.
+
+Implemented instead:
+  parking       one owned share of the deactivation count, the view pattern
+                (count+1, d9cc30), at start-3; the DeactivatePlayerControls flag
+                is no longer used, so the resume paths ab1c40/ab2600 and
+                ActivatePlayerControls cannot release it. Per pass: count above
+                ours = UI hold (tolerated, ui_passes); count 0 = share lost
+                (taken again, retakes); requests back = removed again (refreshes);
+                flight control set or d8dd50 = 0 = the controller would move the
+                ship this frame (fail closed, stage authority_lost). Release at
+                stop+1 or on stop removes only our share. Status field
+                park=base/count/contexts/flight/authority.
+  neutral input while a UI holds controls on the capturing client (no device
+                sampling, throttle setpoint held), counted as neutral.
+  orders        native_gate_pilot_block_orders replaces the interaction menu's
+                and map's order entries, travel and SETA starts and the map's
+                autopilot/travel/SETA hotkeys with logged refusals. A combined
+                pilot+orders input adapter would carry real orders.
+  observation   gate.pilot_native_capture and native_gate_pilot_observe_native:
+                the record the native channels give, next to each PILOT_CAPTURE
+                row (expected zero while parked).
+Pins added: d9cc30/137 (with its removal tail), 0x1252850/241, d8dd50/81.
+Unverified: whether a removed request is ever activated before the next input
+update (a lost share would then show as authority_lost), and how the options
+menu's pause interacts with the gate.
+
+10. X4'S OWN CONTROLS BUILT (29 October 2026, offline; default off, stop 113)
+
+native_gate_pilot_capture_source = 'native' (per client; builder --controls
+native), src/native/engine/lockstep_pilot_native.h. Design: flight control
+0x2f4b828 stays 0 at rest on every client (the parked semantics already proven
+in sandbox3-smoke), and only the stock input code that is gated on it runs with
+it set, for its own call. Static findings behind this (build 9.00):
+  readers of 0x2f4b828 include Weapon/MissileLauncher vfunc1041, Controllable
+                vfunc1075, Player vfunc674 and the inlined predicate in
+                PlayerController vfunc6/7/10/22/33/34/50/52/53: with it set on
+                the client whose controller sits in slot 1's ship (every client)
+                those would treat slot 1 as player-flown per client. So the
+                pieces of section 9 are built around a resting 0, not around 1.
+  threads       MoveWorker frame: path_release (pathing kick), slot 3
+                GameClient::Move -> UniverseFrameUpdate -> WaitAndSwapBuffers
+                (pathing joined) -> d95180 (calls d88a10 at d954e2) -> slot 4
+                XIn::Base -> 1250170 (context callbacks 1251fe0/1252320, the
+                three dispatchers) -> slot 6 UI (capture). Install, every
+                dispatch and every flight-control window run on that thread
+                with the pathing pass joined.
+  dispatch      the InputMapping multimap at input+0x63e0 (actions +0, states
+                +0x40, ranges +0x80; node key +0x20, handler +0x28) is walked
+                only by 1255cd0/1255dd0/1255ee0 (equal range, successor taken
+                before each call), all called from 1250170. Registrations are
+                dynamic too (CommAction, InfoAction, BasicScanAction,
+                TeleportLuaAction, AddonManager), so the dispatchers are
+                replaced, not the nodes.
+  engine side effects of "input" handlers: d870b0 0xd/0xe (accelerate,
+                decelerate) and 0x10, d87f70 10 (wheel), d86c80 0x7b (stop) and
+                d9cd00 (match speed) call 6d9c10/6d8960 on the occupied ship:
+                Engine +0x330, +0x2f8/+0x2fc, saved attributes (Engine vfunc569),
+                reset to 1.0. d88fe0 and d95180 reach 710ad0 (same reset) only
+                with player+0x6aad (assist suspended).
+  d93440        the controller integrates its own solver every frame and runs a
+                trigger-object sweep (class 0x77, vfunc 0x2160 with the player
+                ship) on that segment before d95180 copies the Agent state back.
+  vfunc33       the Agent branch zeroes the throttle setpoint every update when
+                the "stop ship in menus" option 0x2f4b9bf is on (local only).
+Pieces: (1) d8dd50 entry -> pnat_authority (1 for the routed controller, the
+re-stated stock predicate otherwise; override= counts routed calls the stock
+answer would have handed over); (2) vtable 0x2c39488 slots 6/7/10 -> naked
+routers to ea5a70/ea6280/ea66c0 for the routed controller (the PlayerController's
+Agent branches are these bodies; verified instruction by instruction);
+(3) callback vector entry d88710 -> pnat_space (input side of d88710 and of the
+d9c250/d9c590 tails; skips d9c590, d9c250, flight control, 70eb10/70ec00 and so
+FlightControlStarted/Stopped events); (4) 1255cd0/1255dd0/1255ee0 entries ->
+re-stated dispatchers: 73 ids refused and logged (presses and range deflection
+edges), states 0xf and range 4 in a flight-control window, states 0xd/0xe/0x10,
+range 10 and action 0x7b as input-only restatements (d88fe0 and d97b50 called as
+X4 does); refused fire states/ranges still set the record's trigger bits 0/2
+(cleared when SPACE leaves) for native_gate_pilot_fire; (5) d88a10 entry -> pnat_cursor, the stock body through a trampoline
+holding its first 18 bytes (position independent) with flight control set;
+(6) PlayerController e5d380 requests (controller+0x6db0/+0x13080, via the
+existing request entry) recorded and replaced by 0.0; for the slot flying the
+controller's ship they enter the record as fractions of the Agent limits (mode
+bit 0x10, record stays 28 bytes v1; pilot_target maps them back unchanged), which
+carries the default scheme's autoroll (target_roll = 0.4*input_yaw*rel_v_z), the
+pitch-dependent roll limits and the assist branch. Other slots keep channels:
+their human's controller runs X4's scheme against slot 1's ship.
+Schedule: start-3 share taken (stock), start-2 parked check, install (all inert,
+then routed and live together), share released; start-1..stop per-pass checks;
+stop+1 removal and a share (stock callback leaves SPACE), stop+2 release (stock
+d9c590 hands control back). No thunk recipe (count stays 55): entry patches are
+16-byte cmpxchg16b absolute jumps into the gate, vtable and vector entries are
+8-byte CAS. Pins: 34 whole functions (pnat_pin_table) plus the five 16-byte
+entries, the trampoline copy, three vtable slots, the option string and the 0.5
+lead, all checked in X4.exe by test_pilot_native_controls_image.
+Tests (offline, fake image region): routers, trampoline bytes, install/restore
+bytes, refusal on a foreign byte or two stock callback entries, dispatch walk
+against a brute-force in-order count, refusals and logging edges, windows (flight
+1 inside, 0 after), restatements, SPACE in both directions, cursor window,
+authority (routed, overrides, stock cases), request recording/normalisation,
+schedule incl. a grown callback vector, stop 113 paths; probe and builder tests.
+Verified statically: everything above. Assumed: that no other thread reads
+flight control during the windows (only render/HUD readers are known); that the
+controller's solver state converges identically on both clients under zero
+requests (it only feeds the trigger sweep); that the HUD is usable with flight
+control off; that X4 dispatches mouse steering for an unfocused second window
+the way it does normally; signs of the recorded requests (shared axis semantics,
+section 1).
+Smoke (observe first): --controls native --script-pilots, 600 ticks, both
+clients: relay pass, census 0, native=live natural=1 flight=0 every pass, auth
+routed rising with override 0, vf counts rising, space=1/0, no stop; open and
+close the map on one client: uihold rises, no stop, space=2/1. Then the human
+session (--controls native, wire): each human flies with X4's bindings,
+watches PILOT_NATIVE_REFUSED for blocked actions, tries menus, map, targeting,
+camera views, extreme manoeuvres near the other ship.

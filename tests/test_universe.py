@@ -3,7 +3,7 @@ import random
 from pathlib import Path
 import unittest
 
-from x4lan.universe import Baseline, Receiver, Sender, UniverseSession, record
+from x4lan.universe import REPEAT_BUDGET, Baseline, Receiver, Sender, UniverseSession, record
 from test_game_adapter import LuaRuntime
 from test_host import TOKEN, P1, P2, FOREIGN
 
@@ -191,6 +191,26 @@ class UniverseRelayTests(unittest.TestCase):
         self.assertEqual(self.s.positions[1][0],1)
         self.publish(Baseline.create(self.a,2,SECTOR,[]))
         self.assertFalse(self.s.positions)
+
+    def test_dense_sector_forwards_new_motion_before_repeats(self):
+        # NPC flicker: a blind round robin over 200 live entities repeated unchanged samples
+        # while new ones waited up to 200/640 s; fresh samples now go first.
+        self.publish(Baseline.create(self.a,1,SECTOR,[row(i) for i in range(1,201)]))
+        self.s.receive(f'UINTEREST|1|{self.b}|1|{SECTOR}'.encode(),P2,.2)
+        def packet(entity,seq,time):
+            return f'UMOVE|1|{self.a}|{self.a}|{entity}|{seq}|{SECTOR}|{time}|10|0|0|0|0|0|100|0|0|0|0|0'.encode()
+        def forwarded(now):
+            return [int(p.decode().split('|')[4]) for a,p in self.s.snapshots(now) if a==P2 and p.startswith(b'UMOVE')]
+        for i in range(1,201): self.s.receive(packet(i,i,1),P1,.2)
+        seen=set()
+        for tick in range(7): seen.update(forwarded(.25+tick*.05))
+        self.assertEqual(seen,set(range(1,201)))  # each fresh sample exactly once first
+        for n,entity in enumerate((150,7,93)): self.s.receive(packet(entity,300+n,2),P1,.6)
+        self.assertEqual(sorted(forwarded(.61)[:3]),[7,93,150])
+        repeats=forwarded(.66)  # nothing fresh: a small budget repeats latest samples for loss
+        self.assertEqual(len(repeats),REPEAT_BUDGET)
+        later=forwarded(.71)  # round robin, not the same entities every tick
+        self.assertEqual(len(later),REPEAT_BUDGET);self.assertFalse(set(later)&set(repeats))
 
 
 @unittest.skipUnless(LuaRuntime,'LuaJIT unavailable')

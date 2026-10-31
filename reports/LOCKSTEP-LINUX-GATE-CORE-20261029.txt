@@ -1,0 +1,217 @@
+LOCKSTEP ON NATIVE LINUX: GATE CORE - 29 OCTOBER 2026
+Offline port | branch contrib/ferrite-linux-gate from ebaa63b8
+
+SCOPE
+The core of the lockstep gate (src/native/engine/lockstep_gate.c) on the native
+Linux X4 9.00 executable, without Wine: FrameTick admission against the relay,
+protocols 2, 3 and 4, the Lua bridge the existing probe calls, fixed dt, the
+per-thread RNG/time keying base and the snapshot boot. Default off, fail closed.
+No X4, lane, relay host or remote machine was started or contacted; the Linux
+and Windows executables were only read. Every result below comes from synthetic
+peers (an emulated engine on a fake image) and from the executable files on disk.
+There is no native Linux lockstep result yet; the live request is at the end.
+
+VEHICLE: A C MODULE SHARING THE GATE SOURCES (NOT THE RUST AGENT)
+src/native/engine/linux/gate_linux.c builds x4lan_gate.so. The probe loads it
+with package.loadlib exactly like x4lan_gate_64.dll and gets the same `gate`
+table; the module hooks nothing until gate.boot/gate.start.
+Why C and not x4mp-agent (Rust):
+- The wire and lookahead state machines, the RNG seed schema and all 150 fix
+  modules are C written against Win32 spellings. A thin platform layer
+  (linux/gate_platform.h: ULONGLONG, GetTickCount64, QueryPerformanceCounter,
+  GetCurrentThreadId, Interlocked*, SRW locks, WinSock spellings) lets those
+  headers compile unchanged on Linux. lockstep_lookahead.h and lockstep_wire.h
+  are already included unchanged; future module ports change only their engine
+  constants, field offsets and TLS reads, not their logic.
+- The Lua bridge is the same code: the Lua wrappers moved out of
+  lockstep_gate.c into shared headers (see SHARED SOURCES).
+- x4mp-agent stays the LD_PRELOAD observer/scheduler of the hybrid server. The
+  gate does not need preloading: it patches the main-loop call at boot time.
+  One owner per patch site is kept (see AGENT COEXISTENCE).
+
+SHARED SOURCES (pure moves, Windows output unchanged)
+Out of lockstep_gate.c into headers included at the same point:
+lockstep_gate_common.h (relay address and hex helpers), lockstep_gate_timing.h,
+lockstep_gate_exports.h (x4gate_* API; GATE_EXPORT per platform),
+lockstep_gate_lua_abi.h, lockstep_gate_lua_wire.h (gate.wire/lookahead/propose/
+report), lockstep_gate_lua_misc.h (qpc_us/sha256/frame_timing),
+lockstep_gate_lua_inputs.h; lockstep_seed.h split into lockstep_seed_core.h.
+Check: all 16 Windows gate translation units (the DLL and the test programs)
+preprocess byte-identically before and after (x86_64-w64-mingw32-gcc -E -P);
+test_lockstep_portable.c loses only actor_seed, which had broken that contract
+test (implicit actor_rng_identity under -Werror). It compiles and passes again.
+New shared headers: lockstep_sha256.h (portable SHA-256, BCrypt-equal vectors)
+and lockstep_tls.h (per-thread RNG word, CurTime, view selector accessors for
+both platforms; the Windows branch compiles with mingw, not yet used by the DLL).
+
+WINDOWS -> LINUX SITES OF THE CORE (13 of the 620 mapped sites, all frame_gate)
+All in linux/gate_sites.h; tools/dev/check_lockstep_gate_linux_sites.py decodes
+each reference in both executables (60 checks pass).
+  CALL_RVA 0x12ae9d2 / WORD 0x12ae9d0  -> call FrameTick 0x72fb16; the rel32 crosses
+      an 8-byte boundary on Linux, so the patch is one 16-byte cmpxchg16b over the
+      aligned window 0x72fb10 (pin main_loop_frame_tick_call 0x72faf0+0x32).
+  TICK_RVA 0xfa2d70                    -> X4::FrameTick 0x2024fc0 (head pinned, 32 B)
+  GAME/REAL/SPEED 0x6b60e38/40/60      -> TimerBase 0x3db82b0/b8/d8 (decoded from the
+      pinned time-advance code of FrameTick)
+  TABLE_RVA 0x6cf1570 (+0x130 loading) -> VbiTable* 0x3dbc4d8 (+0x130), decoded from
+      MoveWorker's VBI dispatch
+  in-flight byte 0x31c20cc             -> 0x3d8d97b (set after the FrameTick call,
+      cleared when semSimDone is acquired: "main thread parked")
+  movie capture flag/time 0x6adfc58/60 -> 0x4533d38/0x4533d40 (new verified pairs; the
+      mapper's data vote 0x3daa6a0 for the frame time was wrong)
+  dt: Windows NOPs the movie branch 0xfa3302 (-> Linux 0x2025135) and writes the
+      capture frame time. Linux uses the natively validated x4mp-agent fixed60
+      patch instead: qwords 0x2025260 (load retargeted to the .rodata 1/60) and
+      0x2025268 (minsd -> nop4); dt = 1/60 exactly; every intermediate state valid.
+  TLS slot0+0x318/+0x300/+0x314        -> fs:-0x2720 (RNG), fs:-0x2728 (CurTime),
+      fs:-0x2620 (view dword; Windows a byte). Decoded in the pinned thread RNG
+      seeding 0x1a47fe0 and MoveWorker::Run 0x1212490/0x12125a0; PT_TLS memsz
+      0x2740 align 0x10 is checked in memory.
+Pins at start: /proc/self/exe size 60,459,280 and SHA-256 113f73d7...045f20,
+ELF header, PT_TLS and text segments, build ID, 12 site hashes, the call target,
+/proc/self/maps (image r--p, both code pages r-xp, same file), glibc TCB self
+pointer. Any mismatch returns code 11; gate.verify_stage() names the stage
+(file, maps, tls, elf, segments, the site name, call) and the probe logs it.
+
+BEHAVIOUR (same as Windows unless listed)
+gate.boot: snapshot boot, the gate owns dt (refuses 27 unless both dt qwords are
+original, the capture flag is 0 and the main thread parks within 2 s). gate.start:
+a running game whose dt another owner fixed (the exact fixed60 bytes), else 12.
+Phases, admission, NGSTATE|2/3/4, permit parsing, inputs, stop codes 1-8, 26, 56,
+102, 103 as on Windows. Permanent thunk page within rel32 reach below the image
+(jmp [rip] to gate_tick; a jump, so no unwind entry is needed); module pinned with
+RTLD_NODELETE. Stop restores the window and the dt qwords by compare-exchange,
+never over a foreign value; restored=0 then.
+Differences:
+- No window-close check during the permit wait (Windows peeks WM_CLOSE): the
+  timeout (60 s in the probe) bounds it. Reason 6 does not occur.
+- Boot to first live frame may take 600 s (Windows 120 s); unmeasured on Linux.
+- Boot/start option 2 (seed_rng) keys the MoveWorker's RNG word at admission
+  (before FrameTick starts the frame), written by the main thread through the
+  base the UI thread refreshed in the frame just completed; Windows seeds after
+  the MoveWorker's pathing release. Same domain and keys; not cross-platform.
+  Options 1 and 3 (serial pathing) and every module bit refuse with code 105.
+- An identical gate.boot repeat after the session already stopped returns 0 and
+  re-arms nothing (Windows: 10), so a probe reloaded after an early relay stop
+  logs STOP with the reason instead of REFUSED code=10.
+- gate.platform(), gate.verify_stage(); poll adds platform, seed_skips and
+  boot_admitted_ms. No module methods: a configuration that needs one refuses.
+Shared fix (both platforms): gate.relay_host accepted only before the start, but
+the probe repeats its configuration after the snapshot load reloads the UI, so a
+remote relay with snapshot boot logged REFUSED relay_host. It now returns 1 for
+the identical address after the start. Covered on Linux by the engine scenarios;
+the Windows DLL was not rebuilt here (no Zig on this host).
+
+AGENT COEXISTENCE
+x4mp-agent pins main_loop_frame_tick_call and the dt site at arm time. With the
+gate armed first (the boot happens in the menu), an agent that arms later
+refuses (site mismatch); with the agent's scheduler armed first the gate refuses
+(27). Run the first live tests without X4MP_AGENT. A headless server peer needs
+the agent's render-decision patch (0x2025208, outside every gate pin) without its
+dt patch: an agent mode for that is plan item 6.
+
+TESTS (offline, WSL Ubuntu 24.04, gcc 13.3, LuaJIT 2.1)
+python3 tools/dev/check_lockstep_gate_linux.py --cc gcc --x4 <x4-re>/bin-linux/X4
+  PASS in 18 s. Steps:
+  - module: exports exactly luaopen_x4lan_gate and x4gate_*; NEEDED libc only;
+    no TEXTREL. (gcc/glibc 2.39 build needs GLIBC_2.38; the package build is
+    tools/dev/build_native_gate_linux.py --zig, target glibc 2.17, NOT RUN here.)
+  - test_gate_linux (white box, synthetic image): SHA-256 vectors (40 us per 16 KB),
+    relay_host_parse vectors, Win32 compat, code compare-exchange (foreign value
+    kept, misaligned/page-crossing refused, r-x restored), near page, every pin
+    refusing on one changed byte with its stage, dt install/restore/foreign owner/
+    not parked/capture flag, a 40-tick protocol 2 session against a scripted relay
+    (inputs, NGSTOP, seed, restore), and failures 56, 4, 3 (foreign window), 3
+    (speed), 7 (silent relay), 2 (loading), UI stop and single use.
+  - the same on an image loaded from the Linux executable: file pin, real site
+    pins and call, both patches, and the patched bytes restored byte-identical.
+  - test_gate_lua.lua: the production .so through LuaJIT package.loadlib: the 16
+    core methods and no module method, Lua ABI from the running LuaJIT, SHA-256,
+    wire/lookahead/relay_host rules, boot/start refused 11 at the file pin
+    (stage=file), 10/105 argument and option refusals, nothing patched.
+  - Engine scenarios: test_gate_engine emulates X4's main loop (semSimDone wait,
+    in-flight byte, the call through the patched window, loading frames) and the
+    MoveWorker running the real tools/dev/native_gate_probe.lua in LuaJIT with
+    the gate test module; LoadGame tears the Lua UI down and rebuilds it.
+    Against tools/dev/native_gate_relay.py (loopback, --relative-real):
+      protocol 2, 2 peers, 120 ticks, seed_rng, relay_host 127.0.0.1: pass; RNG
+        lines identical on both peers for all 120 ticks; UI reload accepted.
+      protocol 3, 3 peers, 90 ticks, scripted hit claims (Lua 'carry'): pass;
+        INPUTS/HIT_CLAIM lines identical, all 4 claims arrived.
+      protocol 4, lookahead 2, 3 peers, 90 ticks, same claims: pass.
+      clock mismatch (peer 2 starts 0.5 s later): relay native_clock_mismatch_tick_0,
+        both peers STOP reason 1 restored 1.
+    Every peer: STOP completed=N reason=1 restored=1, call window and dt restored.
+  - mingw: the Windows branch of lockstep_tls.h compiles.
+python tests/test_lockstep_gate_linux.py (Windows): site table, executable pins
+  (Linux and Windows), probe library choice per platform, overlay --gate-so;
+  the native class runs on Linux hosts (passes in WSL).
+Existing tests rerun: test_native_gate_thunk_page, test_lockstep_linux_map,
+test_native_gate, test_native_gate_check_options, test_native_gate_lookahead,
+test_native_gate_sandbox, test_native_gate_commands, test_native_gate_getup
+(all pass). The full tools/dev/check.py was not run.
+
+PLAN FOR THE REMAINING SITES (607 of 620; reports/LOCKSTEP-LINUX-MAP-20261029.tsv)
+Order by what a two-Linux-peer census needs first; each step = map rows checked
+by hand, pinned in gate_sites.h, decoded in check_lockstep_gate_linux_sites.py,
+added to lockstep_linux_known_pairs.json, module header compiled unchanged except
+its constants, white-box test on the ELF image, then one live census. The x4-re
+labels (labels/lockstep.tsv, ~1,500 lockstep-documented Windows addresses) and
+pairs.tsv give the candidates.
+ 1. State evidence (without it a Linux session compares clocks only):
+    world identities (lockstep_world_identity.h, 2 sites, Linux import hook
+    unmapped), world hash (lockstep_world_hash.h, 19 sites: 4 functions mapped,
+    9 none; libstdc++ string and container layouts), snapshot fixture (12 sites).
+    Then gate.world_capture on Linux and --mode battle in the overlay.
+ 2. Thread RNG base: a thread census (Linux has no TEB walk; candidate: record
+    each thread's TLS base where it seeds its word, 0x1a47fe0), the boot RNG anchor
+    (needs the AI script/interrupt entries, lockstep_interrupt.h 4 sites, 2
+    unmapped), job RNG (4 sites, all mapped high), render RNG split (10 sites).
+ 3. Rest of frame_gate: serial pathing and the Windows seed point (Linux
+    MoveWorker releases manager+0x70 through 0x1a23be0 at 0x12125e3; manager
+    global 0x3e0ced0 by data vote, WaitAndSwapBuffers 0x13e3560 verified), created
+    identities and the registry (created_ids, 46 sites), boot hold (6 sites).
+ 4. events, find order, MD resume/timed (40 sites, 36 code with good candidates).
+ 5. script RNG family (137 sites; 74 of 93 data pins unresolved; ExecState and
+    descriptor layouts differ, LINUX-SCOPED-WAIT-COMPATIBILITY-20261027.txt).
+ 6. Server-mandatory camera-independent modes: bullet cadence (7), nav cadence
+    (2+), view points (14, 9 unmapped), gravidar/AI schedule (25). Agent mode
+    "render decision only" for a headless gate peer.
+ 7. pathing determinism and travel (16), physics/bullets, pilot/player (118;
+    SDL3 input instead of the Windows device sampler), npc (40), world_queue (89).
+ Decide before step 1: libm interposition (glibc version and FMA dispatch differ
+ between hosts; feasibility report section 2) - it changes Linux results vs stock.
+ Thunk recipes for entry detours need System V/GCC prologue relocation and FDEs
+ (call-site rel32 patches like this one need neither).
+
+LIVE TEST REQUEST (coordinator; first native run of the Linux gate)
+Goal: two native Linux X4 9.00 instances admitted in lockstep by the Linux gate
+core for 600 ticks with the clock digest.
+1. Build (Windows or Linux, Zig 0.15.2):
+     python tools/dev/build_native_gate_linux.py --zig <zig> --out <dir>
+   On a Linux host first: python3 tools/dev/check_lockstep_gate_linux.py --zig <zig>
+2. Overlay: python tools/dev/build_native_gate_overlay.py --gate-so <dir>/x4lan_gate.so
+     --snapshot <owned save_009> --mode clock --out <new dir>
+   Fill @X4LANE_PORT@, @X4LANE_TOKEN@ (32 hex), @X4LANE_SLOT@ (p1/p2) as the lane
+   wrapper does; install into each instance's private extension copy.
+3. Host: one Linux machine (a Linux laptop preferred; VPS possible), two X4
+   processes in private mount namespaces as tools/dev/linux_native_admission_run.py
+   (own HOME, -personalfolderid 45841, autosave off, the same pinned build, the
+   same staged save_009 in both profiles). Normal rendering (GPU, or Xvfb +
+   lavapipe). X4MP_AGENT unset. Protected UI off (package.loadlib).
+4. Relay on that host: python3 tools/dev/native_gate_relay.py --port P --token T
+     --ticks 600 --relative-real --report relay.json
+5. Expected per instance log: ARMED, LOAD_REQUEST, RNG tick=1..600,
+   STOP slot=pN completed=600 reason=1 restored=1; relay verdict pass, common
+   ticks 0..600. Capture relay.json and both [X4LAN] NATIVE_GATE logs.
+   Triage: REFUSED code=11 stage=<x> (other build or pin), 27 (dt not original:
+   agent scheduler, or main thread not parked in 2 s), 15 (module pin), 19 (no
+   page below the image), STOP 26 (boot over 600 s), 4 (missing report or dt
+   error), 3 (patch site changed), 7 (relay silent 60 s).
+6. If it passes, repeat with --seed-rng: from tick 2 every frame starts the
+   MoveWorker's RNG word from the same key, so equal RNG lines mean equal draw
+   counts up to the UI slot; differing lines are a census finding, not a gate
+   failure. Then --session-clients for protocol 3 (relay --clients 2), and 3,600
+   ticks with FRAME_TIMING (native_gate_frame_timing) for the Linux tick cost.
+This proves admission, the wire and restoration on native Linux only; equal clock
+digests say nothing about world state until plan step 1 is ported.

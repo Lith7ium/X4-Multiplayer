@@ -81,7 +81,7 @@ function U.receive(f,now)
   event('Order',{request=req,ship=ship,verb=f[7],drop=id,ware=f[9],amount=amount})
   return true
  elseif f[1]=='CARGOREPLY' then
-  if cfg.slot~='p2' or #f~=6 then return true end
+  if cfg.slot=='p1' or #f~=6 then return true end
   local q=g.queue[1];if not q or f[4]~=q.request or f[5]=='PENDING' then return true end
   if f[5]~='OK' and not notices[f[5]] then return true end
   local fence=P.integer(f[6]);if not fence then return true end
@@ -98,7 +98,7 @@ function U.receive(f,now)
   end
   return true
  elseif f[1]=='CINV' then
-  if cfg.slot~='p2' or #f~=8 or not U.latest or f[4]~=U.latest.epoch or not P.atom(f[6]) then return true end
+  if cfg.slot=='p1' or #f~=8 or not U.latest or f[4]~=U.latest.epoch or not P.atom(f[6]) then return true end
   local seq,a,b=P.integer(f[5]),P.integer(f[7],1000000),P.integer(f[8],1000000)
   if not seq or not a or not b or (g.inventory[f[6]] or -1)>=seq then return true end
   g.inventory[f[6]]=seq;event('Inventory',{ware=f[6],counts={a,b}});return true

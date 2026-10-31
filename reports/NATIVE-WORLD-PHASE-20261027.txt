@@ -1,0 +1,62 @@
+IMPORTED-WORLD FIRST DIFFERENCES -- 27 OCTOBER 2026
+
+The broad imported-world comparison is still failing. These experiments narrow
+the failure; they do not establish whole-universe lockstep or gameplay coverage.
+
+After validated fixture prebinding, the earlier 18,000-frame test matched all
+four first-frame roots across 521,929 imported identities. Its final roots
+differed, so a short diagnostic now captures every admitted frame instead of
+only the first and final frame. The object inventory, per-domain SHA roots,
+all timing preimages and selected complete field preimages remain unchanged.
+
+The first short repeat failed at frame 1. Independent reconstruction found
+exactly 10,008 differing timing records and no topology, health or motion
+differences. Every changed field was navigation controller+0xc8, the refresh
+bank cursor: zero versus one. The fixture's two parameter deadlines now agree.
+No snapshot or timing field was excluded to continue the experiment.
+
+Static analysis shows the global current/other pathing selectors can retain
+different physical bank phases across loading. Saved current/previous state is
+imported relative to those selectors. Therefore an absolute cursor difference
+alone is not proof of different movement. Raw differences remain visible; no
+selector, controller cursor, saved bank or arrival flag is changed by the new
+diagnostic. Semantic equivalence requires examining the selected banks and
+notification state as well as their physical index.
+
+The next repeat records both selectors at fixture binding/preparation and before
+and after each world scan. The scan refuses an invalid or changing phase. Both
+clients bind and prepare with current/other=1/0, capture frame 1 with 0/1 and
+frame 2 with 1/0. Neither selector changes during either scan. All four roots
+match at frame 1. At frame 2 only three objects differ, all in the motion domain:
+saved identities 0000000000080d4f, 0000000000092baa and 000000000009d39b. The other
+three domains match and reconstruction reports no errors. Exact motion fields
+for these newly identified objects were added to the next targeted watch capture.
+
+That targeted repeat again matches every first-frame root and stops at frame 2.
+The affected set is now saved identities 000000000006d940 and 000000000009d39b;
+the former two watched ships match. Both clients bind at current/other=0/1,
+capture frame 1 at 1/0 and frame 2 at 0/1, with no within-scan phase change.
+The recurring saved 9d39b object is a Teladi L destroyer. Its active bank's
+position and three orientation vectors differ; the other bank and remaining
+watched fields match. Position Y is 860.2702026367188 versus 860.2701416015625,
+and Z is 1181.64208984375 versus 1181.6435546875. Topology, health and timing
+roots still match. This is a native motion discrepancy with equal physical
+bank phases. It is not explained by the earlier absolute cursor-label mismatch.
+Read-only per-object native-call tracing is the next diagnostic; no movement
+correction or outside-object RNG intervention has been introduced.
+
+Both short sessions stopped at the first reported mismatch and restored their
+native hooks and disposable profiles. Full fixture validation remains false:
+these early stops do not exercise the scheduled hold, commands or later fixture
+observers. The first repeat also exposed queued Actor callbacks arriving after
+native stop; their failed enrollment polluted the lifecycle diagnostics. The
+callback guard now explicitly ignores ended-session events while preserving
+legitimate pre-arm fixture events and all active-session identity checks.
+The original failed run is retained without rewriting its evidence.
+
+A validator crash on a first-frame mismatch before any battle rows was fixed.
+It now reports the mismatch and missing coverage instead of indexing a missing
+sample. No acceptance requirement was removed. Native C checks and 144 focused
+Python/LuaJIT/UDP checks passed on the integrated revision, including the new
+early-stop and pre-arm callback regressions. Selected world-bank diagnostics
+are supplementary observations; the existing four root schemas are unchanged.

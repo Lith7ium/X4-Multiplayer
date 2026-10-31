@@ -1,0 +1,93 @@
+SELECTED POSITION RNG: STRICT STREAM DISCRIMINATION REVIEW FIX
+28 October 2026
+
+Independent review of frozen afe9f899 found that the raw Position reader's
+new exact-prefix filter silently ignored malformed family members. A valid
+natural fixture followed by WORLD_POSITION_BOGUS, bare WORLD_POSITION, or
+bare WORLD_POSITION_STOP could retain selected_valid=true. The previous raw
+reader rejected those records. This is a parser regression, not native evidence.
+
+The follow-up restores broad WORLD_POSITION family screening. Only the exact
+WORLD_POSITION_RNG and WORLD_POSITION_RNG_STOP record names are delegated to
+their dedicated strict reader, and only when an explicit intervention context
+is supplied. Natural-only parsing rejects those intervention records. Unknown
+suffixes and bare raw Position records remain failures in both modes. Bare
+recognized RNG records are delegated and then rejected by the RNG reader; they
+cannot authorize the raw-to-intervention bridge.
+
+Tests now feed the combined Position and RNG stream to both readers. They cover
+the three review witnesses, unknown RNG suffixes, unconfigured intervention
+rows, malformed recognized RNG rows, and claimed paired success refusal. This
+preserves the distinction between validity of a selected intervention receipt
+and failure of the broader raw capture: a malformed unrelated raw row cannot
+make the raw capture or a claimed paired session pass.
+
+Validation: 73 focused Python/Lua tests pass. Existing actual C formatter
+exports still pass the readers: 122 RNG bridge mutants and 225 raw Position
+mutants are rejected, including four coherent class differences and the raw
+untrimmed-row bound. These are owned-memory exports with modeled completed
+parent/Value/Find/Wait dependencies, not game captures. No C/header, hook,
+thunk, RNG behavior, configuration, game artifact or old raw log is changed.
+The frozen implementation remains afe9f899; this is a separate review fix.
+
+Fresh import-only replay with this correction retains World014's exact 64
+ordered errors and World015's exact 56 ordered errors. Both evidence_valid
+and session_pass remain false. Original validation, barrier and raw log hashes
+are unchanged. The private replay result is retained under
+.local/position-rng/strict-stream-historical-replay.log.
+
+FOLLOW-UP: COMPLETED FIND CHRONOLOGY
+
+The same review independently constructed a valid Find Action4 through the
+actual Find evidence reader, sharing Position's exact Exec/context/order
+identity, and demonstrated that the Position bridge accepted it as a dependency
+of earlier Position Action1. The native dependency already requires Find to be
+complete at Position entry; the parser did not independently enforce chronology.
+
+The bridge now requires a positive Find Action ordinal strictly lower than the
+Position parent ordinal and the same native thread. Both already validated
+Actions are top-level, with the same Exec/context/order identity. This is a
+within-owner, within-thread ordering check, not cross-thread global ordering.
+
+The modeled fixtures now use completed Find Action1 and current Position Action2.
+The owned C test captures actual Position/RNG formatter records at Action2;
+it does not fabricate Find Action0 or alter exported ordinals after capture.
+Its declared Find/Wait/Action metadata remain modeled prerequisites, not an
+end-to-end script execution. No production C/header or ABI is changed.
+
+Missing, zero, same, later and wrong-thread Find metadata are rejected for both
+compositions. A test invokes the actual Find parser on a coherently rebound
+Find4: it cannot authorize Position2, but validates as the prior dependency for
+Position5. The independent review counterexample also now fails as expected.
+86 focused Python/Lua tests pass. Rebuilt owned production-wrapper tests retain
+6,635 always-on checks at -O2 -DNDEBUG, including real SEH and STOP interleavings;
+the new actual C export passes with 128 bridge mutants rejected. Raw schema2,
+all production native code and the historical unconfigured interpretation stay
+unchanged. No game, installation, stage or live artifact was touched.
+
+FOLLOW-UP: RAW POSITION COMPLETION PROPAGATION
+
+Independent review then demonstrated that a supported decoded Position event
+could still yield selected_scope_valid=true when its raw Position STOP reported
+open scopes, failures, patch failures or incomplete export. The raw Position
+reader already rejected these captures, so the full validator failed; the local
+RNG scope and paired-result claim nevertheless overstated their evidence.
+
+The finalizer now requires the raw Position reader's selected_valid result in
+addition to the exact supported-event bridge. It deliberately does not require
+coverage_complete: unrelated enclosing Action/Values coverage errors remain
+visible and continue to prevent a full-session pass without invalidating an
+otherwise complete selected scope.
+
+Actual-parser regressions cover both Find compositions, failed/open/incomplete
+or missing raw STOP, and malformed extra raw Position records. They explicitly
+refuse a claimed paired scope even when the caller omits its separate raw error
+list. A positive enclosing-coverage test proves that the selected/full-coverage
+distinction remains intact. The actual owned C formatter export also exercises
+these eight raw-stream mutations through both readers and the finalizer.
+88 focused Python/Lua tests pass; 136 bridge mutants and the unchanged 225 raw
+Position mutants are rejected. This correction changes only Python evidence
+and tests; no native code, headers, wire schema, seed or game artifact changes.
+Fresh historical API replay again retains the exact ordered 64/56 errors for
+World014/015, with evidence_valid/session_pass false and original hashes intact;
+private result: .local/position-rng/finalize-historical-replay.log.

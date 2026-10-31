@@ -1,0 +1,406 @@
+X4 NATIVE INDEPENDENT PLAYER CONTROL CONTEXT AUDIT
+27 October 2026 | native read-only observation; independent controls unproved
+
+FINDING
+
+There is a credible per-ship native motion boundary below the global player:
+the motion solver at RVA 1197fe0, its core at 1197970, and the per-agent solver
+state at Agent+f80. The actual PlayerController also uses this solver, with its
+own embedded state at +3b0. This offers a route for an original pilot adapter
+that supplies admitted control requests to native motion integration. It does
+not yet establish an independently controllable second player ship. Constructor,
+parameter preparation, publication, collision and weapon ownership must be proved
+before an adapter can be enabled. No controller, global pointer, transform or
+input state was changed for this audit; no native session is active or queued.
+
+The successful 900-tick firing test remains a test of two copies of one native
+player context. Its report is NATIVE-PLAYER-CONTROLS-20261027.txt. It establishes
+native trigger, projectile and bounded damage convergence, not two-player PvP.
+
+WHY A SECOND PLAYERCONTROLLER IS NOT A SAFE ENTRY POINT
+
+Controllable vfunc1074 (4500a0, 730 bytes) allocates a 0x19520-byte PlayerController,
+captures the existing native pose/velocity, calls d83550 or its copy constructor,
+and installs the controller through the object's virtual controller setter.
+The constructor d83550 (787 bytes) binds a component and creates extensive local
+state, but then calls d84c20 (1244 bytes). That routine resets the process-global
+input bank at 2f4b720 and related mode/axis state, reads the Universe player and
+InputSystem, and changes the global current control mode. The constructor can
+also call d895a0 (666 bytes), which consults Universe/player/UI state. A second
+native constructor would therefore affect the first player's control context.
+
+Input evaluation d95180 (7221 bytes) checks the global controlled component
+6b661e8 against the native player context. It uses a process-global reentry flag
+38f4db4 and controller-local time memoization at +f0. Its physical input channels
+are global, including 2f4b750/754/758, 75c/760/764, 788/78c and mode/button flags.
+Ship-derived motion coefficients at 31be630..770 are also global, prepared and
+consumed by d924d0/d94700. Isolating only the six input axes is insufficient.
+
+The native integrator d93440 (4657 bytes) owns real controller-local pose,
+velocity, acceleration, prior-state caches and publication into pathing state.
+It also selects its motion branch using shared mode flags, uses singleton
+controlled-ship collision queries, and has a global-ship recovery path for
+invalid state. Avoidance d96dc0 (2922 bytes) similarly queries the global player
+ship. Calling either function on a second fabricated controller is not isolated.
+
+Native pose setters and ForcedFlightControlModel are unsuitable substitutes:
+the latter copies a requested transform and derives motion from it. Navigation
+SetFlightControlModel queues an agent order; ordinary SteeringFlightControlModel
+uses navigation targets and steering behaviour. None of these alone demonstrates
+native pilot input. This proposal does not send AI flight orders or reconcile
+transforms between clients.
+
+VERIFIED CONTROL SEMANTICS
+
+The native ControllerValueID registry initializer e4cee0 builds its runtime
+table from the immutable table at 2654c40. Reading that table and the setter's
+branches establishes these meanings, rather than inferring them from offsets:
+
+  IDs 6c..71 : input_x/y/z/pitch/yaw/roll; global physical input channels.
+  IDs 75..77 : target_v_x/y/z; native linear target-velocity control requests.
+  IDs 83..85 : target_v_pitch/yaw/roll; native angular target-velocity requests.
+  IDs 61..63 : relative linear acceleration.
+  IDs 67..69 : relative angular acceleration.
+  IDs 1..3 and b..d : position/orientation values; not admissible pilot inputs.
+
+The default native control scheme derives target velocities from input axes and
+ship limits when flight assist is active, and uses acceleration channels in the
+unassisted case. Target-velocity setters use current velocity, timestep and
+native acceleration limits, or feed the embedded native velocity controllers.
+They are therefore a better semantic boundary than direct pose writes. However,
+their branch selection still reads shared mode/physics flags. They cannot be
+called on an arbitrary second controller without isolating those dependencies.
+
+CONCRETE LOWER NATIVE BOUNDARY
+
+The following x64 register/stack layouts were checked against native call sites
+and function prologues. Names below describe observed roles, not exported APIs.
+All RVAs are for the pinned Windows image. Full function SHA-256 values and
+lengths are in NATIVE-INDEPENDENT-PLAYER-CONTEXT-PINS-20261027.json. That file is
+an audit inventory, not permission to call or hook these functions.
+
+  d8fb60: void setter(controller, uint32 id, float value)
+    RCX controller, EDX id, XMM2 value; 3271 bytes.
+    Already pinned for the existing singleton throttle diagnostic.
+
+  d83550: controller* constructor(storage, component, pose64, double time, vel32)
+    RCX/RDX/R8, XMM3 time, fifth argument at entry RSP+28; 787 bytes.
+    Storage is native-aligned and 0x19520 bytes. Global reset prevents isolated use.
+
+  d47ac0: solver* initialize(solverStorage)
+    RCX storage, RAX result; 1676 bytes. Native state size is 0x18f60 bytes, as
+    independently confirmed by allocation in e95fb0. It initializes velocity,
+    acceleration and orientation controller subobjects and internal pointers.
+    Raw memcpy cloning is invalid: at least +55a8 and +118a0 point into this
+    same allocation. Subobject construction/destruction closure still needs
+    audit; zero-fill is not a substitute for native initialization.
+
+  1197fe0: bool step(solver, acceleration32_inout, localVelocity32_out,
+                    pose64_inout, velocity32_inout)
+    RCX/RDX/R8/R9, fifth pointer at entry RSP+28, boolean AL result; 224 bytes.
+    Two padded float3 vectors form each 32-byte motion value. The wrapper
+    converts acceleration to six doubles, calls 1197970, converts it back and
+    preserves AL. The player caller checks AL before copying acceleration.
+
+  1197970: bool core(solver, acceleration6d_inout, localVelocity32_out,
+                    pose64_inout, velocity32_inout)
+    Same pointer argument registers/stack and AL result; 1635 bytes.
+    This is native integration over existing solver state, not a requested-pose
+    setter. Input time, limits, targets and mode are already in the solver.
+
+The real PlayerController calls step with solver=this+3b0, acceleration=this+1a0,
+local velocity=this+1c0, pose=this+100 and velocity=this+160. Its higher evaluator
+prepares the embedded solver and then publishes native results. The common core
+is also called by native Steering/Spline flight models. Sharing the mathematical
+solver with AI does not itself make an adapter an AI order: the deciding issue
+is whether admitted pilot controls exclusively set its control requests, with
+no navigation target or AI behaviour deciding the requested motion.
+
+Agent preparation e95fb0 (2048 bytes) allocates/initializes Agent+f80 if absent,
+sets timestep accumulation and native limits from that specific agent, and
+returns the solver. SteeringFlightControlModel ec7200 (10109 bytes) calls this
+preparation, supplies native linear/angular velocity-controller requests through
+e5d380, calls step, then places the native result into that agent's pathing slot.
+This proves existing per-agent storage and a normal publication route. It does
+not justify calling the complete steering update as a pilot command. Exact
+semantics of every preparation argument, assisted/unassisted branch, collision
+feedback and lifecycle still require verification before use.
+
+Core dependency inspection found no direct Universe/player reads in 1197970,
+1191740, 1191a70, 1197470 or 11980c0. The 7923-byte request evaluator 1195570 reads
+configuration through 6cf1538+5054/+5058 and calls embedded virtual controllers.
+Those globals must be classified and matched, and the virtual/subroutine closure
+must be checked. Absence of a direct global reference is not a complete proof of
+isolation. The current pin inventory intentionally does not claim that closure.
+
+REVIEWABLE NEXT EXPERIMENT, BEFORE ANY SECOND-CONTEXT MUTATION
+
+1. Add a default-off read-only wrapper at the 1197fe0 entry after site ownership
+   review. Fully pin wrapper/core/preparation, native controller type, relevant
+   virtual targets and saved component bindings. Preserve the original call and
+   all five pointer arguments exactly once; capture its real AL result. Extend
+   existing player/fixture flight brackets to associate the solver with a saved
+   ship, role and per-ship invocation ordinal. A raw address is a local guard,
+   never a portable ship identity. Unknown or ambiguous observed ownership fails
+   the diagnostic rather than silently treating another ship as player 2.
+
+2. Observe the existing real player and at least one distinct saved fixture ship
+   in an admitted disposable pair. Record constructor/preparation provenance,
+   solver address distinctness, timestep/substep count, mode, control requests,
+   native limits, six-axis in/out values, pose/velocity before/after, caller site,
+   thread and resulting pathing publication. Observe controlled throttle plus
+   yaw/strafe on the existing player only after normal command review. No input
+   is applied to the second ship yet. Record that earlier startup calls are
+   outside coverage if enabled at the first admitted UI boundary.
+
+3. Compare the native player's request formation and solver behaviour with its
+   observed publication. A later original per-ship pilot adapter must reproduce
+   the admitted input-to-request semantics, initialize its own native solver,
+   obtain that ship's actual limits, integrate exactly once at the same native
+   phase and publish through a reviewed normal agent update. It must suppress
+   conflicting AI authority for an owned pilot ship through a native ownership
+   boundary, not by sending a navigation target or overwriting a completed AI
+   transform. This suppression/publication boundary is still a design blocker.
+
+4. Only after review, test two distinct saved ships and two owners: independent
+   opposite axes, simultaneous axes, release/neutral, stale epoch, duplicate and
+   same-ship conflict. Require the untouched ship to remain unaffected by the
+   other's controls; compare native accelerations, motion, collisions, authority
+   receipts and all strict existing hashes. A clean refusal is the correct result
+   if context provenance or construction cannot be established. Do not relax
+   hashes, swap global player pointers or write transform corrections.
+
+TARGET, FIRE, TRAVEL AND FACTION BOUNDARIES
+
+PlayerShootController 7e8bc0 reads global trigger flags 38f0728..72b and the
+Universe player's activity; its per-gun held state is not a complete player
+context. Target/aim selection, cursor/input settings, weapon groups and trigger
+history also belong to the global player path. A two-ship pilot adapter needs
+per-owner held edges, target identity and aim data, plus independently attributed
+native guns and projectile identities. Calling the proven singleton trigger
+callback twice would still command the same native player. Bypassing the player
+controller by directly firing a gun is not yet accepted as player firing.
+
+Boost/travel include engine/shield/activity state; docking/autopilot include
+native control posts and orders. None may inherit the local player's flags or
+activity for another ship. Initial independent flight must explicitly refuse
+these modes until their per-ship authority and state transitions are proved.
+Likewise, the local player's camera, radar/attention, cockpit and physical device
+capture remain separate from the per-ship simulation adapter proposed here.
+
+Two logical owners in one saved player faction do not create two native factions,
+wallets or actors. Co-op may deliberately share faction authority while binding
+different ships, but PvP, reputation, hostility and private faction management
+need explicit game-state semantics. Existing management fixtures cannot be used
+as evidence of distinct native player factions.
+
+The common admitted command ledger should carry epoch, shared tick, owner,
+saved ship/context revision, monotonic sequence, bounded axes/button edges and
+stable target identity. Validate all command families before any mutation;
+order by admitted tick/owner/sequence, reject duplicates and conflicting owners,
+and record both acceptance and deferred native completion. Missing input must
+follow one specified neutral-or-hold policy. Ownership transfer revokes old
+epochs and pending controls. Physical device capture needs to feed this same
+ledger; a scripted input replay is not proof of keyboard/mouse capture.
+
+VALIDATION AND LIMITS
+
+The original checkpoint was source/assembly/data-layout inspection plus full-function
+digest verification. Native call-site assembly confirms the solver and setter
+ABI and constructor floating-point register. All 28 recorded function digests
+were reread from the pinned image; existing setter digest matches the runtime
+pin. No new hooks, executable changes, game launch or context mutations were
+performed for that checkpoint. Private raw analysis is excluded from Git.
+Full dependency/lifecycle proof remains required before the independent-player
+implementation. The bounded native observation below advances that evidence.
+
+READ-ONLY OBSERVER IMPLEMENTATION
+
+Following parent review, the 1197fe0 entry observer is implemented, default off
+behind --player-solver-observer / boot bit50. It requires a player observer,
+saved identities, installed serial pathing and the existing fixture flight
+observer. Both CLI and native admission require the serial-pathing option, and
+installation verifies the existing pathing join hook is installed. Installation occurs
+at the first admitted UI boundary, after the complete audit pin set matches.
+Earlier load/initialization calls are explicitly outside coverage. No second
+controller is constructed and no additional native solver invocation is made.
+
+The entry replaces exactly six complete bytes: REX-prefixed push rbx (2 bytes)
+and sub rsp,60 (4 bytes). Neither
+instruction is RIP-relative. Its trampoline executes those bytes once, then
+jumps to entry+6. The entry uses E9 plus a NOP. An aligned eight-byte
+compare/exchange preserves the adjacent two bytes. Dispatch and trampoline use the reserved 2304..2431 thunk range;
+restoration only changes the word still owned by this observer. All five native
+pointers and the return value are preserved. Every diagnostic refusal forwards
+the original once, including unknown ownership, ambiguous ownership, wrong
+caller, unreadable fields and capacity exhaustion.
+
+Claimed player calls require the exact bound controller+3b0 solver, saved ship,
+five pointer relationships, UI thread and native return site d93559. Claimed
+fixture calls require one unambiguous registered agent+f80 solver, its saved
+component, return site ec92c5 and a matching thread-local flight bracket.
+Aliased fixture/player components or shared solver addresses fail the diagnostic.
+Unregistered solvers are counted as excluded coverage, including dynamic actors
+outside the fixed twelve saved fixture registrations. Their native calls remain
+unchanged. Raw pointers never enter the log or portable comparison.
+
+Stack-owned thread-local brackets surround existing flight and player update
+calls. Nested brackets restore the preceding scope; unbalanced scopes fail the
+diagnostic. Solver events capture native time/mode state, linear/angular request
+controller fields, scalar limits, the actual ship parameter source, shared
+configuration reads, and all five argument blocks before/after the native call.
+These are prepared-state observations, not a claim that every earlier constructor
+or preparation invocation was separately observed. No lazy getter is called.
+
+A separate publication event links the latest solver invocation to the observed
+pathing pose/velocity after the enclosing native ship update. Player calls that
+precede slot33 are explicitly allowed outside a bracket when their saved context,
+argument relationships and native caller match; publication is observed later.
+The independent validator requires both the player and at least one distinct
+saved fixture to have a native result exactly matching a recorded publication.
+Missing coverage or a changed result cannot count as successful publication.
+
+Schema1 private trace records are validated independently and compared across
+clients by saved owner, tick, ordinal and all captured values. Concurrent record
+allocation order is excluded; its sequential local index is still checked for
+missing rows. Excluded-call counts describe coverage and are not asserted equal
+for unobserved world actors. The observer adds no wire state section: existing
+strict live state hashes remain intact, and new solver-trace comparison is an
+end-of-run diagnostic requirement. This is not yet an online solver-state gate.
+
+The C build and executable tests pass. A generated native stand-in exercises
+the actual entry jump, dispatch, relocated native prologue and trampoline in
+both disabled and active-recording paths, with five distinct pointers, correct
+stack alignment, a wide return/AL marker and one original invocation. Tests also
+exercise nested/thread-local brackets, real before/after capture, publication
+links, excluded unknown calls, owner alias refusal, wrong caller, read failure,
+overflow, full-pin refusal and foreign-owner restoration refusal. The corrected
+native implementation passed 109 focused Python/Lua/UDP checks, including eight
+independent trace/Lua lifecycle checks. Native solver observation and publication
+are documented below. Integration must preserve newer shared registry/world-observer
+includes and union bit50 with the parent's other admitted option bits.
+
+
+FIRST NATIVE ADMISSION REFUSAL AND CORRECTION
+
+The authorized 120-tick observation-only pair solver-observer-001 refused
+installation on both copies at tick1. The emitter expected a one-byte push rbx,
+while the pinned image encodes it as 40 53, followed by 48 83 ec 60. The expected
+five-byte prefix was therefore wrong. The full native function pin was correct;
+the stricter prefix check failed before installing the solver entry hook.
+
+This exposed a test gap: the first ABI harness manufactured the same incorrect
+five-byte prefix and thus did not validate the real native instruction span.
+The correction copies all six native bytes, continues at entry+6, and uses E9
+plus NOP in the owned entry word, preserving its last two bytes. The executable
+harness now optionally reads the actual pinned image from disk, verifies the
+complete 224-byte function digest, feeds its real prefix to the emitter, verifies
+the continuation pointer, and uses that prefix for its active/disabled ABI runs.
+The --native-image option is read-only; it never starts or modifies the game.
+
+The negative native run is preserved. Both games report an owned abort at tick1
+with active=0/restored=1, and the existing player observer reports count0 and
+restored=1. Both games close gracefully with exit0; both lanes and staged snapshots
+restore. The independent validator correctly reports evidence_valid=false and
+session_pass=false because normal completion and the hold were not reached.
+No solver observations, player actions or second control context were produced.
+
+
+CORRECTED NATIVE OBSERVATION: STRICT TRACE FAILURE RETAINED
+
+The authorized solver-observer-002 pair used source f3b1340, an immutable owned
+overlay, the pristine snapshot, and normal released lane admission. The DLL
+SHA-256 was 92a3448ce86d3ae10bd4239ea1e8284cb050d7d4e7e671800e5f99ad3c6028e4.
+Both copies completed 120 shared ticks and the 3.047-second stop hold. The lane
+runner reached its completion condition, but independent validation returned
+evidence_valid=false and session_pass=false. Its sole error is that native
+player/fixture solver inputs/results/publication differ or capture is missing.
+The raw difference is real and remains part of strict comparison; a successful
+runner exit is not session acceptance.
+
+Each copy recorded 2,805 events: 1,403 solver invocations and 1,402 publication
+observations across the saved player ship and twelve distinct saved fixtures.
+The player has 119 solves at ticks2..120 and 118 publications at ticks3..120,
+each exactly matching the preceding tick's native solve output. The final solve
+has no publication observed before stopping. Each fixture has 107 solves and
+107 exact output/publication matches at ticks14..120, within the same tick.
+AL results were 1 on 1,211 invocations and 0 on 192; no result was discarded.
+This establishes native per-owner solver execution and observed publication,
+not thirteen independent player controllers or independently admitted inputs.
+
+Both copies report failures=0, excluded=0, open=0, active=0 and restored=1.
+All 121 existing wire states and all 357 existing player observer rows match;
+there were no player commands, trigger changes, new control contexts or added
+solver invocations. Both games closed gracefully with exit0, and both disposable
+lanes and staged snapshots restored. There is no owned active or queued pair.
+
+EXACT FIRST DIFFERENCE AND NATIVE READ/WRITE INTERPRETATION
+
+Only c0 (before native original) and c1 (after native original) differ: 963 blocks
+of each, covering nine fixtures on all 107 observed ticks. Actors1,2,4,5,6,7,10,11
+and12 differ; the player and fixtures3,8,9 match completely. First difference:
+tick14, fixture1, invocation1, solver header offsets +25, +35, +3c and +3d (hex).
+Their client1/client2 values are respectively 01/02, 01/02, fd/49 and 01/02.
+These bytes remain constant for each observed owner and unchanged across the
+native call. No byte outside these four offsets differs anywhere in the trace.
+
+The selected context layout is:
+  c0/c1 [000,078): solver header [000,078), including alignment bytes.
+  c0/c1 [078,0a8): solver+a0d8, linear target-velocity request fields.
+  c0/c1 [0a8,0d8): solver+163a8, angular target-velocity request fields.
+  c0/c1 [0d8,1f8): solver+18e40, prepared native scalar limits.
+  m0/m1 [000,020): acceleration argument, native input/output.
+  m0/m1 [020,040): local-velocity output buffer, before/after original.
+  m0/m1 [040,080): pose argument, native input/output.
+  m0/m1 [080,0a0): velocity argument, native input/output.
+All ranges and offsets above are hexadecimal and end-exclusive. Every request,
+limit, acceleration, pose, velocity, local-velocity buffer, captured parameter
+source/configuration, AL result and publication block matches across copies.
+The local-velocity buffer's before-image is not itself a causal velocity input:
+the inspected 1197970 body writes that output argument after integration and
+does not consume it before writing. It nevertheless remains captured and equal.
+
+The pinned d47ac0 constructor writes the nearby header flags at +23..24 and +34,
+the 32-bit fields at +28..2b and +38..3b, the 32-bit field at +58..5b and the
+16-bit field at +5c..5d. It leaves +25..27, +35..37, +3c..3f and +5e..5f unwritten.
+This was checked against actual instruction stores, not inferred from decompiler
+field names. Preparation e95fb0 and the inspected core/helper paths consume
+adjacent typed flags/fields; no access to the differing gap bytes was found in
+that inspected path. The additional eight helper digests are recorded separately
+as header_read_audit_only_functions in the pin inventory, not as new runtime
+patch sites or a claim of a complete transitive/polymorphic dependency audit.
+
+The observed difference is consistent with constructor-unwritten alignment
+storage. It does not prove that every possible
+native path ignores these bytes, nor that startup initialized them identically.
+No bytes were zeroed, no state was repaired and no equality rule was relaxed.
+tools/dev/analyze_native_solver.py adds an interpreted diagnostic with exact raw
+byte differences, named block comparisons, publication delays and separate
+constructor-unwritten classification. It retains raw_equal=false and explicitly
+marks that classification as unsuitable for session acceptance. The original
+logs, validation.json and strict validator are unchanged. Mutation tests ensure
+adjacent typed fields and requests are not accidentally classified as gaps.
+All 110 focused Python/Lua/UDP checks pass with the interpreted diagnostic added.
+The original 28 function digests and eight added audit-only digests were reread
+from the pinned image and all match. Native code behavior is unchanged from the
+tested f3b1340 DLL; the only C edit in this diagnostic checkpoint corrects the
+comment about retained header alignment bytes. Raw RE and run artifacts stay
+private, outside Git.
+
+STARTUP AND COVERAGE LIMITS
+
+Installation occurred at the admitted tick1 UI boundary; the first player solve
+was observed at tick2, and the first fixture solves at tick14. Saved ownership
+registration precedes those fixture observations. Constructor execution and
+earlier preparation were not observed; the capture proves the prepared state at
+entry and the actual original-call result, not its complete startup provenance.
+Zero excluded calls means no unknown owner reached this instrumented entry
+during coverage. It does not mean whole-world coverage: unregistered/dynamic
+actors and alternate entry paths, including direct 1197970 use, remain excluded
+from this fixed saved-fixture/player diagnostic.
+
+The native publication evidence advances the proposed per-ship adapter boundary.
+Independent pilot request formation, native lifecycle, collision/AI authority,
+target/fire/travel context and faction semantics remain unresolved. An unchanged
+repeat would not resolve them. No second PlayerController, global-pointer swap,
+extra solver invocation or transform reconciliation is approved by this result.

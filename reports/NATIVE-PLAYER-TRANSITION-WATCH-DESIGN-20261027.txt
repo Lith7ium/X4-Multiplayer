@@ -1,0 +1,156 @@
+SEPARATE SAVED TRANSITION WATCH AND LEGITIMATE ACTION PROPOSAL
+27 October 2026 | Read-only source design; no live/control authorization
+
+Purpose
+
+Permit read-only observation of saved controlled ship ae79c, initially a
+PlayerController, without rebinding a raw world watch or calling a lazy native
+getter. The original world-watch/queue/parser path and its strict failures remain
+unchanged. This proposal does not provide a second native player context.
+
+Patch map and data ownership
+
+1. Add lockstep_transition_watch.h: explicit schema2 manifest, at most two saved
+   Small ships with snapshot-verified macro/true-owner/initial-controller type.
+   Import callback retains only saved ID, full runtime ID and object pointer.
+   Duplicate, conflicting, late or unobserved imports refuse. Full reads begin
+   at the existing joined postload boundary, after construction. No new hook.
+2. Feed this import callback from the existing world_identity_observe success
+   branch. Add a default-off bind call at gate_tick's joined boundary. The gate
+   still stops on any earlier world/clock/identity failure; no exception or retry.
+3. Extend transition selection to its separately configured manifest. Preserve
+   the legacy watch path for old artifacts. Saved/runtime/object/Agent identity
+   stays fixed. A controller change is an explicit observed transfer/publication
+   receipt, not a replacement of world_trace's initial tuple.
+4. Add lockstep_transition_queue.h: a private, bounded model-order ledger with
+   its own tickets and consuming exports. Feed it from optional callbacks in the
+   existing eacd40/eacf60 wrappers, outside raw-world watch selection. Existing
+   wrappers own the sole native original call. No added patch site, thunk or bit.
+   The legacy callbacks remain used only by legacy mode; schema2 avoids double
+   model receipts when an object belongs to both manifests.
+5. Extend transition Lua/config/evidence with an explicit schema2 selector,
+   snapshot-bound manifest and independent queue records. Raw-world coverage for
+   these records is explicitly zero; local pointers never enter cross-copy
+   equality. Existing raw queue parser is unchanged.
+
+Fresh identity guard, audited against ced70/184
+
+Native ComponentRegistry::Find uses index=(runtime & 0x1ffffff)-1, one of32 page
+slots at registry+58+8*(index>>20), and page index index&fffff. Each32-byte block
+holds three pointers; block=(page_index/3)*32, lane=page_index%3. Its status nibble
+is extracted from block+1c at bit16+4*lane. Occupancy bit1 and the caller's mask4
+must be present. Its16-bit generation comes from block+18+4*(lane/2), shifted
+16*(lane%2), and must equal (runtime>>25)&ffff. The selected slot pointer must
+equal the imported object and component+8 must equal the entire runtime value.
+
+Implement a bounded ReadProcessMemory-backed version, not a native helper call:
+checked address arithmetic, nonnull root/page/slot, two matching reads of selected
+pointer/status/generation, fresh full object ID, exact Small vtable, macro and
+true owner from+348. Validate controller type Nav2c51158 or Player2c39488,
+controller+28 owner, +30==Agent+ad0, +40 Agent, Agent+ef0 owner, owns+58 and f79.
+The imported object/full runtime/Agent remain fixed through transfer. Initial
+controller type must match the manifest. Never read the destroyed old controller
+after publication; read the object's actual published pointer first.
+
+These are sequential read guards. They neither retain a native component nor
+exclude concurrent owner changes, destruction, child allocation reuse, or eventual
+generation wrap. atomic_lease/generation_exclusion/faction_exclusion remain zero.
+Prebind callbacks are counted as excluded coverage, not read as complete objects.
+
+Receipt lifetime and stop contract
+
+Enqueue: independently admit/count the callback, select the imported recipient,
+check current registry/object/owner/Agent continuity and exact manager pointer,
+copy the16-byte SetFlightControlModelOrder (vtable2c51c38, uint32 mode+8 in0..6),
+and allocate a unique ticket before the native enqueue transfers ownership.
+No command access after enqueue original. An outstanding address cannot be reused
+as another ticket. Retired address reuse receives a new monotonic ticket.
+
+Dispatch: at existing eacf60, require caller eacf66 and one live exact
+(ticket,recipient full runtime,command address,Agent) tuple. Copy/compare input
+before original, claim ticket once, then capture result and unchanged command
+before the native destructor at eacf77. Retire the exact tuple after return.
+Missing, duplicate, changed, unreadable, stale generation and wrong-Agent receipts
+fail. A consumer skipping the recipient leaves an outstanding ticket and cannot
+prove completion. Unsupported selected command types have explicit coverage;
+model receipt completion does not prove the manager or other producers drained.
+
+Admission/STOP use consistent own locking, count all admitted calls before
+selection, retain peak/restore_open, and never hold a lock over a native original.
+An open callback may finish into resident storage after STOP; restore_open remains
+failure. Closing forbids config/import/admission reopening. Existing world queue
+restoration still owns its sites; transition closes before that restoration.
+Own window may extend to120 ticks while raw world tracing remains bounded at12;
+this changes observation coverage only, never gate continuation or clock policy.
+
+Configuration and tests before live review
+
+Order: exact build/pins -> gate boot -> raw world/queue configuration -> separate
+transition manifest -> existing three transition hooks -> load -> successful
+imports -> joined binding -> observe. Same manifest may be retried by UI reload;
+changed manifest or late first configuration refuses. No new numeric option bit.
+
+Tests use owned synthetic registry pages and actual production wrapper calls:
+all three slot lanes/page boundaries, generation/type/occupancy mismatch, replaced
+object, replaced Agent, changed owner, duplicate/late import, incomplete load,
+actual-image pins; Nav->PC and PC->Nav transfer with delayed model dispatch;
+missing/changed/duplicate ticket, immediate address reuse after retirement,
+consumer completing before enqueue returns, poisoned post-enqueue storage;
+unselected nested calls, overlapping raw and transition watches, original once,
+STOP during config/import/dispatch and every restore failure. Existing raw queue
+fixtures must retain byte-identical rows/errors. Independent parser tampering must
+not turn a partial or invalid receipt into completion or authority.
+
+Legitimate request path for a later reviewed action fixture
+
+The stock docked-menu button calls bool GetUp(void), export1aba30. It checks native
+716d80, sends the immediate eligibility event, then posts GetUpEvent at native TLS
+simulation time+0.01. A true return means queued request only. GetUpEvent dispatch
+152870 forwards to Player vtable+10c8 ->706cc0, which rechecks eligibility and game
+state before716e20. The previously audited release path transfers Agent with
+flag0/extra1, publishes NavigationController and queues its native model order.
+The8 newly checked complete static ranges/three slots are recorded separately in
+NATIVE-PLAYER-TRANSITION-ACTION-PINS-20261027.json; the prior97-pin audit remains.
+
+Re-entry uses the stock interaction menu's PerformCompSlotPlayerAction(compslot,
+actionid) export1b5450, not direct716670. ABI: UIComponentSlot is16 bytes (full
+component ID,const char* connection), passed by reference in RCX under Windows;
+actionid is uint32 EDX, return is AL. It resolves the component, derives an action
+container from virtual+1338, bounds the index and invokes container+90.
+MainTypeInstantActionContainer+90 ->3508e0 resolves its native target then invokes
+the action's+10; ControlPositionAction+10 ->35b8a0 reaches audited entry716670 or
+requests an occupying NPC leave first. Its bool is not model-completion ACK.
+
+Saved ship ae79c has macro ship_arg_s_scout_01_a_macro/owner player, initial player
+movement, playerpilot11e12, and cockpit child ae79f. The exact live chair component
+slot/action type/eligibility still needs read-only discovery. Do not guess an
+action index or treat saved con_control01 as a verified clickable chair. The
+fixture must refuse absent/ambiguous/changed actions without substitutes.
+
+Proposed later command sequence: only p1 may propose a singleton release at
+report29 for admitted tick30; p2 submits zero. Decode both slots and validate the
+saved player/ship, full runtime generation, true owner, epoch and no pending
+command before calling GetUp once. Record acceptance separately from release
+transfer/publication/model completion. Wait for matching completed receipt state
+on both replicas before a later fixed re-entry tick (tentatively90, bounded120).
+Freshly resolve the one same-ship chair action and invoke it once. No retry, no
+teleport, no pointer write, no AI substitute, no other player-context writer.
+
+Tentative opcodes87/88 and one-byte expected epoch require protocol coordination
+before implementation; they are not accepted by current native_gate_player.
+Epoch wraps, gaps, stale/foreign slots and partial effects stop. Existing singleton
+refusal stays; a separate reviewed mode would allow only its expected intermediate
+controlled=0 state. An unexpected context change remains failure.
+
+Additional action-origin work remains: GetUp is deferred, so a Lua request plus a
+nearby transfer is not a unique native event ticket. Review a minimal event-post/
+GetUp dispatch correlation seam before claiming request-to-handoff causality.
+Neither activation nor FlightControlStarted proves deferred model completion.
+Current queue model-completion proof covers takeover mode0; release requires a
+separately audited mode/result predicate. No new hook is reserved or installed
+for those future writer/provenance changes.
+
+Earlier strict broad-world hash mismatch still blocks later admitted actions;
+this design does not bypass it. A source-valid observer is not a launchable
+successful transition fixture. No game was launched, and no native action or
+independent-player success is claimed.

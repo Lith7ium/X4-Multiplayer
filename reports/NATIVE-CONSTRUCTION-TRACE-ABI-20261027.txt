@@ -1,0 +1,541 @@
+CONSTRUCTION CREATION TRACE: PIN AND ABI CONTRACT
+27 October 2026 | Source preparation only; no hook installation or native run
+
+This contract refines the static enrollment proposal. The observer is read-only:
+no seeding, controller preparation, binding, inputs or sector-coordinate claims.
+Its forthcoming enable API must be explicit Lua configuration, default off and
+independent of the packed option bits. Existing late-update refusal stays intact.
+The old faction-management branch and all native artifacts remain preserved.
+
+The exact image is SHA-256
+19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+lockstep_creation_trace_contract.h pins 13 complete relevant byte ranges and nine
+aligned patch words. Private independent verification checked all hashes, every
+expected word, complete copied-instruction boundaries and both direct call targets.
+The header defines a contract; it contains no installation or native-state writer.
+
+Reserved immutable page layout (all offsets decimal)
+---------------------------------------------------
+3072..3135 Generate c841b0, five-byte home-store prefix, expected caller ba1b8b.
+3136..3199 InitializeShip c82060, five-byte home-store, caller c84531.
+3200..3263 Pilot setup c7d4c0, five-byte home-store, caller c8224f only.
+3264..3327 Navigation ea8cf0, seven-byte RAX/home-store prefix, caller ea4b5e.
+3328..3391 Agent e85360, five-byte home-store, caller eac5ff.
+3392..3455 Controller setter 745e00, five-byte home-store, caller 6cd8be.
+3456..3519 Random FloatState 14ddc90, nine-byte stack/XMM prefix; captures only
+           joined creation calls, with e85531 and ea90e1 distinguished explicitly.
+3520..3551 Event query dispatch, call ea9069 in aligned 16-byte word ea9060.
+3552..3583 PostEvent dispatch, call ea9105 in aligned 16-byte word ea9100.
+
+The seven entries use aligned eight-byte CAS ownership. The two callsites use
+aligned 16-byte CAS and replace only their rel32 operands; surrounding instruction
+bytes are retained. Native RNG callsites straddle the relevant atomic windows,
+so an unaligned operand write is deliberately excluded. PostEvent's entry starts
+with a relative conditional branch, so no raw copied entry prefix is proposed.
+No page may become writable after any entry can execute from it.
+
+The FloatState prefix subtracts 0x38 from RSP and saves XMM6 at RSP+0x20. It needs
+prefix-only unwind metadata and a continuation that RtlVirtualUnwind will not
+misclassify as an epilogue. The complete pinned 120-byte function has no R11
+register access, independently checked instruction by instruction; an audited
+MOV R11/indirect-JMP continuation is therefore a candidate. Twelve metadata bytes
+fit at slot+48. Registration must validate the sealed bytes and occur before CAS,
+remain resident across STOP/failed installation, and be tested at each instruction
+boundary and continuation with nonvolatile XMM state. The other six prefixes do
+not change RSP or a nonvolatile register value. The shared unwind implementation
+is separately reviewed; this contract alone does not implement it.
+
+Native Windows x64 argument inventory
+------------------------------------
+Generate: four integer/pointer registers; stack arguments five through ten are
+byte, pointer, pointer, uint32, byte, byte. RDX is an out-reference; RAX returns
+its reference pointer. No out-reference is read as initialized at entry.
+InitializeShip: four pointer registers; stack five through nine are pointer,
+byte, pointer, uint32, byte. RDX references the native ship. Its return is void;
+the caller reads that reference rather than relying on RAX.
+Pilot: four pointer registers and three stack pointer arguments; RDX out-reference
+and returned RAX reference must both survive forwarding.
+Navigation: RCX controller, RDX owner, R8 previous controller; native R9 is unused,
+but its slot precedes byte stack flags five and six. Return is void.
+Agent: allocation/ship/transform/velocity in RCX/RDX/R8/R9, allocation result RAX.
+Setter: RCX ship, RDX controller, R8b flag. Native body does not read R9 or stack
+arguments. Return is void. Only the exact fresh matching-owner path is eligible
+for later passive relationship interpretation.
+Random: RCX state pointer, XMM1 float bound, XMM0 float result. No recomputation.
+Event query: RCX owner, EDX event type, XMM2/XMM3 double time limits, fifth stack
+byte query flag; result AL. Only the original native call may evaluate the query.
+PostEvent: RCX owner, RDX event, XMM2 double due time, R9b flag; return void.
+
+Two corrections to the earlier report
+------------------------------------
+The inherited name for 99a210 was misleading. Its pinned body flushes the native
+command queue, searches stored events by type/time and returns a boolean. It is
+an event query, not a direct send. The conditional second RNG/post path therefore
+follows a false query result. Query flushing can still have native effects; the
+observer must neither replay the query nor call it for verification.
+
+The complete 99a3f0 body consumes FOUR arguments. Reads at adjusted RSP+0x80
+access the homed incoming XMM2 value, not a fifth stack argument. The caller's
+earlier stack+0x20 value belongs to an allocation call and is not a consumed
+PostEvent flag. This distinction is reflected in the typed forwarding contract.
+
+Still required before installation
+---------------------------------
+Production forwarding/owned-patch tests must check all consumed GP, stack, byte
+and XMM arguments; original-once behavior on default-off, capture failure, nested
+calls and synchronous STOP; native results; prefix unwind; sealed-page retention;
+partial installation/foreign ownership; bounded record overflow; exact reservation
+and eventual object joins; and native clock/RNG snapshots without mutation.
+The bounded trace must account for both Agent+ac0 and the actual posted due-time
+argument. It must preserve raw selectors and c8. Source-level pin verification
+does not constitute engine execution, lifetime exclusion or gameplay acceptance.
+
+Typed forwarding verification
+-----------------------------
+The nine production forwarding functions now execute against owned synthetic
+originals through sealed native jump stubs. Twenty-seven cases cover admitted,
+refused and deactivated-during-original capture. They check every consumed
+integer/stack/byte/XMM argument, native out-reference writes, GP/AL/float results,
+one original call, and preservation of Win32 LastError across diagnostic readers.
+Float/double fields are copied as bits, without observer arithmetic. The pinned
+real prefixes and actual engine constructor effects are not executed by this
+forwarding test; prefix unwind and full trace-state tests remain separate gates.
+
+Read-only native core milestone (no game run)
+-------------------------------------------
+The opt-in core now observes only the exact reserved creation window, armed by
+the native phase-1 return. Its reservation exists before Generate has an object;
+InitializeShip supplies a borrowed reference which must join Generate's actual
+out-reference/result and the later Builder event. The complete navigation entry
+and return, Agent return, setter, two actual FloatState returns, event-query AL
+and actual PostEvent due argument are retained. No query is replayed. Earlier
+unexpected branches, nested constructors, lifetime changes, incomplete pairs and
+covered candidate accesses from another thread remain explicit failures.
+
+All nine native sites are default off. The exact explicit Lua manifest installs
+them only at boot phase 0, with native MD/origin/identity prerequisites present.
+No packed option bit enables them. The immutable shared page contains their
+stubs before publication. FloatState uses the fifth central prefix-only unwind
+record, registered before any native CAS and retained across failure/STOP. The
+earlier four recipes and their tests remain intact.
+
+Trace storage is bounded to 128 call pairs and eight scopes per thread. Each
+record has seventeen bounded local diagnostic parts. These contain private raw
+pointers, physical banks, selectors and c8; they are not portable state hashes.
+Pre-vtable controller reads are explicitly partial. Completed return boundaries
+check relationships, but neither presence nor a successful diagnostic enrolls a
+ship or proves worker exclusion. Sector-pose and enrollment support remain 0.
+No raw selector is normalized, and existing late-binding refusal is unchanged.
+
+Actual pinned-image tests cover all thirteen full spans and tamper refusal,
+aligned patch words, call targets, partial installation failures before and
+after every CAS, rollback without overwriting foreign ownership, token/identity
+joins, both synthetic RNG returns and due argument, lifetime changes, retained
+foreign-thread receipts, bounded depth/record overflow, wrong callers and STOP
+with an original still open. FloatState tests cover unwind progress, MOV/JMP
+continuation, nonvolatile XMM6 and direct-versus-emitted GP/XMM/stack/flags ABI.
+The existing native C suite and thirty synthetic-memory/real-loopback transport
+cases pass. These tests execute owned memory and synthetic original functions;
+they are not native X4 construction evidence. Lua draining and independent
+required-schema validation are the next integration step before artifact review.
+
+Cleanup-status review correction
+-------------------------------
+A successful restoring CAS does not prove that page protection restoration and
+instruction-cache flushing succeeded. The core now retains a separate sticky
+restore_failures counter and forces the gate's restored status false when it is
+nonzero, even after all owned words returned to their originals. This is distinct
+from an earlier capture/installation refusal. Actual production swap tests inject
+both a failing protection restore and a failing FlushInstructionCache after a
+successful CAS; complete finish retains the failure. Removing the finish check
+in an isolated private mutant triggers the expected test assertion. No game ran.
+
+Required evidence and composition
+---------------------------------
+The construction composer has a separate --creation-trace switch. It requires
+the reviewed native MD, origin and identity schema capabilities, verifies the
+frozen source manifest, and creates a new output with the explicit schema marker
+and local trace reader. It preserves the constructor MD fixture and refuses an
+existing output, a management/player combination, a missing DLL/probe capability
+or a previously marked base. Ordinary construction composition remains unchanged.
+
+The Lua reader drains all seventeen parts exactly once, retaining incomplete
+records at STOP as failed evidence rather than silently dropping them. The
+independent parser checks exact schemas/uint64 widths, bounded counts, identity
+rereads, raw physical banks, scope nesting, native callers/outreferences, both
+conditional RNG sites, query AL and actual PostEvent arguments. The required
+pilot startup range and script preimage must be present. It joins the creation
+reservation to native Boundary1 return, Boundary2 entry and Builder dispatch,
+including exact native thread/runtime, while preserving every existing MD,
+first-origin and identity check. New enter/leave ordinals are accounted only
+under the explicit creation schema; they cannot hide an earlier first update.
+
+The parser deliberately reports local observation coverage only. It does not
+turn constructor presence into lifetime exclusion, a sector pose, enrollment,
+station completion or two-player control. The actual due argument and Agent
+timer are returned as observed bits; no fixed MD seed is used to infer them.
+Unit tests exercise malformed/partial/duplicate records, wrong native callers,
+scope/lifetime/selector changes, conditional post coverage, exact MD joins,
+immutable drain behavior and source-preserving composition. Revalidation of
+the frozen build012 evidence retains its exact forty-one strict failures.
+No new native X4 run or playable artifact has been approved or produced here.
+
+Atomic capture window
+---------------------
+The global native entry wrappers now bypass diagnostic TLS reads and the trace
+lock outside the reserved window. Only a valid native Boundary1 return opens it;
+Boundary2 entry and STOP close it. This avoids inspecting unrelated loading-time
+FloatState calls while preserving their original arguments/results. An already
+admitted record still captures its return after STOP and keeps restore_open as
+failed evidence. A private worker test holds the actual trace lock and verifies
+that outside-window calls finish without invoking the injected TLS reader or
+waiting for that lock; active-window and STOP-return reads remain covered.
+
+Independent-review corrections
+------------------------------
+The evidence parser now enforces every consumed byte/uint32 argument width,
+Generate's non-null out-reference and Pilot's exact non-null RDX/RAX reference
+relation. The pinned Pilot body preserves RDX in R14 and returns R14 on both
+paths. Presence enums/read branches use the existing independent presence
+validator; only the completed setter return must publish the captured controller.
+Observed Agent timers and the equal query time limits must be finite, without
+substituting computed values. The exact inspected image uses -1.0 query limits,
+0.5/2.0 FloatState bounds and 0.5/8.0 timer offsets.
+
+The unique orders.base startup range must be inside the captured Pilot scope.
+Mandatory first-origin and identity rows must join that actual constructor range
+by native interval/order, runtime/thread, caller/exec/context/program/range,
+PC/script/ancestry, native clock/view, both RNG snapshots, result and passive
+identity fields. A later unrelated valid range cannot replace the first observed
+entry. The combined regression fixture includes both complete origin schemas;
+mutants alter each join independently.
+
+Lua's abort path now attempts the final creation drain in its own protected call
+immediately after gate.stop and before other drains. The original frame error is
+retained, and a failed final read emits CREATION_TRACE_DRAIN_ERROR. Per-part
+progress prevents replaying already logged parts when a normal-frame read fails
+and the STOP drain resumes. Tests cover action failure, transient read failure,
+permanent drain failure, once-only output and preservation of the original error.
+
+The composer rejects resolved source/output overlap, including equality and
+either ancestor direction, before any writes. Temporary-directory tests prove
+that a nested output cannot mutate a frozen source. Ordinary sibling outputs
+and the unchanged MD constructor fixture remain covered. The focused suites now
+pass 76 construction, 29 registry and 12 creation tests, with no skipped LuaJIT
+coverage. These remain offline evidence/ABI tests, not native station progress.
+
+Next frozen diagnostic preparation
+---------------------------------
+Overlay015 is prepared against the unchanged build012/overlay014 scenario. Its
+fifteen-file manifest SHA256 is
+6646d73629f83eed39df0aa57ccf84efe004ccabc6dfc6e187a2bd1e02fd5456.
+The combined root ac44720 DLL is 574464 bytes, SHA256
+5387eeb5fd9dd523becfcf8e553ef902363c08b3df00bcbbfe040e41554e9382.
+Both are private artifacts, not committed or installed. Ten old files are byte
+identical, including every MD fixture, construction adapter, plan and support
+script. Four files change: DLL, probe, configuration and UI list. The only added
+file is the reviewed creation reader. The sole configuration addition is
+native_gate_creation_trace_schema=1. The native option-bit expression is exact
+old text. Probe additions are limited to creation configuration/draining and its
+protected abort receipt; their blocks match reviewed root source.
+
+Selection remains one explicitly unarmed XL builder with reservation
+0000000500000003 at tick 5 in the same two-copy coop/combat fixture. The question
+is whether native Agent timer initialization and the later actual event due-time
+already reflect different TLS RNG states/clocks before controller publication,
+and where the raw selector/c8 covariance first appears. The trace keeps every
+observed value; it neither seeds those constructors nor normalizes selectors.
+
+The expected boundary remains the existing late_update ship_bind refusal after
+the first covered pilot startup range. Complete read-only creation/origin/identity
+receipts would improve causal evidence while the overall construction test still
+fails. Any earlier trace refusal is retained as a failed diagnostic, not excused
+or retried automatically. Native bounds remain two clients, 120 ticks, 260 seconds
+and 900 seconds admission wait through the released runner. The owned pristine
+snapshot digest remains 7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+Offline artifact checks verified all hashes/no extras, Lua syntax, unchanged
+option bits and actual-artifact abort handling. At this preparation point no
+stage, admission or launch had occurred; final artifact review was pending.
+
+Approved build013 admission result
+---------------------------------
+After final review, one unchanged overlay015 attempt entered released admission
+on lanes b3/b4 with the same 120-tick, 260-second native and 900-second admission
+bounds. The snapshot-wrapper command exactly matched the ordinary native runner
+after the sole released --lanes b3,b4 addition and release-path resolution.
+
+Admission expired with 24.5 GB available against the unchanged 28 GB requirement.
+The runner recorded refusal after 896.484 seconds; neither client acquired a
+lane/profile/run identity, no server or X4 process started, and no snapshot was
+staged. The owned queue entry was removed and both requested lanes were idle and
+unlocked afterwards. Other queued work remained untouched. Manifest and pristine
+snapshot hashes were rechecked unchanged. The attempt was not retried.
+
+This is an unrun diagnostic, not evidence for or against constructor convergence.
+There are no new creation/origin records, native strict-validation outcome or
+station-building progress. Build012 remains the latest actual construction
+observation with its existing strict failures unchanged. Private command, runner
+result and post-admission lifecycle evidence are retained under .local.
+
+Actual build014 and deferred-event repair
+----------------------------------------
+The next explicitly authorized attempt used the identical frozen overlay015,
+snapshot, fixture and native bounds. Both disposable clients started, reached
+the existing ship_bind late_update refusal after completed tick 5, and stopped
+with reason 75/restored 1. Both native processes closed gracefully with exit 0;
+the runner stopped its relay and restored both lanes and staged snapshot slots.
+No automatic native retry followed. The original snapshot and prior runs remain
+preserved.
+
+The new constructor observer did not capture a call. Both clients retained
+count 0, failures 3, first_error TOKEN, phase1 0 and no selected handle/thread.
+The actual native Boundary1 return was at issued tick 6, while the reservation
+and manifest name creation tick 5. The observer incorrectly required issued 5.
+Its later phase2 and Builder checks correctly retained additional scope/identity
+failures instead of inventing a valid token. Overall strict validation is false
+with 43 errors. There is no new Agent timer, FloatState or PostEvent observation.
+
+The inherited first-origin evidence still identifies the orders.base startup
+range at caller 1066dc6, before controller publication: true owner/XL identity
+present, controller absent, Agent unobserved. Both prebind passive motion samples
+are identical in this run, including read/write selectors 1/0 and cache c8 0.
+This does not erase build012's differing selectors/c8, and does not prove sector
+pose, lifetime exclusion or safe late enrollment.
+
+The source-only repair now passes the immutable recorded MD event tick through
+the existing observer call. Boundary1 admission takes a read-locked snapshot of
+the exact sole pending reservation, requiring the fixed handle, builder macro,
+player owner, reserved tick 5 and no bound/prepared/native actor identity. The
+execution tick must equal the recorded event and current issued tick and remain
+within reserved_tick..reserved_tick+1. This interval reflects the existing queued
+MD Setup scheduling: its command reserves in tick 5 and the actual MD action may
+execute in the next native tick. It is not permission to defer native binding.
+
+The token retains reservation and execution ticks separately. Phase2 and Builder
+must remain on that execution tick; the independent parser checks the same MD
+phase join. Duplicate, stale, wrong, missing or failed reservations cannot open
+or reopen capture, and STOP remains closed. Open admitted originals still finish
+their retained pairs. Registry lookup and creation admission locks do not nest.
+No native hooks, schema, seeding, object writes or late-bind guard changed.
+
+Actual-image C tests cover same-tick and deferred admission through the production
+MD append path, immutable event-tick propagation, nineteen malformed reservation
+or phase inputs, refusal persistence, duplicate admission, STOP and later-phase
+tick changes. The complete C/ABI/unwind/restoration/transport suite passes, plus
+76 construction, 29 registry and 13 creation Python/Lua tests. Revalidating the
+unchanged artifacts preserves build014's exact 43-error array and build012's
+exact 41-error array. The repair has not been installed or tested in a new game.
+
+Real saved rotation input census
+-------------------------------
+A separate read-only census extracted all 230,767 rotation elements from the
+same pristine snapshot: 374,230 explicit yaw/pitch/roll attribute occurrences,
+43,095 distinct decimal strings. A second full XML parse independently matched
+the exact lexical value multiset. Copies of the static agent's exact Windows and
+Linux XML float getter/parser emulator definitions, with only absolute-path
+changes, evaluated every distinct saved string. All predicted binary32 results
+matched; no string was outside the strict plain-decimal grammar or unsupported
+by the emulator. Missing attributes returned the same zero default.
+
+This result is specific to real strings in this save. A separate deliberately
+chosen midpoint control still reproduced the known one-bit Windows/Linux parser
+difference, confirming that synthetic findings were not silently counted as real
+snapshot differences. The emulator executes pinned native parser instructions on
+synthetic XML-node memory; it is not a native game load or world-state test.
+
+An additional XML path census found 10,008 navigation movement records, each with
+one position/read/offset and one position/write/offset. Each bank contains 10,005
+Euler rotation elements and three missing orientations. Neither bank contains a
+quaternion, duplicate rotation, unknown offset child, invalid plain decimal or
+value above 256 digits. The complete XML parse also excludes duplicate XML
+attributes. Missing orientation remains an explicit case for future evaluator
+admission; this census does not normalize it or grant native-write authority.
+
+Build015: actual call forest and retained observer failures
+---------------------------------------------------------
+Overlay016 changed only the DLL to the reviewed root fa49d3d build; all fourteen
+other payloads and the snapshot stayed byte-identical. Its manifest SHA256 is
+b3c71cbd642c4823db3a4a88d1a7acddcb5b4e7ff21f8e9b2a5d7208169b6776;
+the 600576-byte DLL SHA256 is
+3c0374903cc23f112fa8b3118f1af65fe25d121592d81f6906306585a8949483.
+The explicitly authorized pair used released runner 5d5a680ec6ef, including the
+user's removal of RAM admission gates, and unchanged native bounds. Both games
+stopped at completed tick 5/reason 75/restored 1, closed gracefully with exit 0,
+and had their lanes and staged snapshots restored. The relay was stopped by the
+runner; the owned processes and queue entries were gone. There was no retry.
+
+The deferred-tick repair opened capture successfully. Each client retained 51
+complete seventeen-part records, with no dropped or open records and clean hook
+restoration. The trace nevertheless failed: 72 failure increments, first error
+0x24 (caller plus identity), and no Navigation or Agent constructor records.
+Full strict validation remains false with 43 errors. Complete record delivery is
+not complete or accepted constructor coverage.
+
+Both clients have the same observed nested call forest and shared ordinals:
+
+  Boundary1 return 9
+  Generate record 1: 10..110, caller ba1b8b
+    eighteen setter records on other addresses: 11..46
+    Initialize record 20: 47..109, caller c84531
+      Pilot record 21: 48..59, caller c8224f
+        three FloatState and two other-address setter records: 49..58
+      sixteen FloatState and five other-address setter records: 60..101
+      orders.base startup record 48: 102..104, caller 1066dc6
+      fight.attack.object.capital record 49: 105..106, caller 1066dc6
+      engineer.ai record 50: 107..108, caller 1066dc6
+  selected-object setter record 51: 111..112, caller 6cd8be
+  Boundary2 entry 113, Builder event entry 117
+
+Twenty-five of the twenty-six setter calls target addresses different from the
+selected builder. The current observer filters that identity only at a root
+scope; nested generic setter calls were counted as selected constructor calls
+and correctly failed the remaining narrow caller/identity checks. The first
+eighteen precede selection at Initialize; the next seven occur with the builder
+identity already known. Actual-image inspection confirms the observed call
+instructions: 7458c7/746bb8 return from call RBP, 6c6e5a from object vtable+19e8,
+and 51b71e/6cd8be from direct calls to the pinned generic setter 745e00. This is
+not evidence of incorrect forwarding ABI or justification to ignore the errors.
+
+The final selected-object setter publishes exact RTTI U::StaticMovementController
+at RVA 2a34b38, not NavigationController at 2c51158. Later prebind passive evidence
+sees NavigationController. The static and native results agree that navigation
+creation is conditional: Initialize calls 6e0160 only on its control-model branch,
+and the later lazy path can create it when needed. In the pinned ea4a00 path,
+ea4b4c passes the existing object+200 controller as R8 to ea8cf0; it need not be
+NULL. The current observer's unconditional Navigation/Agent count and NULL-old-
+controller expectations are therefore unsupported for the observed normal path.
+The exact later trigger was not captured, and remains unproved.
+
+The startup parent assumption was also wrong. After c7d4c0 returns at c8224f,
+Initialize independently calls 44e760 at c82940, c82a2e and c82b26. Static tracing
+through 44d790, the exact XL object+2188 target 7cefb0 and the director startup
+chain reaches 1066dc6. Thus the observed startup ranges under Initialize, after
+Pilot has returned, match the pinned image. They must not be forced into the
+synthetic fixture's direct-Pilot parent relationship.
+
+Narrow paired-boundary checks pass for error-zero records 1, 20, 21 and 48..50:
+exact caller/argument/result shape, stable TLS/selector samples and repeated
+identity reads. Those observations remain separate from the invalid integration
+trace. Both clients start Generate at the same native time and read/write bank
+selectors 0/1, but with different TLS RNG states. They leave Initialize with
+different states; the three startup ranges do not themselves advance those
+sampled states. Both later prebind raw-motion records are byte-identical in this
+run. No sector pose or lifecycle conclusion follows.
+
+Nineteen FloatState calls were captured outside the reviewed timer caller set.
+Seventeen use the sampled TLS RNG and return different result bits across the
+copies; their state transitions and rounded multiplication results independently
+match the pinned FloatState arithmetic. Two use another RNG pointer and return
+matching bits. Every unsupported-caller/identity error remains retained. None is
+a strictly accepted Agent timer or PostEvent record. One newly inspected caller,
+6bd8fd, leads to a separate object+5d8 timer calculation using max(60,time) and
+float-rounded 0.9+FloatState(0.1); that timer write and its object lifetime were
+not captured and are only a static follow-up candidate.
+
+The proposed correction is a diagnostic scope redesign, not an enrollment fix:
+keep the phase1-to-phase2 creation transcript distinct from a bounded later
+same-tick, same-selected-lifetime navigation readiness observation using the
+already installed hooks. Preserve the static controller as the prior argument,
+record other-object calls separately, and retain unknown selected-object callers
+as refusals. The later scope should end on selected navigation publication,
+deferred Builder callback or STOP, with exact native entry/return identity and
+clock guards. Its actual trigger and safe boundaries require review before any
+implementation or new run. Existing build015 failures must not be reclassified
+as a passing trace, and the strict late-binding guard remains unchanged.
+
+28 OCTOBER: SCHEMA-2 A/B SOURCE REPAIR, NO NEW NATIVE RUN
+
+The source now distinguishes constructor observation A (Boundary1 return through
+Boundary2 entry) from later same-execution-tick observation B, ending at the exact
+parsed Builder ship_bind callback before the unchanged native registry binder.
+There are still nine hooks in the same reserved thunk space, 128 records and eight
+nested scopes. The callback is explicitly a diagnostic record, kind 12; it is not
+reported as a native original. No native function is replayed, RNG seeded, actor
+array published, controller initialized or selector normalized by this repair.
+
+A accepts the observed typed StaticMovementController publication. Its evidence
+is the exact primary type, proposed pointer and selected object's before/after
+object+200 pointer. Static has no audited owner field and never receives the Nav
+layout interpretation. Pilot captures the true-owner pointer after validating
+the existing exact XL/native-ID/macro/player-owner path. Later selected samples
+must retain that pointer and lifetime. These borrowed reads do not acquire a
+reference, exclude workers or grant an ownership lease.
+
+The earlier startup-chain paragraph needs a precise refinement: on this exact
+null-explicit-owner path, Pilot and the later 44e760 attachments receive start=false.
+Initialize then explicitly dispatches ship+2188 at its tail (c82bcf/c82bf0/c82c11/
+c82c35), gated by its ninth argument. That is the supported static candidate for
+the observed three startup ranges. The new validator requires the unique
+orders.base startup range to have captured parent Initialize and follow Pilot's
+return. It does not assert that a 44e760 attachment directly started that range.
+
+Nested setters targeting another address are retained as excluded calls. Calls
+before selection retain an unresolved-at-admission category; A closure requires
+their target addresses to differ from the eventually selected builder. Their
+records are not rewritten after selection. The five observed setter callsites
+and nine additional FloatState callsites have full enclosing-function pins and
+per-call instruction checks. Unknown selected callers remain failures. Captured
+ancillary FloatState calls retain their actual argument RNG pointer and two-read
+before/after state, including the observed non-TLS helper. The independent parser
+checks the exact nonnegative scalar FloatState transition and rounded result;
+the scale constant is separately pinned. This is sampled call evidence with
+whole_rng_supported=0, not proof that every constructor RNG consumer was covered.
+
+B admits the exact selected lifetime only. Navigation entry must receive the
+captured prior Static pointer in R8 while that same typed pointer is still
+published. Neither NULL nor an arbitrary non-null controller is accepted. The
+existing Agent, query, conditional timer RNG, actual PostEvent and final setter
+records retain their native arguments, results and relationships. Closure requires
+the exact handle/full uint64 runtime, UI thread, immutable MD execution tick,
+published NavigationController and matching Agent relationship. Foreign callbacks
+cannot close or inherit the selected scope. Malformed, stale and wrong-thread
+callbacks leave a failed or unclosed scope; missing Navigation or callback at
+STOP remains failure. STOP overlapping an admitted callback retains its open
+scope even when the passive record later completes. A and B have separate sticky
+error/closure fields. Sector-pose and enrollment acceptance remain false.
+
+Schema 2 has eighteen bounded parts per record; its extra part identifies stage,
+subject category, typed publication and actual argument RNG reads. New overlays
+must explicitly select schema 2 and find the corresponding DLL capability. The
+reader also retains schema-1 draining for historical support. The independent
+schema-1 validator remains separate: build012 still has exactly its original 41
+errors, and builds014/015 retain their exact 43-error arrays. None is upgraded to
+a passing trace by the newer interpretation.
+
+Validation: actual pinned-image C/ABI/unwind/restoration tests, 24 full-function/
+constant pin tamper checks, per-call pin tampering, selected prior-controller and
+callback mutation tests, nine original-once forwarding ABIs and existing portable
+transport tests pass. Focused Python/Lua checks pass: 76 construction, 29 registry
+and 20 creation tests. The latter include complete MD/first-origin/identity joins,
+retained excluded/unresolved calls, actual non-TLS RNG samples, schema refusal,
+stage/identity/clock mutations and final-part Lua drain resumption. These tests use
+private synthetic memory/records and the exact image; no new X4 game was launched.
+Source and a later matched frozen artifact still require integration review.
+
+28 OCTOBER: INDEPENDENT SCHEMA-2 REVIEW CORRECTIONS
+
+Independent review found three blockers in the first schema-2 validator. Generate
+passes its own local object reference to Initialize/Pilot, then transfers the
+selected object to its separate outer result reference. Requiring those two
+reference addresses to match was incorrect. The corrected join preserves each
+function's actual return/outref relation, requires Pilot to borrow Initialize's
+local reference, and joins the selected object/native runtime through the captured
+identity samples. Both C and Python positive fixtures now use distinct outer and
+local reference addresses, matching the observed build015 path.
+
+Two executable mutants erased Initialize-entry or Agent-entry identity and were
+incorrectly accepted. Selection occurs before the Initialize entry sample, so
+every sample from that boundary onward now requires the selected identity; earlier
+samples must remain unselected. Another mutant copied the Nav setter's after
+identity into its before identity while leaving the auxiliary before-publication
+pointer unchanged. The parser and the production passive reader now require the
+auxiliary before/after pointer and corresponding identity controller/type to agree.
+Separate stable rereads are not treated as one coherent sample when they disagree.
+The C regression exercises both edges with internally stable identity samples
+that contradict the separately read native publication.
+
+The corrected source passes the full actual-image C/ABI/unwind/restoration checks
+and 128 focused Python/Lua tests (76 construction, 29 registry, 23 creation).
+Read-only historical validation again preserves the exact build012/014/015 error
+arrays of 41/43/43. The first schema-2 commits and old captures remain preserved.
+No game, overlay staging, registry preparation or new native test was performed.

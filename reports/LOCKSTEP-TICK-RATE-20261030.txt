@@ -1,0 +1,243 @@
+Lockstep tick rate and frame cost, 2026-10-30
+=============================================
+
+All of this is offline work on the gate sources and on logs of earlier runs. Nothing
+here was run live. Numbers marked "measured" come from FRAME_TIMING rows of census runs on
+the Windows PC; "estimate" means reasoned from them, to be checked by the runs in section 7.
+
+1. Short version
+----------------
+- The world runs slow because dt is pinned at 1/60 s while a tick costs 31-37 ms. Fixed
+  1/30 s puts the play stack at about real time today with no wire change. Recommended
+  first: native_gate_tick_hz = 30.
+- The relay's frame numbers were wrong in a way that hid this: time.monotonic on Windows
+  (Python 3.12) is GetTickCount64 with 15.6 ms steps, so every period came out as about
+  15, 31, 47 or 62 ms and the median was 31 for almost every configuration, Pbare included,
+  whose own frame is 23.6 ms. Use FRAME_TIMING or seconds/ticks for anything older. The relay
+  now uses time.perf_counter, and census_perf adds the mean.
+- Pathing already computes in parallel. What is serial is one thing: the MoveWorker waits
+  for the pass right after kicking it. That wait exists so the pass does not race the
+  universe update, and it is what costs. Rather than move the wait, the cut is to do less in
+  the pass: stock gives a batch about 1 ms of full updates and the rest cheap updates in
+  round robin; the gate lifted that budget because it was clock-based, so every agent gets a
+  full update every tick. native_gate_path_budget = N brings stock's round robin back with a
+  count instead of the clock, on both gates. On the VPS this is the largest item in the frame.
+- Mass traffic cannot overlap FrameTick (it reads the published view bank and syncs game
+  time at its start). The region pass joins at the same point and overlaps it, so the join
+  costs the longer of the two: remove traffic alone and the region join goes from 0.5 to 2.7
+  ms, with no gain (ac-Base, ac-MT). They do not have to run every tick:
+  native_gate_pass_stride runs both every Nth, in phase.
+- Reads: native_gate_fast_reads replaces 10-15 thousand ReadProcessMemory calls per tick with a
+  copy under SEH, the Windows answer to the Linux gate's 218a90e1.
+- Dynamic dt is feasible and sound but gives up reproducibility from inputs alone. Later, if
+  weak hosts need it.
+
+2. The tick rate (done)
+-----------------------
+native_gate_tick_hz: 60 (default), 40, 30, 20. The constant lives in lockstep_tick.h, shared by
+both gates. native_gate_tick_pace (default true with an explicit rate) holds FrameTick to the
+client's own schedule so a cheap tick does not run faster than real time; a late client
+catches up to 250 ms, further behind it re-bases. Pacing runs after the permit and after the
+report left, so no other client waits for the sleep, and it changes no simulated value. The
+relay takes --tick-hz and stops on a client at another rate at the first step.
+
+Changed to follow the rate
+  lockstep_gate.c: patched dt word, gate_sites_owned, clock check, start
+  linux/gate_linux.c: the dt load now reads the gate's own read-only page at rates other than 60
+  lockstep_attention.h, lockstep_gravidar.h, lockstep_nav.h, lockstep_nav_cadence.h,
+  lockstep_shape.h: "one frame ago" deadlines
+  lockstep_pilot_device.h: throttle ramp; lockstep_pilot_predict.h: prediction step
+  native_gate_relay.py: timestep check, summary; native_gate_probe.lua: arms before the start
+  check_gate_options.py, validate_native_gate.py, census_perf.py, native_gate_ssh.py,
+  run_native_gate.py, check_lockstep_gate_linux.py (two scenarios)
+
+Refusing any rate but 60 (the contract is written for 1/60)
+  lockstep_portable_windows.h, lockstep_player_getup_native.h, and their tools:
+  native_getup_diagnostic.py:99, native_portable_coordinator.py:198,
+  validate_native_portable.py:79,81, test_native_gate_ssh_network.py:19-20
+
+Separate scheduler: Rust x4mp-agent has fixed_dt(hz) for 60/30/20 (pinned.rs, sched_live.rs,
+scheduler.rs); not part of the gate. check_lockstep_gate_linux_sites.py pins the 1/60 constant
+of the game itself; that stays.
+
+Counted in ticks, unchanged, so their time doubles at 30 Hz:
+  native_gate_pilot_delay (default 3 ticks, must be at least lookahead+2): 50 ms becomes 100 ms
+  pilot window ticks, PILOT_CAMERA_RETRY 60, PGETUP_TICK 30
+  HITN_EVICT_TICKS 1800 ("30 s" becomes 60 s), NOCT_DELAY_DEFAULT 30
+  FPENV_SAMPLE_TICKS 600; probe samples tick%60 (HighwaySample, Boost/Travel Sample, TourStep),
+  tick%600 status rows
+  world_hash_stride, status_stride, trace_stride in configs: same ticks, twice the game time
+None of these changes behaviour on a client's own; reduce the stride configs if you want the
+same game-time density. Time-based constants (PNAT timers now+0.5 and so on) follow by themselves.
+The stock record's timing is capture16 ticks + pilot delay: it stays tick-based.
+Mentions of 60 Hz in older reports are history and were left.
+
+3. A dt carried by the permit (evaluated, not built)
+----------------------------------------------------
+Feasible. A permit for tick P is issued when tick P-1-k is complete everywhere, so NGGO can
+carry dt(P). The relay measures the slowest client's frame, sets dt, clamps to 1/60..1/20. The
+hook writes the word (Linux: the gate's page, made writable) before FrameTick, and the relay
+checks delta==dt(tick). The control lag is k+1 ticks; quantize and limit the step per tick.
+
+What sees a varying dt: X4 is variable-dt by origin (dt clamp 1.0), so flight, AI, agents and
+physics take dt as a parameter, and Jolt's warm-start ratio handles a change. The census's
+fixed-dt-related bugs were about stale "time-1/60" comparisons in gate modules: all of those
+now call gate_tick_dt(), which would become "this tick's dt". actor_all's seeds include dt bits,
+fine as long as they agree. Tick-keyed cadences stay ticks.
+
+Sound for lockstep: every client applies the same bits at the same tick; dt is one more agreed
+input. The costs:
+- The world is no longer reproducible from inputs and a snapshot unless the dt log is kept in
+  the journal (it would have to be). Census runs stop being comparable: two runs at the same
+  seed walk different dt series, unless dt is replayed.
+- The dt depends on the machine's load, so a hitch on one client bends everyone's physics step.
+- Feedback: a larger dt makes more per-tick work (more agents wake, more contact pairs), gain
+  below 1 but not 0; needs damping.
+- Rendering stays one frame per tick and becomes uneven; a fixed rate with pacing is even.
+- It needs a protocol field and a Linux and Windows change of the dt write path.
+
+Recommendation: fixed 1/30 now. No wire change, frame pacing is locked, runs stay comparable.
+Use the cuts below to go to 1/40 where the machine has room. Build dynamic later only if weak
+hosts or the VPS need it; with k+1 lag it answers load swings slowly anyway.
+
+Feel: display rate equals tick rate today. 30 Hz means 30 FPS and 100 ms pilot delay at
+lookahead 1 (3 ticks); lookahead 0 gives 2 ticks = 67 ms. At 40 Hz: 40 FPS, 75 ms. A rate of 60 with
+slow motion is smoother per frame but it is a 45% world, which is not playable either way. Display
+interpolation between ticks is the separate way out, and it is not part of this work.
+
+4. Where the time goes (measured)
+---------------------------------
+FRAME_TIMING medians, 1200 ticks from the same snapshot unless noted. total = outside + frame.
+  run            total  outside   rest    pre   join  probe   reads
+  perf-Pbare     23.6   21.3                                  (near-minimal gate, 90 ticks)
+  perf-PathOpt   26.2   23.9                                  (90 ticks)
+  ab-Base (1st)  31.5   29.65    24.85   3.10  2.45   1.38    10836
+  ab-Base (2nd)  28.9   27.31    22.47   3.17  2.53   1.27    10824
+  ab-Cre         29.8   28.16    23.20   3.23  2.69   1.33    10815  created identities removed
+  ab-Rng         29.2   27.48    22.72   3.17  2.53   1.29    10558  RNG group removed; diverges
+  ab-FP          29.0   27.43    22.51   3.22  2.64   1.30    10954  FP group removed
+  ab-Diag        28.7   27.02    22.55   3.29  2.64   0.92    10492  diagnostics removed
+  ac-Base        29.0   27.38    22.46   3.23  2.60   1.27    10811
+  ac-MT          28.4   26.80    22.04   3.23  2.65   1.22    10735  mass traffic removed
+  ac-Reg         26.3   24.73    20.69   2.51  2.01   1.24    10651  region pass removed
+  ac-Grav               26.11    21.17         2.63   1.31     6301  gravidar group removed
+  ac-Cam                27.84    22.88         2.81   1.31    10649  camera group removed
+  ac-Ord                28.95    24.25         2.44   1.31    10731  ordering group removed
+The same configuration gave 29.65 and 27.31: the run-to-run noise is about 2 ms. Measured
+against that, removing created identities, the RNG group, the FP group or the diagnostics
+shows nothing beyond noise (diagnostics: about 0.35 ms, visible in the probe column). So those
+are not where the time is. The pathing group has not been removed yet (section 6): its cost below
+comes from status rows, not from removal.
+
+ac-MT is the instructive one. Without mass traffic the join is unchanged at 2.65 ms: the
+region join, 0.5 ms in the base, becomes 2.7 ms. The passes overlap, and only the longer one
+costs anything. In short runs region is the longer; by tick 2000 of a long run traffic is, which is
+why region showed 38 us at tick 18000. That figure is what is left after traffic, not its length.
+ac-Reg is the first removal above the noise: 2.65 ms, of which 0.6 is the join (traffic alone
+takes 2.0) and 1.8 is in "rest". One run, and ten keys went together (region pass, region
+fields and RNG, the camera keys, the viewpoint policy), so the 1.8 may belong to any of them.
+ac-Grav: 1.3 ms, inside the noise, but it carries 4,500 of the 10,800 reads per frame, so the
+gravidar group is the biggest user of native_gate_fast_reads. ac-Cam and ac-Ord: nothing, or
+slower, which is the noise again.
+
+Over one long run (play22-long, 3000-tick bins): outside 29.6 to 33.2, pre 3.2 to 4.2, created
+0.19 to 0.5, join 2.5 to 3.2, reads 10.7k to 15.4k. World growth drives the rise. Mean period
+36.9 ms against a median near 33: hitches are about 10% of the time.
+
+Status rows at tick 18000, play22-long:
+  traffic+region join 2.86 ms/frame (53.5 s total), busy nearly every frame
+  pathing pass        3.2-3.5 ms wall, 30 jobs, about 9,740 agents
+  travel snapshot     0.3 ms
+  path determinism    0.9-1.0 ms (collect 0.3, refresh 0.65)
+  actor RNG keys      about 9,850 per frame at 366 ns, about 3.6 ms CPU across the workers
+  reads               15.4k at about 255 ns, about 3.8 ms CPU: about 4,500 from the gravidar
+                      group (ac-Grav), the rest mostly nav wrappers on the pathing workers
+  probe               0.93 ms (sample 0.53, bodies 0.22, actor 0.17, pilot 0.18)
+  script RNG self     40-50 us
+
+VPS Linux, 2 instances on 8 cores at nice 10, no GPU (relay period, Linux clock, so not
+quantized): vps-linux-4 median 23.4 ms, vps-linux-5 with serial pathing and path_determinism=3
+median 41.2 ms. The status rows of vps-linux-5 give path determinism 2.5 ms (collect 1.0, refresh
+1.4), so about 15 ms of the 18 is the wait for the pass, with 10,028 agents on full updates.
+All of this predates the Linux fast read, so the share of the pass needs measuring again.
+
+Ranking by what can be removed:
+  1. Pathing pass: 3.3 ms here, about 15 ms on the VPS.
+  2. Traffic and region join: 2.7-3.3 ms, only together.
+  3. Reads: up to 3.8 ms CPU, partly wall. Linux has its fast read since 218a90e1 (a frame there
+     went from 88 to 39 ms); Windows gets it with native_gate_fast_reads.
+  4. Path determinism: 1 ms here, 2.5 ms on the VPS. Stays; it is what makes stamps agree.
+  5. Probe sampling: about 0.4 ms by ablation, diagnostics only.
+Regression across older runs does not separate the keys beyond about 1 ms: they are confounded.
+None of this explains the whole 21 ms of "rest" that Pbare has too. That is the engine and the
+renderer, and sim_us (new in FRAME_TIMING) will say which of the two sets the period.
+
+5. Can it stay parallel and still be deterministic?
+---------------------------------------------------
+Pathing. The batch jobs are already parallel with travel_snapshot: each job builds a private
+command list, the order module applies the lists in canonical order after the join, and
+path_determinism stamps in ID order afterwards. So "commit in canonical order, compute in
+parallel" is what runs today. "Serial pathing" only means the MoveWorker does not go on with the
+frame while the pass runs. Three options:
+  a. Fewer full updates: native_gate_path_budget (built). Stock's own mechanism, by count. The
+     decision depends on the batch list and cursor; walk= in PATH_DETERMINISM shows whether
+     those agree across clients (census_perf --agree PATH_DETERMINISM:walk). About a third of
+     the agents stay on full updates at N=100 with 30 batches of about 330. Estimate: pass 3.3 to
+     about 1.5 ms here, and about 15 to 5 ms on the VPS.
+  b. Let the pass overlap the universe update as stock does. The pass reads world state while the
+     frame writes it, and results depend on who was first. Needs a full audit of the read set.
+     Rejected for now.
+  c. Run the pass in the MoveWorker's idle gap: kick it at the end of frame N, join at the start of
+     frame N+1. The pass reads game time at its start, so it would need the N+1 time patched in, the
+     pre-release hooks moved, and a join before FrameTick so it never overlaps the publish. Estimate
+     2.5-3 ms saved here. Invasive; the next step if (a) is not enough.
+
+Mass traffic and region. Traffic's thread reads the published view bank and syncs game time at
+its start, so its pass must end before FrameTick's publish unless it is made independent of both.
+Region joins at the same point and overlaps it. Their outputs are already deterministic
+through their per-pass seeds and the join. So they stay parallel with each other and with the
+main thread today; what costs is that FrameTick waits for the longer one. They can only be run
+less often: native_gate_pass_stride (built) holds both, in phase, and saves about (1-1/N) of
+2.7-3.3 ms. A stride on traffic alone would save nothing, as ac-MT shows.
+
+6. The ablation queue
+---------------------
+Round 1 (ab-*) stopped at arming for Path, MT, Reg, Grav, Ord and Cam, because keys that stayed
+need the keys removed. Round 2 (ac-*) fixed those except pathing, which is the one group still
+without a number on Windows. To remove it, take these out as well:
+  native_gate_radar_serial, native_gate_spline_join, native_gate_tempzone_order
+tools/dev/check_gate_options.py on the installed config names them before a launch.
+With the same-config noise at 2 ms, run a base between them or each one twice.
+
+7. What to run
+--------------
+All on the current play stack, no captures, 1203 ticks unless noted. Run each twice: the noise
+is about 2 ms. Read with census_perf --native; since this commit its frames row is no longer
+quantized and has a mean. simulated_per_wall is the number that counts.
+
+a. Tick rate. native_gate_tick_hz = 30, relay --tick-hz 30 (run_native_gate.py and native_gate_ssh.py
+   take --tick-hz; a private launcher script has to pass it on). Expect simulated_per_wall near
+   1.0, frame period 33.3 ms, pace_us above 0 on cheap ticks, verdict pass. Also one long
+   soak for the world hash, as dt is a new input to everything. Options that refuse rates other
+   than 60: portable Windows and player getup. native_gate_pilot_delay stays at 3 ticks, which
+   is now 100 ms.
+b. native_gate_path_budget = 100, then 50 and 200. Add --agree PATH_DETERMINISM:walk to
+   census_perf: it must report differing=0. Compare TRAVEL_SNAPSHOT pass_us, sim_us and the world
+   hash. If walk differs between clients, the batch lists do not agree and the budget cannot be
+   used until they do: that is the one way this can fail. Also on the VPS with the vps-linux-5 keys.
+   Estimate there: 41 to about 30 ms.
+   This changes the world against earlier baselines: agents get a full update every 3 ticks or so
+   at N=100, about what stock gives them, not every tick. Look at a play run for behaviour too.
+c. native_gate_pass_stride = 2, then 3 (with mass traffic and region pass on 'sync'). join_ms should
+   fall to about 1/N; MASS_TRAFFIC stride_skips rises. World hash must hold. Asteroids and traffic
+   around the camera now update less often: look at a play run.
+d. native_gate_fast_reads = true. reads in FRAME_TIMING then counts only reads above 4 KiB and should
+   fall to near 0. Look at rest_ms and at TRAVEL_SNAPSHOT pass_us.
+e. Read sim_us next to outside_us in any of these. If sim_us is close to outside_us, the
+   simulation sets the period and further cuts here pay. If it is well below, the main thread and
+   the renderer set it and the cuts have reached their limit.
+f. The pathing ablation of section 6 with the extra keys removed.
+g. If b to d hold: all at 30 Hz as a play run, then try native_gate_tick_hz = 40 (25 ms budget).
+
+What is not done: the pass stride on the Linux gate (no mass traffic module there yet). Option c of
+section 5 (pass in the idle gap). A dt carried by the permit.

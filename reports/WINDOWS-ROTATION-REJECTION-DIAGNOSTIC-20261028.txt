@@ -1,0 +1,198 @@
+WINDOWS EULER IMPORT: PASSIVE FIRST-REJECTION DIAGNOSTIC
+28 October 2026 | Source-only; no game, installation or staging performed
+
+Purpose and retained failure
+
+Mixed005 failed before frame0 with ROTATION_E_INPUT (6). Its unchanged v2
+receipt has 10006 calls/returns per role, 63 Euler/navigation corrections per
+role, zero player claims, and 63 paired lifetimes. Restoration is reported,
+completion is false. These counters locate failure before the next successful
+class claim. They do not identify a saved-object ordinal or the rejected
+predicate. No retrospective acceptance or class/count relaxation is made.
+
+This change records the first selected-call rejection. It does not add a hook,
+re-read an input to diagnose it, repeat an engine call, change the Euler math,
+change import eligibility, normalize state, or retry a failed import. The
+existing 42-field terminal receipt and its acceptance rules remain unchanged.
+The four shared math/XML source files and existing patch sites/pins are intact.
+
+Opt-in and lifetime
+
+The Windows-only configuration field rotation_rejection_diagnostics defaults
+to false. The lane's matching CLI flag changes that field only for the reviewed
+Euler-v2 contract. Every v2 adapter configuration, including default-off, calls
+portable_rotation_rejection_enable(0|1) before rotation configuration. The first
+call fixes the mode and exact DLL-owned boot binding. A healthy same-session
+reattach only acknowledges the identical mode; it does not clear evidence or
+change Load ownership, counters, patch words or readiness. Changed mode, wrong
+thread/session, late first enable, STOP and sticky failure refuse. Existing
+direct native configuration callers implicitly fix mode0 if not already bound.
+The mode acknowledgement checks DLL-owned phase, binding and patch ownership/
+debt metadata only. It is not an engine health attestation: the following
+unchanged rotation configuration performs the existing native ownership reads.
+
+Only the two already selected native call sites are recorded. Load entry/return
+failures and foreign reader calls are outside this diagnostic. A missing first
+entry therefore does not prove the absence of an import failure.
+
+Capture and publication
+
+Each enabled selected invocation has a local trace. Resetting between checked
+stages limits the retained reads to the failing stage, not the whole call.
+The first refusal copies that trace under rotation_lock into an immutable entry.
+This claim is separate from rotation_fault: original-once and the old timing of
+primary-failure publication are preserved. A pre-original rejection may thus
+show primary_failure_at_entry=0. After original return or unwind, the claiming
+invocation appends exactly one separate completion; it never edits the entry.
+Later invocations cannot replace either record.
+
+Stages (numeric IDs in order): none, admission, pre_guard, capture, claim_guard,
+lifetime, class_count, evaluate, post_guard, replay, plan, publish_replay,
+publish_guard, original, prior. The closed predicate enumeration is in
+lockstep_rotation_rejection.h and mirrored/tested in
+native_portable_rotation_rejection.py. The parser rejects invalid stage/predicate
+pairs. Helper status has an independent known bit; zero is a real successful
+result, not an unset/error sentinel. An original exception with no earlier
+rejection records original/unwind. A later exception retains its active stage.
+
+The entry retains raw basis, XML node, Agent, movement, derived bank and image
+base values. Class is 0 navigation, 1 player, or 2 unknown; it is assigned only
+after successful copied scope capture. These are private local addresses, not
+portable identity, canonical-pointer or lifetime claims. Context for compound
+checks is explicitly operands_known=0. The scalar whitelist in
+rotation_reject_pred defines actual/expected only for single comparisons;
+otherwise those words are uninterpreted diagnostic context. XML evaluator and
+lifetime failures may have no source read rows in that stage: context_scope is
+predicate_only. No reconstructed engine observation is implied.
+
+Read bounds and failure semantics
+
+Per stage: at most192 read rows, 8192 copied bytes and512 bytes per successful
+read. A row contains address, requested_bytes, copied_bytes, ok and copied data.
+Only successful existing read_local output is copied. Its boolean result does
+not distinguish failed ReadProcessMemory from a successful-but-short read;
+both are ok0/copied0/data-. No partially read or failed output is exported.
+Successful reads exceeding512 bytes or remaining byte capacity are ok1/copy0,
+with truncated1. Row overflow retains attempted/dropped counts. Capture limits
+never change the engine read result or the original import result. The parser
+requires exact aggregate lengths and refuses impossible premature overflow.
+
+Readout and delivery
+
+portable_rotation_rejection(index) reads only DLL-owned copied storage under
+rotation_lock. It returns nil until STOP and both global selected-call and Load
+scope counters have drained. No restoration or identity getter is called.
+Index0 is the header; indices1..records are read rows; records+1 is completion.
+No entry yields one present0 header and no completion. Each row is bounded by
+2047 bytes before the fixed run/declared-agent log prefix. The largest read row
+contains1024 hexadecimal payload characters. The complete capture is bounded
+by194 rows, with exact order and field names checked independently in Python.
+
+Header schema: x4-rotation-reject-v1. It includes enabled/present,
+readout_drained=1, capture_scope=failing_stage, context_scope=predicate_only,
+stage/predicate, helper_known/helper_result, operands_known/actual/expected,
+serial/role/class/accounted, owner/thread/phase, entry scope/load counters,
+primary_failure_at_entry, selected counts/Load counts, image_base and raw input
+addresses, records/bytes/truncated/failed_reads/attempted_reads/dropped_records.
+Read schema: x4-rotation-reject-read-v1. Completion schema:
+x4-rotation-reject-completion-v1, with return_valid/raw_return, unwind,
+primary_failure_after, completion scope/load counters and role return counts.
+The exact closed field order is the HEADER/READ/DONE constants in the parser.
+Integers are canonical unsigned decimal except the explicitly signed helper
+result. Local pointers and opaque returns are16 lowercase hexadecimal digits.
+Unset return uses '-' with return_valid0. Completion counters describe that
+invocation's finally boundary; load_open may still be1. Only the later header's
+readout_drained attests global readout eligibility.
+
+The existing common-loader observer emits the copied records once. A nil
+readout may be polled for at most600 observer updates after the ordinary terminal
+path is eligible; it is not an engine-read/configuration retry. Invalid data or
+exhaustion emits an explicit diagnostic error without hiding the primary
+failure. If fresh UI configuration is already fatally refused, the adapter
+retains STARTUP_REFUSED, cancellation and the original thrown error. It makes
+one immediate copied-data attempt after cancellation. If Load has not drained,
+it logs unavailable. No fallback backend or onUpdate ownership is introduced;
+later drain at that fatal-startup edge remains unsupported. Diagnostic records
+alone never grant import, restoration or session acceptance.
+
+Validation
+
+The full native build/test suite passes, including137911 owned-memory Windows
+rotation checks and existing exact-image pins, ABI/opaque forwarding, foreign
+exception, STOP, restoration and v2 cohort checks. No native game executes in
+those tests. New read-failure injection visits every read in the successful
+selected-call path, covering pre/capture/claim/post/replay/plan/publication
+stages. Enabled/disabled cases compare read address/length/outcome order,
+original counts/returns, failure timing and unchanged42-field receipts. Other
+cases cover duplicate roles, changed Agent/movement/class, bank reuse, byte/row
+limits, unsuccessful and short reads, STOP while original is open, original
+unwind after an earlier immutable rejection, exact reattach and actual Lua C
+exports. STOP readout remains nil until the real owned test thread drains.
+
+A separate private build compares base e0f6437aee7771700a9bef2c3c07b52bb63d99a4
+with this implementation using the same owned-memory harness:13 cases and2005
+ordered source reads, original entry-failure timing, returned status and both
+416-byte banks match exactly. Synthetic allocation addresses alone are joined
+by their named owned region and offset; this is not native state normalization.
+The table+0x130 read remains unconditional; only testing its value is menu-only.
+
+Python/Lua discovery:695 tests,690 passed and5 existing platform skips. Focused
+rotation/diagnostic suite:20 passed. The actual production C export passes the
+actual Lua adapter and independent Python parser;55 malformed field mutations
+refuse. The old mixed005 log hash and strict INPUT6 result are retained privately.
+This patch does not assert the actual cause of mixed005 before a future owned
+diagnostic run.
+
+Storage and limits
+
+On the tested Windows ABI, local trace14400 bytes, retained entry14568 bytes,
+completion48 bytes and immutable boot binding352 bytes. The optimized owned
+harness allocates14432 stack bytes in the optional observed wrapper,12552 in
+the selected wrapper,12392 in nested scope capture, plus saved registers and
+the outer wrapper. The enabled path therefore exceeds38KiB of combined frames;
+14400 is not a whole-call stack bound. Disabled calls omit the optional trace
+frame. This is bounded storage, not a performance or stack-capacity claim for
+every possible native exception/nesting context. Existing state/lifetime guards
+continue to refuse unsupported nesting and changed identities.
+
+Reproduction
+
+python tools/dev/build_native_gate.py --zig <reviewed-zig.exe> --test
+  --native-image <pinned-X4.exe>
+PYTHONPATH=tools;tools/dev;tests python -m unittest discover -s tests
+  -p test_native*.py
+PYTHONPATH=tools;tools/dev;tests python -m unittest
+  test_native_portable_rotation_rejection test_native_portable_rotation
+
+Private evidence is under .local/rotation-rejection. It contains no staged game
+artifact and must not be published with the source report.
+
+Independent-review correction (a96da02 retained)
+
+The reviewer found that the initial mode acknowledgement redundantly invoked
+the native reattach validator. That caused48 engine reads instead of24 for
+enable+configuration, including default-off. The correction removes that extra
+validation from acknowledgement without removing it from configuration. Actual
+production C tests now compare config-alone with enable+config for both modes
+and boot phases0..3: acknowledgement performs zero reads/protection changes,
+and configuration retains the identical24-read sequence. Known local failure,
+phase, boot and patch-debt mutants refuse without native reads. A foreign engine
+word may pass the local mode acknowledgement but is still refused by the
+unchanged following configuration. No second readiness grant is added.
+
+The parser now matches operands_known to the exact production scalar whitelist,
+requires a nonzero known helper result for the helper predicate, refuses an
+accounted unknown class, requires unwind when no original return exists, and
+checks immutable nonzero primary failure across completion. Expected run and
+declared-agent identity must themselves be canonical before log correlation.
+It still accepts serial0/owner0 before a valid Load and return_valid1/unwind1
+after an original returned but a later protected operation unwound. A real
+owned selected-wrapper replay exception and its production export cover that
+last case; these tests do not launch or execute a native game.
+
+Correction validation: complete native suite passes, including138691 rotation
+checks. The focused run with two optional production-export files passes138701
+checks. Python/Lua discovery is696 tests:691 passed,5 existing skips; the focused
+rotation/diagnostic subset passes21. Both normal-return and post-original-unwind
+production exports roundtrip through the actual Lua adapter and strict Python
+parser. No owned test/compiler process remains after these checks.

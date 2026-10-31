@@ -1,0 +1,230 @@
+{
+  "schema": "x4-action-identity-static-pins-v1",
+  "build": "X4 9.00 Steam23660954 in-game611726",
+  "images": {
+    "windows": {
+      "sha256": "19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891",
+      "size": 55412768,
+      "address_kind": "RVA",
+      "range_source": ".pdata unwind roots",
+      "functions": [
+        {
+          "address": "0x79f720",
+          "label": "saved-to-runtime import registration",
+          "ranges": [
+            [
+              "0x79f720",
+              "0x79f7c0"
+            ]
+          ],
+          "length": 160,
+          "sha256": "e4b75e8f26ba55fd42052ef36c992382fdd7a36e2c2cd14a9e61c774a09e68af"
+        },
+        {
+          "address": "0xcc220",
+          "label": "IDBase AssignNewID",
+          "ranges": [
+            [
+              "0xcc220",
+              "0xcc32c"
+            ]
+          ],
+          "length": 268,
+          "sha256": "5ead430da168fdfe1f4dfb0eb328b7dd6b04cf1dc6a5ee56ea3bcfb133916bd2"
+        },
+        {
+          "address": "0xcc500",
+          "label": "registry ID allocation",
+          "ranges": [
+            [
+              "0xcc500",
+              "0xcc508"
+            ],
+            [
+              "0xcc508",
+              "0xcc564"
+            ],
+            [
+              "0xcc564",
+              "0xcc5ad"
+            ],
+            [
+              "0xcc5ad",
+              "0xcc642"
+            ],
+            [
+              "0xcc642",
+              "0xcc661"
+            ]
+          ],
+          "length": 353,
+          "sha256": "b512d37e15c7d8d1e3deba7ae50e18cf3b94e93805668bea8a7834fb8eee22e3"
+        },
+        {
+          "address": "0xcb4d0",
+          "label": "saved-reference remapper",
+          "ranges": [
+            [
+              "0xcb4d0",
+              "0xcb53b"
+            ]
+          ],
+          "length": 107,
+          "sha256": "3c165ba6516fff55bd4853f718a2bbe73f9ae786b30edeeba6dfe4b9f5e2cc02"
+        },
+        {
+          "address": "0x3d2400",
+          "label": "Component constructor",
+          "ranges": [
+            [
+              "0x3d2400",
+              "0x3d2560"
+            ]
+          ],
+          "length": 352,
+          "sha256": "ed89094fc31b8fce5953daded20b73001c5af55c978acd85991917a9d8000d8a"
+        },
+        {
+          "address": "0xcaab00",
+          "label": "ScriptEventHandler constructor",
+          "ranges": [
+            [
+              "0xcaab00",
+              "0xcaab71"
+            ]
+          ],
+          "length": 113,
+          "sha256": "802ab0758a5c93826e270bebed55ee45c50c9567f370faed8c6d582433a13e65"
+        },
+        {
+          "address": "0x10631b0",
+          "label": "AIScriptContext constructor",
+          "ranges": [
+            [
+              "0x10631b0",
+              "0x1063388"
+            ]
+          ],
+          "length": 472,
+          "sha256": "b5468455eb7534da2330706d124b3e70c1aedf137869208687e6686adfb2917d"
+        },
+        {
+          "address": "0x1063750",
+          "label": "AIScriptContext importer",
+          "ranges": [
+            [
+              "0x1063750",
+              "0x10644bd"
+            ]
+          ],
+          "length": 3437,
+          "sha256": "0d1c301108dac632a0163a03f309310e188c2df418a4222694fcec3ca646c056"
+        },
+        {
+          "address": "0x1069000",
+          "label": "AI importer and Entity owner resolution",
+          "ranges": [
+            [
+              "0x1069000",
+              "0x106a2c4"
+            ]
+          ],
+          "length": 4804,
+          "sha256": "a467e6dfa7fe07f49e9f9424147ffbe54c8f4ab52f024db0ca1b6a0282405969"
+        }
+      ]
+    },
+    "linux": {
+      "sha256": "113f73d74570084f6ce18a659b365009eccf579fb66dbabb5dad2b1718045f20",
+      "size": 60459280,
+      "address_kind": "ELF virtual address",
+      "range_source": ".eh_frame FDE pc_range; detached cold fragments excluded",
+      "functions": [
+        {
+          "address": "0xeed870",
+          "label": "IDBase AssignNewID",
+          "ranges": [
+            [
+              "0xeed870",
+              "0xeedc5d"
+            ]
+          ],
+          "length": 1005,
+          "sha256": "5deb1e8d1520a096ddfdc5435af3742c54c04e427cf218cdbcd87e949219504c"
+        },
+        {
+          "address": "0xce4fd0",
+          "label": "saved-reference remapper",
+          "ranges": [
+            [
+              "0xce4fd0",
+              "0xce510f"
+            ]
+          ],
+          "length": 319,
+          "sha256": "8ffe2fdebb419097922f549d5ef21a704cc43e86f25b3487593040e0cd18317b"
+        },
+        {
+          "address": "0xa68ef0",
+          "label": "Entity class predicate",
+          "ranges": [
+            [
+              "0xa68ef0",
+              "0xa68f13"
+            ]
+          ],
+          "length": 35,
+          "sha256": "9082f3cf4ca3848f244059919634825ce4c895a0db6f7f96754b6342b4460602"
+        },
+        {
+          "address": "0xf371f0",
+          "label": "owner reference assignment",
+          "ranges": [
+            [
+              "0xf371f0",
+              "0xf3724c"
+            ]
+          ],
+          "length": 92,
+          "sha256": "6e3bb2c9a7edc4c7e0fb6d54f0edab7c61afaabcfe959ab0f7723f0b9869c907"
+        },
+        {
+          "address": "0x10c0a30",
+          "label": "AIScriptContext constructor",
+          "ranges": [
+            [
+              "0x10c0a30",
+              "0x10c0ccc"
+            ]
+          ],
+          "length": 668,
+          "sha256": "8c1473ab69408ef4733e5187bdd82742ed9f6592c8b0317ac204a8f9ab0ff65c"
+        },
+        {
+          "address": "0x10de190",
+          "label": "AI importer and Entity owner resolution",
+          "ranges": [
+            [
+              "0x10de190",
+              "0x10e1213"
+            ]
+          ],
+          "length": 12419,
+          "sha256": "38c111c31e2766f667eb4d69d8f1192702d9cc7536e59ff94940b5a5b169e248"
+        },
+        {
+          "address": "0x1e04890",
+          "label": "tag66 context recovery",
+          "ranges": [
+            [
+              "0x1e04890",
+              "0x1e048c3"
+            ]
+          ],
+          "length": 51,
+          "sha256": "4d57289930e79b524756d5c6209dd93692dce8ef3a93daab94bed37ff0806382"
+        }
+      ]
+    }
+  }
+}

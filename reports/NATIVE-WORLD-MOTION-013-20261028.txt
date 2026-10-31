@@ -1,0 +1,129 @@
+WORLD013 - SIX WATCHES AND COPIED UNKNOWN-OWNER RECEIPTS; STRICT FAILURE
+28 October 2026 | One approved disposable Windows pair; no repeat
+
+World013 reaches the same tick2 strict stop. The full imported-world stream
+reconstructs without errors; the captured motion domain differs on80d4f and9d39b.
+The new sixth watch92efa binds and captures cleanly, but has no command batch or
+motion difference in this run. Four bounded unknown-owner samples per client
+now expose verified local script/object ancestry. They do not establish a
+canonical leaf identity. All56 strict failures and the failed session remain.
+Saved IDs are hexadecimal; raw runtime IDs, lifetimes, PCs and counts are decimal.
+
+EXACT INPUTS AND LIFECYCLE
+
+Frozen source: b7c06a14875073c9d4ea7c90d20f9a11eb122a75.
+DLL source: cfaf7d346dd003e4b08fdd3d2990879785063d3d.
+DLL727040 bytes, SHA256:
+a1673a65f94c68c313b3f4b7d98b1335d6e8bb33eda5c7a01c86de8fd3176c8a.
+Overlay manifest SHA256:
+1a760ee8919bd50244e8d02285d23f0259161ffd078a4d72ed59b3fe3ed5f988.
+Root independently verified494 source/archive files,161 build-source hashes,
+11 payloads and absence of extras. Only DLL, probe and configuration differ
+from012; the sole configuration change appends92efa to the five existing watches.
+Eight common payloads retain exact012 bytes, with generator/final LF-versus-CRLF
+copy provenance recorded. The three input manifests, snapshot, scenario,
+Wait policies/seeds and single Find intervention remain unchanged.
+
+New copied unknown details use the existing Values diagnostic. No extra Action
+or Wait selection, player/GetUp action, construction scenario, CreatePosition
+intervention or math change is enabled. Existing native type, lifetime, model,
+queue capacity and read-failure guards remain strict; no outside ship is added
+to a fixture actor slot or rebound to bypass a failed guard.
+
+After exact hash and idle-lane rechecks, one canonical release5d5 pair ran on
+b1/b2, disposable profiles45850/45851, with12-tick/first-mismatch bounds,
+260-second runtime and900-second admission wait. Runner21032 started
+07:37:18.253061UTC. Its owned X4 PIDs98552 and103224 started07:37:20.900UTC and
+07:37:21.682UTC at the exact disposable game-view executables. Relay tick-1,0,1
+matched; terminal07:39:34.788047UTC reported battle_state_mismatch_tick_2 after
+136.296 seconds. No retry or further game was launched.
+
+Both games closed gracefully with exit0. Both lane and snapshot restorations
+succeeded, the session self-check list was empty, and canonical status at
+07:40:08UTC showed idle lanes, no X4 processes and no queued request. Normal
+disposable snapshot-write warnings remain alongside successful restoration.
+
+CAPTURE AND SIXTH WATCH
+
+Both streams retain521929 imported IDs and426799 present objects. Each contains
+531937 complete WORLD_OBJECT rows, including20016 full774-byte Nav rows with
+198-hex-character raw witnesses. World reconstruction errors=[]; frame1 captured
+roots match, and the first difference is frame2 motion on80d4f/9d39b. Captured
+topology, health and V2 timing roots match. Unknown-motion coverage remains32607
+objects: equality of the implemented domains is not full game-state parity.
+Physical selectors match between clients and stay stable within each scan:
+read1/write0 at frame1, then read0/write1 at frame2. Raw witnesses are retained.
+
+Each client has54 complete world-trace events/1458 rows for all six watches,
+with six early bindings/imports and zero failure, dropped or unmatched count.
+92efa has one loaded snapshot, two path-before/two path-after observations,
+one baseline and one Agent call. Its captured motion domain does not differ
+here and no selected queue batch belongs to it. This does not resolve its
+observed World012 divergence or establish its restored Wait deadline.
+
+Queue and provenance parsers report no errors. Both clients record10 enqueues,
+10 dispatches and2 appends, with22 complete events, zero outstanding/open debt
+and restored hooks. The batches remain80d4f/pilot80d54/move.idle PC67 and
+9d39b/pilot9d3a4/move.seekenemies PC48, both boot2/tick0/time7.083. References95
+and29 respectively match while target vectors differ. No6d940/930fc/92efa
+batch is captured before stop. Natural Wait6d945 deadlines7.43285974319458 and
+7.216132724838257 remain unequal but beyond this run's captured interval;
+both natural single-step checks validate. The two intervened Wait deadlines match.
+
+NEW UNKNOWN-OWNER EVIDENCE
+
+Each client exports four complete samples as20 rows, with open0/closed1.
+Actual logged row lengths are1588 bytes for four script rows and1636 bytes for
+sixteen object rows, within the reviewed bound. All four local samples have
+supported=true, ancestry_complete=true and validation_errors=[], while
+canonical_identity=false and context_registry_supported=false remain explicit.
+
+All four samples are the same locally observed NPC lifetime running orders.base
+version7. Stored PCs1,4,5,12 match actual program slots0,3,4,11. The raw entity
+runtime1358082 and context lifetime1358094 repeat in each client. Copied typed
+ancestry is NPC -> Cockpit -> ShipMedium -> Zone, ending at saved Zone3fd
+(1021 decimal). The first three objects have no saved-map identity. The full
+registry-generation/object checks and before/after copies validate locally.
+
+Matching raw runtime numbers, script locations or a saved ancestor are not a
+canonical identity for the NPC, cockpit or ship. Context-registry support is
+also explicitly absent. These four first samples cannot represent every unknown
+call: unknown Action totals remain2095 versus2058. Original reason6 rows,
+aggregate coverage failures and all raw bytes remain unchanged. The evidence
+narrows the missing-identity investigation; it does not prove a particular
+creator, job, equivalent spawn or complete cross-client lineage.
+
+FIND AND FIRST SUPPORTED VALUE DIFFERENCE
+
+The single selected Find again validates locally and returns saved component29
+in both clients. Seed65d8202ad9940908 advances once to22403ede5ea8c4dd; the same
+four candidates and unchanged imported anchor validate. Caller states
+b0dff32936722ffb and40084642f6924ce5 are restored exactly in their own clients.
+The selected result is valid/equal while global capture/RNG parity remain false.
+
+Supported Values1..5 match; the first unequal supported result remains
+Value6/Action30 CreatePosition, pilot9d3a4, order.fight.patrol v10,
+native slot215/PC216, boot2/tick0/time7.083. Outputs are:
+  client1 (-7713.84765625, 34819.81640625, -31157.677734375)
+  client2 (4344.91650390625, -39895.40234375, -26699.037109375)
+Incoming RNG already differs; evaluated radius/base/space inputs are still
+unobserved. Six unsupported Value events per client and the global failure
+remain. The separate CreatePosition design is source-only; this run adds none
+of its proposed capture sites and authorizes no further intervention.
+
+PRIVATE EVIDENCE AND CHECKPOINT
+
+Private paths under this worktree's .local/native-lockstep/:
+  world-motion-013/client{1,2}/engine-output.log and installed/
+  world-motion-013/client{1,2}/selected-observer-lines.txt
+  world-motion-013/result.json, validation.json, world-difference.json
+  world-motion-013/selected-causality-summary.json, compact-summary.json
+  world-motion-013/queue-trace-analysis.json
+  world-motion-artifact-audit-013.json, world-motion-cleanup-013.json
+  world-motion-{source,build,overlay}-013/ and proposed-launch-013.json
+
+Compact summary includes the untouched raw-log SHA256 hashes, typed ancestry,
+row integrity and original selected evidence. Frozen inputs and raw logs remain
+uncommitted and unchanged. Independent unknown-receipt review has the exact raw
+and parser paths. No further native run, broader seeding, canonical remapping,
+failure waiver or publication is authorized by this report.

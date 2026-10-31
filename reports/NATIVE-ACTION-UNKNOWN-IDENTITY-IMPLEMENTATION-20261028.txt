@@ -1,0 +1,120 @@
+Bounded unknown Action identity diagnostics
+28 October 2026 - source and offline checks only
+
+Scope
+-----
+This implements the approved proposal763d3f1 on isolated base51b4826.
+It adds copied diagnostics to the existing unknown Action callback. There is
+no new interception, engine function invocation, native identity enrollment,
+RNG access, engine write, canonical ID or exception to reason6 coverage.
+No game, installed bundle, shared profile or frozen artifact was changed.
+
+The two callback forwards now include the existing node/Exec/frame arguments.
+The original Action wrapper still calls its original exactly once. Existing
+WORLD_VALUES_UNKNOWN formatting, first-four-per-reason retention, total/omitted
+counts and parent failure remain unchanged. Up to28 independently indexed
+samples remain; equal observed owners are not deduplicated or extrapolated to
+the omitted observations.
+
+Copied proof and limitations
+---------------------------
+For eligible reason6 samples, the pure reader checks the exact tag66/context
+layout, descriptor vtable and bounded inline/heap script name, version, stored
+PC and actual observed node. PC-1 must select that node in the bounded program.
+It does not derive a saved XML index, event origin or semantic RNG identity.
+
+Entity and ancestry reads verify primary RTTI, the pinned normalized class
+bitmap stub, Component membership and (for the owner) Entity membership.
+The exact copied RTTI name identifies the observed subclass. No getter is
+called. The ced70 registry layout independently checks the full object ID,
+generation, live/status bits and pointer. Context lifetime remains a separate
+field; the Component registry mask is not applied to context IDs.
+
+At most8 parents are followed, only after each object passes that proof.
+Termination distinguishes a saved ancestor, explicit null, cycle, depth limit
+and unsupported metadata. An unsupported or unreadable ancestor is not a typed
+null. A saved ancestor supplies supporting provenance, not a canonical identity
+for an unsaved descendant. Dynamic creation, replacement and stale lifetime
+remain separate possibilities until actual new evidence resolves them.
+
+The complete detail is read twice before the Action original. A final original
+owner/CURRENT/phase check and STOP publication check retain refusal on change.
+No engine lock, reference count or borrowed lifetime is extended. Repeated
+reads cannot exclude byte-identical ABA or prove an atomic lifetime lease.
+All retained data is copied; later Lua drains never dereference engine pointers.
+
+Bounds and wire format
+----------------------
+The pure reader has hard512-read/16KiB budgets shared by both captures. Its
+maximal supported shape (95-byte heap script name,127-byte RTTI names, owner
+plus8 ancestors, two passes) actually uses398 reads and6200 bytes. The existing
+unknown-owner checks and added final guard require at most85 further guarded
+reads, each at most8 bytes: the complete callback remains below512 reads and
+16KiB (483 reads/6880 bytes). The wire reads/bytes fields count the pure helper;
+they do not pretend to be measurements of the existing wrapper checks.
+
+WORLD_UNKNOWN_IDENTITY schema1 is a separate stream keyed by original sample
+index and part. Part0 is a364-byte explicit little-endian script/phase record;
+part1 is the376-byte owner; parts2..9 are376-byte ancestors. Every row carries
+both copied passes as hex plus bounded status/budget fields. Native struct
+padding is not serialized. All rows including log prefix remain below2048 bytes.
+There are at most280 detail rows. WORLD_UNKNOWN_IDENTITY_STOP separately proves
+retained/complete/exported row counts, closed admission and no open callbacks.
+Old rows are unchanged, and old logs report detail-unavailable.
+
+The independent Python parser derives support from copied raw class/registry,
+descriptor/program/phase and ancestry data. It checks exact raw lengths, keys,
+integer bounds, sample/part order, duplicates, both captures and STOP counts.
+Producer status flags cannot turn incomplete raw data into a supported owner.
+Each result retains its own copied rows and validation errors. Supported owner
+metadata with unsupported ancestry is explicitly partial. Neither successful
+details nor partial details remove the original global unknown failure.
+
+Reload retention
+----------------
+The existing Values configuration now latches image/thunk, boot options/start,
+slot/port/token and initial digest on its first successful installation.
+Same-session phase1/2 configuration acknowledges existing healthy owned words
+and immutable thunk bytes without calling setup/CAS/protection code, resetting
+buffers/counters or reinstalling. Existing first-configuration UI/preload
+requirements remain. Changed binding, inactive/STOP, foreign bytes or pending
+patch cleanup refuse. The latch contains no new user-visible secret output.
+
+A read-only Values cursor accessor lets reexecuted Lua resume selected, unknown
+and identity drains from the retained native cursors. It does not reset them
+or replay old rows. Existing unrelated observer cursors are outside this change.
+
+Validation
+----------
+The full Windows native-gate build and owned-memory test command passed against
+the exact read-only9.00 Steam23660954 executable19750a65...6891. This includes
+the added ced70,10631b0 and1063750 full pins, existing owned patch reconstruction
+and full-image identity check. No proprietary bytes were added to source.
+
+The new C cases include valid inline/heap descriptors, actual-image normalized
+class decoding,10 registry entries across all lanes compared with the existing
+pure transition helper, generation/status/pointer/full-ID refusal, invalid
+metadata/program/string bounds, pointer overflow, real PAGE_NOACCESS reads,
+every successful read's injected failure/STOP, controlled lifetime changes,
+and two real-thread between-pass lifetime/STOP schedules. Maximal ancestry/name
+shape and worst-width serializer tests passed. Source state is read only.
+Existing six unknown callbacks still produce six original calls, the same
+native test RNG increments, four retained samples and two omissions.
+
+Production Values configuration tests cover retained buffers and all three
+cursors across phase1/2, plus13 changed-session/STOP/debt/foreign predicates
+with no setup calls. Actual LuaJIT reexecution after a prior drain preserves
+cursor progress and emits each retained row only once.
+
+The independent parser accepted the actual C-owned-memory export with exact
+image-derived class bytes. Seven focused parser tests,85 world Python/LuaJIT
+tests and27 probe LuaJIT tests passed. Deliberately synthetic data and owned
+memory are not actual World010 captures or a native gameplay-parity proof.
+
+Review/integration
+------------------
+World's scoped Find logic and shared transition registry helper are untouched.
+The additive parser return should preserve World's separate per-record
+validation_errors follow-up when integrated. Root must review this source and
+produce an integrated artifact before any future native diagnostic run.
+The prior World010 failure and its bounded samples remain unchanged evidence.

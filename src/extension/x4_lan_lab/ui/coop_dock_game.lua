@@ -69,7 +69,7 @@ function c.receive(f,now)
  if not s.client or f[3]~=s.client.lease or d.closed then return true end
  if f[1]=='CDOCK_DENIED' then
   if #f~=7 then return true end
-  local e,epoch,seq,dock=integer(f[4],2),integer(f[5],2147483647),integer(f[6],2147483647),integer(f[7],250000)
+  local e,epoch,seq,dock=integer(f[4],c.count),integer(f[5],2147483647),integer(f[6],2147483647),integer(f[7],250000)
   local published=e and d.published[e]
   if e and e>0 and epoch==c.epochs[e] and c.owners[e]==cfg.slot and seq and dock and dock>0 and published and published.epoch==epoch and published.dock==dock and seq>=published.first and seq<=published.seq then
    local old=d.denied
@@ -82,7 +82,7 @@ function c.receive(f,now)
   return true
  end
  if #f~=9 or type(f[4])~='string' or #f[4]~=32 or not f[4]:match('^[a-f0-9]+$') then return true end
- local e,epoch,seq,dock=integer(f[5],2),integer(f[6],2147483647),integer(f[7],2147483647),integer(f[9],250000)
+ local e,epoch,seq,dock=integer(f[5],c.count),integer(f[6],2147483647),integer(f[7],2147483647),integer(f[9],250000)
  if not e or e<1 or not epoch or not seq or not valid(f[8],dock) or c.owners[e]==cfg.slot or c.epochs[e]~=epoch then return true end
  local old=d.remote[e]
  if old and old.epoch==epoch and old.lease==f[4] and seq<=old.seq then return true end
@@ -119,7 +119,7 @@ RegisterEvent('X4LAN_CoopDocks.Error',function(_,reason) stop(reason) end)
 RegisterEvent('X4LAN_CoopDocks.Row',function(_,payload)
  if not d.ready or d.closed then return end
  local age,stamp,e,ship,mode,dock=tostring(payload):match('^([^|]+)|([%d%-T:]+)|(%d)|([^|]+)|(%u+)|(%d+)$')
- age,e,dock=tonumber(age),integer(e,2),integer(dock,250000)
+ age,e,dock=tonumber(age),integer(e,c.count),integer(dock,250000)
  if not age or age~=age or not stamp or #stamp~=19 or not e or e<1 or not valid(mode,dock) then return end
  local ok,id=pcall(ConvertIDTo64Bit,ship)
  if not ok or id~=c.ships[e] then return end

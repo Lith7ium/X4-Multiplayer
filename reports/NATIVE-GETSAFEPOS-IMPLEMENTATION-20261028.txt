@@ -1,0 +1,144 @@
+PASSIVE GETSAFEPOS CANDIDATE RECEIPTS - 28 OCTOBER 2026
+
+Status
+
+Source-only, default-off diagnostic. No game, native installation, staging,
+engine getter/evaluator rerun, RNG write, or gameplay correction was performed.
+The new scope is exactly saved pilot80d54, move.idle v4, slot51 / stored PC52,
+GetSafePos stage1. It uses the four existing Position sites and reservations.
+The accepted proposal and full native pins are the companion
+NATIVE-GETSAFEPOS-80D54-PROPOSAL-20261028.txt and PINS.json.
+
+The implementation composes the accepted Position RNG callback checkpoint
+(afe9f899) and all three strict parser corrections through580b7a0. Its passive
+selection is independent of the patrol Action30 intervention. The direct
+Position schema2, Find179-byte key, Wait policies and Position RNG key/seed
+are unchanged. The shared original calls remain exactly once.
+
+Native boundary and owned proof
+
+world_position_outer captures _AddressOfReturnAddress directly in its noinline
+entry wrapper. The outer trampoline preserves the native replayed RAX. The
+passive record requires caller c72905, descriptor==observed Action node+28,
+original frame, nonnull reference, and output==T+c8. The actual incoming frame
+must be aligned T mod16==8, fit the current TIB stack interval, and contain:
+  T+000: c72905       T+260: be2382
+  T+278: frame        T+288: the same passed reference
+The alternate c7284a path is explicitly refused. No generic DLL-return or
+compiler-frame membership substitutes for these exact native caller witnesses.
+
+An independently authored assembly/C proof exercised the matching unhooked
+seven-push/sub220 evaluator caller, direct wrapper T, exact replay trampoline,
+normal/full-RAX return, all eight nonvolatile GPRs and XMM6..15, live
+RtlVirtualUnwind and a propagated RaiseException. It passed71 active checks.
+Its deliberately incorrect parent offset failed three checks with exit37.
+This proof was retained privately; it did not execute native engine code.
+
+The committed production fixture then executes the actual new callbacks and
+existing wrappers through an owned Action-like caller -> unhooked evaluator
+frame -> patched outer entry -> trampoline -> authored candidate body ->
+modified radius CALL -> real radius wrapper -> authored range frame -> real
+sampler wrapper. Actual callsite/return addresses and unwind registrations are
+used. The exact X4 image is read-only pin input; every executed body is owned
+replacement code, not an engine function. No game is launched by the tests.
+
+Capture and lifetime
+
+A retained immutable passive callback table and separate TLS record accompany
+each outer invocation. A foreign nested invocation temporarily hides the
+previous passive scope and marks its selected parent failed. A second selected
+occurrence, nested selected scope, missing/repeated radius or sampler,
+unsupported sampled input, changed identity, read failure, STOP or exception
+cannot produce accepted evidence. There are at most four stored records and
+exactly one selected occurrence is required by the independent validator.
+
+The record copies the native arguments, both caller-frame witnesses, checked
+saved reference and Windows-local class signature, branch tags, partial live
+Action/program-header/slot guards, clocks and FP controls. The radius boundary
+copies the already-evaluated base and actual result. The sampler boundary
+copies actual source pointer, span/distribution/parameter, evaluated numeric
+minimum/difference Values, result and RNG endpoints. It never evaluates a
+Value or getter again. Candidate output is copied only after normal return.
+
+The actual positive production path uses159 counted reads /4,360 native bytes.
+The enforced per-record limits are256 reads /8,192 bytes, narrower than the
+proposal's maximum512 /16KiB. All partial guard, stack and reference reads are
+counted. Original engine execution is not described as part of this observer
+read budget. A budget overflow refuses; no guard is omitted to fit it.
+
+Partial guards do not rehash the whole program. The independent parser joins
+an actually completed parent Action (including its existing program validation)
+and the unique valid native be23af assignment from the same Action/frame/thread
+and PC. Values with existing validation_errors remain invalid. Endpoint copies
+do not detect byte-identical ABA, and no engine reference is acquired.
+
+The finally sequence is retained RNG cleanup, passive cleanup, then common
+wp_outer_finish publication. No observer lock crosses an original call. Every
+exceptional finally path touches only retained private state/counters/TLS;
+it does not reread borrowed stack/object buffers, invoke Lua or log. If an
+exception prevents later Lua drain, missing evidence remains a failure. The
+inherited enclosing Action exception-coverage limitation is not repaired here.
+
+Configuration, output and comparisons
+
+Explicit --world-safe-position requires --world-position and its existing
+Action/Values dependencies. Lua calls world_safe_position_config only when the
+new exact true flag is present, after those dependencies. Configuration binds
+the active immutable boot/Action session and exact owned patch/thunk/pin state.
+Healthy same-session UI reattachment acknowledges the unchanged retained binding
+while rechecking read-only native patch bytes, thunk readiness and exact pins.
+It does not install, reset records/counters/cursors, change a serial or reseed
+anything.
+Changed bindings, failed/closing dependencies, STOP, foreign callback/patch
+bytes, lost ownership and pending protection/cache cleanup are refused.
+
+Separate methods expose config, retained cursor, bounded status and rows.
+WORLD_SAFE_POSITION schema1 contains6,184 bytes in25 rows of at most256 data
+bytes. Its common private codec prefix is the existing5,320-byte Position
+record; that reuse does not enroll it as a direct Position event. The suffix
+contains two seven-qword caller witnesses and two376-byte reference captures.
+The direct transform slots remain reserved zero and make no transform-coverage
+claim. Terminal proof requires one complete/exported record, zero failures,
+open/restoration debt, dropped rows and shared patch ownership/debt. Row bounds
+are checked before trimming; reordered, repeated or incomplete rows refuse.
+
+The canonical diagnostic output retains the evaluated candidate base/range,
+actual sampler data, all measured RNG endpoints, checked reference identity
+and its Windows-local class metadata. It does not attribute every candidate
+continuation or whole Action RNG step to a direction/avoidance algorithm.
+Only the audited sampler endpoint transition is validated.
+
+candidate_payload_equal_final_value compares all16 candidate and assigned
+payload bytes. Both values are retained. Inequality is valid data, not a reason
+to discard the capture or a permission to ignore a cross-client difference.
+No shared-coordinate or avoidance-input equality is inferred. The committed
+owned fixture deliberately changes the final payload and consumes additional
+original-owned RNG steps; its complete receipt remains valid. Coherent class
+changes remain visible to the paired comparator. Unknown owner/canonical-ID
+failures in enclosing coverage are preserved.
+
+Verification
+
+Final focused production C test:1,593 active checks, O2/-DNDEBUG, exact-image
+pins, actual incoming frames, unchanged-original forwarding, per-read failure
+and STOP, normal/SEH drain, worker-thread STOP/restoration while original is
+blocked, retained callbacks after detachment, explicit finish order, missing/
+repeated/alternate calls, overflow/noaccess, healthy UI reattachment and every
+foreign patch/debt refusal. No acceptance assertions rely on disabled assert().
+
+Actual C formatter output passes complete Action/Value joins,161 rejected guard
+mutants, two coherent class differences, raw-row refusal and valid unequal
+candidate/final payloads. The native build driver includes this check alongside
+the unchanged direct Position and Position RNG tests. Full combined native
+suite passed; the final exact source was rerun after the last nested-depth guard.
+
+Python/native suite:807 discovered,799 passed, eight existing Linux-owned-process
+checks skipped on Windows. Eight new focused tests include two genuinely fresh
+LuaJIT states sharing retained native state, one Load request, retained drain
+cursor, failed reattachment and explicit default-off builder/validator guards.
+
+Historical raw World014/015/016 replays preserve the exact ordered64/56/56
+errors, respectively. All remain session_pass=false. The new diagnostic result
+is null when absent. Raw logs, private executable fixtures and local test output
+remain outside Git. These checks do not establish native GetSafePos input
+parity, avoidance parity, portable math parity or a deterministic remedy.

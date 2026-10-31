@@ -1,0 +1,360 @@
+PORTABLE BIT-EXACT FLOATING POINT FOR THE WINDOWS AND LINUX X4
+29 October 2026 | Offline work and proofs | branch contrib/ferrite-fp-math from 891bcc1b
+
+SCOPE
+
+Make the Windows X4.exe (MSVC, static CRT) and the Linux X4 (GCC 14.2, glibc
+libm) of X4 9.00 (Steam build 23660954, in-game build 611726) compute the same
+floating-point results where a bounded set of patches can reach, and make two
+Windows PCs with different CPUs (Intel/AMD, FMA3 or not) compute the same bits.
+Work list: LOCKSTEP-CROSSPLATFORM-FP-INVENTORY-20261029.txt (classes M, D, A, E,
+P) and LOCKSTEP-CROSSPLATFORM-PATCH-TARGETS-20261029.json. Rules:
+docs/ENGINE-INSTRUMENTATION.txt and docs/ENGINE-REIMPLEMENTATION.txt (our code
+only, default off, pinned to the build, fail closed, restored at stop).
+
+Nothing here launched X4, a lane, a relay or a remote machine. The executables
+were only read (X4.exe 55,412,768 B SHA-256 19750a65...6891; Linux X4
+60,459,280 B SHA-256 113f73d7...045f20, build ID 77cf7ac0...b711d). Native-image
+tests map or relocate a copy of the code into a test process. Every result below
+is PROOF (built, executed, decoded or compared) unless marked INFERENCE. No live
+game evidence exists yet; section 7 lists what to run.
+
+VERDICT
+
+1. One math library, src/native/portable_math, gives the same bits for all its
+   functions on every x86-64 compiler and C library tried, for every input and
+   every caller MXCSR (section 2), at 0.50 to 1.63 ulp (section 3).
+2. Windows: four gate modules, each default off: the CRT math entries and the
+   compiler sin/cos helpers to that library (156), RCPSS/RSQRTSS to exact
+   arithmetic (157), one MXCSR on every X4 thread (158), one correctly rounded
+   reader for saved values (159). Together they remove the CPU dependence the
+   inventory found inside one Windows binary (FMA3 dispatch, rcp/rsqrt vendor
+   bits, per-thread MXCSR), so Windows-to-Windows lockstep across an Intel and
+   an AMD PC no longer depends on these classes.
+3. Linux: libx4mp_portable_math.so (LD_PRELOAD) gives the Linux X4 the same
+   library for its 28 libm imports and, opt-in, the same RCPSS/RSQRTSS rewrite
+   and decimal reader. Linux-only sessions across CPUs are covered the same way.
+4. Windows+Linux in one session: the library, approximation, MXCSR and decimal
+   differences are aligned (both builds now compute these the same way), but the
+   compiler class C (fast-math reassociation, float-for-double, NaN-blind
+   compares, floor emulation) remains; mixed sessions stay out of reach (D10).
+
+COMMITS (contrib/ferrite-fp-math, not pushed)
+
+  4029929b  Portable bit-exact math library (src/native/portable_math)
+  71770214  Gate: CRT math entries and sin/cos helpers (native_gate_portable_math, 156)
+  844548f7  Linux: libx4mp_portable_math.so interposes the 28 libm imports
+  bacd073e  Gate: RCPSS/RSQRTSS to exact arithmetic (native_gate_exact_reciprocal, 157)
+  c6710ff2  Gate: one MXCSR for every X4 thread (native_gate_fp_env, 158)
+  965f998e  One correctly rounded reader for saved values on both builds
+            (native_gate_decimal, 159; preload X4MP_PORTABLE_DECIMAL=1)
+  c84b829c  Exact reciprocal: one trampoline emitter for both builds
+  cd92d3a8  Linux: RCPSS/RSQRTSS rewrite in the preload (X4MP_EXACT_RECIPROCAL=1),
+            executable identity check, dedicated key portable_math_patches
+  aab8920a  Exact reciprocal: rcp(rsqrt(x)) chains become sqrt(x) on both builds
+  and this report.
+
+1. LIBRARY
+
+src/native/portable_math/portable_math.{h,c}: 45 functions, double and float:
+sin cos tan sincos asin acos atan atan2 exp exp2 expm1 log log2 log10 log1p
+pow fmod hypot cbrt sinh cosh tanh, plus x4pm_kat() (known-answer digest
+0x06e026f4169223c1 of this version; every consumer refuses to install on any
+other value).
+
+Rules (portable_math.h): only + - * / and SQRTSD, int<->double conversions and
+integer bit operations; no FMA, x87, long double, host libm or CPU dispatch; the
+file refuses to compile under fast-math, excess precision or an FMA target;
+build flags -ffp-contract=off. Full Payne-Hanek argument reduction. Each entry
+evaluates under MXCSR 0x1f80 when the caller's differs and restores it. NaN
+results are canonical. sincos is bit-identical to (sin, cos). pow folds y = 2,
+1, -1 to x*x, x, 1/x as both compilers fold such calls. Float functions evaluate
+the double algorithm and round once.
+
+Licensing: the double algorithms are derived from musl libc's math library
+(MIT), whose parts carry the fdlibm notice (Copyright 1993 Sun Microsystems,
+permissive) and, for exp/exp2/log/log2/pow, the Arm Limited MIT notice. All
+three permit modification and redistribution with the notice; they are
+compatible with the repository's PolyForm Noncommercial terms for our own code.
+The files are generated from Zig 0.15.2's bundled musl sources (renaming,
+static linkage, FMA and TOINT branches removed); sin/cos/tan/sincos keep musl's
+structure, with a sincos that takes exactly the branches of sin and cos. Notices: src/native/portable_math/musl/LICENSE-musl.txt and NOTICE.txt.
+No game code or decompiler output is involved.
+
+2. PROOF: THE SAME BITS ON EVERY BUILD
+
+tools/dev/check_portable_math.py builds the harness nine ways and runs the same
+input set through each: Zig 0.15.2 for x86_64-windows-gnu at -O0, -O2, -O3 and
+-O2 -march=native (FMA allowed for the compiler, contraction off); GCC 13.3 in
+WSL Ubuntu 24.04 (glibc 2.39) at -O0, -O2, -O3, -O2 -march=native; Zig for
+x86_64-linux-gnu -O2.
+- 88,020,160 results (44 function streams, about 2,000,000 points each: random
+  bit patterns, uniform ranges, edge cases incl. NaN payloads, infinities,
+  subnormals, signed zeros and huge trigonometric arguments), each under three
+  caller MXCSR values (0x1f80; 0xffc0 = FTZ+DAZ+round toward zero; 0x1900 =
+  invalid, divide and overflow unmasked): all 27 runs give SHA-256
+  591e401ca50cde3fa3ca0593a41e6ce703c3332d17f49e3f3bb82866ae64c007.
+- Exhaustive: all 2^32 binary32 inputs of the 18 unary float functions, Windows
+  Zig -O2 against Linux GCC -O2: identical digests for every function.
+- The Linux preload against the same library: 1,120,000 calls through the PLT
+  (PIE, non-PIE like X4's ET_EXEC, -z now; Zig and GCC builds of the .so) all
+  equal to the library; glibc itself differs on 70,708 of those inputs.
+
+3. ACCURACY (mpmath reference, about 10,000 to 21,000 points per function)
+
+Float functions: at most 0.5000 ulp everywhere measured (correctly rounded on
+every point). Double: exp 0.502, exp2 0.503, log 0.500, log2 0.523, log10 0.588,
+pow 0.502, sin 0.742, cos 0.705, tan 0.734, sincos 0.709, asin 0.710, acos
+0.802, atan 0.728, atan2 1.234, expm1 0.723, log1p 0.733, cbrt 0.665, hypot
+0.874, sinh 1.496, cosh 0.986, tanh 1.626; fmod exact (43,154 cases).
+
+4. WINDOWS GATE (x4lan_gate_64.dll; keys in the gate options, all need the
+   snapshot boot; tools/dev/check_gate_options.py)
+
+4.1 native_gate_portable_math = true, stop reason 156.
+X4.exe's CRT picks an FMA3 or an SSE2 body at run time (__use_fma3_lib
+0x38edec0, set by __crt_init_fma3 0x1a310b0 from CPUID). 29 entries are pinned by
+SHA-256 and sent to the library through 16-byte stubs: the 26 transcendental CRT
+entries X4.exe calls (RVAs): log2f 0x1a10928, exp2f 0x1a11848, acosf 0x1a19250,
+sinf 0x1a19480, cosf 0x1a19b80, atan2f 0x1a1a398, powf 0x1a1a790, pow
+0x1a1e840, atanf 0x1a23e64, tanf 0x1a240d0, log2 0x1a24744, exp2 0x1a250cc, acos
+0x1a251c0, asin 0x1a25460, atan 0x1a256e4, atan2 0x1a258fc, cos 0x1a260d0, exp
+0x1a26650, log 0x1a26a50, sin 0x1a26f80, tan 0x1a274f0, log10 0x1a38060, asinf
+0x1b43ce0, expf 0x1b43ed0, log10f 0x1b44460, logf 0x1b44940; and the compiler's
+sin/cos helpers with their lane ABI: 0x1750210 [sin x, cos x], 0x1750253
+[sin a, cos a, sin b, cos b], 0x1b42f20 binary64 [sin x, cos x]. The internal
+log2f body 0x1a10798 is reached only by the jmp at 0x1a1092b inside the hooked
+entry (all rel32 branches in .text scanned). fmod, fmodf, sqrt, sqrtf, round and
+roundf stay native (exact). No call site keeps a volatile register live (1,796
+sites scanned). Install and restore suspend the other threads (NtGetNextThread)
+and refuse while one stands in a 5-byte window. Native-image test: all 29
+entries executed natively, redirected (bits of the library) and restored.
+
+4.2 native_gate_exact_reciprocal = true, stop reason 157.
+1,264 RCPSS/RSQRTSS are reachable by recursive descent from the .pdata roots
+(1,289 by linear sweep). 1,262 are rewritten in 819 windows of whole
+instructions (2 refused: an inner instruction boundary is a branch target).
+Semantics (src/native/portable_math/exact_reciprocal_emit.h):
+  rcpss d,s                     d[0] = 1/s[0]           (DIVSS)          53
+  rsqrtss d,s                   d[0] = 1/sqrt(s[0])     (SQRTSS, DIVSS)  223
+  rsqrtss d,s ... rcpss d,d     d[0] = sqrt(s[0])       (SQRTSS)         493 chains
+lanes 1-3 of d, the flags and every other register unchanged. A chain is an
+RSQRTSS followed in the same block by RCPSS d,d with nothing in between touching
+d and no branch target, function boundary or referenced address in between: the
+approximate length rcp(rsqrt(x)), adjacent 434 times and apart 41 times. Its
+sqrt(x) is what a compiler without fast-math computes and what the Linux build
+has where X4.exe uses the pair (inventory C7, Bullet::UpdateFlight), and the
+value does not depend on the instruction schedule. 18 RCPSS e,d after RSQRTSS
+d,s (e != d), MSVC's form of the pair with the result in another register, were
+rewritten one by one (1/(1/sqrt(x))) until 31 October; since then they are
+chains too (kinds 3 and 6: SQRTSS d,s, then MOVSS e,d and d[0] = 1/d[0], so
+e[0] = sqrt(x) with e's lanes 1-3 kept and d keeps the one-by-one value): 493
+chains, 53 RCPSS and 223 RSQRTSS one by one, the same 819 windows. Pins: FNV-1a 64 per
+window; every tick the window bytes (157 on change); other modules' pins over a
+window read the original bytes (read_local, sample_read, hash_ok).
+
+4.3 native_gate_fp_env = 'default' or 'observe', stop reason 158.
+GameClient::Init 0x1223ce0 sets FTZ on the main thread only (0x14dd0e0 called
+at 0x1225ee7); later threads start with 0x1f80; Linux never writes MXCSR.
+'default' puts every X4 thread on control 0x1f80 (the Linux value): at arm
+(UI thread directly, other X4 threads by SetThreadContext under suspension),
+for new threads through a wrapper in g_ThreadStartHook 0x38f9d58 around
+X4::ThreadStartHook 0x96350, on the UI thread every tick, and on all threads at
+the first tick and every 600 ticks (repairs counted). 'observe' only counts the
+values. Pins: 0x96350, the thread procedure 0x14b7740, 0x14dd0e0.
+
+4.4 native_gate_decimal = true, stop reason 159.
+The saved-value readers 0x14c3090 (binary64) and 0x14c2bd0 (binary32) scale
+with *= 0.1 and the CRT pow; Linux 0x1a3b1a0/0x1a3ac40 with /= 10 and glibc pow
+(inventory P: 2,262 of 38,448 saved AI times differed by one ulp). Both go to
+portable_decimal.c: the engines' syntax, the value rounded correctly once with
+integer arithmetic. 200,070 corpus cases: Zig and GCC builds identical and
+correctly rounded; against the original readers run in an emulator: Windows
+169,892 ';'-separated cases and Linux 200,066 cases (incl. end pointer and error
+flag) agree in syntax and outcome, differing values only where the originals
+are not correctly rounded. 319 call sites scanned.
+
+Other modules (added after live run fp-dc, commit 70d1cff3): native_gate_ai_wait_rng
+and native_gate_world_wait pin 0x14c3090 whole, and the world position RNG pins
+acosf, sinf and 0x1750210. While the decimal or math entry jumps are installed, those
+pins read the original bytes through hash_ok/read_local/sample_read, as the
+reciprocal windows already did, so the modules arm in either order (reproduced and
+tested on the relocated X4.exe). The selected-Wait manifests carry the stock
+reader's bits for saved times; that experiment and native_gate_decimal refuse each
+other. native_gate_ai_wait_rng keys on the loaded time and combines with it.
+
+5. LINUX (libx4mp_portable_math.so, tools/dev/build_portable_math_preload.py)
+
+Preloaded first, it defines sin cos tan sincos asin acos atan atan2 exp exp2 log
+log2 log10 pow and their float forms: exactly the 28 transcendental libm
+imports of the ELF (2,276 PLT calls, 13 GLOB_DAT; no IRELATIVE, no inlined
+transcendental). Versioned references (exp@GLIBC_2.29 ...) bind to these
+definitions. The .so needs only GLIBC_2.2.5/2.14 symbols. Constructor: KAT
+check, then the opt-in engine patches, each refused with exit 97 and a REFUSED
+log line on any mismatch:
+- the executable must be the pinned Linux X4 (load bias 0, its text segment,
+  GNU build ID 77cf7ac0...) before any pinned address is read;
+- X4MP_PORTABLE_DECIMAL=1: 0x1a3b1a0 (FNV-1a 64 over 0x39f bytes) and 0x1a3ac40
+  (0x3bf) jump to portable_decimal.c;
+- X4MP_EXACT_RECIPROCAL=1: all 1,185 RCPSS/RSQRTSS (descent from FDE starts, GCC
+  jump tables and C++ landing pads; linear sweep finds the same 1,185) in 765
+  windows, none refused: 25 RCPSS, 220 RSQRTSS, 470 chains; trampolines in a
+  region mapped below the image at 0x3e0000; stack slot 144 bytes below RSP
+  (beyond the System V red zone). No window touches the x4mp-agent's pinned sites
+  or the decimal readers. 8 of the chains (FR10, 31 October; until then rewritten
+  one by one as 1/(1/sqrt(x)), against this rule) are GCC's form with the result
+  in a copy, RSQRTSS r,s; MOVAPS c,r; RCPSS c,r (BezierSpline::Set 0x1a45a80 has
+  two): kinds 3 and 5, SQRTSS r,s, the copy, then r[0] = 1/r[0], so c[0] =
+  sqrt(s[0]) and r keeps the one-by-one value; run on the installed code of all
+  8, c equals SQRTSS bit for bit, and Set's length equals the canonical one of
+  src/native/engine/lockstep_spline_length.h.
+  Windows has no such copy; its 18 RCPSS e,d are chains as well since then (4.2).
+X4MP_PORTABLE_MATH_LOG receives "X4MP_PORTABLE_MATH ACTIVE version=1
+kat=06e026f4169223c1 symbols=28 decimal=<0|1> exact_reciprocal=<n>/1185
+mxcsr_control=<value> ...". Dedicated server: "portable_math": "<.so>" and
+"portable_math_patches": "decimal,exact_reciprocal" (or X4LAN_PORTABLE_MATH and
+X4LAN_PORTABLE_MATH_PATCHES); off unless configured.
+
+6. RCP/RSQRT ACROSS CPU VENDORS: PROOF BY CONSTRUCTION
+
+RCPSS/RSQRTSS only promise a relative error below 1.5*2^-12, and Intel and AMD
+return different bits (INFERENCE from the architecture manuals; this PC is one
+AMD Zen 5, so the vendor difference itself was not measured). After the rewrite
+no rewritten site executes either instruction: tools/dev/check_exact_reciprocal.py
+decodes every trampoline the modules actually build over the real code (Windows:
+relocated X4.exe in the gate test; Linux: the preload installed over the mapped
+ELF) and requires, per original instruction, exactly the DIVSS/SQRTSS recipe,
+the single register SQRTSS of a chain whose RCPSS d,d is re-derived from the
+original code and must be dropped, or the original bytes (RIP displacements
+re-targeted to the same address), then the jump back. Result: Windows 819
+trampolines (71 + 223 recipes, the 71 including the 18 RCPSS e,d after their MOVSS; 493 chains,
+319 copies, 44 RIP-relative), Linux 765
+(33 + 220, 470 chains of which 8 copied, their RCPSS c,r as the RCPSS recipe on
+r,r; 307 copies, 2 RIP-relative), no approximate instruction
+left. The only arithmetic added is DIVSS and SQRTSS (plus ANDPS/ORPS with fixed
+masks), which IEEE 754 requires to be correctly rounded and which every x86-64
+CPU implements so, under the same MXCSR (fixed by 4.3 on Windows; 0x1f80 on
+Linux). Hence the rewritten sites give the same bits on Intel and AMD.
+Executed: Windows 352 synthetic cases (xmm0-15 pairings, d == s and d != s,
+the pair one by one and as a chain, RIP neighbour); Linux 2,048 synthetic
+windows x 64 inputs (six shapes, every d,s in xmm0-15) compared bit for bit with
+C division and SQRTSS, other lanes, the 128-byte red zone, flags and RSP kept
+(a 16-byte drop is detected).
+
+7. WHAT TO TEST LIVE
+
+Windows, this PC (two lanes as in the census runs), all four keys on both peers:
+  native_gate_portable_math=true, native_gate_exact_reciprocal=true,
+  native_gate_fp_env='default' (or 'observe' first, which writes nothing),
+  native_gate_decimal=true.
+Expected probe log lines: PORTABLE_MATH_ARMED installed=1 sites=29 fma3=<0|1>
+kat=06e026f4169223c1 ...; EXACT_RECIPROCAL_ARMED installed=1 windows=819
+rewritten=1262 ...; FP_ENV_ARMED installed=1 mode=default ...; DECIMAL_ARMED
+installed=1 readers=2 ...; at stop the *_STOP lines with restored=1 failures=0
+and no NATIVE_GATE STOP reason 156-159. Check: lockstep digests still agree
+between the two lanes; frame time within noise (each rewritten site costs a jump
+and a division; not measured); FP_ENV 'observe' first shows which MXCSR values the
+threads really run (a second value besides 0x1f80/0x9f80 would be a driver).
+The keys change results relative to stock: every peer must use the same keys.
+Across CPUs: the same session between an Intel and an AMD Windows PC, keys on
+both; expected: no divergence from classes M, D, A, E, P. Not possible on this
+PC alone.
+Linux (dedicated server): "portable_math" and "portable_math_patches":
+"decimal,exact_reciprocal"; expect the ACTIVE line in portable-math.log with
+decimal=1 exact_reciprocal=1185/1185 mxcsr_control=1f80, and Linux-only
+lockstep between two Linux machines unchanged in behaviour otherwise.
+
+7a. THE PLAY22-SOAK DIFFERENCE (STATE_ROW id=6, 30 October)
+
+One of four FP soaks: relay digest different from tick 2 to the end, world census 0
+at all 21 captures, the only declared difference four floats of fixture 6's second
+body, constant: 39704e20:39a5fc21:3a2cadd6:3f06b05f on client 1,
+39704e01:39a5fbfe:3a2cadd8:3f06b060 on client 2.
+
+Field: Jolt MotionProperties of the body in object+0x268 (gate.body(i,1)): inverse
+inertia diagonal +0x20 and the first word of the inertia rotation +0x30. Inverse
+mass, the other rotation words, pose and velocities are equal.
+
+Not caused by the FP modules (PROOF, from the census logs):
+- The same bits without any FP key: full-X90c client 1, fixture 6, relay DESYNC at
+  tick 2; and long-L17 (28 October, before the modules existed), fixtures 5 and 6.
+- With every FP key on, the other fixtures and runs show the same usual value 39704e20
+  as logs without the keys (113 and 558 of the fixture values in the last 70 runs). So
+  the rewritten rcp/rsqrt, the redirected math entries and the decimal reader do not
+  change these bits, and a thread crossing a window at the arm freeze could not either.
+  The arm also comes before the snapshot load, when these bodies do not exist yet.
+- MXCSR: both clients armed alike (1f80:42, 9f80:1; the 9f80 thread is not the UI
+  thread and is, by inference from GameClient::Init, the main thread).
+- Rates: in the whole census archive (436 runs) these exact bits are in 3 client logs:
+  long-L17, full-X90c, play22-soak. In the last 70 runs: 1 of 19 FP client boots against
+  2 of 94 without FP, counting stock-J2b below (Fisher two-sided p = 0.43). Against the
+  archive (at least 546 boots without FP show this body, 2 with these bits) the same
+  one FP boot gives p = 0.10. So the FP keys are not needed for it, but a timing effect
+  on its rate is not excluded: FP runs take about 2 s longer, which moves the race.
+
+Cause: the asset loader race of lockstep_shape_order.h (the mass is summed over the
+second body's compound children, whose order depends on whether a collision file had
+finished when the body was built). INFERENCE for the child order, which these logs
+do not show, supported by stock-J2b client 1 (no FP key): five different values on
+fixtures 2-6, each later fixture further from the usual value, fixture 1 unchanged.
+
+Effect on the simulation: none seen, and little path for one. The second body has
+object layer 3, the layer bullets ray-cast against (Scene_CastRayAll 0xbc750). The
+layer filters 0xb5250 and 0xb5290 let layer 3 collide only with layer 2; the big-BS6bsa
+trace has 0 of 3,977 contact rows on a second body and no layer-2 body. Its velocities
+follow body 0 (1,926 of 1,932 sampled rows equal; of the rest, the one that could be
+checked is one step behind). In play22-soak every other field of fixture 6 stayed equal
+for 6,003 ticks, with the ship moving and body 0's mass properties changing at tick
+3600. Not proven: that no impulse reaches that body through a path not traced here. In
+the 56 recent runs with tick-2 rows only the second body ever differed (3 runs: these
+two and stock-J2b; body 0 and all other fields equal). The same race did reach body 0 of
+spawned destroyers (big-BS6), where the child order decides Jolt's contact order, so
+it can matter on other bodies.
+
+Remedy: not in the FP modules. native_gate_shape_order (true, 'wait' or 'sync') is not
+in the Play stack; it keeps children at their build index and recomputes the mass, boot
+frames included. Direct proof of the child order at the next occurrence:
+native_gate_physics_trace = 2, native_gate_physics_trace_children = 2,
+native_gate_physics_trace_saved = true.
+
+Found on the way and fixed: native_gate_fp_env's per-frame check never ran live
+(FP_ENV_STOP samples=0 after 6,003 ticks). The gate hook runs on the main thread and
+the UI on the MoveWorker, and the call was gated on the UI thread. It now runs on the
+hook's thread; other threads are sampled from the first admitted frame, every 600
+ticks. A gate stop on the main thread now also restores that thread's recorded 0x9f80.
+So the live runs so far had the arm-time MXCSR setting but no repair or sampling.
+
+8. NOT COVERED
+
+- Mixed Windows+Linux sessions: compiler class C (inventory) is untouched.
+- Packed approximations: RSQRTPS x2 on Windows; RSQRTPS x2 and RCPPS x1 on Linux.
+- Windows: 2 RCPSS/RSQRTSS refused (inner branch target) and 25 found only by
+  linear sweep (not reachable from .pdata roots; left native). 18 RCPSS e,d after
+  RSQRTSS d,s (e != d) give 1/(1/sqrt(x)), not sqrt(x).
+- lua51_64.dll links its own static CRT math; not hooked.
+- The second body's inertia can differ between clients without native_gate_shape_order
+  (section 7a); that is the loader race, not a floating-point module.
+- Linux MXCSR is logged, not enforced per thread (the ELF never writes it and
+  threads inherit it); a library that changes it would go unnoticed except in
+  that log line. The Linux preload has no per-tick integrity check and no restore
+  (process lifetime).
+- Decimal reader: digits are ASCII '0'-'9' as in a C-locale isdigit; a stock
+  reader returns NaN for "0e400" (0 * inf), the portable one 0.
+- Accuracy above one ulp: sinh 1.50, tanh 1.63, atan2 1.23 (deterministic).
+- Other inventory classes: qsort ties (O), Jolt, thread scheduling.
+- Any new code patch on Linux (for example the Linux gate port) must avoid the
+  765 reciprocal windows or read through them, as the Windows gate does.
+- If a package ever ships the gate DLL or the preload, it must carry
+  src/native/portable_math/musl/LICENSE-musl.txt (tools/distribution/THIRD-PARTY.txt).
+- No live evidence yet: everything above is offline.
+
+REPRODUCE
+
+  python tools/dev/check_portable_math.py --zig <zig> --wsl Ubuntu-24.04 [--sweep]   (sections 2-3)
+  python tools/dev/build_native_gate.py --zig <zig> --test --native-image <X4.exe>
+  python tools/dev/build_portable_math_preload.py --zig <zig> --test --wsl Ubuntu-24.04 --cc gcc --elf <Linux X4>
+  python tools/dev/gen_exact_reciprocal.py --windows <X4.exe> --check
+  python tools/dev/gen_exact_reciprocal.py --linux <Linux X4> --check
+  python tools/dev/check_portable_decimal.py --zig <zig> [--windows <X4.exe>] [--linux <X4>]
+  python -m unittest discover -s tests -p "test_portable*.py"   (and test_exact*, test_native_gate*)
+Outputs stay under .local/portable-math/ and .local/native-lockstep/.

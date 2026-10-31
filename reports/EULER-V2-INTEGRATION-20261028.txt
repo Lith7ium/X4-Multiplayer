@@ -1,0 +1,68 @@
+EULER V2 COMBINED WINDOWS / PREPARATION SOURCE CANDIDATE
+28 October 2026
+
+Base:56fe2b35ff9dae92817dfca5bba868f126cdf210.
+This candidate integrates reviewed source only. No game, remote staging, DLL
+bundle freeze or Rust integration was performed. Root owns further review and
+activation. Existing failed runs remain immutable.
+
+Applied Windows/shared stack, in order:
+25a135e,2dfe92f,64d266e,9c889fb.
+Applied Linux preparation/probe/adapter source stack, in order:
+ed6363a,c2f71cc,8b9ca4c,247e9f0,687e88e,eb79d1b,945056f.
+The shared2dfe92f supersedes the byte-identical capability copy0acf6ea.
+Linux native runtime99e6c96 and its later bridge pin build remain isolated.
+
+Integration used no-commit cherry-picks and normal three-way merging. The only
+reported conflict was CONTINUE-HERE.txt; its exact base content was restored.
+All task handoff changes from the other stack were excluded as well. No Rust
+path changed. Twenty-two owned production source files match the respective
+reviewed Windows9c889fb or Linux945056f source byte-for-byte after LF normalization.
+All47 root native construction/creation/GetUp/world/actor-scope files remain
+unchanged. lockstep_gate.c is unchanged. build_native_gate.py retains every root
+test and adds only the three-line shared XML scope test invocation. The thunk
+diff is only the reviewed rotation forwarding recipe and minimum width.
+
+Additional integration edits:
+-tests/test_validate_mixed_native.py adds the v1 capability module to the
+ modeled current five-source proof, updates the negative Euler total mutation
+ from10005 to10006, requires missing either capability module to fail, and
+ adds an explicit Linux Load serial2 refusal with both raw observations joined.
+-tools/dev/validate_mixed_native.py updates only the returned Linux scope label
+ to include the reviewed player bank path. Its acceptance logic is unchanged.
+No counters, ABI, command/barrier policy, native restoration or guard changed
+beyond the independently reviewed patches.
+
+Validation on this combined source:
+-Full build_native_gate.py --test --native-image suite passed, including the
+ preserved construction/GetUp/world checks,83206 Windows rotation checks and
+ 8839 shared XML checks. The optional status-file export's three checks were
+ not enabled in this integration invocation; they passed in standalone review.
+-659 Windows-hosted test_native*.py Python/Lua tests passed, with5 pre-existing
+ Linux-only platform skips. This executes both adapters in actual LuaJIT with
+ bounded synthetic bridges, not game engine Lua/native execution.
+-101 WSL tests passed for load/refusal attribution, native probe, production
+ probe-main models, launcher, same-supervisor preparation, real owned nongame
+ PIDFD/signal/EOF and SSH/UDP cases, validator and v1/v2 capability preflight.
+-53 focused mixed-validator/capability/Windows-receipt tests passed after the
+ fixture update. Strict five-source and serial checks remain required.
+
+Full native command: python tools/dev/build_native_gate.py --zig <reviewed-zig>
+--test --native-image <exact-X4.exe>.
+Windows broad command, PYTHONPATH=src;tools;tools/dev;tests:
+python -m unittest discover -s tests -p test_native*.py.
+WSL command, PYTHONPATH=tools/dev:tests:
+python3 -m unittest test_linux_build_refusal test_linux_load_observer_probe
+test_linux_portable_probe test_linux_probe_terminal_main
+test_linux_native_portable_run test_linux_portable_prepare
+test_native_portable_ssh test_validate_native_portable
+test_portable_import_capability test_portable_import_capability_v1.
+
+The initial broad Windows invocation omitted tools from PYTHONPATH and therefore
+had six module-discovery errors; the corrected complete659-test invocation
+passed. The initial combined fixture still advertised four helpers; the strict
+validator correctly refused it until the test modeled the reviewed five-helper
+closure. Neither failure caused a production guard relaxation.
+
+Private source-join audit and test logs are retained separately. This is a source
+integration verdict only, not native mixed Euler success or whole-game authority.

@@ -84,7 +84,6 @@ class NpcRelayTests(unittest.TestCase):
         self.assertEqual(self.s.npc_combat.states[1]['seq'], 1)
 
     def test_shrinking_health_list_and_expiry_are_bounded(self):
-        self.s.npc_combat.cursor=999999
         self.assertEqual(len(self.frames('NHP',address=P2)),1)
         self.assertEqual(self.frames('NHP',now=6,address=P2),[])
 
@@ -95,8 +94,9 @@ class NpcRelayTests(unittest.TestCase):
         self.send(f'UINTEREST|1|{self.b}|2|{far}',P2,.16)
         self.send(f'NHP|1|{self.a}|{self.a}|9|1|2|{far}|FAR-009|ship_arg_s_scout_01_a_macro|argon|100|80|1',now=.17)
         self.send(f'NCLAIM|1|{self.b}|{self.a}|9|1|2|{self.sg}|1|5|{DIGEST}',P2,.18)
-        self.assertEqual(self.frames('NCLAIM')[0][5], '9')
-        self.assertEqual(self.frames('NHP',.41,P2)[0][7],far)
+        out = [(a, p.decode().split('|')) for a, p in self.s.snapshots(.3)]
+        self.assertEqual([f for a, f in out if a == P1 and f[0] == 'NCLAIM'][0][5], '9')
+        self.assertEqual([f for a, f in out if a == P2 and f[0] == 'NHP'][0][7], far)
 
 
 @unittest.skipUnless(LuaRuntime, 'LuaJIT unavailable')
@@ -173,7 +173,7 @@ class NpcAdapterTests(unittest.TestCase):
 
     def test_host_uses_new_id_after_native_handle_reuse(self):
         self.make('p1').execute('''
-         U.wanted='cluster_14_sector001_macro';for i=1,30 do step() end
+         U.wanted={cluster_14_sector001_macro=now};for i=1,30 do step() end
          local first=U.publish[1].id;U.sender.done=true;U.nextScan=0
          codes[200]='NEW-200';codes[101]='NEW-101';codes[102]='NEW-102'
          for i=1,30 do step() end
@@ -182,7 +182,7 @@ class NpcAdapterTests(unittest.TestCase):
 
     def test_native_retirement_stops_old_readbacks_and_renews_the_world_identity(self):
         self.make('p1').execute('''
-         U.wanted='cluster_14_sector001_macro';for i=1,30 do step() end
+         U.wanted={cluster_14_sector001_macro=now};for i=1,30 do step() end
          local id=U.publish[1].id;local r=N.records[id]
          N.retired(id..'|1|'..r.serial);local seq=N.seq
          N.read(id..'|1|'..r.serial..'|100|100|1');assert(N.seq==seq)

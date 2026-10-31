@@ -1,0 +1,122 @@
+CREATEPOSITION - NATIVE OPTIONAL BRANCH RECEIPTS
+28 October 2026 | source and offline tests only
+
+Observed failure and its cause
+------------------------------
+World014 completed cleanup but failed strict validation with 64 errors. Three
+Position records per client reported only WP_COUNTS (256). Action30 used outer,
+radius and sampler, with no transform: calls=returns=[1,0,1,1]. Actions48 and55
+used outer and transform only: [1,1,0,0]. There were no additional Position error
+bits, open originals or restoration debts. These remain failed native receipts.
+
+The original observer incorrectly required every subpath once. The exact pinned
+native outer evaluator c6f7b0 has optional branches: c6f910 skips space resolution
+and transformation for a zero descriptor+48 tag; c6f92e also skips transformation
+when the actual resolved space is null. c6fb5a skips radius evaluation for a zero
+descriptor+70 range kind. The range evaluator itself has unsampled paths.
+Neither matching Action keys nor an observed call-count vector proves which
+branch was taken. An unchanged-production owned-memory reproduction confirmed
+the overstrict count rule, including two different causes of [1,0,1,1].
+
+The raw six records independently match the frozen decoder. The first failed
+record contains equal copied zero base bytes, numeric minimum zero, difference
+and span 50000, distribution1 and count1. The two different incoming RNG states
+produce the recorded sampler/radius bits 47103100 and4700b3c6 under the pinned
+scalar sampler arithmetic. This is useful failed-run diagnostic evidence, not
+validated input equality or authorization to seed an entire Action. The old
+records lack native branch fields and cannot be repaired retrospectively.
+
+Source correction
+-----------------
+Base: 1a6092eea56cfd75f0a479794e8f2d95085e49bc. The same four engine sites,
+reservations, original calls, arguments, results and default-off configuration
+remain. No RNG write, getter re-evaluation, new canonical identity or new hook.
+
+Receipt schema2 copies five typed descriptor fields before and after the outer
+call: kind at+0, coordinate byte at+4, space expression tag at+48, reference tag
+at+58 and range kind at+70. The actual radius boundary repeats this capture and
+checks it against the outer capture. Calls and returns must agree with these
+native branch inputs. Repeated, missing and forbidden calls still fail.
+
+Space may be transformed, have an absent expression, or have a witnessed null
+resolution. Radius kind0 requires an absent radius/sampler section. Kind2 still
+requires exactly one supported sampler. Constant/list ranges and kind2 paths
+that do not sample remain unsupported. Nonzero space expressions without a
+transform and without the radius witness remain unsupported.
+
+Every inactive section must contain zero bytes, including its guards, object
+proofs and samples. The independent parser derives explicit path states. An
+unevaluated reference or absent radius is not represented as an evaluated null
+object or zero numeric radius. Actual executed partial guards, class/registry
+proofs, completed parent Action and downstream Value/output joins remain required.
+Enclosing unknown failures and partial-guard/full-program limits are unchanged.
+
+Exact native-produced null witness
+----------------------------------
+The pinned d1c8a0 resolver returns its output address in RAX at d1cc55. On the
+null-result path c6f927 -> c6f92e -> c6fb55 -> c6fb6a, no instruction changes RAX.
+The existing 3872..3903 radius thunk forwards RAX into wrapper-only R9 before its
+register-preserving absolute jump. The native three-argument c59b00 function
+first accesses R9 by zeroing it at+9, before any use. Original arguments and the
+opaque scalar return remain unchanged for selected, foreign and refused calls.
+
+Let S be the actual native outer body's entry return slot. Five pushes and the
+0x100 allocation leave the caller stack unchanged through the radius CALL.
+The direct radius-wrapper incoming return slot T is S-0x130. The resolver local
+at outer RBP+0x67 is S+8, or T+0x138. For the supported null path the reference
+resolver is bypassed, so it cannot replace this local.
+
+The wrapper obtains T directly with _AddressOfReturnAddress. It requires the
+forwarded native pointer to equal T+0x138, the immediate caller c6fb6f, current
+TIB bounds/alignment, exact active owner/descriptor/frame and a zero local before
+and after the original radius call. It also requires completed outer return.
+The recorded outer return word at T+0x130 is diagnostic and must remain stable.
+It is not compared with be0bd1: entry hooking means the native body returns to
+the owned outer observer continuation, while be0bd1 is the wrapper's caller.
+There is no generic DLL-membership or guessed compiler-frame acceptance rule.
+
+The same full native function pins remain mandatory. The original c6f7b0,
+d1c8a0 and c59b00 bodies and relevant branch slices were independently checked.
+Borrowed reads occur only on normal paths. Exceptional finally blocks touch only
+retained private scope/accounting. Endpoint checks do not eliminate byte-identical
+ABA or establish a native reference lease.
+
+Bounds and validation
+---------------------
+Schema2 is 5320 bytes, still 21 bounded rows per event and 64 retained events.
+The read bound remains 256 calls/8192 bytes. The complete supported reference
+case measured 213 reads/6076 bytes; the witnessed-null production path measured
+129 reads/3990 bytes. Old schema1 rows can be decoded as historical failures but
+cannot satisfy current semantic or terminal acceptance.
+
+The full native build/test driver passed against the exact executable read-only.
+The focused production fixture passed 6772 checks. It traverses the actual outer
+wrapper, entry trampoline, authored native-shaped body, real radius CALL patch,
+modified thunk and actual radius wrapper. It proves the incoming-frame pointer,
+rejects an altered native-produced RAX pointer, covers every injected read/STOP
+position and propagates a real foreign exception with scopes drained. Read/TLS
+providers are compile-time owned-fixture dependencies; the production defaults
+remain read_local/world_queue_tls. No game expression or simulation executes.
+
+The actual C formatter's schema2 export passes its independent parser and 225
+altered-export refusals; four coherent class differences remain visible. The
+focused Python/Lua set passed 128 tests. Full native Python discovery passed
+714 tests with seven Linux-only skips on Windows; all seven then passed under
+WSL using owned subprocesses and loopback sockets. Existing Euler, GetUp,
+construction, transition, Nav and portable tests passed the full C driver.
+
+A read-only revalidation of immutable World014 produces exactly the same ordered
+64 errors, evidence_valid=false and selected Position validity=false. Private
+logs and owned fixtures remain under .local/native-lockstep/build; historical
+logs were not edited. No staging, game execution or RNG correction was performed
+for this task.
+
+Independent review accepted frozen source051b525 after repeating 6772 native
+fixture checks, 128 focused Python/Lua tests, the actual C export mutations and
+the exact historical014 regression in an isolated archive. Its private derivative
+also serialized the real positive incoming-null-frame record before fault loops:
+all eight witness fields, the native pointer at T+0x138, branch snapshots and
+zero inactive transform section round-tripped through the 5320-byte decoder.
+That owned body does not implement native direction computation, so this check
+does not establish a complete semantic game capture. No scoped source blocker
+remains; actual branch receipts still need a future owned native capture.

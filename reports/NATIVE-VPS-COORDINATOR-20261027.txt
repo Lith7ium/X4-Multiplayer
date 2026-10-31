@@ -1,0 +1,88 @@
+ISOLATED LINUX COORDINATOR / WINDOWS CLIENT COMPATIBILITY
+27 October 2026. Development evidence; no playable release claim.
+
+The dedicated-server architecture remains an unattended full Linux X4 authority
+plus a Rust relay. Its existing fixed-step agent is not the experimental Windows
+native FrameTick admission gate. This test instead moves the unchanged NGSTATE2
+coordinator to Linux and carries byte-identical Windows loopback datagrams over
+authenticated SSH. It does not establish native Linux X4 simulation lockstep.
+
+The live VPS was reachable. Its previously installed dedicated service reported
+stopped after a native simulation heartbeat failure, and no X4 process was found.
+The test did not restart or replace that service, modify its configuration, use
+its session credentials, open a public UDP listener, or change its game files.
+The coordinator runs in a separate private directory with a bounded lifetime.
+
+Six actual cross-host cases passed using synthetic Windows UDP peers and a Linux
+coordinator: matching clocks/hashes and ordered commands; missing peer blocks;
+discarded permit followed by unchanged retransmission; wrong token, foreign
+pinned source, future tick and protocol downgrade refused; changed waiting state
+and state-hash mismatch stop both peers. Deliberately terminating the exact owned
+Linux coordinator also stopped both peers at their waiting tick and produced an
+incomplete, explicitly aborted result. A bounded missing-peer timeout stopped the
+waiting peer without admission. No local coordinator fallback exists. Discarding
+the final STOP also exercises retransmission before remote shutdown.
+
+Nonzero admitted proposals are persisted atomically on Linux before any NGGO,
+and their checkpoint is persisted again on Windows before forwarding that permit.
+The SSH process identity, coordinator source hashes and actual Linux platform are
+verified before native admission.
+Session secrets and packet bytes are absent from the sanitized test summaries.
+
+The first native Windows attempt was refused before gameplay by the released
+lane runner's loopback-only server audit, which detected the SSH connection.
+That negative evidence is retained. No network audit was hidden or disabled.
+
+An explicit opt-in wrapper policy was reviewed and accepted. It still calls the
+released audit and allows only one exact OpenSSH child in the server's owned
+kill-on-close job, with matching executable path, complete command line, PID and
+creation identity, connecting to one configured literal IPv4 address on TCP22.
+Every other endpoint or unknown identity still fails. Accepted exceptions are
+recorded in the session result. The released lane files are not modified; normal
+profile protection, memory admission and process cleanup remain in that runner.
+SSH multiplexing, control-path reuse, proxies, forwarding, agent forwarding and
+local commands are explicitly disabled; its port is fixed to 22. An additional
+independent acceptance check requires a nonempty endpoint audit with the owned
+PID/creation/parent identity, exact frozen command and Linux source hashes, actual
+bidirectional traffic and a clean SSH exit. Native tests use the released runner's
+normal memory admission and isolated profile/snapshot lifecycle.
+
+The final native test, native-throttle-004, passes both the released runner and
+the independent native-plus-SSH acceptance validator. Both Windows X4 instances
+completed 1,200 native frames with 1,201 equal declared-state samples. Each applied
+the same six admitted throttle/travel actions to the shared player context.
+Both reported zero clock drift while waiting; the intentional hold lasted
+3.063 seconds. The run recorded 25 accepted owned SSH endpoint audits, a clean
+SSH exit (0), 2,455 input and 2,403 output datagrams. The Linux final summary is
+canonically identical to the Windows copy. Both owned Windows games and the exact
+Linux coordinator exited; hooks and disposable lane state were restored.
+
+Two intermediate results remain distinct from that combined pass. Run002 had
+equal native state and a runner pass, but the runner killed the bridge before it
+recorded SSH exit; strict transport acceptance correctly failed. Run003 had equal
+state and valid clean SSH transport evidence, but the runner rejected the bridge's
+early process exit. Neither is a combined pass. The final implementation allows
+two seconds of remote terminal STOP retries, closes SSH, persists its exit result,
+then publishes completion. Only a successful runner-owned bridge remains inert
+for at most 30 seconds awaiting job cleanup. Its UDP socket and remote process are
+already closed, and it grants no new ticks. Tests cover owner cleanup, the finite
+deadline, coordinator death, missing-peer timeout and protocol failure paths.
+
+Validation: 102 focused Python/LuaJIT tests pass, including byte-preserving envelope
+checks, bounded configuration, original source pinning, and refusal of wrong
+transport/address/port/executable/arguments/parent/job membership or reused PID.
+The actual SSH-disconnect check exposed and fixed a Windows pipe-close cleanup
+error before the successful repeat. All six actual cross-host cases passed after
+the completion changes; the native combined pass uses commit ac37354 and the same
+frozen game fixture that had passed the local coordinator baseline.
+
+The portable C wire/RNG harness also ran on actual VPS GCC 15.2.0: all 23 wire
+cases and six seed vectors matched Windows/WSL, with contract digest
+077f93debf64e2eecbee241a4527b6bfdb538bddaa0ecb8a71fdca10d7a9e7eb.
+This proves that small shared contract, not native engine simulation parity.
+
+Limits: the checked native fixture has twelve AI actors and one shared player
+context, not two independent native players. Full cockpit input capture, native
+Linux X4 participation and whole-universe state equality were not tested here.
+This is development coordinator compatibility evidence, not PvP/co-op acceptance
+for every game feature or a deployment of the installed dedicated service.

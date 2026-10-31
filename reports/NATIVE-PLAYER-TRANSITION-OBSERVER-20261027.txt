@@ -1,0 +1,154 @@
+NATIVE PLAYER TRANSITION OBSERVER - OFFLINE IMPLEMENTATION
+27 October 2026
+
+Scope and result
+---------------
+Default-off read-only observer for controller transfer, component publication,
+input-context callback, model command enqueue and model dispatch. No game was
+started. No pilot input, controller construction, global player swap, AI order,
+transform/timer write or ownership lease is introduced. This does not establish
+two independent native players. Static basis: NATIVE-PLAYER-TAKEOVER-TRANSACTION-
+20261027.txt and its full-function pin manifest.
+
+The bounded synthetic scenario distinguishes a request from completion: after
+the activation callback and enqueue, Agent+f10 still points to the old model;
+only the later dispatch returns with f10 null. Separate transfer and publication
+receipts show the same saved ship, full runtime ID, object, native faction,
+Agent and new controller. The old controller is made unreadable by the synthetic
+publication original, and the production observer completes without reading it.
+Both activation after publication and activation nested inside owner binding
+are exercised. The latter keeps an open publication token and requires its
+completed after-state before the independent diagnostic recognizes completion.
+
+Hooks and ABI
+-------------
+Explicit Lua player_transition_config/status/row methods; no new numeric option
+bit. Configuration requires the existing early world queue observer and imported
+watch manifest. Only saved Small objects with an unambiguous imported binding
+are selected. Unknown calls remain excluded; conflicting selected identities
+poison evidence. No lazy getter or native lookup is invoked by the observer.
+
+* ea4c00/654: five-byte nonrelocating first store. RCX/RDX/R8B/R9D and full RAX
+  return preserved; new/old ownership flags and Agent+f79 sampled around the
+  original. The release constructor's virtual-base flag1 is supported too.
+* d88710/759: seven-byte SUB rsp,38; CMP ecx,8. Entry CAS8 uses E9+two NOPs and
+  preserves the eighth byte. Continuation resumes at+7 with CMP flags intact.
+* Small slot2b818a0 ->6cd8b0/39 ->745e00/711: owned pointer CAS. Native three
+  arguments preserved. After original, read the actually published component
+  controller first; never dereference the old controller after publication.
+
+Reserved thunk2816..3071; used2816..2943: transfer2816/2848 and activation2880/
+2912; activation unwind data2904, function range2880..2900. Executable tests
+found that FF25 after the activation stack allocation is recognized by Windows
+as an epilogue and incorrectly skips the still-live56-byte allocation. The
+implementation instead uses MOV R11,continuation; JMP R11. R11 is volatile and
+not a native argument; MOV/JMP preserve flags. RtlVirtualUnwind is tested at
+offsets4,7,17, including the register jump. Original code executes exactly once.
+The four transfer arguments are register arguments; no fifth formal parameter
+is read by the pinned callee. Tests preserve shadow space, stack alignment,
+RBX/R12/XMM6 and the full64-bit return value.
+
+Immutable page integration
+--------------------------
+transition_emit_page(page) fills all128 bytes deterministically before the
+initial RX seal/full-page cache flush/main hook publication. Compile-time pinned
+prefixes avoid adding optional-feature startup pins. Later configuration checks
+full native pins and exact resident RX bytes; it never writes or protects the
+live thunk page. Unwind registration precedes transition hook publication and
+remains resident after restoration. The temporary thunk_bytes_match definition
+in this branch must be replaced by contact_order's canonical shared
+lockstep_thunk_page.h helper during integration. Root is independently converting
+the older optional installers; this isolated baseline still contains those old
+installers. This branch is not a reviewed native-launch artifact.
+
+Deferred model receipts
+-----------------------
+The existing world queue observer now accepts SetFlightControlModelOrder vtable
+2c51c38, allocation16, full uint32 mode+8 in0..6. Complete eac900/94, e979d0/14,
+e87cf0/1124 and exact dispatch slot pins are verified. No new queue hook or
+trampoline is added. The existing resident virtual-call return2698, all-call
+admission, TLS shadowing, original-once and retirement order are retained.
+
+Optional callbacks receive immutable stack copies. Enqueue evidence is completed
+BEFORE original transfers command ownership; neither callback nor observer reads
+the command after enqueue. Dispatch samples the same Agent before and after its
+native virtual call, before command destruction. The original queue failures
+remain strict. Existing world_trace_identity deliberately rejects a changed
+controller; this observer neither rebinds that watch nor suppresses its failure.
+
+The separate queue_valid receipt is a positive typed-input/lifetime proof,
+not a result inferred from allowing selected raw errors. Enqueue requires a
+successful command copy, manager/recipient checks and exact live token. Dispatch
+requires successful decoding, unchanged immutable enqueue snapshot, a valid source
+receipt, exact runtime/command/record/token and Agent; it rechecks after original.
+Retirement validates and consumes that exact tuple under the queue lock. Failed
+retirement remains outstanding. Transition completion requires queue_valid=1,
+zero enqueue errors, and no dispatch errors except the separate raw diagnostic
+bits128/256. Those bits still make overall evidence_valid=false. Command/read/
+token errors8/32/64 cannot produce a completion diagnostic even with a forged
+positive queue_valid field in a log. C tests make only the vtable readable so a
+failed payload read leaves default mode0; this remains explicitly invalid.
+
+Evidence and shutdown
+---------------------
+Schema1 records are bounded to512. Export rows are below1900 bytes even with
+maximum integer widths and both63-byte faction names. Raw pointers/full runtime
+IDs are local diagnostic joins, never portable equality values. A portable
+identity remains the imported saved ID plus canonical owner name.
+
+Every admitted wrapper increments open before selection. Stop closes admission
+under the same lock and retains restore_open before attempting owned restoration.
+No lock is held across original. An open original continues exactly once, records
+its result, then decrements open; a later completion does not erase restore_open.
+Foreign patches remain installed and are reported. Thunks/unwind/TLS are resident.
+Independent evidence refuses open/restore_open, incomplete counts, overflow,
+foreign/failed events, retained sites and any claim of atomic owner/generation
+exclusion. Unknown nesting shadows the parent instead of borrowing its identity.
+
+Validation
+----------
+Production C test includes the actual gate implementation. Exact EXE SHA and all
+new full-function pins are checked read-only. Actual image prefixes feed native
+machine-code ABI probes. Tests cover both CMP outcomes, unwind, publication slot
+CAS and arguments, partial-install rollback, foreign restoration, immutable RX
+bytes/tamper, unavailable old controller, sequential and nested activation,
+deferred model completion, uint32 mode rejection, malformed owner/lifetime,
+excluded nested context, capacity/export limits and concurrent stop with original
+open. The existing gate, portable codec/raw memory decoder and30 transport cases
+(including real loopback and boot watchdog checks) pass. The focused Python/Lua
+suite passes313 tests, no skips. Additional production cases reject missing live
+tokens, unreadable enqueue/dispatch payloads, changed command snapshots and a
+changed recipient at retirement while preserving original-once/model observations.
+
+Configuration/STOP review follow-up: the initial implementation could prepare,
+lose a race to STOP, then install hooks and reopen admission. Configuration now
+holds the same transaction lock through preflight, prepare, all site CAS operations
+and enabled publication; restoration holds it through owned site restoration.
+Cancellation is rechecked after prepare and after installation. The closing flag
+is monotonic. A STOP that publishes global inactive while waiting for the lock
+forces rollback before enable. There is still no lock across a native original.
+Deterministic worker tests pause after prepare and after each of the three real
+CAS operations, start STOP, then verify all original words, closed admission and
+no retained sites/callback publication. Restoring the old unprotected publication
+logic in an ignored mutation build fails that test; the fixed production code
+passes. Earlier original-open and foreign-restoration tests remain strict.
+
+The independent Python parser consumes the production C export. It identifies
+one causally joined model completion at event5 while retaining the raw queue/
+world identity failure: evidence_valid=false. This expected negative is not a
+session pass. Mutation tests remove completion for altered actual model state,
+runtime/owner/Agent/controller, generation ticket, transfer, publication or
+activation ordering. Raw native fixture data and binaries stay private.
+
+Remaining limits
+----------------
+Sequential guarded reads are not an atomic owner or generation lease. No native
+reference retention or exclusion of controller/Agent/model destruction is proved;
+no proof covers all pending/detached producers, future commands or faction writes.
+Earlier/unimported calls are excluded. The completion diagnostic deliberately
+requires publication to have completed before dispatch begins; overlapping
+publication/dispatch remains recorded but is not promoted to completion evidence.
+Native takeover still creates the single global PlayerController and touches
+global input state. The observer prepares a real takeover experiment; it does
+not make a second independent pilot safe or implemented. No native run or control
+write is authorized by this report.

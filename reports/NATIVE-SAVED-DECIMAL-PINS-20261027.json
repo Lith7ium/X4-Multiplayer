@@ -1,0 +1,83 @@
+{
+  "image_sha256": "19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891",
+  "scope": "Windows saved XML time only; bounded plain-decimal manifest conversion; no engine calls or writes",
+  "functions": [
+    {
+      "query": "0xb5a060",
+      "rva": "0xb5a060",
+      "database_size": 1833,
+      "root_bytes": 1833,
+      "next_start": "0xb5a790",
+      "sha256": "e47ee5624a5cfc775b5e02dffbdc2836a8646c49374bcbd069e5e2a2d7afdf4b",
+      "scope": "complete contiguous PE root including internal tables"
+    },
+    {
+      "query": "0x12fd30",
+      "rva": "0x12fd30",
+      "database_size": 143,
+      "root_bytes": 143,
+      "next_start": "0x12fdc0",
+      "sha256": "a05f9ffc3ceaa4253b4642b40f97987ae4054ca43cebb583144bc8ac2f54c44e",
+      "scope": "complete contiguous PE root including internal tables"
+    },
+    {
+      "query": "0x14c3090",
+      "rva": "0x14c3090",
+      "database_size": 1204,
+      "root_bytes": 1204,
+      "next_start": "0x14c3550",
+      "sha256": "2cdc7e8eb8fe0a5de5594a3ef478e1cf3381777a7d3ac0adf7beba54e12ec944",
+      "scope": "complete contiguous PE root including internal tables"
+    },
+    {
+      "query": "0x1a05280",
+      "rva": "0x1a05280",
+      "database_size": 166,
+      "root_bytes": 166,
+      "next_start": "0x1a05330",
+      "sha256": "276edb93ae96b154bd7f4f6902505a2069679a082313a7b361b248d8ed9b6776",
+      "scope": "complete contiguous PE root including internal tables"
+    }
+  ],
+  "constants": [
+    {
+      "rva": "0x2cbe9f8",
+      "size": 8,
+      "bytes_le": "0000000000002440",
+      "value": 10.0,
+      "sha256": "24b1f4ef66b650ff816e519b01742ff1753733d36e1b4c3e3b52743168915b1f"
+    },
+    {
+      "rva": "0x2cbea98",
+      "size": 8,
+      "bytes_le": "0000000000004840",
+      "value": 48.0,
+      "sha256": "a24bdf11de84ffe725eb73b09bf6885651f35425491c211bbad9735bcae67967"
+    },
+    {
+      "rva": "0x2cbe6e8",
+      "size": 8,
+      "bytes_le": "9a9999999999b93f",
+      "value": 0.1,
+      "sha256": "45d2b662d9d490ae9b932759c910b26b9a874065de620f4ac0a3a23a65e40b8c"
+    },
+    {
+      "rva": "0x2cbe870",
+      "size": 8,
+      "bytes_le": "000000000000f03f",
+      "value": 1.0,
+      "sha256": "6c3c396ed6b5c36dcae172271f462051b1266b851e92df3deea8ac65478fd712"
+    }
+  ],
+  "path": {
+    "attribute": "0x4a1",
+    "getter_call": "0xb5a72f",
+    "exec_time_store": "0xb5a734",
+    "parser_call": "0x12fdad"
+  },
+  "manifest_schema": 2,
+  "time_field": "time_text",
+  "grammar": "(?:0|[1-9][0-9]{0,14})(?:\\.[0-9]{1,15})?",
+  "linux_limit": "Linux fractional parser divides by10; matching current literals do not establish universal parity",
+  "historical_run_007": "unchanged invalid capture, with exact saved-time mismatch retained"
+}

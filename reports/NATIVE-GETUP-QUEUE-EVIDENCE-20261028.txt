@@ -1,0 +1,152 @@
+GETUP COPIED QUEUE EVIDENCE - SOURCE REVIEW CANDIDATE
+28 October 2026
+
+Purpose and retained failure
+
+GetUp diagnostic003 loaded the saved controlled ship, exchanged state0 and
+grant1, then failed before report29/action30. Public GetUp calls remained zero.
+The first selected model dispatch had schema2 errors48, enqueue/ticket0 and
+zero state blocks. The independent result remains false with32 errors.
+
+Source control flow proves that no accepted enqueue ticket matched. Its
+short-circuit prevents the state read, so the zero state blocks do not prove
+an identity-read failure. Existing output does not distinguish a readable
+mode0 command from an unreadable/changed header. The prebind counter combines
+several selection paths and does not count seven proven producers.
+
+Pinned static paths contain legitimate model producers: eac900 allocates the
+16-byte SetFlightControlModelOrder (vtable2c51c38) and transfers it to eacd40;
+e8a090 is another constructor/producer. The d88710 activation path can reach
+d9c590, PlayerController d8dd00 and eac900. The manager's detached-list consumer
+resolves the recipient, dispatches at eacf63 (return eacf66), then destroys the
+command. The selected saved ship has player movement but no order/pending tag
+in its subtree. None of these facts proves which producer supplied003's
+unmatched command or excludes other saved/global initialization work.
+
+Default-off scope
+
+--player-transition-queue-evidence is allowed only in diagnostic-getup with
+the exact selected ae79c PlayerController watch, player11e12, last120, fixed
+snapshot and unchanged passive mask70377334178981. No new hook, numeric option
+bit, native invocation, RNG intervention or control write is introduced.
+
+The optional runtime-manifest field is exactly integer queue_evidence=1;
+bool, zero, other values and unknown fields refuse. It must match the single
+literal-true configuration flag. The existing local bootstrap plan gains
+exactly one suffix |PLAYER_TRANSITION_QUEUE_DIAG_1. Lua and Python reconstruct
+it, and native configuration hashes the full fixed snapshot/plan/run/suffix
+against the boot digest. Without the option, historical manifest keys and
+bootstrap bytes are unchanged. Ordinary paired validation rejects the flag.
+
+Native first configuration requires owned main publication, active boot, the
+exact options/slot/watch/window, phase0 and no prior transition start/bind.
+It stores image, thunk, start, port, timeout, digest and run. Healthy UI reload
+checks those bindings, current transition sites and closure/failure state
+without resetting records or consuming cursors. Changed/late/failed/STOP
+configuration refuses. The new mode cannot configure paired GetUp or cross
+Load without the corresponding local GetUp ledger/run.
+
+Copied observations, not tickets
+
+The existing admitted enqueue and dispatch callbacks invoke the new capture
+before their unchanged schema2 selection/decoding. With the option absent the
+capture returns before new reads or counters. Selection uses a separate
+locked snapshot of imported selected identities. It never calls the legacy
+selection helpers or changes their prebind/unknown counters. An unselected
+recipient has counters only. Aliased/ambiguous selection never permits a
+command read. Dispatch can record the guarded Agent->object->runtime reads
+even when the existing ticket-match short-circuit will refuse the event.
+
+At most256 rows copy the callback kind, observer ordinal, phase/tick/thread,
+bound/import state, saved/runtime/object/Agent association, caller, manager
+read, command address, type and two16-byte copies, plus existing activation
+parent/order. Failed reads never publish their partial output. Explicit
+decode states distinguish other type, unreadable type/copy, outside-image
+type, changing copies, copied-type mismatch and out-of-range mode.
+
+The runtime ID generation bits are an observed imported-ID field. They are
+not a native command allocation generation. Earlier enqueue address/runtime
+matches are counted; only one gives a source observer ordinal and an optional
+byte match. Reuse/duplicate candidates remain explicit. Address and byte
+equality do not prove a unique native command lifetime, retained reference,
+completed model change or authority. No transferred command is read after
+enqueue original returns, and no retained pointer is later dereferenced for
+correlation. No lazy getter or native reference acquisition is added.
+
+Capture shares the existing queue admission/open accounting and resident
+restoration. STOP with an open original remains incomplete. Existing queue
+exception cleanup is still unproved; queue_exception_cleanup stays0. The
+new code does not claim to repair that earlier limitation.
+
+Export and independent interpretation
+
+Separate schema1 rows/status are below1024/768 bytes. Lua validates the closed
+status shape and consuming cursor, logs the copied STOP before refusing the
+existing failed transition, and preserves the original schema2 STOP/tickets.
+The independent parser checks exact fields/widths/canonical encoding, bounds,
+run, selected imported identity, parent/caller, read/decode state, correlation
+and admission/closure joins. Missing or incomplete enabled evidence fails.
+Unreadable/ambiguous observations stay available as failed evidence.
+
+A locally valid copied stream can accompany a failed schema2 stream. It cannot
+create a ticket, suppress raw world/queue failures, rebind a raw watch, or turn
+the diagnostic into a passing session. allocation_generation_known,
+ticket_authority and atomic_lease are always false. Session/parity/independent
+player/completed-release claims remain false in the one-copy contract.
+
+Verification on owned memory/source only
+
+- Actual-image C build/test passed, including the existing hook pins/ABI,
+  transition/origin exception tests, transport loopback tests and GetUp guards.
+- New C cases cover the prebind activation->joined bind->unmatched dispatch;
+  observed and disabled runs retain byte-identical schema2 events/errors48 and
+  legacy counters, zero tickets, original-once and balanced open accounting.
+- Controlled readers cover partial/failed/changed copies; unknown, aliased,
+  changed-runtime and replacement associations; address reuse; reentrant
+  dispatch; a no-access transferred buffer; overflow and maximum export sizes;
+  STOP during an open original; exact configuration/reload/Load refusal.
+- Real C formatter output passes through actual Lua drain and independent
+  configured Python parsing. Copied rows decode successfully while errors48
+  and zero accepted tickets remain. This is a synthetic fixture, not gameplay.
+- Actual builder/module-order startup and fresh Lua states bind the suffix
+  exactly once, configure evidence before transition start and retain one Load.
+  A valid fully modeled local contract fails if its own footer, manifest/lane
+  marker or new bootstrap digest is missing. Its global claims stay false.
+- Full test_native*.py run:736 discovered,729 passed,7 existing platform skips.
+  The later complete-contract regression and focused suite also pass.
+- Historical003 local replay preserves its exact ordered31 local errors; the
+  unchanged saved runner-closure error is the32nd. No old log or artifact was
+  modified. Native games/staging/artifact generation were not performed.
+
+Private evidence is kept under the task checkout's ignored .local directory.
+Raw engine data, image bytes, runtime pointers and binaries are not committed.
+This source remains an evidence-only proposal for independent review. Any
+later acceptance change requires actual producer/pending lifetime evidence
+and a separate authority review. GetUp release/re-entry and independent player
+contexts remain unresolved.
+
+Independent review correction
+
+Review of d3c2346 reproduced a healthy capture paused inside its first borrowed
+command read. Admission/open was1, while the old code had already incremented
+diagnostic calls without publishing a row. Actual Lua rejected the transient
+calls1/count0 status. The follow-up counts completed capture outcomes and
+publishes calls/unreadable/ambiguous together with row, unknown or dropped in
+one lock transaction. No lock spans borrowed reads or native original. The
+existing admitted open counter covers the whole interval and retains STOP
+debt. Final closed accounting still joins every admitted queue call.
+
+The same review changed only a production diagnostic dispatch's tick1 boot3
+to boot0, or its sampled transition order to UINT64_MAX; both had passed the
+copied parser. The correction requires nonzero ticks to be in boot3 and bounds
+sampled order by a complete recorded enter/leave clock. It retains order0
+before any event and does not impose publication-order monotonicity on
+concurrent samples or claim atomic phase/bound sampling.
+
+The corrective actual-image C harness pauses the real capture on a worker,
+exports real status before/resuming/STOP, and verifies original-once. Actual
+Lua now accepts drain(false) during that read, preserves both raw STOP rows
+and refuses STOP-open; restore_open remains1 after normal return. The real
+export's two chronology mutants refuse independently. The focused55 Python/
+Lua tests pass; original schema2 errors48/tickets0 remain unchanged. These
+corrections do not add a game run, producer lifetime proof or action authority.

@@ -1,0 +1,158 @@
+Opt-in enriched Nav timing hash
+==============================
+
+Scope and status
+----------------
+Source-only work on work/nav-semantic-hash-v2-20261028, based on committed
+17f101b3cd37c39910e7e4845fc3854dfa5189b0. No game, UI, lane, installation,
+native hook or engine-state write was performed. Independent review is pending.
+This is a read-only comparison contract for the measured Nav fields; it does
+not establish full Agent/AI coverage, native process identity or gameplay parity.
+
+WORLD_IMPORTED_1 remains the default and retains its physical cursor bytes.
+The existing world_capture(tick) export always selects that legacy contract.
+Explicit native_gate_world_hash_schema='WORLD_IMPORTED_2', with a census stride,
+selects world_capture_nav_v2(tick). Missing exports, bad configuration, mixed
+schemas and a legacy summary returned to the new mode are refused. Once a scan
+succeeds, the native stream cannot change schema. The builder adds the explicit
+--world-hash-schema choice; no package was staged or installed for this task.
+
+Why the expansion is necessary
+-----------------------------
+The exact ea2a20 refresh function first requires TLS simulation time to be
+strictly newer than controller+c0. It then compares controller+c8 with the
+physical read selector at 38f4ee4. Equality suppresses refresh. An eligible call
+stores the new time/cursor and invokes ea35e0 on controller+50 + read*16 before
+processing the selected state bank's ETA/arrival/notification fields.
+
+The import chain ea4e90 -> eac380 -> eac530 sets controller+50 to Agent+ed0.
+The two entries at Agent+ed0/ee0 each contain two u64s. ea35e0 resolves the first
+as a component runtime ID through ced70, performs class/parent-dependent event
+work and clears that leading qword. It does not consume or clear the second.
+The Agent constructor zeros both qwords in both entries. e8f250 clears and then
+increments the selected write entry's second qword when successive resolved
+main-command references differ. It is retained as reference_transition_count;
+it is not treated as padding or asserted to be a count of emitted events.
+All nonzero producers and all possible consumers have not been established.
+No current World010 nonzero pending reference is inferred from this audit.
+
+Let R be the physical read bank and W=1-R. The legal cursor values are 0,1,2;
+2 is the constructor/import sentinel. A whole permutation exchanges R/W, both
+physical state banks and both physical pending entries; it also exchanges a
+non-sentinel cursor 0/1 while retaining sentinel2. The enriched tuple is invariant
+under that permutation. Its cursor relation is current=0, opposite=1, sentinel=2.
+Any other cursor is a capture failure, never an accepted fourth relation.
+
+The partial-permutation counterexample is retained in C and Python tests:
+identical banks, equal timing, L(R,W,C)=(0,1,0), R(R,W,C)=(1,0,1), but unchanged
+physical pending entries P0=(savedA,3), P1=(savedB,5). Cursor-only normalization
+would equate them. After the next swap and newer TLS time, the selected pending
+references differ. The new logical pending tuples differ immediately. This is
+a constructed static witness, not an assertion about World010's pending values.
+
+Canonical schema and raw diagnostics
+-----------------------------------
+The topology, health and known motion fields keep their existing encodings and
+unknown-coverage flags. Nav motion still contains controller RVA plus the six
+xyz vectors, two saved references, mode and layer for logical read/opposite banks.
+Its bytes now come from the same stable owned snapshot as the timing tuple.
+
+V2 Nav timing body, little endian, 79 bytes (then the unchanged 16-byte footer):
+  0  attention:u32
+  4  refresh_time:8 raw bytes
+ 12  cursor_relation:u32
+ 16  parameters_due:8 raw bytes
+ 24  parameters_gate:u8
+ 25  logical read ETA:8, arrived:u8, notified:u8
+ 35  logical opposite ETA:8, arrived:u8, notified:u8
+ 45  logical read pending {state:u8, saved:u64, counter:u64}
+ 62  logical opposite pending {state:u8, saved:u64, counter:u64}
+State0 means a null runtime reference and savedID0. State1 means a nonzero runtime
+reference resolved through the immutable imported identity map to a nonzero saved
+ID. State2 is unknown and fails the capture. No new engine getter is called.
+Pending counter and timing bits are retained exactly, without numeric rounding.
+Existing unknown bank-reference flags and unrelated domains are not removed.
+
+Every V2 object delta has nav_raw: '-' for a non-Nav object, otherwise exactly
+99 bytes retained from that same capture:
+  0  physical read/write:u32 each
+  8  physical Nav tuple: time8, cursor4, due8, gate1
+ 29  two physical pending {runtime:u64,counter:u64} entries
+ 61  two physical resolved savedIDs:u64
+ 77  two physical reference states:u8
+ 79  two physical ETA8/arrived1/notified1 tuples
+Raw-only changes emit deltas even when all semantic hashes remain equal.
+The parser requires one matching WORLD_BANKS record per V2 scan and verifies
+every retained Nav raw phase against it, including objects absent from that
+scan's sparse delta. It independently reconstructs the 79-byte timing preimage
+and its existing per-object SHA/footer, then recomputes the sorted domain roots.
+It rejects missing, truncated, duplicate, invalid or inconsistent receipts.
+Raw runtime IDs remain diagnostics, not cross-client semantic identities.
+Receipt consistency is not independent proof that a real process emitted them.
+
+Ownership and stability
+-----------------------
+The native reader requires the expected object runtime ID and controller link,
+the exact Nav vtable, controller+28 owner, controller+40 Agent, and Agent+ef0
+owner. It requires the exact aliases controller+30=Agent+ad0 (banks), +38=Agent+e10,
++48=Agent+6e0, +50=Agent+ed0. Null, unaligned, overflowed or unreadable links fail.
+Object vtable and attention are included in the stability checks and bound to
+the surrounding object record. Physical selectors must be complementary 0/1.
+
+Each read copies links/selectors, the entire Nav21 tuple, both full 416-byte
+banks and both pending entries, then rereads the links/selectors. Two such
+snapshots and both saved-reference resolutions must match byte-for-byte.
+A whole canonically equal relabel between reads is still refused. Changes in
+bank padding also fail stability even though padding is excluded from hashes.
+There is no retry that might hide the first observed change. Per-object phases
+must match the census-start phase, and the whole census rechecks it at the end.
+Failures identify savedID and stage; the Lua failure counter prevents page,
+detail or bank exports of a partial/failed capture.
+
+These checks detect observed races; they do not acquire an engine lifetime lock,
+prove global quiescence or exclude an unobserved ABA/recycled identity. Existing
+unhashed Agent/AI state and other domains retain their existing coverage limits.
+The helper adds no hook or write, and does not invoke the side-effecting refresh
+or pending-event functions. Additional exact-image pins are listed separately.
+The original or exact existing resident Transition/creation thunk entry form is
+checked where those observers may already own a function prefix.
+
+Verification
+------------
+Full Windows C build/test command with the exact image passes. This includes the
+existing native gate, Transition, creation, player-origin, portable transport and
+rotation suites, plus 1,449 new Nav checks (1,462 with optional receipt output).
+Only owned test data/code and an owned PE copy were exercised; X4 code was never
+executed. New tests cover every read failure, eight link classes plus added alias
+checks, pointer overflow, invalid phases/cursors, unknown pending references,
+changing saved resolution, 885 individual copied-byte races, same-semantic relabel
+races, each counter/timing byte, all pending and bank saved-reference positions,
+full-permutation equality and the pending-not-transposed witness.
+
+The production census loop runs against the actual mapped image pins with only
+the existing component lookup dependency replaced by an owned test callback.
+It proves first-scan coverage, canonical equality with a raw-only delta, an empty
+unchanged delta, frozen schema, retained watch bytes, and unknown-reference refusal.
+Exact-image mutations at both ends of each pin and every byte of both hookable
+prefixes fail. Existing immutable thunk forms pass; foreign targets fail.
+Worst-width page output and invalid page arguments are checked. A 12-object
+receipt produced by the real C record/export functions independently parses
+with errors=[] and matching roots. No new engine getter or raw-watch rebinding.
+
+428 focused Python/LuaJIT native-gate tests pass, including an end-to-end call to
+the production validator: valid synthetic V2 evidence is accepted as evidence;
+missing/truncated raw data, missing phases, failed STOP and wrong schema are
+rejected; independent_native_players remains false. The legacy corpus passes.
+
+Historical World010 was re-read with this comparator, without modifying its logs
+or configuration. Result remains first_difference=1, exactly10008 timing objects,
+all nav.refresh_cursor; topology/health/motion/inventory differences0, parser
+errors=[]. The historical strict failure is preserved. Its missing pending data
+cannot be retrofitted into V2 acceptance. See the unchanged diagnostic010 report.
+
+Private build/test logs, original-log comparison and generated owned-memory
+receipt remain under .local/native-lockstep/nav-v2-*. They are not public source.
+The item layout grows from232 to360 bytes (up to64 MiB extra at524288 entries);
+the maximum exported page is bounded at12288 bytes. No native performance or
+cross-client V2 run has been measured. Do not infer deployment approval or a
+whole-world lockstep pass from this source-only verification.

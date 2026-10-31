@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "scope": "proposal, not configured or executed",
+  "length": 260,
+  "field_bytes": [
+    {
+      "name": "domain",
+      "bytes": 35,
+      "hex": "58344c414e2f574f524c445f4352454154455f504f534954494f4e2f524e472f763100"
+    },
+    {
+      "name": "snapshot",
+      "bytes": 32,
+      "hex": "7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8"
+    },
+    {
+      "name": "saved_pilot",
+      "bytes": 8,
+      "hex": "a4d3090000000000"
+    },
+    {
+      "name": "saved_order",
+      "bytes": 8,
+      "hex": "db3c000000000000"
+    },
+    {
+      "name": "saved_script_decimal",
+      "bytes": 8,
+      "hex": "d995000000000000"
+    },
+    {
+      "name": "name_length",
+      "bytes": 2,
+      "hex": "1200"
+    },
+    {
+      "name": "name",
+      "bytes": 18,
+      "hex": "6f726465722e66696768742e706174726f6c"
+    },
+    {
+      "name": "version",
+      "bytes": 4,
+      "hex": "0a000000"
+    },
+    {
+      "name": "slot",
+      "bytes": 8,
+      "hex": "d700000000000000"
+    },
+    {
+      "name": "pc",
+      "bytes": 8,
+      "hex": "d800000000000000"
+    },
+    {
+      "name": "gate_phase",
+      "bytes": 4,
+      "hex": "02000000"
+    },
+    {
+      "name": "tick",
+      "bytes": 8,
+      "hex": "0000000000000000"
+    },
+    {
+      "name": "owner_occurrence",
+      "bytes": 8,
+      "hex": "0100000000000000"
+    },
+    {
+      "name": "saved_time_length",
+      "bytes": 2,
+      "hex": "0700"
+    },
+    {
+      "name": "saved_time_text",
+      "bytes": 7,
+      "hex": "362e3331363637"
+    },
+    {
+      "name": "restore_slot",
+      "bytes": 8,
+      "hex": "7900000000000000"
+    },
+    {
+      "name": "restore_pc",
+      "bytes": 8,
+      "hex": "7a00000000000000"
+    },
+    {
+      "name": "branch",
+      "bytes": 20,
+      "hex": "0000000000000000000000000000000002000000"
+    },
+    {
+      "name": "base",
+      "bytes": 16,
+      "hex": "00000000000000000000000000000000"
+    },
+    {
+      "name": "minimum_tag",
+      "bytes": 4,
+      "hex": "00000000"
+    },
+    {
+      "name": "minimum_payload",
+      "bytes": 8,
+      "hex": "0000000000000000"
+    },
+    {
+      "name": "difference_tag",
+      "bytes": 4,
+      "hex": "05000000"
+    },
+    {
+      "name": "difference_payload",
+      "bytes": 8,
+      "hex": "0050434700000000"
+    },
+    {
+      "name": "span",
+      "bytes": 4,
+      "hex": "00504347"
+    },
+    {
+      "name": "distribution",
+      "bytes": 4,
+      "hex": "01000000"
+    },
+    {
+      "name": "parameter",
+      "bytes": 4,
+      "hex": "01000000"
+    },
+    {
+      "name": "mxcsr_control_mask",
+      "bytes": 4,
+      "hex": "c0ff0000"
+    },
+    {
+      "name": "mxcsr_control_value",
+      "bytes": 4,
+      "hex": "801f0000"
+    },
+    {
+      "name": "x87_control",
+      "bytes": 4,
+      "hex": "7f020000"
+    }
+  ],
+  "key_hex": "58344c414e2f574f524c445f4352454154455f504f534954494f4e2f524e472f7631007816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8a4d3090000000000db3c000000000000d99500000000000012006f726465722e66696768742e706174726f6c0a000000d700000000000000d80000000000000002000000000000000000000001000000000000000700362e333136363779000000000000007a00000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000050000000050434700000000005043470100000001000000c0ff0000801f00007f020000",
+  "digest": "a582beee51faba17312d1d025a75a6cd8e0eca078e86efcf3efbe4fb3353aff0",
+  "seed": "17bafa51eebe82a5",
+  "native_states": [
+    "def54d4283678009",
+    "6969e7901d1168d6",
+    "0c1c63b492dca87d"
+  ],
+  "native_samples": [
+    {
+      "width": 50000.0,
+      "result": 25664.90234375,
+      "bits": "46c881ce"
+    },
+    {
+      "width": 6.2831854820251465,
+      "result": 0.7134362459182739,
+      "bits": "3f36a3c2"
+    },
+    {
+      "width": 2.0,
+      "result": 1.1473588943481445,
+      "bits": "3f92dca8"
+    }
+  ],
+  "direction_z": {
+    "value": 0.14735889434814453,
+    "bits": "3e16e540"
+  }
+}

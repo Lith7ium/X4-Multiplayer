@@ -1,0 +1,147 @@
+SELECTED SAVED WAIT RESTORATION - READ-ONLY OBSERVER
+27 October 2026 | Development experiment, not gameplay acceptance
+
+Question
+
+Native world-motion006 observed unequal pre-admission commands, followed by
+unequal Agent pending targets and motion at tick2. The exact source scopes were
+move.idle for saved pilot80d54/ship80d4f, and move.seekenemies for saved pilot9d3a4/
+ship9d39b. Native roots still failed; no state or hash correction was applied.
+
+The immutable snapshot instead contains these selected blocking actions:
+  pilot80d54: move.idle version4, saved time6.91667, XML blocking index5;
+  pilot9d3a4: order.fight.patrol version10, time6.31667, XML blocking index1.
+The matching stock script sequences identify waits of0.1..0.5s and0.001..1s.
+Both possible restored due intervals cross the initial simulation time7.083.
+This is a candidate explanation, not an observed restored deadline yet.
+
+Exact static chain
+
+Full image/function/script pins and the source blocking sequences are retained
+in NATIVE-WAIT-IMPORT-PINS-20261027.json. Pins cover complete contiguous function
+roots, including internal data, rather than only entry signatures.
+
+Exec import b5a060 reads the saved index and counts version-eligible blocking
+nodes over the complete program. It stores the native program slot in Exec+20
+and saved action-start time in Exec+28. AIDirector import1069000 invokes the
+selected node's restore virtual method at1069bf9, returning to1069bfc.
+
+WaitAction vtable2c68d78 slot28 targets10a50d0. It reevaluates the range at self+78,
+adds Exec+28, and passes the result through109a490 to10668b0. For a constant
+min/max range without an explicit seed, c58da0 uses the current thread's RNG at
+TLS+318. This differs from normal Wait entry10a5040, which adds current TLS time.
+
+Saved script version is read from descriptor+58 at10699e3. An explicit saved
+override is written back there at1069a10; context import stores that descriptor
+at context+d8. The observer reads this guarded version, with complete importer
+and context-import pins. It does not need a register shim or call a predicate.
+
+The deadline installer10668b0 keeps an already earlier context+190 deadline.
+Therefore observed deadline minus saved start is a diagnostic difference, not
+automatically the newly sampled duration. Before/after deadline and reason are
+both retained. The offline reader labels RNG output only as consistent with one
+native RNG step; that equality alone is not universal nested-consumer coverage.
+
+Observer and integration
+
+New default-off world_wait_trace_config accepts at most8 explicit saved pilot/
+script/version/XML-index/start-time/constant-range records. The overlay builder
+checks the manifest against the exact snapshot SHA, saved AI stack and declared
+script versions. It never enables the observer implicitly. A changed manifest
+retry is refused; an exact retry does not reset storage or reinstall hooks.
+
+Only10a50d0 is patched, using an aligned8-byte CAS with a5-byte jump and the upper
+3 bytes preserved. Reserved resident thunks2752..2815 replay the exact original
+5-byte instruction and dispatch the unchanged three arguments. No return
+override, RNG seed, time correction, queue write or second hook is present.
+
+Bootstrap review found that start_gate publishes the main FrameTick hook before
+lua_boot finishes installing optional hooks; Wait configuration is later still.
+Boot phase0 bypasses barriers but does not stop the main thread from entering the
+shared trampoline page. Removing execute permission from that page at configure
+time was therefore unsafe, even though earlier emitters used the same pattern.
+
+The Wait emitter now runs in make_thunk on the private RW allocation before its
+first RX transition, cache flush and main-hook publication. It writes only the
+reserved64 bytes. Disabled observation does not require Wait-specific pins.
+Configuration checks the complete frozen64 bytes, RX protection and full pins,
+then publishes only the engine entry patch. Exact retries also verify entry
+ownership. Wait configuration performs no shared-page protection change or code
+write. Conversion of older shared-page writers is separate integration work;
+this child has not claimed that those older paths are safe or launched native007.
+
+The all-call admission lock closes at restoration and records open/peak/restore
+overlap. It also protects hook publication from a concurrent STOP. Refused late
+entrants still invoke the resident original once. Complete events publish only
+after exit validation; overflow, missing mapping, changed lifetime/input,
+unsupported expression/version/phase and STOP overlap remain failures.
+
+Selected calls require exact importer return1069bfc, a stable tagged AI context
+of the pinned native class, nonzero native lifetime, owner runtime ID mapped to
+the manifest's saved pilot, script identity/name/version, bounded program vector
+and exact node at the blocked native slot. Inputs are read again before and
+after original execution. Timer/reason/flags/RNG and native clock/load-indicator
+samples are guarded against changing copies. No engine getter is used.
+
+The expression observation preserves all104 raw range bytes, auxiliary timeout
+Value and listener pointer. Supported interpretation requires constant numeric
+bounds, min/max mode2, uniform distribution1/sample count1, absent explicit seed/
+basis and absent auxiliary timeout/listeners. Unsupported cases still execute
+the original once and export the available raw evidence with failure bits.
+
+The bounded phase is boot2/tick0 within120s of boot start. It records actual UI/
+main thread matches, TLS view, app load bit, VBI loading flag and native clocks.
+It does not assume import runs on the UI thread and does not equate boot2 with
+being inside the native GameClass::Load function.
+
+Each of at most128 events exports four bounded lines. Local addresses, lifetime
+IDs, raw expression bytes and real elapsed time remain diagnostics. Comparison
+uses canonical saved owner/script and semantic inputs/outputs, not global
+cross-thread order or process-local pointers. Existing whole-world raw roots,
+queue traces and all unknown-domain coverage are unchanged. The strict validator
+requires the configured Wait trace; missing or unexercised selection is failure.
+Main validation also retains per-client coverage/samples, semantic equality and
+individual differences. A claimed barrier pass with unequal Wait semantics is
+rejected. A failed barrier may still provide valid negative observations; its
+existing errors, first mismatch and session failure are never replaced.
+
+The saved XML blocking ordinal and native program slot are separate fields.
+Direct runtime ordinal corroboration is explicitly unsupported: no native
+blocking predicates are invoked by the observer. Selected native traversal and
+the resulting deadline/RNG still need a fresh reviewed two-game observation.
+
+Validation and boundaries
+
+Native C tests cover default-off/original-once, exact caller filtering, mapped/
+unknown owners, version/expression/program/lifetime refusals, AL preservation,
+bounded publication, overflow, worker STOP during original, resident forwarding
+after restoration, foreign-patch preservation and immutable config retry.
+Actual-image mode verifies the full pinned executable and every relied-on body,
+the exact Wait vtable/entry, five-byte replay, and three-argument ABI. A generated
+ABI caller verifies RBX/RSI/RDI preservation and rejects a deliberately corrupt
+callee. A stop inside the forwarded original returns safely after restoration.
+These tests do not claim full engine exception cleanup or native gameplay.
+The actual PE unwind record covers10a50d0..10a512d with prologue length15 and
+flags0: RSI/RBX saves, stack allocation32 and RDI push. The resident five-byte
+replay adds no stack adjustment or nonvolatile mutation, then jumps into the
+native prologue; the compiled wrapper uses its normal compiler metadata.
+
+The bootstrap tests verify the private emitter's exact region, refusal of RW or
+changed frozen bytes, make_thunk's final RX state, and concurrent resident
+execution while1000 immutable validations run. ABI test code has its own private
+allocation and does not occupy another observer's reserved offsets.
+
+Maximum-field serialization tests keep every row plus its Lua log prefix below
+2048 bytes, and refuse truncation. Independent parser tests reject incomplete,
+reordered, duplicate, post-STOP, malformed, changed-identity, unsupported-input
+and unexercised captures. Snapshot manifest tests reject mismatched or ambiguous
+saved metadata. Focused suite:180 Python/Lua tests PASS, native C PASS, actual
+pinned-image mode PASS. The two selected snapshot records also validate against
+the owned immutable snapshot. No game was launched for this implementation.
+An offline overlay build and strict manifest configuration roundtrip also pass;
+that check package is not the future integrated native-test artifact.
+
+Next decision remains separate: first observe both selected native restores.
+A deterministic scoped seed experiment is design-only and requires review after
+actual RNG/deadline evidence. Pilot976ab from the separate flee investigation is
+not included: its saved move.idle index3 currently maps to move_to, not this wait.

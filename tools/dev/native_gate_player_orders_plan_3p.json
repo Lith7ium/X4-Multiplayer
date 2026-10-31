@@ -1,0 +1,19 @@
+{
+ "players": 3,
+ "delay": 3,
+ "ownership": "table",
+ "owners": {"@1": 1, "@3": 1, "@5": 1, "@2": 2, "@4": 2, "@6": 2,
+            "@7": 3, "@8": 3, "@9": 3, "@10": 3, "@11": 3, "@12": 3},
+ "script": {
+  "1": {"50": [{"op": "move", "subject": "@1", "sector": "@sector:1", "x": -1600, "y": 100200, "z": 1200},
+               {"op": "assign", "subject": "@3", "target": "@1", "assignment": "defence", "group": 1}]},
+  "2": {"30": [{"op": "move", "flags": 1, "subject": "@2", "sector": "@sector:2", "x": 1600.25, "y": 99800, "z": 1200.5}],
+        "60": [{"op": "attack", "subject": "@4", "target": "@8"},
+               {"op": "follow", "subject": "@6", "target": "@2"}],
+        "90": [{"op": "attack", "subject": "@7", "target": "@1"}]},
+  "3": {"45": [{"op": "attack", "flags": 2, "subject": "@7", "target": "@2"},
+               {"op": "hold", "flags": 4, "subject": "@9"}],
+        "75": [{"op": "protect", "subject": "@10", "target": "@7"},
+               {"op": "attack", "subject": "@11", "target": "@12"}]}
+ }
+}

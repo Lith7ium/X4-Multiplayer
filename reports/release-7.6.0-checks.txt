@@ -1,0 +1,45 @@
+X4 MULTIPLAYER 7.6.0 — INTERNAL DEVELOPMENT TEST BUILD CHECKS
+26 October 2026 | Two players | Not yet tested in X4; native acceptance pending
+
+CONTENTS
+Integration branch contrib/ferrite-integration-1 from main be94436, merging:
+- contrib/ferrite-measurement: FRAMECOST per-frame Lua cost profiler and NETRTT
+  relay round-trip/jitter probe (RTTPING/RTTPONG, ignored by older relays).
+- contrib/ferrite-npc-target-diag: log-only NPCDIAG rows (orders, targets,
+  attention, enemy relation, radar) for NPCs near the shared ships.
+- contrib/ferrite-proxy-motion: NMODE motion modes for remote player ships,
+  pose-only replicas outside normal flight, stable render clock, MOTION_DIAG.
+- contrib/ferrite-npc-flicker: NPC replica flicker fix (per-frame writes for fast
+  replicas, moving NPCs prioritised in UMOVE, relay forwards unsent samples
+  first, adaptive interpolation delay, no stale baseline snap-back) and NPC_DIAG.
+motion.lua is the flicker branch version, a strict superset of proxy-motion's.
+
+PACKAGE ACTIVATION
+Following the development rule (features on by default, switched off only when
+they break something), launcher-generated private configurations enable
+frame_profile, net_probe, npc_target_diag, npc_motion_diagnostics and
+motion_diagnostics in addition to the 7.5.0 features. Source and unconfigured
+archive configs remain disabled and contain no credentials. interaction_test and
+shot_undo stay off. walking_avatars remains off (never enabled; reason unrecorded).
+
+AUTOMATED VALIDATION (reports/automated-7.6.0-tests.txt)
+WSL Ubuntu-24.04 dev/check.py: 678 tests, 677 pass, 1 failure:
+test_world_launcher test_failed_native_capture_is_reported_and_retry_retains_evidence
+("World preparation timed out" instead of "content mismatch"). The same test
+fails identically on unchanged main be94436 in this environment; it is a known
+timing-dependent launcher test, not caused by these merges.
+Windows unittest runs of the affected suites pass (motion, universe, universe
+adapter, frame profile, netprobe, NPC target diag, NPC combat + MD, internal
+sessions, coop); remaining Windows failures match main.
+Test doubles and synthetic peers are not native gameplay acceptance.
+
+NATIVE CHECKS STILL REQUIRED
+1. Normal host/guest session, idle and busy sector: no regressions in radar,
+   ordinary cargo, Cooperative Trial, NPC combat hits/kills, missions.
+2. Guest rides a local highway with NPC traffic for 60 s: no visible flicker;
+   NPC_DIAG jumps, reset_jump, baseline_snap, respawns stay 0; max_delay <= 0.6.
+3. Remote player at boost/travel/highway speed: MOTION_DIAG and visual check for
+   map jumps.
+4. NPCDIAG rows while host/guest fly near hostile NPCs, to classify why NPCs do
+   not engage the guest (replication, attention or player-specific targeting).
+5. FRAMECOST mod cost per frame on host and guest; NETRTT round trip and jitter.

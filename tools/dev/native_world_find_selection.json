@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "status": "PROPOSED_ONLY_NOT_CONFIGURED",
+  "enabled": false,
+  "domain": "X4LAN/WORLD_FIND_COMPONENT/RNG/v1",
+  "snapshot_sha256": "7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8",
+  "entries": [
+    {
+      "saved_pilot": "000000000009d3a4",
+      "saved_order": "0000000000003cdb",
+      "script": "order.fight.patrol",
+      "version": 10,
+      "action_slot": 129,
+      "action_pc": 130,
+      "phase": 2,
+      "tick": 0,
+      "ordinal": 0,
+      "maximum_uses": 1,
+      "wait_anchor": {
+        "saved_script_id": 38361,
+        "blocking_index": 1,
+        "time_text": "6.31667",
+        "native_slot": 121,
+        "native_pc": 122
+      },
+      "guards": {
+        "action_vtable_rva": "02c0f3c8",
+        "execute_rva": "00b87a30",
+        "helper_caller_rva": "00b87ae8",
+        "program_shape_hash": "985d66488a43c795",
+        "program_nodes": 234,
+        "chance": 0,
+        "declaration_tag": "0000005b",
+        "secondary_tag": "00000054",
+        "list_mode": 0,
+        "append_mode": 0,
+        "optional_component": null,
+        "candidates": [
+          {
+            "saved": "0000000000000028",
+            "type_rva": "02b66080",
+            "valid": 1
+          },
+          {
+            "saved": "0000000000000029",
+            "type_rva": "02b66080",
+            "valid": 1
+          },
+          {
+            "saved": "000000000000002b",
+            "type_rva": "02b66080",
+            "valid": 1
+          },
+          {
+            "saved": "00000000000428af",
+            "type_rva": "02b66080",
+            "valid": 1
+          }
+        ],
+        "native_time_bits": "401c54fdf3b645a2",
+        "app_flags": "00000020",
+        "vbi_loading": 0,
+        "ui_thread": true,
+        "main_thread": false,
+        "view": 1
+      },
+      "expected_key_sha256": "080994d92a20d8658e7e391ea47ffdef7afe3ca8175ecabcb6fe34b7ba4020bc",
+      "expected_seed_hex": "65d8202ad9940908",
+      "expected_scoped_after_hex": "22403ede5ea8c4dd",
+      "expected_saved_result": "0000000000000029"
+    }
+  ],
+  "unchanged_wait_keys": [
+    "41aa3ad655ad9a9c",
+    "8b0f91e8910d9f7c"
+  ],
+  "intervention_scope": "one selected original FindComponent helper call; TLS restoration in finally",
+  "existing_wait_manifest_sha256": "0cd18aa101c28b9949ae08ff8fbbcc1fca6119312ec4d2ad0988b6f6e63151da",
+  "existing_wait_policy_sha256": "66dc5770ccf874cea51403789c8af937fabae26fd628bcaf712d6f9ede1c7a45",
+  "existing_action_manifest_sha256": "696f4645484180cc66329a4a17760067c81f9c73e78df129e36a745867df1d61"
+}

@@ -1,0 +1,52 @@
+PREBIND SOURCE REVIEW CORRECTIONS
+28 October 2026
+
+This follow-up preserves implementation1ef5a10 and corrects two independent
+owned-memory review witnesses. No game, artifact staging or GetUp retry occurred.
+GetUp003/004 remain failed; no copied evidence is promoted into a ticket.
+
+Partial configuration and Load
+
+Previously, the native Load gate considered only the copied-evidence marker.
+A configured PREBIND marker with copied evidence and GetUp still absent could
+advance boot phase0 to1. Normal Lua startup cleanup did not make that native
+partial configuration safe.
+
+Either extension now activates the Load prerequisite. Copied evidence and the
+local GetUp ledger must already be configured. The gate then uses the existing
+healthy same-run acknowledgments for PREBIND, copied evidence and GetUp, including
+their current ownership, session, origin, watch and failure guards. Load cannot
+perform first configuration or reset counters. A PREBIND-only marker also refuses
+GetUp configuration. The ordinary extension-off Load path is unchanged.
+
+Actual production C tests cover each partial setup stage, a complete same-run
+Load,14 missing/changed/session/STOP cases, phase1/2 reattachment without ledger
+changes, and refusal of a second Load. Existing legacy-off coverage remains.
+
+Repeated dispatch after retirement
+
+Previously, another dispatch at the early command address could be excluded as
+an unknown recipient once the first ticket had retired. The new guard checks
+the early address before recipient selection and requires its one finalized
+ticket to still be eligible state1. An open or retired ticket, mismatched command
+or absent ticket poisons the prospective path permanently. The native original
+is still forwarded exactly once. The ordinary bound path is unchanged.
+
+The actual wrapper test retires a valid ticket, then dispatches the same address
+through a different readable unselected Agent. It now records poison/failure,
+retains the existing unknown accounting, calls that original once and refuses
+the later GetUp prerequisite. A separate raw failed C export is rejected by the
+production Lua module and independent parser; the valid baseline still passes.
+
+Validation is source/owned-memory only. The full exact-image native suite exited0;
+42 focused Python/Lua tests passed. Full native log SHA256:
+fab649281e0e156a957b42500c6425569ab435f7924f157c7ec21adc5000e7c2
+Focused Python/Lua log SHA256:
+a9f0ea3019babce784f57646930f54e2453e5a8b419a6d7fa300a04db88f2f86
+Failed repeated-dispatch C export SHA256:
+5957a9997ef3924bda44d1f1088498cd7ff3c9a80476909ff9b1194de8c04b76
+Private DLL793600 bytes, SHA256:
+e0fee54d991dfe9a2a7ca3629ce5806032e19e638132f03618f7e5af4d989b5a
+No native lifecycle
+lease, allocation generation, complete queue exception cleanup, independent
+player context or completed release is established by these corrections.

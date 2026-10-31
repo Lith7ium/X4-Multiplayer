@@ -1,0 +1,196 @@
+SELECTED CREATEPOSITION RNG SCOPE: IMPLEMENTATION PROPOSAL
+28 October 2026 | source-only; no implementation or native launch authorized here
+
+PREMISE AND SOURCE BASE
+
+World015 supplies six valid Position schema2 receipts. Its first patrol case
+has equal captured base/range/distribution/FP inputs, unequal incoming RNG and
+exactly reproduced unequal native radius results. It does not prove equality
+of unobserved math dispatch flags or explain every earlier script input.
+The whole session remains false with 56 errors. World014 remains false64.
+
+The new isolated branch starts at ab5f089 and was explicitly permitted to
+fast-forward to bf86f16f8cb65546ef3802325366503891544536. That accepted base has
+explicit Find composition1/2. No production file has been edited for this
+proposal. Existing four Position hook sites and immutable thunks are retained.
+
+EXACT CANDIDATE
+
+One occurrence belonging to imported saved pilot9d3a4, saved order3cdb, saved
+script38361 DECIMAL, order.fight.patrol v10, native slot215/PC216, gate phase2,
+admitted tick0 and selected per-owner occurrence1. This is not global Action30.
+It must match the existing stable import-Wait/order anchor and a completed,
+valid prior Find receipt. The first selected attempt consumes the occurrence
+even if a guard refuses it; a later attempt cannot become a substitute.
+
+Require exact parent Action/Position provenance, exact registered order
+lifetime/occupied registry slot/backlink, same imported saved/runtime owner,
+same context/program/actual node, no parent/child/nested scope and the current
+NPC execution bracket. Native source addresses are local guards, not key data.
+Require the accepted program shape, 234 native slots, exact CreatePosition
+class/entry, no chance field, and the existing pre-admission phase/time guards.
+Gate loading phase is not described as proof of execution inside native Load.
+
+The consumed case is kind0, coordinates0, absent space/reference expressions,
+range kind2, zero optional reference, zero native base, evaluated minimum
+tag0/value0, evaluated difference tag5/float50000, actual span47435000,
+distribution1 and parameter/count1. Preserve all ignored Value bytes as local
+raw diagnostics; do not use padding or pointers in the seed/comparison.
+
+MUTATION BOUNDARY AND EXACT NATIVE COMPUTATION
+
+The existing sampler wrapper at14ddd10 receives the actual evaluated arguments.
+Only after its normal Position guard/stack reads and additional checks succeed
+may it save the caller TLS state and install the selected seed. Require actual
+RNG argument == retained native TLS slot0+318, with aligned readable/writable
+storage and unchanged thread/TLS provider identity. No mutation at Action entry,
+range expression evaluation, chance handling, import, or global RNG function.
+
+The native sampler executes exactly once. Its result and state are observed;
+the scope remains active through the existing outer c6f7b0 continuation. On
+ordinary return, retain the normal raw Position post-capture of the scoped
+state/output, then restore the caller state in outer finally before returning
+to the downstream Value/Action.
+The outer, radius, sampler and downstream assignment all remain original once.
+No computed radius, direction, position or return value is replaced.
+
+The pinned code proves ownership, beyond an endpoint count: distribution1 and
+count1 take the first14ddc90 call at14ddd35 and skip the loop. For the selected
+positive finite radius, c6fb77 does not take JBE; c6fb99 and c6fbac directly call
+14ddc90 using TLS slot0+318. Widths are40c90fdb (2pi) and40000000 (2), followed
+by subtraction of3f800000 (1). The routine performs one state step, low32 to
+float, multiplication by2^-32 and width. There is no direction loop.
+
+Starting the scope at the sampler leaves earlier range-expression side effects
+natural. Before mutation also capture/check the original maximum numeric Value
+at incoming sampler T+78 and the c59b00 result scratch Value at T+178, in
+addition to difference T+38/minimum T+58 and existing exact return/frame joins.
+The new offsets follow the pinned c58da0 seven-push/100 frame and c59b00 58-byte
+frame. They MUST receive an independent actual-wrapper owned-caller test before
+production acceptance. Require maximum tag5/float50000, result scratch initial
+tag0/value0 and stable numeric locals across the sampler. This excludes native
+resource cleanup/evaluation paths after mutation. The selected continuation
+uses pinned325610/ccd920/cd4760/3256a0 numeric paths; no engine getter is called
+by the observer. No unsupported expression form is inferred from span alone.
+
+MATH INPUT CLOSURE
+
+Two previously unobserved native DWORDs select math paths:
+
+  38edec0: only literal0 or1 supported; selects the two1a19480 implementations.
+  2f3f220: only literal0..6 supported; <2 selects1750830, >=2 selects1751170.
+
+Both implementations are fully pinned. The proposal vector produces finite,
+positive radius25664.90234375, azimuth0.7134362459182739 and z0.14735889434814453.
+Thus acos/sin inputs are ordinary finite values; the packed trig arguments are
+below2.3, well below the pinned10000 fast-path cutoff. Exceptional math/error
+callbacks and unbounded table paths are outside the eligible case. The full
+roots, direct calls, constants and dispatch adapter are in the accompanying
+pins. Dynamic flags are copied twice before mutation and at normal completion;
+change or unsupported values refuse/fail the scope. There are no flag writes.
+
+Require MXCSR control maskffc0 ==1f80 and x87 control027f; retain full raw words
+and existing boundary checks. Pin the exact constant bytes and owned-rebuilt
+native function spans before arming and before the single mutation. The seed
+is independent of local math dispatch values. Paired selected validity requires
+the copied flags equal across peers, even if outputs happen to match. This
+does not retroactively claim the flags were equal in World015 and does not
+establish Linux math parity.
+
+SEMANTIC KEY AND CONFIGURATION
+
+The proposal's260-byte exact key is defined byte-for-byte in the accompanying
+KEY file: domain including its final NUL; snapshot32 bytes; saved pilot/order/
+script; length-prefixed script name/version; native slot/PC; gate phase/tick;
+per-owner occurrence; length-prefixed original saved time6.31667; restored Wait
+slot121/PC122; five branch DWORDs; zero base16 bytes; typed minimum/difference;
+actual span/distribution/count; explicit FP control mask/value and x87 control.
+Integers are little-endian with widths stated for each field. No XOR-combined
+fields, pointers, runtime allocation IDs, global Action number or thread ID.
+
+SHA256: a582beee51faba17312d1d025a75a6cd8e0eca078e86efcf3efbe4fb3353aff0.
+Seed is the first8 digest bytes interpreted little-endian:17bafa51eebe82a5.
+Expected successive states:
+def54d4283678009 /6969e7901d1168d6 /0c1c63b492dca87d.
+Radius bits46c881ce; azimuth bits3f36a3c2; raw second direction3f92dca8;
+z bits3e16e540. This is a proposed offline vector, not a native game result.
+
+Use a separate default-absent --world-position-rng-manifest and Lua config/API,
+with explicit Position RNG schema1 and explicit expected Find composition1 OR2.
+Never infer composition from counts or silently fall back. Require already
+configured Position/Action/Values/Find/Wait dependencies. Builder checks exact
+snapshot and input-manifest closure; native code recomputes the semantic seed.
+The wire uses hexadecimal strings for all64-bit seed/digest data, never Lua
+numbers. Composition is an immutable dependency binding, not a seed field.
+Both existing Find key/seed and all Wait policies are unchanged by this feature.
+
+Initial configuration is phase0 only. Exact healthy same-session retries may
+acknowledge retained data/cursors, including after use, but never reset counters,
+reinstall hooks or reseed. Changed manifest/dependencies, own failure/debt,
+wrong thread, closed admission or STOP refuse. Unrelated global unknown-coverage
+failures remain separate and cannot be reclassified as selected success.
+
+PUBLICATION, STOP, EXCEPTIONS AND UNSUPPORTED CASES
+
+An observer-owned bounded ring holds selected attempts and immutable copied
+identity/input/RNG fields. All calls have explicit admission; selected attempts
+have a single-use owner occurrence. Seed publication and STOP admission closure
+are serialized by the new scope lock; no lock spans original engine execution.
+Do not nest the new lock with Position/Find/Wait locks. Copy their immutable
+bindings under their own locks separately, then recheck session identity.
+
+Existing Position callbacks receive outer begin, sampler before/after, outer
+normal-completion and balanced finally. Default-NULL callbacks are inert. The
+normal completion callback validates the retained generic outer-post capture;
+finally restores before return to Action. Its separate receipt retains both
+actual scoped-after and restored caller state. Finally performs conditional
+cleanup on foreign SEH without suppressing/replacing the original exception.
+Abnormal cleanup reads only resident scope storage and revalidated TLS storage;
+it never dereferences an unwound native Value/frame/command/object.
+
+Restoration requires the same thread/TLS provider/address, valid alignment and
+writable mapping; contain write faults. STOP/phase/identity/nested/duplicate or
+postcondition failure remains fatal even if the caller state is restored. A
+changed TLS provider or failed store retains explicit restoration debt; do not
+write to an alternate location or report completed cleanup. An unseeded refusal
+never restores caller RNG. Unexpected nested execution invalidates the scope;
+no claim that already executed native side effects can be rolled back.
+
+Close new admission before restoring the existing Position hooks. Retain all
+resident code/storage while calls can be in flight; record open/restore overlap
+without waiting on engine threads. The existing patch ownership/protection/
+flush failure accounting is unchanged. No new patch site or thunk is proposed.
+
+RAW EVIDENCE AND VALIDATION
+
+Separate receipts must bind the actual Position event, Action/lifetime/order,
+sampler ordinal and prior Find/import anchor. Record caller_before, seed,
+scoped_before, sampler_after, native_outer_after, restored_caller_after, applied,
+restored/abnormal/error/debt, full copied input guards and math dispatch flags.
+Bound every emitted line before logging and retain native drain cursors.
+
+Existing raw Position fields are not rewritten. With a configured experiment,
+the parser first validates its exact receipt join, then distinguishes the raw
+pre-seed sampler guard from effective seeded input and the restored outer/Value
+state from scoped native output. Raw schema2 fields/bytes stay unchanged; the
+explicit configured experiment supplies a separately validated transition
+bridge. No selected-valid claim may survive a failed intervention join.
+Unconfigured schema2 remains natural-only;
+no receipt, invalid/duplicate join, unsupported mode or missing field cannot
+authorize an alternate interpretation. Pair comparison requires distinct client
+slots, valid parent/output joins and exact selected inputs/flags/output equality.
+All unknown Action/Values/full-world errors remain strict and independently
+visible. Historical World014 false64 and World015 false56 must replay unchanged.
+
+REQUIRED IMPLEMENTATION CHECKS
+
+Independent C/Python sequential key vectors; exact actual-image pins/constants;
+owned real-wrapper stack proof with wrong-offset control; original-once return
+bits/nonvolatile ABI; natural default-off and refusal behavior; all selected
+input/identity/math-mode changes; missing/repeated sampler or direction paths;
+STOP before/after publication, duplicate/nested/foreign calls and real SEH;
+TLS changed/unwritable/partial-store restoration debt; healthy/failed reload
+retention; formatter bounds and raw C-export/Action/Value/intervention joins;
+malformed pair/receipt mutations; both explicit Find compositions; unchanged
+historical raw-reader results. Native game approval requires a later separately
+reviewed frozen artifact and one concrete run plan.

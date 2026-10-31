@@ -296,13 +296,15 @@ class Fire2AdapterTests(unittest.TestCase):
                  paused=true;now=10.12;frames.onUpdate()
                  paused=false;now=13
                  if not packet_first then frames.onUpdate() end
-                 nav2(2,51,0) -- Delayed sample resets offset from -40 to -38.
+                 nav2(2,51,0) -- Delayed sample after a stale gap: samples reset, but the
+                 -- real-time clock mapping of the same source process is retained (-40, not -38).
                  fire2(2,51.05,1,1,1,0);now=13.21;frames.onUpdate()
-                 assert(C.remote[2].track.offset==-38)
+                 assert(math.abs(C.remote[2].track.offset+40)<.01 and C.remote[2].track.resets==1) -- drift leak only
                  assert(C.resumeCutoffs[2].cutoff==53 and #fires('Fire2')==0)
                  -- Another pause with the delayed mapping cannot lower the cutoff.
                  paused=true;now=13.25;frames.onUpdate();paused=false;now=13.3;frames.onUpdate()
-                 assert(C.resumeCutoffs[2].cutoff==53)
+                 -- With the retained mapping the new boundary is the true resume time (~53.29).
+                 assert(C.resumeCutoffs[2].cutoff>=53 and C.resumeCutoffs[2].cutoff<53.4)
                  now=13.4;nav2(3,53.4,0);fire2(3,53.4,1,1,2,0)
                  now=13.61;frames.onUpdate()
                  assert(#fires('Fire2')==1 and fires('Fire2')[1].primary)

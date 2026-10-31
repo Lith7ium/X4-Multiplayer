@@ -1,0 +1,134 @@
+GETUP ACTION FIXTURE: PROPOSED SOURCE CHANGES
+28 October 2026 | Design only; no action writer or launch approval
+
+Boundary and current blocker
+
+Use the stock bool GetUp(void) export at1aba30 exactly once. It is the action
+used by the stock GetUp button, not an AI order or controller-pointer write.
+Its boolean means request acceptance only. The already pinned post1abb07,
+EventSource dispatch,998700/152870 adapter and706cc0/716e20 handler provide
+separate request/delivery/transfer/publication observations. Native due time is
+TLS simulation time plus0.01; it is not the clock read at delivery.
+
+The existing gate admits input for completed+1, increments issued, then invokes
+the native FrameTick original. The UI probe applies the batch on its first
+onUpdate for that issued tick, before gate.report. Thus application at tick30
+means that exact admitted UI boundary. It is not a proven before-solver boundary
+or an assertion that the native deferred event completes during tick30.
+
+The current paired path cannot reach this action: transition configuration needs
+the early raw world/queue observers, whose builder requires global hash stride1.
+The known full-world tick1 mismatch stops the pair before the tick30 grant. Keep
+that behavior, the existing hashes and raw fixed-controller watch failures. Do
+not use compare-off, omit an enabled world root, rebind a watch or reinterpret the
+existing failure as acceptance. Implementing the action mode does not resolve it.
+A real paired run remains blocked until the strict early mismatch is repaired.
+
+A separately approved one-native-copy diagnostic could exercise the public action
+and local causal receipts without making any cross-replica equality claim. That
+would require explicit diagnostic-runner semantics and a distinct result category;
+a synthetic second protocol peer must never become a second-game success witness.
+It is an alternative follow-up proposal, not an implemented or authorized bypass.
+
+Identity and action state
+
+Use only the reviewed pristine snapshot and schema2 watch: saved player11e12,
+shipae79c, Small ship_arg_s_scout_01_a_macro, true ownerplayer, initial cockpit
+ae79f and PlayerController. The snapshot SHA256 is
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+Keep the initial player/ship runtime, registry generation, object and Agent tuple
+fixed throughout the experiment. Fresh guarded reads are continuity checks, not
+atomic destruction, ownership or generation-wrap exclusion. There is no second
+native player context, second faction, alternate selected ship or chair action.
+
+Add a default-off agreed-getup player mode. Only this mode replaces the two
+immutable identity checks in native_gate_player.lua: the pre-effect comparison
+and per-tick player/container/occupied/controlled tuple comparison. All existing
+observe, throttle, firing, travel and authority-refusal modes retain their guards.
+The new mode progresses through BOUND, CLAIMED, REQUEST_RETURNED, DELIVERY_SEEN,
+PUBLICATION_SEEN and MODEL_DISPATCH_SEEN, or a sticky FAILED state. These labels
+are observations, not interchangeable success states. False GetUp, missing or
+duplicate delivery, unknown identity, malformed order, timeout or partial capture
+never retries. Global activation is never selected-ship release proof.
+
+Before the claim, require the original controlled tuple and audited controller.
+After it, allow only receipt-supported changes for the same selected ship and
+player ancestry; an arbitrary controlled/container identity remains a failure.
+Record old/new controller types and Agent ownership independently of public UI
+IDs. Do not call a PlayerController-only getter after publication to Navigation-
+Controller. Unknown or newly unmapped containers fail with raw evidence retained.
+The existing mode0 takeover completion predicate is not reused for release.
+Until the release-specific model predicate is audited, model dispatch is reported
+as observed and completed_release remains false.
+
+Command admission and at-most-once native execution
+
+Tentative opcode87, actor01, argument00, revision00 is reserved only after parent
+coordination; slot2 must be00000000. Propose87010000 at report29 for grant30.
+Both slots must decode completely before any effect. The native entry rechecks
+the actual admitted inputs as well as the UI arguments, active boot3, issuing UI
+thread, issued30/report29, selected identity and owned observer installation.
+This fixture excludes all other action adapters; it does not claim a general
+cross-family command dispatcher or simultaneous pilot/management authority.
+
+Keep the processed-tick and one-request ledger in the DLL, not a reloadable Lua
+local. Configure one immutable run/epoch/plan identity before Load; include its
+portable descriptor in the existing state digest. Advance consecutive zero-input
+batches through29, then atomically claim the exact run/epoch/tick/slot/command
+tuple before entering the public export. A stale, duplicate, gap, changed epoch,
+UI reload or conflicting slot cannot call GetUp again. The public call is outside
+the observer lock so synchronous delivery/STOP cannot deadlock. STOP before claim
+refuses; STOP after claim leaves an admitted call and incomplete evidence sticky.
+Use __finally to account for an abnormal public return without swallowing its
+exception or reading any event/controller afterward. No automatic repair/resume.
+
+Configure full pins before observer publication; afterward verify ownership of
+the expected patched sites instead of hashing a deliberately patched GetUp body
+as though it were untouched. No new hook site, thunk region or numeric option bit
+is needed. A future action entry calls the exact public export through its bool
+ABI; it does not call716e20 or controller transfer directly.
+
+Receipts, hashes and source map
+
+Add a narrow native request header and Lua API for configuration, batch/claim and
+bounded export. Version a request receipt with run/epoch/tick/processed count,
+both input words, selected saved identity, public-call entry/return/unwind counts,
+boolean acceptance and sticky failure. Extend origin association explicitly with
+the request ticket and delivery entry/leave ordinals, since the current receipt
+does not independently serialize delivery containment. Preserve immediate
+reentrant delivery before post returns, deferred delivery and address-reuse checks.
+The public return, delivery, direct transitions and model queue completion remain
+separate links; copy data only while its existing native lifetime is valid.
+
+native_gate_player.lua owns new-mode proposal/decoding and the selected-ship state
+machine. native_gate_probe.lua configures watch, transition, origin and request
+capture before Load and drains all raw rows/STOP footers even on failure. Add a
+small origin Lua adapter instead of putting its full parser into the general probe.
+build_native_gate_overlay.py adds the exact opt-in mode, origin token and plan
+descriptor with incompatible-mode checks; installed configs remain inert by
+default. Existing broad-world, tactical, player and input hashes stay in place.
+The new portable action-state suffix includes the descriptor, request tick,
+processed inputs, phase and decoded saved-identity results. Local pointers and
+opaque native return values stay diagnostic, not equality keys.
+
+Extend native_player_origin.py and validate_native_gate.py for the new closed
+schema, explicit request/delivery/direct/queue joins and paired portable descriptor.
+A claimed success flag cannot replace raw evidence. Keep completed_release and
+independent_player_context false until their distinct predicates are demonstrated.
+World-owned queue exception cleanup remains a separate dependency, currently0;
+do not advertise full exception cleanup while only origin/direct wrappers have it.
+
+Required source tests before any frozen live proposal
+
+Exercise the actual production decode/claim/state code using owned memory and
+LuaJIT: all two-slot invalid combinations before effects; tick/epoch/gap/replay/UI
+reload; STOP winning before claim and after claim; false/throwing public original;
+immediate and deferred delivery; replacement runtime/generation/object/Agent/owner;
+missing/duplicate/address-reused origin tickets; unknown post-transition container;
+parentless global activation; incomplete or wrong model dispatch. Verify original
+once and no after-unwind native reads using valid synthetic caller unwind data.
+Production-format receipts must pass independent positive parsing, while mutations
+cannot be rescued by unrelated flags. Existing modes and all strict raw failures
+must remain unchanged. An early world mismatch test must prove GetUp calls stay0.
+
+No overlay was staged, game launched or public GetUp invoked for this plan.

@@ -1,0 +1,98 @@
+Native management diagnostics, 27 October 2026
+
+Status: bounded shared-faction diagnostic, not general multiplayer management.
+The two native games still load one native player faction and global wallet.
+Logical player permissions in this fixture do not create two native players or
+separate native PvP economies. Source gameplay configuration remains inert.
+
+Observed stock entry points
+
+The station menu funds build storage through TransferPlayerMoneyTo and
+TransferMoneyToPlayer. Both implicitly use the local singleton player account.
+Construction confirmation uses SetConstructionSequenceFromConstructionMap with
+a local holomap. That UI handle is not a portable construction command. Build
+method and trade rules have container-addressed native setters. Builder release
+uses native order cancellation. The map creates/enables orders and changes their
+parameters separately; queue indices alone are insufficient cancellation identity.
+GetOrderID supplies a native 64-bit order identity that can be retained locally.
+
+MD create_construction_sequence may complete asynchronously. Its immediate
+variant blocks, and its timeout may change whether a generated layout succeeds.
+An explicit construction plan and a recorded completion acknowledgment are needed
+before claiming synchronized plan application. Applying a plan or spawning an
+operational module is not proof that construction, resources or builder AI work.
+
+Implemented experimental scope
+
+The standalone overlay composer uses the existing admitted 32-bit input per
+player per tick. Opcodes 0x40..0x47 identify bounded management actions, logical
+fixture assets, arguments and expected revisions. Both commands are syntactically
+validated before native effects; semantic acceptance runs in player-slot order.
+Shared-account edits consume one asset revision. A stale simultaneous edit or a
+foreign ship command produces a hashed refusal without a native mutation.
+
+The fixture creates one station in construction state with an unpaid plot and
+two player-owned ships with default Wait orders. Each ship is assigned to one
+logical player. It tests account targets/refunds, build method, buy-rule override,
+and append/cancel of owned Wait orders through actual exported native APIs.
+It seeds a minimum wallet balance only inside the disposable fixture.
+UI money units are credits; no fractional or inexact amounts are admitted.
+
+MANAGEMENT_2 adds a separate operational station account to wallet/build-storage census,
+an explicit insufficient-funds refusal, and local native order identity checks
+immediately before cancellation. Raw runtime component/order IDs never enter
+portable hashes. Fixture handles identify newly created assets. Each successful
+native effect must pass a readback before an accepted receipt is produced.
+If a later native effect fails, the adapter emits partial receipts/state, poisons
+the batch and stops. It does not roll back or retry previously applied effects.
+
+Native evidence
+
+coop-001, frozen MANAGEMENT_1, 360 ticks, two disposable native games:
+runner PASS; every checked barrier state matched. Independent management checks
+reproduced 360 state records, ten native effects per client, one stale-revision
+refusal and one foreign-owner refusal. The wallet/build-storage trajectory was
+100000/0, 80000/20000, 70000/30000, 100000/0 credits. Both retained Wait orders were
+created and removed. The station container's closed-loop method and build-storage
+buy-rule override on/off were read back successfully. Stock construction UI sets
+the build-storage container's method, so MANAGEMENT_2 corrects that target. The
+first run did not verify the construction processor's selected method. Both
+native gates restored normally.
+
+The full validator did not pass: the inherited optional spline-join experiment
+had zero requests during this short scenario. Its existing coverage requirement
+was preserved. The next immutable management overlay disables that unrelated,
+unexercised option. No failed requirement was relabeled as passing. MANAGEMENT_2
+guards require their own native run; their unit evidence is not native evidence.
+
+coop-002 stopped at tick 20 before commands: native MD rejected creation of an
+operating account on the construction-state shell, which is not yet a container.
+The subsequent missing money value stopped the gate instead of becoming zero.
+The corrected fixture has a separate already-operational station for account
+tests. This does not prove that the unfinished station was constructed. Actual
+construction must track its shell-to-operational lifecycle and account availability.
+Adapter-level tests also cover uint64 order identity changes above 2^53 at a
+reused queue index, and first-slot success followed by second-slot native failure.
+
+coop-003, MANAGEMENT_2, 360 ticks: independent SESSION_PASS and evidence_valid,
+with no validation errors. Twelve verified native effects per client completed:
+wallet/build-storage targets and refund, build-storage method, two owned native
+Wait queues created/cancelled, buy-rule override on/off, and operating-station
+fund/refund. Three refusals were observed with no native effect: simultaneous
+stale revision, foreign owned ship, and insufficient funds. All three account
+balances and management receipts matched in every checked frame. Native order
+identity guards were enabled; the reused-index negative is unit evidence only.
+Actual module construction and real player-menu interception are still separate
+acceptance requirements. This fixture replays admitted commands from both slots.
+
+Remaining scope
+
+Plan editing, paid plot expansion, builder deployment/hire/cancellation, module
+resource consumption and completion, production/economy, trade rules across real
+factions, managers/subordinates, account permissions and independent PvP wallets
+remain unproven. General command identity needs an epoch/sequence and portable
+asset lifecycle identity, beyond the fixture's byte-sized revisions. Construction
+requests need explicit pending/acknowledged outcomes and admission-time resource
+reservations. Native menus and other scripts must not bypass command authority.
+The independently hashed battle subset and this management fixture do not cover
+the entire universe or all player actions.

@@ -1,0 +1,160 @@
+Single-native GetUp diagnostic: source implementation, 28 October 2026
+
+Scope and boundary
+------------------
+This adds an explicit diagnostic-getup mode for one disposable native instance.
+No game, UI action, profile installation or staged overlay was used to validate
+this source. The actual native GetUp action remains pending separate review of
+an immutable artifact and runner configuration.
+
+The mode has its own NGDSTATE/NGDGO/NGDSTOP/NGDDONE/NGDCLOSED namespace and closed
+version1 diagnostic-getup-1 contract. A token-derived run, epoch1, physical slot1,
+120-tick window and the sole report29 proposal87010000 are required throughout.
+The coordinator keeps one actual endpoint and one flat state stream. Native
+application supplies the second internal input as constant00000000; it is not
+a second proposal or player. Every paired tag is refused by this transport;
+the existing paired decoder and Barrier refuse every NGD tag.
+
+The native ledger binds the mode and initial digest before Load. Healthy Lua
+reattachment preserves its process session and once-only action claim. Changes
+to mode, run, session, publication/controller history, missing passive observer
+dependencies, replay and STOP refuse. The accepted agreed-getup mode remains
+separate. Its previously omitted bootstrap plan is now reconstructed by the
+paired validator using a narrow shared helper; actual Lua preimages test both
+contracts. Plain/snapshot/fixture defaults are unchanged.
+
+Passive observation and timing
+------------------------------
+Exact options70377334178981 install serial pathing, saved identities, and the
+existing passive flight/AI/Agent/ship/Nav/spline callbacks. The explicit mask
+includes the actual dependencies of the early world trace and queue observer.
+It enables no RNG reseeding, timer initialization or transform/control writes.
+World hashes remain stride1. The raw Nav-bound trace/queue retains its existing
+configured early window2..12; the separate selected transition/origin ledger
+continues to120. This is not raw queue coverage through120 or a rebind of the
+original fixed-controller world watch. Raw capture errors remain failures.
+
+The single coordinator admits the exact next command. Held clocks, table,
+digest/proposal, report/issued state and installed observer ownership are freshly
+checked before a permit. This is not an atomic recapture of the entire universe.
+Cancellation and continuation claims use the existing transport locks. A stop
+before the claim requires a completed restoration attempt before the original;
+a stop after the claim may overlap the already admitted original. No lock is
+held across the original. DONE waits for that original and restoration attempt;
+the exact CLOSED receipt is required. Socket closure remains once-only.
+
+Native exceptions propagate after local unwind accounting. Missing terminal or
+queue exception cleanup never becomes a successful observation. General native
+lifetime exclusion, queue exception cleanup, release completion and re-entry
+remain unproved. No second independent pilot context is created.
+
+Runner and independent evidence
+-------------------------------
+run_native_getup_diagnostic.py invokes the released lane runner through the
+existing snapshot wrapper's explicit --getup-diagnostic-config seam. It accepts
+only run plus the pinned snapshot, one manifest-bound p1 endpoint and closed
+payload/launch arguments. The default lane is b4. The wrapper supplies the three
+substitution tokens and selects the unchanged released loopback policy; it does
+not modify the released tool, session machinery, admission, process ownership,
+profile protection or cleanup. Ordinary wrapper modes retain their defaults.
+
+The immutable manifest records the source base, overlay files, gate DLL, lane
+tool, snapshot and exact local contract. Read-only hashes are rechecked before
+preparation and after the runner returns. The installed DLL/config, reserved
+snapshot cleanup, lane restoration and coordinator thread closure are joined
+by validate_native_getup_diagnostic.py. This separate validator replays the
+coordinator transcript, reconstructs every canonical hash, and invokes the raw
+world/trace/queue and selected transition/origin/GetUp receipt parsers. It never
+calls paired validate() or synthesizes a client. Missing evidence yields an
+explicit failed result. session_pass, parity_checked, independent_native_players
+and completed_release are hard false even when local_contract_valid is true.
+
+Verification
+------------
+The actual-image Windows C suite passes, including production GetUp context and
+mode reattachment tests. A separate production C transport executable uses owned
+synthetic engine memory and real loopback UDP against the Python coordinator:
+15 cases cover120 grants, the one action claim, held clock/digest/ownership
+mutation, stale/future rejection, timeout, synchronous stop, native exception,
+both concurrent stop/claim orderings, foreign restoration and changed CLOSED.
+Case8 deliberately demonstrates coordinator closure with native CLOSED refusal;
+the final validator requires the native receipt too.
+
+The production C status formatter is consumed by the actual LuaJIT closed
+parser. Lua probe tests cover both bootstrap preimages, full fresh-VM Load
+reattachment and partial configuration cleanup. A fully valid modeled evidence
+baseline exercises all independent component parsers, then missing/tampered raw
+receipts, transcript/endpoints, native accounting, immutable inputs and cleanup
+are rejected. These are synthetic source tests, not native game results.
+
+Commands: build_native_gate.py --test --native-image <pinned X4.exe> --zig <zig>;
+python -m unittest discover -s tests -p test_native_gate*.py.
+No native handle or queued lane belongs to this source task.
+
+Independent review follow-up
+----------------------------
+Reviewer case15 removed the required spline observer after the first NGDGO.
+The old local admission guard checked spline_installed but not its current slot;
+it therefore allowed the action and refused only at terminal restoration. The
+local mode now uses a guarded read of SPLINE_ENTRY both during configuration
+and every held-state/admission reread, requiring the spline_update wrapper.
+The shared paired gate_sites_owned condition is unchanged. Production case15
+now issues no permit/action, forwards exactly one terminal original, preserves
+the foreign-slot restoration failure, and closes once. Configuration retry
+with that slot removed also refuses without changing the native ledger.
+Full actual-image C (including15UDP cases) and492Python/Lua checks pass.
+
+Configuration binding review follow-up
+-------------------------------------
+The independent reviewer changed the installed raw window2 to12 and changed
+its lane-reported config hash and raw STOP footer together. Those self-consistent
+receipts previously passed despite the immutable overlay still selecting2.
+The wrapper now compares every closed native setting (including watch ordering,
+schema, explicit defaults, run, endpoint and bootstrap plan) with the hash-bound
+overlay after substitutions, following released preparation and before launch.
+The independent validator repeats that comparison. Base defaults and profile
+repinning are retained; the ordinary networking adapter must remain disabled.
+The exact counterexample and a before-launch changed-config test now refuse.
+
+Diagnostic manifest and lane-tool bytes are also checked before importing that
+lane tool. A changed-tool import sentinel now remains absent on refusal.
+Normal wrapper import behavior is unchanged. These fixes passed493Python/Lua
+checks; they do not change the reviewed native DLL.
+
+Execution receipt and source-only import follow-up
+-------------------------------------------------
+The diagnostic now requires a separate closed diagnostic-getup-execution-1
+receipt. The manifest and runner receipt contain the identical absolute path,
+SHA256 and byte count. Its full tools/dev inventory binds the actual runner,
+wrapper, coordinator, validator and local parsers. A full canonical release
+inventory binds lanecore, lanewin and native signatures; the autostart tree and
+actual x4lock executable have explicit records. Current source ROOT, resolved
+lane ROOT, loaded module origins and actual helper locations must match before
+preparation. Diagnostic x4lock lookup uses build=False and verifies the returned
+executable; it cannot substitute a newly built helper. Independent validation
+repeats the file, inventory, runtime-source and receipt joins.
+
+Only the explicit diagnostic entrypoints install the source-only-1 policy,
+before their local imports. Python modules are read, hashed and compiled from
+source; matching bytecode caches are neither consumed nor changed. The explicit
+lane-tool import follows the same path. Already-loaded modules from the declared
+trees require recorded compiled bytes, and wrong-root named modules refuse.
+After receipt binding, unlisted or changed source in those trees cannot compile.
+Compile history permits repeated identical bytes but a changed hash latches a
+failure which restoring the original file cannot clear. Ordinary lane-wrapper
+modes do not install this policy.
+
+The external review of the frozen entrypoint/archive remains the bootstrap
+trust boundary. Stdlib, OS and interpreter binaries are outside this receipt;
+this is not whole-machine attestation. The final receipt must be generated from
+the final integrated frozen source and canonical release, not this mutable
+checkout. No final execution artifact, overlay, reservation or game was created.
+
+Seven focused execution tests and all500 native-gate Python/Lua tests pass.
+Owned fixtures reject changed/missing helpers, release dependencies, autostart,
+x4lock, receipt paths/digests, current ROOT and installed module origins. Actual
+subprocess witnesses first demonstrate that an ordinary interpreter consumes
+matched-mtime/size poisoned caches, then that the diagnostic loader executes the
+source while preserving those cache bytes. Explicit lane imports, sourceless
+bytecode, unrecorded modules and A-to-B-to-A source history are also checked.
+The Python-only follow-up changes no native DLL or previously reviewed C path.

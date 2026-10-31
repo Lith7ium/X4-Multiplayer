@@ -1,0 +1,42 @@
+CREATEPOSITION INPUT REVIEW CORRECTIONS - 28 OCTOBER 2026
+
+This is a narrow follow-up to immutable source957d132. No native run, staging,
+new interception site, RNG write, configuration change or wire-layout change.
+
+Independent production review reproduced four gaps on the actual owned C export:
+a coherent space vtable change or valid RTTI name change disappeared from paired
+semantic comparison; a misaligned incoming return slot was accepted; and 2100
+trailing spaces escaped the row bound because whitespace was stripped first.
+These were validation gaps, not evidence of a different native game input.
+
+The paired semantic input now retains a validated Windows-image class signature
+for both space and non-null reference: vtable, type descriptor, COL, class
+function and bitmap RVAs, bounded RTTI name, copied class bitmap and COL bytes.
+Valid individual captures with different classes remain individually valid, but
+the pair exposes the difference and cannot claim equality. The signature is
+explicitly windows_image_class_v1, not a portable class ID. Instance addresses
+and registry addresses remain local diagnostics, not shared identity keys.
+
+The native copy helper and independent decoder both require T modulo16 to equal
+8, the audited Win64 incoming-return-slot alignment. The positive owned fixture
+now models that alignment explicitly. Its otherwise valid T+1 fixture refuses
+without skipping any reached original. The real assembly caller/production
+wrapper remains a positive check of the actual ABI, separate from that fixture.
+
+The parser bounds the complete raw native record before removing line endings.
+It does not trim trailing spaces or tabs before the limit. Normal CRLF input
+continues to parse. The explicit5176-byte schema and21-row publication are unchanged.
+
+Validation:
+* Focused production executable:5357 active checks with -O2 -DNDEBUG, including
+  the actual incoming-T wrapper, real exception path and four-site forwarding.
+* Actual C-format export:225 raw guard/object/alignment mutants reject; four
+  coherent space/reference class changes produce paired differences and refuse
+  a claimed pass; the overlong raw-row counterexample refuses.
+*125 focused Python/LuaJIT tests pass. Added tests cover all16 possible low slot
+  bits, overlong space/tab/CR padding, ordinary CRLF and both class-bearing roles.
+
+The independent reviewer separately reported the original source passed worker
+STOP and shared-executable-page repair tests, and preserved the historical013
+strict failures. Those results are not native gameplay evidence. Final review
+of this follow-up remains separate from the original accepted caller-slot proof.

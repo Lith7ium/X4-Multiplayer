@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "enabled": false,
+  "domain": "X4LAN/WORLD_CREATE_POSITION/RNG/v1",
+  "snapshot_sha256": "7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8",
+  "expected_find_composition": 2,
+  "selected": {
+    "saved_pilot": "000000000009d3a4",
+    "saved_order": "0000000000003cdb",
+    "saved_script_decimal": 38361,
+    "script": "order.fight.patrol",
+    "version": 10,
+    "slot": 215,
+    "pc": 216,
+    "phase": 2,
+    "tick": 0,
+    "owner_occurrence": 1,
+    "saved_time_text": "6.31667",
+    "restore_slot": 121,
+    "restore_pc": 122
+  },
+  "inputs": {
+    "branch": [
+      0,
+      0,
+      0,
+      0,
+      2
+    ],
+    "base": "00000000000000000000000000000000",
+    "minimum_tag": 0,
+    "minimum_payload": "0000000000000000",
+    "difference_tag": 5,
+    "difference_payload": "0000000047435000",
+    "span_bits": "47435000",
+    "distribution": 1,
+    "count": 1,
+    "mxcsr_mask": "0000ffc0",
+    "mxcsr_value": "00001f80",
+    "x87_control": "027f",
+    "maximum_tag": 5,
+    "maximum_bits": "47435000",
+    "scratch_tag": 0,
+    "scratch_payload": "0000000000000000",
+    "math_flags": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    ]
+  },
+  "program_shape_hash": "985d66488a43c795",
+  "expected_key_sha256": "a582beee51faba17312d1d025a75a6cd8e0eca078e86efcf3efbe4fb3353aff0",
+  "expected_seed_hex": "17bafa51eebe82a5"
+}

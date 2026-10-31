@@ -26,7 +26,7 @@ def check(folder):
             assert not any(n.endswith('_probe.lua') or '_probe.xml' in n or '/dev_' in n for n in names)
             for name in ('WORLD-SYNC-TEST.txt','NEXT-TEST.txt','reports/RELEASE-CHECKS.txt','reports/AUTOMATED-TESTS.txt','00-START-HERE.html','launcher.py','world_launcher.py','profile_settings.py','RUNTIMES.json'):
                 assert name in actual,name
-            for module in ('host','monitor','universe','cargo','identity','coop','quests','bubble','economy','seed'):
+            for module in ('host','monitor','netprobe','universe','cargo','identity','coop','quests','bubble','economy','seed','players'):
                 assert 'x4lan/'+module+'.py' in actual,module
             assert not any('ISOLATE-TEST-MODS' in n or 'isolate_test_mods.py' in n or 'world_observer.lua' in n for n in names)
             windows=meta['platform']=='Windows11'

@@ -1,0 +1,197 @@
+PROPOSAL: COMMAND-SCOPED CONSTRUCTION RNG, DEFAULT OFF
+28 October 2026 | Source proposal only; no implementation or native run
+
+Objective
+---------
+Build016 proves different TLS input streams produce different native Agent timers
+and posted event due times at the same simulation clock. The proposed experiment
+temporarily selects a deterministic TLS stream while the exact native Generate
+call runs, restores its caller stream, and separately does the same around the
+later selected Navigation initializer. Native constructors, draws, queries and
+PostEvent still run once with their original arguments. Native clocks, selectors,
+state banks, registry enrollment and the existing late-update refusal are unchanged.
+
+This is a fixture-scoped causal test. A successful RNG experiment would not mean
+construction completed or that two players own independent actors. In particular,
+the command authority below is the internal fixture authority 0, not player 1.
+
+Selection and boundaries
+------------------------
+Use the existing creation observer hooks and immutable thunk reservation; no new
+engine patch site or packed option bit is needed. Keep natural observation as the
+default. A new exact Lua manifest and schema marker opt in before snapshot load,
+while boot phase is zero, issued tick is zero and the creation trace is configured.
+Configuration is single-use and immutable for this boot. Unsupported composition,
+including player, management or a second creation adapter, is refused.
+
+Scope A surrounds only Generate c841b0 through its existing wrapper, with expected
+native return caller ba1b8b. It starts after the natural entry sample and before
+the one original call. It ends after the original-return observation, before
+returning to the native caller. Do not keep TLS overridden until Boundary2: that
+would include unbounded code outside the intercepted call. The later Static setter
+remains observation only.
+
+Admission requires the immutable Boundary1 return, sole pending exact reservation,
+same UI thread/execution tick, expected null-explicit-owner argument path, full
+owned code pins, no prior capture error/STOP/open RNG scope and an unused A token.
+The reserved tick is 5; actual immutable execution tick may be 5 or 6 and must
+remain equal throughout the observed command. It is a guard, not seed entropy.
+Before Generate there is no native object identity. The selection is therefore
+the exact reserved command/caller/MD window, followed by mandatory Initialize,
+Pilot, macro, true-owner, output-reference and Builder identity joins. The frozen
+fixture's actual MD payload must be manifest-checked before staging. A later
+identity mismatch is a failed experiment; native side effects cannot be rolled
+back or relabeled as the intended object.
+
+Scope B surrounds only the existing ea8cf0 Navigation initializer, expected return
+caller ea4b5e. It is independently keyed and never inherits A's final RNG state.
+Require successful A native return and subsequent A closure, the exact selected
+runtime/object/true owner, same execution tick/thread, and the exact typed prior
+Static pointer still published and passed in R8. Require one unused B token and no
+existing RNG scope. Agent/Float/query/Post calls are nested observations, not
+additional reseeding points. After B returns and restores TLS, the final setter
+and callback remain passive and retain every current native relationship guard.
+Missing or duplicate B/publication/callback is still failure.
+
+Stable key and initial agreement
+--------------------------------
+Proposed manifest version 1 fields, in a fixed order and bounded exact grammar:
+epoch, handle, reserved_tick, sequence, authority, world_seed, macro, owner,
+snapshot SHA-256, construction-plan SHA-256, scope policy and schema. The initial
+policy is both A and B; any later A-only/B-only comparison needs a separately
+reviewed manifest. The epoch is an explicit nonzero agreed fixture epoch, initially
+1, not wall-clock time or a process-local boot counter. Sequence 3 and authority 0
+must agree with the existing creation handle 0000000500000003. No wrap or reuse.
+
+Append the entire canonical manifest to the initial gate admission preimage before
+its digest is passed to boot. Both peers must agree on it before any creation
+command can occur. C configuration must return the same canonical manifest/key
+receipt; Lua checks it before requesting load. The current frozen configuration
+alone is not described as an existing generic multiplayer command ledger.
+
+Use the existing unsigned-64 lockstep_seed/mix implementation. Exact domains:
+  A: 43524541545f4131  (CREAT_A1)
+  B: 43524541545f4231  (CREAT_B1)
+
+For each domain:
+  value = lockstep_seed(domain, reserved_tick, handle, epoch, sequence, 1)
+  value = lockstep_mix(value XOR world_seed)
+  value = lockstep_mix(value XOR FNV1a64(macro ASCII bytes, no NUL))
+  value = lockstep_mix(value XOR FNV1a64(owner ASCII bytes, no NUL))
+  for each of four snapshot SHA words, then four plan SHA words:
+      value = lockstep_mix(value XOR word)
+
+Each SHA is split left-to-right into sixteen-hex-digit words, parsed as unsigned
+big-endian numeric values. No native pointer, runtime ID, slot number, TLS address,
+thread number, observed order, execution delay, clock or existing RNG state enters
+the key. All operations wrap modulo 2^64. FNV uses offset 14695981039346656037 and
+prime 1099511628211. Exact unchanged digest inputs are:
+  snapshot: 7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8
+  plan:     ed86c6c938e57dd0cc15046bf49ed814f0e7b4833241f04010e016179924585c
+Macro FNV is eb18822cf2e7b4fa and owner FNV is 4580fab03b7eb9c0.
+
+Golden key vectors using the unchanged fixture world seed 276944566:
+  tuple change                    A seed             B seed
+  epoch1 / tick5 / handle5:3       8b34a17d4ae84a2f   5311c417920e6e36
+  epoch2 only                     c647f830596c5aee   7fffcd27bc36f0c6
+  handle5:4 / sequence4           1fa22405fef708c3   ef46f2b2143077c2
+  tick6 / handle6:3               f1c93d6aa8591ecc   0e9071a83adfc469
+An independent private C program using the existing seed header matches all eight
+Python-calculated keys. These are pure arithmetic tests, not game evidence.
+
+FloatState reference transition for the audited nonnegative branch:
+  v = state * 5851f42d4c957f2d + 14057b7ef767814f  (modulo 2^64)
+  next = rotate_right(v, 30)
+  result = f32(f32(f32(low_u32(next)) * 2^-32) * bound)
+Use explicit scalar f32 rounding; never replace the native call with this oracle.
+Starting with baseline B seed and the observed two-draw branch gives:
+  bound0.5 -> state e82eab35f0af1ed3, float bits 3ef0af1f
+  bound2.0 -> state ed266598d7bbc22e, float bits 3fd7bbc2
+If the original control flow and clock7.183 remain the same, the predicted Agent
+timer is 8.153086067914963 and actual event due is 16.868417413711548. This is a
+conditional prediction. Do not force a false query result, skip another draw,
+rewrite a timer or call PostEvent a second time to achieve it.
+
+TLS intervention and original-call obligations
+----------------------------------------------
+The only proposed engine-memory write is the selected thread's existing eight-byte
+TLS+0x318 RNG state. Validate its owner TLS pointer, exact same UI thread, alignment,
+committed writable memory, two matching reads, immutable clock and owned wrapper
+before writing. Linearize admission, marking the A/B token used, open accounting,
+and the first seed write under the observer's lock also used by STOP. No lock may
+cross the native original or a Lua callback.
+
+Store the exact caller RNG word and address in a resident bounded scope record.
+There are at most two admitted records and at most one active scope. Save/restore
+LastError around diagnostics. Record original entry exactly once, opaque native
+return/outref/float values unchanged, final scoped RNG, and exact caller restoration.
+Restoration occurs on the owning thread before the wrapper returns, irrespective
+of whether the experiment or native call later fails. A pre-admission refusal makes
+no RNG write and still forwards the original once; it records a terminal experiment
+failure rather than silently passing as natural coverage. No replay on retry.
+
+At exit, revalidate the same TLS identity/address before restoring. If it changed
+or became unreadable/unwritable, record a restoration failure and never write an
+unproven captured address. Read back and compare the restored word. No assumption
+that a saved caller stream became equal between clients is needed or permitted.
+
+STOP closes admission and records open overlap; it never writes another thread's
+TLS or waits under native locks. An already admitted original is allowed to finish
+once, then its owning wrapper restores TLS even after STOP. Open overlap remains
+sticky failure after eventual cleanup. Keep pages, scope records and unwind tables
+resident; never unload code or erase obligations during a live original. A stop
+that wins admission first prevents any seed write. Neither ordering grants a
+successful late registry bind.
+
+Exception prerequisite and unresolved composition
+-------------------------------------------------
+The root now builds with -fms-extensions. Use audited __try/__finally around every
+admitted original, beginning before the seed write, to restore TLS on native unwind
+and propagate the original exception unchanged. Never fabricate a normal return or
+swallow the native exception. Abnormal termination is a retained failure.
+
+An outer finally alone is insufficient. Current creation wrappers use normal-return
+cleanup, and registry_origin_current points to a stack scope. A native exception
+through startup can leave that pointer and creation_current/open accounting stale.
+Before enabling RNG writes, add narrowly coordinated abnormal closure to each
+entered construction/range/origin wrapper on this path. Restore the prior scope
+pointer and counts while retaining incomplete/abnormal records; do not mark them
+as successful originals or read unwound stack frames. Existing interrupt/NPC
+observers and any enabled nested RNG writers must be included in this audit.
+
+This shared-wrapper work needs root/Contact coordination. It is a prerequisite,
+not an assertion that all engine exceptions are now safe. Hard process termination
+cannot run finally; it cannot produce successful restoration evidence. A change
+of TLS lifetime is also unsupported. Nested A/B reseeding is refused, and the
+current strong fixture's other actor-local RNG scopes must be proved to restore
+their parent stream on normal and abnormal paths, or that combination refused.
+
+Evidence and next-test acceptance
+---------------------------------
+Keep creation schema2 and old natural records intact. Add a separate explicit RNG
+schema/manifest and two bounded scope receipts joined by record index, handle,
+epoch, execution tick and local thread. Portable fields contain the key, scoped
+before/after values, original count and restoration result; private fields retain
+caller RNG/TLS addresses. Logs must distinguish natural, scoped and restored states.
+The independent validator must reject missing/duplicate scopes, bad keys, wrong
+joins, abnormal/STOP overlap, ownership loss or failed restoration. It must retain
+the existing original first-origin and late-update refusal unchanged.
+
+Compare exact selected draw inputs/results, native Agent timer and actual event
+due across peers. Also retain complete raw state/parameter banks, field-level
+known comparisons, both raw selectors, cursor and clocks. Different raw bank labels
+remain separate evidence. Whole-RNG coverage stays false: build016 saw seventeen
+ancillary TLS draws plus two non-TLS draws in A, and two selected TLS draws in B;
+other consumers and RNG advancement between samples remain incompletely covered.
+Scopes may affect native child creation within Generate; known excluded/unresolved
+setter records must remain visible. Do not claim whole-faction determinism.
+
+Before a new native artifact, require production-wrapper tests for disabled no-write
+behavior; exact ABI and original-once results; key vectors; stale/foreign/tick/TLS
+refusal; nested scopes; normal and real foreign-exception restoration; synchronous
+Lua STOP; stop-before-admission and stop-during-original schedules; missing B and
+partial restoration. Mutation tests must detect an omitted restore, double original
+or seed-key field. Revalidate old natural captures without changing their errors.
+A later reviewed two-game experiment still expects STOP75 and incomplete build.
+No registry enrollment, input, faction authority or new native run is authorized
+by this proposal.

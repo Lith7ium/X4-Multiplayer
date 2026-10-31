@@ -5,6 +5,10 @@
     <file name="ui/config.lua" />
     <file name="ui/transport.lua" />
     <file name="ui/client.lua" />
+    <file name="ui/measure_clock.lua" />
+    <file name="ui/net_rtt.lua" />
+    <file name="ui/frame_profile.lua" />
+    <file name="ui/framediet.lua" />
     <file name="ui/game.lua" />
     <file name="ui/seed_content.lua" />
     <file name="ui/seed_capture.lua" />
@@ -24,6 +28,7 @@
     <file name="ui/universe_protocol.lua" />
     <file name="ui/universe_game.lua" />
     <file name="ui/npc_combat_game.lua" />
+    <file name="ui/npc_target_diag.lua" />
     <file name="ui/life_game.lua" />
     <file name="ui/walk_game.lua" />
     <file name="ui/trade_protocol.lua" />
@@ -33,5 +38,9 @@
     <file name="ui/quest_game.lua" />
     <file name="ui/cargo_game.lua" />
     <file name="ui/identity_game.lua" />
+    <file name="ui/dedicated_game.lua" />
+    <file name="ui/player_factions_core.lua" />
+    <file name="ui/player_factions.lua" />
+    <file name="ui/frame_profile_install.lua" />
   </environment>
 </addon>

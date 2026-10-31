@@ -10,8 +10,12 @@ class Identities:
     def __init__(self, session):
         self.session = session
         self.rows = {}
-        self.cursor = 0
         self.next_send = 0
+        # (scope, entity) -> seq last forwarded to the current guest lease. Only new host
+        # sequences are forwarded; the host repeats each identity with a new sequence at
+        # least every keepalive (identity_game.lua), so repeats here cannot refresh a guest.
+        self.forwarded = {}
+        self.forwarded_lease = None
 
     def receive(self, raw, address, now):
         s = self.session
@@ -50,10 +54,14 @@ class Identities:
         live = set().union(*s.entity_ids.values()) if s.entity_ids else set()
         self.rows = {k:v for k,v in self.rows.items() if k[0] in ('P','F') or k[1] in live}
         # Only forward fresh observations; the guest expires forced visibility.
-        rows = [v for v in self.rows.values() if v[2][0]==host.lease and now-v[1]<2]
+        rows = [(k, v) for k, v in self.rows.items() if v[2][0]==host.lease and now-v[1]<2]
+        if self.forwarded_lease != guest.lease:
+            self.forwarded, self.forwarded_lease = {}, guest.lease
+        self.forwarded = {k: v for k, v in self.forwarded.items() if k in self.rows}
+        # New sequences only, oldest arrival first, within the former per-tick budget.
+        fresh = sorted((kv for kv in rows if self.forwarded.get(kv[0]) != kv[1][0]), key=lambda kv: kv[1][1])
         result = []
-        for i in range(min(len(rows), min(256, max(32, (len(rows)+9)//10)))):
-            fields = rows[(self.cursor+i)%len(rows)][2]
+        for key, (seq, _, fields) in fresh[:min(256, max(32, (len(rows)+9)//10))]:
+            self.forwarded[key] = seq
             result.append((guest.address, ('IDENT|1|'+guest.lease+'|'+'|'.join(fields)).encode()))
-        self.cursor += len(result)
         return result

@@ -1,0 +1,136 @@
+BOUNDED SAVED-EULER XML AND CANDIDATE HELPERS - 2026-10-27
+
+Scope
+
+Original pure C helpers in src/native/engine/rotation_xml_input.h. There is no
+native memory writer, process reader, hook, patch installation, load-latch change
+or gameplay artifact. The helper receives an explicitly selected pinned Windows
+or Linux layout and a caller-provided guarded byte-copy callback. Native numeric
+conversion and trigonometry are never invoked. This is a source/offline milestone.
+
+The shared arithmetic implementation remains separately owned. Its interface is
+x4rot_offset(orientation, attributes[3], words[9]), with PITCH, YAW, ROLL order.
+The XML helper copies present/length/text into its own bounded storage; a future
+thin callback constructs the shared x4rot_attribute array. No math source/header
+is duplicated here. The tests supply an owned deterministic candidate callback;
+they establish adapter safety, not arithmetic accuracy or native integration.
+
+Input and refusal contract
+
+The two explicit layouts are checked against the previously audited offsets.
+Every read goes through the supplied callback, with address overflow and STOP
+checks before and after it. The callback must reject inaccessible spans; this
+module never converts a native address into a C pointer. Vectors require capacity
+4 for inline storage or bounded heap capacity, count <= capacity, at most 32
+occupied elements and no null heap pointer. Strings require a consistent bounded
+length/capacity, readable bytes plus terminator, no embedded NUL, and the proposed
+plain-decimal grammar. Linux string capacity is read only in the non-inline form.
+The native build check and platform-specific safe-memory implementation remain
+the future caller's responsibility.
+
+Unknown attributes/children, quaternion children, duplicate rotation/position
+children and invalid shape refuse. Duplicate attributes have an explicit policy:
+the strict production proposal uses DUPLICATES_REFUSE. FIRST_ATTRIBUTE exists
+only for diagnostic tests of the audited native first-match convention, validates
+all encountered strings, and reports the duplicate count. It is not permission
+to accept duplicate XML in the future native capability.
+
+An absent rotation element returns KEEP_NATIVE, with no evaluator call or plan.
+A present Euler element with absent attributes returns three missing attributes,
+which the shared evaluator maps to +0. Present-empty strings remain distinct
+from missing attributes. No identity basis is synthesized for an absent element.
+The independent exact-snapshot shape census confirms 20,016 selected offsets
+have no attributes, and 20,010 Euler children have no children or attributes
+outside yaw/pitch/roll. The other six offsets have no orientation element.
+
+A bounded transcript retains both addresses and copied bytes of the inspected
+structure and text. Revalidation refuses changed bytes, lost pages or STOP.
+Failed capture never exposes a partial new snapshot. This is not an atomic
+snapshot or a synchronization primitive: changes after the last read require
+the future native exclusion/lifetime proof. In particular, two matching reads
+cannot prove that a native object is alive or that another worker is parked.
+
+Candidate and original-call contract
+
+The owned-memory orchestration helper verifies an explicit guard snapshot,
+captures/evaluates private candidate words, calls the supplied original exactly
+once, rechecks owner/input state and reads the nine current output words. It
+returns only nine (offset, before, candidate) records at bank offsets
+0x10/14/18, 0x20/24/28, 0x30/34/38. It never applies them. NaN/infinite candidate
+words refuse. Fourth lanes, position, references and all remaining bank bytes
+are outside this plan. The test applies it only to an owned copy and checks every
+other byte, including the three fourth lanes.
+
+Capture/guard/evaluator/cancellation errors still call the valid supplied original
+once. A nonreturning original publishes no plan. Invalid API arguments such as
+a null original are programming errors, not a supported native entry path.
+No internal lock is held across any callback. This generic orchestration is not
+an ABI thunk: separate owned MS-x64 and SysV callback tests verify argument
+forwarding, but relocation, unwind metadata and patch ownership still require
+the later wrapper implementation/review.
+
+Load owner and manager publication audit for that later wrapper
+
+The existing Linux load observer records owner TID and Loading phase at its exact
+Load entry, with original calls=1 and returns=0. Its portable path records the
+loaded Ep1 module from the verified VBI table/client, not the earlier menu module.
+A future rotation scope must bind to that exact active Load serial, owner TID,
+table/client/module, original call/return counts and owned patch set, with STOP
+and sticky failure independently observable. Do not hold observer/session locks
+across the original. The plain guard struct in this helper intentionally does
+not implement or assert any of these native reads.
+
+The native pathing manager globals are Windows RVA 0x6cf21c8 and Linux VA
+0x3e0ced0, from the pinned Load instructions. Capture that pointer at the owned
+Load entry and require it unchanged at every selected call and after return.
+Require the same manager flag (Windows +0x89, Linux +0x199) to be 1. The existing
+normal-path exclusion proof is in SHARED-ROTATION-IMPORT-DESIGN-20261027.txt:
+Load holds the same manager lock that the pathing traversal must acquire.
+
+Windows 0x9eee35 enters the guard through 0xd20d0 using manager+0x40. That helper
+enters the CriticalSection at manager+0x48 and waits on its reader completion
+event when the count at manager+0x40 is nonzero. Load publishes +0x89=1 at
+0x9eee52 after the guard/helper path. Linux 0x1cdd794 locks manager+0xf8 (the
+pthread mutex is another +8), then 0x1cdd79c calls 0x1a44df0 with manager+0xf0.
+That helper checks the reader count at +0xf0 and waits through its condition
+helper when nonzero. Load publishes +0x199=1 at 0x1cdd7c3. A future scope can
+add a bounded count-zero check; it must not infer ownership by reading undocumented
+CriticalSection or pthread_mutex internals. The owned Load call path and matching
+manager identity are the ownership evidence, not the flag alone.
+
+Concrete failure-path reason for withholding final publication: Windows branches
+0x9f03a0, 0x9f0471 and 0x9f0b98 invoke reset 0x9ec1d0 with the live guard address.
+Reset calls 0xeac9d0 and marks guard+8 at 0x9ec33f; the manager's +0x89 flag is
+only cleared later by the common guard cleanup 0x9777d0. Thus a failed/reset load
+can retain the same loading flag and manager pointer temporarily. Linux's false
+return path at 0x1cde7c2 similarly sets its result to zero before common cleanup;
+0x1cde7db..0x1cde7ec performs the reader cleanup and rejoins the flag-clear path.
+Neither platform flag establishes successful Load completion.
+
+Every prepared rotation result must therefore remain provisional until the
+exact Load returns true, the before-clear identity capture and success completion
+each return exactly once, and terminal observer ownership/restoration succeeds.
+An exception, missing return, second/nested Load, reset/false result, changed
+manager/module, STOP or prior failure makes the whole session unpublishable.
+The existing Linux C-unwind ReturnGuard already records missing-return failure;
+its native integration must be preserved. Complete Windows unwind handling and
+the exact future active-owner publication mechanism remain wrapper review items.
+No claim is made about global render/worker quiescence or later runtime math.
+
+Validation
+
+tools/dev/check_rotation_xml.py compiles the focused owned-memory test with strict
+warnings and runs it. Windows Zig/Clang and WSL GCC with AddressSanitizer and
+UndefinedBehaviorSanitizer pass. Coverage includes inline/heap forms on both
+layouts, missing/empty/defaults, duplicate/unknown forms, capacities and pointer
+overflow, terminators and page boundaries, bounded transcript exhaustion,
+changed/revoked input, owner/module/manager/serial changes, missing original
+return, exact original-once counts, and STOP/lifetime revocation at every reader
+boundary. Synthetic page revocation also ends the modeled owner lifetime; no
+claim is made that arbitrary unobserved page changes are atomically detected.
+
+Run examples:
+  python tools/dev/check_rotation_xml.py --compiler <zig> --compiler-arg=cc
+  python3 tools/dev/check_rotation_xml.py --compiler gcc --sanitize
+
+No native process was opened or launched. No approved artifact was rebuilt.

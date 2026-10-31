@@ -1,0 +1,102 @@
+GETUP DIAGNOSTIC 003: INITIAL DISPATCH PROVENANCE FAILURE, NO ACTION
+28 October 2026 | One disposable native client, strict failed result
+
+Result
+
+The single approved b4 run loaded the pinned snapshot and exchanged state0 and
+grant1, then stopped at tick1. It did not reach report29 or the scheduled GetUp
+at tick30. The actual native action footer records claimed0, accepted0, calls0,
+returns0 and unwinds0. Independent validation retains 32 errors and reports
+local_contract_valid=false. Session success, parity, independent native players
+and completed release remain false. There was no retry or modified continuation.
+
+The transition mode startup fix worked: the actual transition module configured,
+the probe requested Load, and the replacement UI initialized the same session.
+This is evidence beyond diagnostic002's pre-Load failure, not an action success.
+
+Exact artifact and execution scope
+
+Source7737fe3bdd4a890e11c2d348ca1583f665a7158f, using the reviewed Position build
+52af120ec2adb9d1a56decfdd33a09adf06b1a78 with Position unconfigured. The DLL SHA256
+is729a3517a3d80e531909b427b26e0cd4057489498b5bb14dbb1e0e0664a76c1d.
+The one invocation used the reviewed proposed argv, b4, 900-second native and
+900-second admission bounds, one physical p1 endpoint, action30 and last120.
+The runner generated a fresh runtime contract and token; the review-only model
+was not used as a launch manifest. All541 exported files and declared artifact
+hashes remain unchanged; the source export remains cache-free.
+
+The diagnostic retained the passive mask70377334178981, actor diagnostics,
+WORLD_IMPORTED_2 full scans, five raw world watches through tick12 and a separate
+saved controlled-ship transition watch through120. No RNG experiment, second
+native client, synthetic peer, other action family or controller mutation was
+added. The native client input2 was the contract's internal constant zero.
+
+Observed first failure
+
+The selected saved ship imported and bound once with its expected Small macro,
+player faction and PlayerController. Before binding, a global activation event
+was captured at boot2/tick0: kind3, argument1, context8, active0->1, errors0.
+Its zero ship states correctly do not prove selected-ship activation.
+
+The next transition event was kind5 at tick1, from the pinned deferred dispatch
+return eacf66. It had errors48, queue0, enqueue0, queue_valid0, no transfer or
+publication link, and zero before/after states. The footer recorded tickets0,
+queue calls408 and returns408, other7, unknown400, prebind7, failures1, open0,
+restore_open0 and sites0/enabled0. Direct calls and returns both6140; direct
+unwinds0. Queue exception cleanup remains explicitly unsupported.
+
+Production source explains the refusal without proving the missing producer.
+With no ticket, dispatch recovers the recipient runtime from Agent+ef0 and
+selects the saved watch. A non-model in-image command would be excluded. The
+observed event can therefore represent either a decoded model command or an
+invalid/unreadable command; the current event schema does not retain that result
+or command bytes/address. The matches!=1 guard sets error32 and short-circuits
+before capturing the full selected identity. End-of-dispatch adds error16
+because no valid ticket can be retired. These bits do not prove successful
+native model completion or identify the original enqueue.
+
+The observer deliberately excludes selected queue calls before the joined
+boot3/issued0 binding. The pinned native activation path d88710 can call d9c590,
+PlayerController virtual+198/d8dd00, then eac900 and eacd40 to enqueue mode0.
+That path is a plausible initialization source for the observed boot2 activation,
+but the existing receipts do not establish its branch or link its allocation to
+the tick1 dispatch. A snapshot/initialization pending order and invalid decode
+remain unresolved. No initial event is skipped and no ticket is synthesized.
+
+Other strict evidence and coverage
+
+The raw world trace retained21 complete records and the raw queue11 complete
+records, with their native counters reporting no dropped/open records. Their
+independent strict acceptance is still incomplete: baseline coverage is missing
+and the five raw enqueues have only stable unbracketed AI-source status1.
+Full world scan/terminal accounting and passive hook footers are incomplete
+because the Lua failure path aborted before normal terminal drains. The raw
+ABORT reports stopped1/active0/restored1; this alone is not substituted for the
+missing mandatory terminal receipts. The independent validator retains all32
+errors, including these unrelated incompletenesses.
+
+Cleanup
+
+Released runner exit5/fail_pattern after65.234 seconds; outer diagnostic exit1.
+X4 exited0 after owned WM_CLOSE in4.72 seconds. The released result records lane
+and snapshot restoration. Independent postchecks found all three owned process
+identities gone, both UDP endpoints absent, b4 idle, and neither staged save009
+file present. Unlike diagnostic002, exact game/wrapper/runner creation times and
+parent/executable/argv identities were captured while the owned game was live.
+
+Private evidence is preserved under .local/getup-artifact-003/run and
+.local/getup-live-003. The latter contains live identities, cleanup observations,
+selected raw markers and a fresh independent result. The result SHA256 is
+41ced592ed33143aa647f5cfbed8ff2e9f85ed4b07e17ef7e7d2efe55c60bfbc;
+the compact-summary SHA256 is
+3e59f8f41c5c595aedf883ca4fe5335499f8ed7c637878b285dc05dd25cabb4d.
+
+Next evidence boundary
+
+A correction must first obtain actual enqueue/deferred-command provenance at
+the existing read-only seams, including prebind classification and copied typed
+input, and preserve the failed dispatch rather than retrospectively blessing it.
+Current raw data cannot support changing queue eligibility or relaxing required
+GetUp origin/transition proof. No such source correction or new run is part of
+this report. Re-entry, completion of release and independent player contexts
+remain unproved.

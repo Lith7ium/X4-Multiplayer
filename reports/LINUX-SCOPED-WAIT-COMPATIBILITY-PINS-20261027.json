@@ -1,0 +1,306 @@
+{
+  "scope": "Static image, layout and arithmetic comparison only; no runtime patches or native game execution",
+  "windows_experiment_commit": "3014391",
+  "windows_original_commit": "35b835d",
+  "prior_linux_report_commit": "b0400f5",
+  "images": {
+    "lin": {
+      "sha256": "113f73d74570084f6ce18a659b365009eccf579fb66dbabb5dad2b1718045f20",
+      "bytes": 60459280
+    },
+    "win": {
+      "sha256": "19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891",
+      "bytes": 55412768
+    }
+  },
+  "functions": {
+    "lin": [
+      {
+        "address": "0x10de190",
+        "database_size": 12667,
+        "root_bytes": 12432,
+        "end": "0x10e1220",
+        "sha256": "35242e4520e221afb9693933a8becfa767d0dfd11804c52da3bb1cada7d178c6"
+      },
+      {
+        "address": "0x10c12b0",
+        "database_size": 240,
+        "root_bytes": 240,
+        "end": "0x10c13a0",
+        "sha256": "101f5cd1d9b86cd5ba3ba1b1ffbe2779ef920bfa93464bba90a19639e3bfa0b6"
+      },
+      {
+        "address": "0xd633a0",
+        "database_size": 1087,
+        "root_bytes": 1024,
+        "end": "0xd637a0",
+        "sha256": "c5d56ad690fdacb80f31ed863154326ec7e884cda6767645fec69578cf1e4ddc"
+      },
+      {
+        "address": "0x109b210",
+        "database_size": 79,
+        "root_bytes": 79,
+        "end": "0x109b25f",
+        "sha256": "f8fe35559c70939d23842d08cd55a60f011df870ac18930afb792afc8c5d6514"
+      },
+      {
+        "address": "0xd58ac0",
+        "database_size": 7,
+        "root_bytes": 16,
+        "end": "0xd58ad0",
+        "sha256": "83e875e4cf6a3ac76428c5c0eef7c8ae77ee84234906f11615229b12b314e0cd"
+      },
+      {
+        "address": "0x10b1560",
+        "database_size": 377,
+        "root_bytes": 320,
+        "end": "0x10b16a0",
+        "sha256": "68315159fa3a794bde1268bf7cfed2571c6c84df6ba63c8e44d523e2239e60df"
+      },
+      {
+        "address": "0x10c0a30",
+        "database_size": 729,
+        "root_bytes": 672,
+        "end": "0x10c0cd0",
+        "sha256": "51a2ce0b6d11dbc046288b23092bd86f65ea32d98633122c6b0005989230b53e"
+      },
+      {
+        "address": "0xeed870",
+        "database_size": 1037,
+        "root_bytes": 1008,
+        "end": "0xeedc60",
+        "sha256": "03f23eef2d73262d070d3f97fd0ad4e3184f84cebd2c16ede2b034b562d4cb97"
+      },
+      {
+        "address": "0x1e04890",
+        "database_size": 51,
+        "root_bytes": 51,
+        "end": "0x1e048c3",
+        "sha256": "4d57289930e79b524756d5c6209dd93692dce8ef3a93daab94bed37ff0806382"
+      },
+      {
+        "address": "0x10d9a50",
+        "database_size": 15229,
+        "root_bytes": 14368,
+        "end": "0x10dd270",
+        "sha256": "246935f6d6d67881e017abaaa67f60ba0ed485d5a88623eea25952ef8236b1c0"
+      },
+      {
+        "address": "0x10c87e0",
+        "database_size": 820,
+        "root_bytes": 820,
+        "end": "0x10c8b14",
+        "sha256": "feec57237db0a8152bd5d469cf1d07246f4b61e8667289cabcc0859123a4c0e5"
+      },
+      {
+        "address": "0x9d8dd0",
+        "database_size": 25,
+        "root_bytes": 32,
+        "end": "0x9d8df0",
+        "sha256": "751c9d52cae7ca1f1d338b2721ef77e68c771591de0465fc6d97ec25edb58efe"
+      },
+      {
+        "address": "0x9d8d30",
+        "database_size": 161,
+        "root_bytes": 160,
+        "end": "0x9d8dd0",
+        "sha256": "2c3eaa10daed8971a3f94c020a859c785c86f5d7e1d9faabdc73058b17b4c51e"
+      },
+      {
+        "address": "0x1d9b750",
+        "database_size": 217,
+        "root_bytes": 208,
+        "end": "0x1d9b820",
+        "sha256": "6c7f21ca07f7d110ecaa449b5a6b9fa3516b612b64b0eca3b350c57ea5fc5bb7"
+      },
+      {
+        "address": "0xcf4f30",
+        "database_size": 1815,
+        "root_bytes": 1648,
+        "end": "0xcf55a0",
+        "sha256": "a90fbd2c7d88d7bdf9827820b433986a8aa18d90869ade90f0fef40e54b1b461"
+      },
+      {
+        "address": "0x1d9bd80",
+        "database_size": 760,
+        "root_bytes": 704,
+        "end": "0x1d9c040",
+        "sha256": "8e3ada4e295edfc363be7ab57c0e9d2e39a174cab75d6f0cce9fd5e4355a10f6"
+      },
+      {
+        "address": "0x1a48e30",
+        "database_size": 617,
+        "root_bytes": 617,
+        "end": "0x1a49099",
+        "sha256": "06fe9109880cdff39a1d806bfe66dfdedd7aed9bec25e9f577f204e7192dfcf4"
+      },
+      {
+        "address": "0x1a47fe0",
+        "database_size": 83,
+        "root_bytes": 83,
+        "end": "0x1a48033",
+        "sha256": "24eec37fc10f071a3bcf4386c56a1ff585875e5b9a0472cf76e76809178566e3"
+      },
+      {
+        "address": "0x1df4a70",
+        "database_size": 106,
+        "root_bytes": 106,
+        "end": "0x1df4ada",
+        "sha256": "d999725129588eee370b1f313b661adad2a8dcb12fe4b20ac7ec078f3946ceb8"
+      },
+      {
+        "address": "0x1a3b1a0",
+        "database_size": 927,
+        "root_bytes": 927,
+        "end": "0x1a3b53f",
+        "sha256": "47bc5447258d3ca6626890a416f84788fb0f0d9f8b04b5e8bf8fe85cf3585110"
+      }
+    ],
+    "win": [
+      {
+        "address": "0x10a50d0",
+        "database_size": 93,
+        "root_bytes": 93,
+        "end": "0x10a512d",
+        "sha256": "eebaef8c3abd745eccb74b4877a66363d994103ac25f834faf6ac5e52d24d954"
+      },
+      {
+        "address": "0x1069000",
+        "database_size": 4804,
+        "root_bytes": 4804,
+        "end": "0x106a2c4",
+        "sha256": "a467e6dfa7fe07f49e9f9424147ffbe54c8f4ab52f024db0ca1b6a0282405969"
+      },
+      {
+        "address": "0xb5a060",
+        "database_size": 1833,
+        "root_bytes": 1833,
+        "end": "0xb5a789",
+        "sha256": "e47ee5624a5cfc775b5e02dffbdc2836a8646c49374bcbd069e5e2a2d7afdf4b"
+      },
+      {
+        "address": "0x1063750",
+        "database_size": 3437,
+        "root_bytes": 3437,
+        "end": "0x10644bd",
+        "sha256": "0d1c301108dac632a0163a03f309310e188c2df418a4222694fcec3ca646c056"
+      },
+      {
+        "address": "0xc58da0",
+        "database_size": 3224,
+        "root_bytes": 3224,
+        "end": "0xc59a38",
+        "sha256": "6497e4f7003ee60b44682b9ecf4fc83e4bad1370f4ccfd4679d2b1e026480ae0"
+      },
+      {
+        "address": "0x14ddd10",
+        "database_size": 257,
+        "root_bytes": 257,
+        "end": "0x14dde11",
+        "sha256": "1db1ba392a17c5d2bd2cbca21a6d2f7234bbf6e6c726a0ef0d72594c19acf921"
+      },
+      {
+        "address": "0x14ddc90",
+        "database_size": 120,
+        "root_bytes": 120,
+        "end": "0x14ddd08",
+        "sha256": "584854a7bdbf956043c7756157888674152bd0ffc0a307c00f29537332e8780e"
+      },
+      {
+        "address": "0x14dd110",
+        "database_size": 196,
+        "root_bytes": 196,
+        "end": "0x14dd1d4",
+        "sha256": "58416f7d1649122b4230c9866a49393adca7560fe48cafdb7458bd1f92216c9d"
+      },
+      {
+        "address": "0x12fd30",
+        "database_size": 143,
+        "root_bytes": 143,
+        "end": "0x12fdbf",
+        "sha256": "a05f9ffc3ceaa4253b4642b40f97987ae4054ca43cebb583144bc8ac2f54c44e"
+      },
+      {
+        "address": "0x14c3090",
+        "database_size": 1204,
+        "root_bytes": 1204,
+        "end": "0x14c3544",
+        "sha256": "2cdc7e8eb8fe0a5de5594a3ef478e1cf3381777a7d3ac0adf7beba54e12ec944"
+      },
+      {
+        "address": "0x1a034f4",
+        "database_size": 113,
+        "root_bytes": 113,
+        "end": "0x1a03565",
+        "sha256": "1d2fde788fb1fc374e1efcb681228bddc9232cd1ad1302affb0aec3a49a83b3c"
+      },
+      {
+        "address": "0x1066ba0",
+        "database_size": 613,
+        "root_bytes": 613,
+        "end": "0x1066e05",
+        "sha256": "ab00b7598d2b6cce00d9d0135844f47bd2c9a94d9a9fcc1cf9508a994a8d9434"
+      }
+    ]
+  },
+  "spans": {
+    "lin": [
+      {
+        "address": "0x10df368",
+        "bytes": 3,
+        "purpose": "import restore indirect call",
+        "sha256": "f801a6f1f65f33a9b750f2f1a009031db41328122f5449d3b6fb81f92fbb2fc6"
+      },
+      {
+        "address": "0x10df2bc",
+        "bytes": 47,
+        "purpose": "saved clock read, XML conversion, saved time and node PC stores",
+        "sha256": "d0c57ad40fc47b07125a607635158353f284d155b23b2d35985f32ae55fc3700"
+      },
+      {
+        "address": "0xcf54c0",
+        "bytes": 81,
+        "purpose": "seed resolution and explicit TLS fallback",
+        "sha256": "083e8b6c5d7b8e64537f36128950976fb477491009ad364507ce68e7f57e8ce4"
+      },
+      {
+        "address": "0x1a3b3f8",
+        "bytes": 41,
+        "purpose": "fraction division and accumulation",
+        "sha256": "41cd25d090daff2ad211cc3e49de99bfac6ebe95957365988c893ee33c7e0c73"
+      },
+      {
+        "address": "0xfcf8c6",
+        "bytes": 7,
+        "purpose": "zero argument to ambient RNG initializer",
+        "sha256": "d89108813029b908cb055b191434a66e146df3f396090ef56052bc5237fdd0ea"
+      },
+      {
+        "address": "0x3b28db0",
+        "bytes": 48,
+        "purpose": "AIScript vtable first six entries",
+        "sha256": "bb8c6cab69d0ab93b7440e5108ab13fb0d2758e3d49425a42c16f09d2c3b70bf"
+      },
+      {
+        "address": "0x3b28df0",
+        "bytes": 48,
+        "purpose": "AIScriptContext vtable first six entries",
+        "sha256": "0752cd260c94540d535ba81f0a35908d9e3ccf82175b38ce8a773d12b9ea7073"
+      },
+      {
+        "address": "0x3b2a650",
+        "bytes": 64,
+        "purpose": "WaitAction vtable first eight entries",
+        "sha256": "d07f7ff017d97f46a1a7cea3416693e19d30f6fa5fb7b62e15ddf38beaf5284d"
+      }
+    ],
+    "win": [
+      {
+        "address": "0x1069bf9",
+        "bytes": 3,
+        "purpose": "import restore indirect call",
+        "sha256": "a37eeb5761d97112a4b5d99429af7e636c638ac3e39d137f2d96a26ec041f1d7"
+      }
+    ]
+  }
+}

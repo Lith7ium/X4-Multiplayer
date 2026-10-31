@@ -1,0 +1,308 @@
+LOCKSTEP PILOT FIRING AND HIT CLAIMS: NATIVE SIDE
+29 October 2026 | static analysis + offline implementation; no X4 launched, no live result yet
+
+SUMMARY
+
+Follows reports/LOCKSTEP-PREDICTION-20261029.txt (prediction, claim design and
+the pure claim/container code). Implemented on contrib/ferrite-lockstep-
+prediction, rebased onto the coordinator head 6075f51e, all default off:
+- Pilot firing (native_gate_pilot_fire, stop reason 112): the record's trigger
+  bit fires the slot ship's primary guns at the apply tick on every client
+  through the native weapon code. Data writes only (a one-byte trigger per
+  gun) plus two native calls per gun at lease start; no code patch, no thunk.
+- Hit claims, native side (native_gate_hit_claims, stop reason 111): portable
+  projectile keys, deterministic suppression of native hits involving
+  predicted slot ships, the owner's ahead evaluation (incoming against the
+  displayed pose, outgoing shifted d ticks), claim emission into the hits
+  section, admission, resolution and native injection (OnHit + kill) with a
+  keyed RNG word. One call-site redirect of the nearest-hit ray cast through
+  a private stub page; no thunk recipe (count stays 55), no entry patch.
+- Lua surface: gate.hit_claims_admit/resolve/proposal for the 'hits'
+  section of the probe's input multiplexer (section C; merged with the
+  multiplexer and the protocol 4 lookahead), gate.input_mux/input_split as
+  the C reference of the container.
+Static facts below come from two RE passes (firing; hit pipeline) checked
+against the binary with capstone and SHA-256 pins; every pin is verified
+against X4.exe 9.00 in the native-image test.
+
+A. PILOT FIRING (lockstep_pilot_fire.h)
+
+Native mechanism (RE, high unless noted). Every weapon owns its fire decision
+through its shoot controller (weapon+0x318). Weapon::Move 0x8132d0 runs
+UpdateShootDecision 0x816d20, then fires while the next shot is due and
+CanFire allows (Fire 0x817d20 -> FireShot 0x8185b0 per barrel and salvo),
+handles heat, start effects and the firing byte +0x30d, then aims. Controller
+slot 14 (+0x70) "wants to fire", slot 28 (+0xe0) "fire without target". The
+MindlessShootController (vtable 0x2b7cf68) is what the stock <shoot> action
+installs: slot 14 = trigger byte +0xa0 != 0 (0x7e58a0), slot 28 true, no
+target, so the decision skips angle, range and line of sight; gimbals go to
+rest (StopAiming). Its only writers are slot 31 (0x7e58b0, from start/stop
+shooting) and the save loader; nothing rewrites it per frame.
+Gun selection: the ship's active primary weapon group (ship+0x638 vector of
+0x18-byte UniverseID vectors, active index +0x668), components of exactly
+U::Weapon 0x2b68278 under the ship (turrets 0x2b6e910, missile launchers
+0x2b02988 and other ships' guns excluded), group order.
+Lease (first tick >= window start, path_release, every client, slot order):
+- a gun with no controller: 0x819480(gun) (start shooting: installs Mindless,
+  sets the trigger, posts ShootTargetSetEvent / WeaponShootTargetSetEvent);
+- a gun with another controller (AI Basic, the parked player's
+  PlayerShootController): 0x819680(gun) first (stop shooting: on Mindless it
+  only clears the trigger, any other controller type is deleted);
+- if any gun of the slot is firing (+0x30d) the whole slot waits a tick;
+- then the trigger is cleared; the controller pointer is remembered.
+These calls allocate and post events on every client at the same point.
+Per tick t (path_release, after the pilot frame table of t is published,
+before the pathing kick and slot 3): trigger = record bit 0 and not the
+record's travel bit (mode 'record'), or a fixed schedule (mode 'script', 30 of
+every 120 ticks, offset per slot). Before the trigger is written each leased
+gun is checked: still found by its runtime id (else destroyed: dropped,
+guns_lost), controller still ours (pointer and Mindless vtable), trigger byte
+still what we wrote. Who changed it decides:
+- the simulation, on every client at the same tick. vps-H3k2 (remote relay,
+  k=2, d=4) stopped both clients at tick ~466 with 112 because slot 2 is an
+  AI-flown fixture whose Attack order keeps its Steering alive: its fight
+  script (fight.attack.object.fighter) issues <shoot_at> (0x10a8460 ->
+  0x81ac60: a new LargeTarget/Multiple/Basic controller on every weapon) and
+  <stop_shooting>/<shoot> (0xbd1e90 -> 0x819680/0x819480: on our Mindless they
+  clear or set the trigger); the weapon-mode update 0x4ef380 (Defensible
+  vfunc 674) also retargets through 0x81ac60. Such a gun is re-taken at that
+  path_release (stop shooting deletes the controller, start shooting installs
+  a Mindless; a gun that is firing waits, retake_waits) and a changed trigger
+  is rewritten from the record (trigger_restored); counted, not fatal.
+- possibly this client alone: any change on the local player's ship (its
+  weapon-group and fire keys act there) and any player controller class on
+  any ship (PlayerShootController 0x2b7d1a8, PlayerBombLauncherShootController
+  0x2b7d2c8, each pinned by vtable slots only it uses; an unreadable
+  controller counts as local). These stop the gate with reason 112, stage
+  controller_replaced.
+The status names the last replacement (last_replaced=t/slot/gun/class/
+local|sim). Weapon::Move in slot 3 of tick t then fires.
+Window end clears the triggers once (a gun the simulation took meanwhile is
+let go, let_go); every stop clears only triggers that are still ours.
+Receipt PFIRE_1:tick:firing:fold per tick (slot 6): every leased gun's
+firing byte, last-shot time +0x310 and magazine +0x350, folded with
+lockstep_seed, appended to the declared state.
+Requirements: piloting prototype armed (any source), native_gate_actor_rng_all
+= true (the launch, spread and lifetime draws of FireShot 0x8186b2 and
+BulletSetup 0xd5103a/0xd5106d/0xd51581/0xd5187f run in the gun's Move scope,
+keyed per ship), native_gate_bullet_cadence = 'every' (BulletSetup calls
+UpdateFlight at creation; its camera-dependent draw at 0xd50435 and next-test
+time are what the 'every' rewrite removes), world identities.
+Pins: Weapon::Move 0x8132d0 (5713), shoot decision 0x816d20 (4047), start
+shooting 0x819480 (0x1f7), stop shooting 0x819680 (0x25c, contiguous extent),
+Mindless leaves 0x7e58a0 (11) / 0x7e58b0 (9), Mindless vtable slots +0x70,
++0x88, +0xe0, +0xf8.
+Not covered / risks: the engine refuses to fire for the LOCAL player's ship
+during travel drive charging/active and in highway zones unless the local
+player is in that zone (0x6d8830/0x6d8870, zone vfunc928): client-local
+branches; the travel bit mask covers the first only for records; in the
+sandbox both clients sit in the same ship, so they agree. Gimballed guns that
+were aimed before the lease fire off-axis until they settle (lease at window
+start). Charged weapons never fire without a target. Missiles, turrets and
+beams are out of scope. Restoring the player's PlayerShootController at the
+end is not done (weapon-group activation reinstalls it). On an AI-flown slot
+ship the fight script and the pilot share the guns: between the script's
+<shoot_at> and the next path_release the AI controller drives the gun (on
+every client alike), and each re-take posts the stock shoot events again. A
+client-local UI change of a non-occupied slot ship's weapon modes would be
+taken for the simulation; such a UI change diverges the world by itself.
+
+B. HIT CLAIMS, NATIVE SIDE (lockstep_hit_native.h)
+
+Hook. U::Bullet::UpdateFlight 0xd4f240 keeps the bullet in R14 for the whole
+function (mov r14, rcx at 0xd4f292, no other write). Its nearest-hit ray cast
+call 0xd4fc61 (e8 -> 0xbc4d0) inside the pinned 16-byte block 0xd4fc60 is
+redirected (one 16-byte CAS) to a stub on a private page near the image:
+  mov [rip -> data+0], r14 ; jmp [rip -> data+8 = hitn_cast]
+(code page RX, data page RW). hitn_cast reads the bullet from the slot (only
+on the MoveWorker; other threads and late calls after a stop pass through),
+runs the original cast exactly once with the original arguments, then works
+on its result. Cast ABI (call site + entry): 0xbc4d0 takes fifteen
+arguments - system, result, origin float4, ray float4, then eleven stack
+slots a5..a15 (entry+0x28..+0x78: an object, 0, 0, byte 0, an unset slot,
+a qword, byte 1, three dwords, byte 1, as UpdateFlight stores them at
+0xd4fc13..0xd4fc4a) that it hands on to System_CastRay 0xbb5d0. hitn_cast
+forwards all fifteen unchanged, to the original and to the owner's extra
+casts. (The first build forwarded only eight; System_CastRay then indexed
+with stack garbage and both H1 clients faulted at 0xbb6ba, tick ~15.)
+Result +0x00 point, +0x10 normal,
++0x20 fraction f32 (-1 none), +0x28 hit component; UpdateFlight takes
+fraction >= 0 with a component as the hit, moves the point onto the shield
+sphere if shields are up, expresses point and normal in the target's frame
+(target vfunc +0x1bb0 at the hit time) and calls OnHit 0xd50500(bullet,
+target, hit pose, normal, now), then hit count +0x280 += 1, the ricochet draw
+(Random::FloatState) and, without ricochet, event cancel 0x99aa90(bullet,
+0xeb) and Kill (vtable +0x1548 = 0x3e51b0, reason 2, killer, now in XMM3).
+Piercing bullets (hit limit > 1) use the all-hits cast 0xd4f766 (an RB-tree
+of hits); that path is left native in v1.
+Identity. A projectile gets its key at its first nearest cast (BulletSetup
+casts once in the creation frame; walk order is deterministic):
+hit_projectile_key(tick, shooter portable ID, 0, shooter's ordinal of first
+casts in that tick), shooter = the portable ID (saved or created) of
+bullet+0x2a0 (the weapon). Beams (defaults +0x4a0), piercing bullets
+(+0x354 > 1) and shooters without a portable ID get no key and stay native.
+Defaults come from GetBulletDefaults 0xe645b0 (pinned lookup by macro).
+Suppression (every client). A keyed projectile's native hit is blanked when
+the hit component lies under a resolved slot ship (incoming), or the shooter
+lies under a slot ship and the hit component lies under a ship with a pathing
+read bank (outgoing to a claimable ship). Hits on stations, asteroids and
+other non-claimable objects stay native. A blanked segment passes through
+the slot ship and anything behind it within that one segment (v1).
+Owner evaluation (this client, its own slot ship, once per projectile):
+- incoming: the projectile's segment is moved from the displayed pose D of
+  the previous tick (lockstep_pilot_predict.h; identity without prediction)
+  into the body pose S = the ship's read bank (the pose before this tick's
+  join, assumed to be the physics body's pose during the walk) and cast again;
+  a hit on the own ship is a claim, point in the ship's frame;
+- outgoing: the own projectile's segment is shifted by d ticks of its own
+  flight (the controller's velocity, LinearVelocityController +0x80) and cast
+  again against the world as it is; a hit on another ship with a read bank and
+  a portable ID is a claim, point in that ship's frame (read bank).
+The extra casts are read-only queries in UpdateFlight's own context (same
+thread and locks); that they have no side effect is assumed, not proven.
+Claims and timing: up to 8 per tick are proposed with report t (observe = t)
+in the hits section; admitted at t+1 on every client; incoming apply at t+1,
+outgoing at t+d (lockstep_hit_claims.h rules). Resolution in slot 6, after the
+admission of every slot and before this tick's capture, in (policy rank,
+observe tick, slot, index) order with the validation of
+lockstep_hit_claims.h on live engine state: projectile found again through
+the registry (Find), not a beam/piercer, hit count below its limit, its
+position extrapolated as the controller does (start + v (now - t0)); target
+found from its portable ID with a read bank in the projectile's zone, rows in
+Q30, speed bound from the bank's velocity magnitude, radius bound 1.5 km.
+Injection (every client, same order): hit pose = claimed point with identity
+rows, normal = against the projectile's flight in the target's frame; the
+MoveWorker RNG word is set to lockstep_seed(HIT_DOMAIN, tick, key, target,
+slot, "INJ") and restored afterwards (also on unwind), then OnHit, hit count
++1, event cancel, Kill (claimed hits never ricochet). Results fold into the
+HITS_1:tick:n:receipt row (plus per-claim slot/key/target/result) appended to
+the declared state; a refused claim (consumed, projectile gone, outside the
+bounds, policy) is refused identically everywhere.
+Stop reason 111: the call block, the stub or its handler changed (checked
+every gate tick), or an injection unwound. Restore puts the block back by CAS
+(a foreign value is left); the page stays allocated so a call already past
+the redirect returns through the pass-through handler.
+Pins: call block 0xd4fc60 (16), UpdateFlight prologue 0xd4f240 (0x60), cast
+0xbc4d0 (0x7c), OnHit 0xd50500 (0x179), cancel 0x99aa90 (0x84), defaults
+0xe645b0 (0xc0), Kill 0x3e51b0 (0x87) and its vtable slot, Find 0xced70.
+Refused when x4mp_combat.dll is loaded (it redirects the same call site).
+Decision (user, 29 Oct 2026): in player-versus-player hits the player
+being hit decides ('victim'); the play config sets
+native_gate_hit_claims = 'victim' (overlay-Play16). Policy: shooter-decides by default (configurable 'victim' / 'first'); the
+user decision is pending.
+Known gaps (v1): piercing and beam projectiles, missiles, rams and area
+damage stay native; non-ship targets stay native; the remainder of a blanked
+segment is not re-cast; the shield-sphere adjustment of the native path is not
+reproduced for claims (ApplyHit applies shields from the target's state); the
+UpdateFlight "valid" flag ([rbp+0x1f8]) before the native kill is not checked
+for injected kills; presentation of the player's own projectiles d ticks
+ahead is not implemented (the outgoing decision uses that geometry, the
+player still sees the simulated bullets).
+
+C. INPUT MULTIPLEXER (merged with the coordinator's fa76683a / 112bd45d)
+
+The blob is packed and split by the probe's input multiplexer
+(tools/dev/native_gate_inputs_core.lua, the Lua mirror of the container in
+lockstep_hit_claims.h; reports/LOCKSTEP-INPUT-MUX-20261029.txt).
+gate.input_mux/input_split stay available as the C reference of the format.
+Native claims register their own 'hits' section (owner hits_native) when
+the pilot slots arm (arm_pilot_section); 'carry' stays the Lua test carrier.
+Per admitted tick r on every client:
+1. the multiplexer's hits apply stages every slot's payload in slot order
+   (gate.hit_claims_admit; a refusal is identical everywhere: logged as
+   HIT_CLAIMS_REFUSED, folded as staged=N/refused=M, not fatal);
+2. pilot_frame stages the pilot records (pilot_records[slot]), then resolves
+   the claims due (gate.hit_claims_resolve(r)) and appends the HITS_1 row to
+   the pilot receipt (declared state);
+3. the multiplexer's proposal offers the hits section its budget (hex
+   characters; 412 after a pilot section) and gate.hit_claims_proposal(r,
+   budget) returns the oldest queued claims that fit; the rest stay queued
+   until their observe tick would leave the 8-tick window (then expired).
+Protocol 4 (lookahead k, 112bd45d): a blob sealed with tick r-1-k is admitted
+at r, so admission reconstructs the observe tick relative to r-1-k (claims
+sealed before tick 0 never exist) and the validation bound widens by k ticks
+(an incoming claim waits 1+k ticks). Outgoing claims need d >= k+1, which the
+pilot module's d >= k+2 already guarantees. Native native_gate_hit_claims
+values other than carry/true/false/shooter/victim/first, and native claims
+without native_gate_pilot_inputs, are refused before loading.
+
+D. CONFIGURATION
+
+  X4LAN_CONFIG.native_gate_pilot_fire = 'record'   -- or true, 'script'
+  X4LAN_CONFIG.native_gate_hit_claims = 'shooter'  -- or true, 'victim', 'first'
+Both need native_gate_bullet_cadence = 'every'; firing needs
+native_gate_actor_rng_all = true; claims need the wire source (protocol 3)
+and world identities. Prediction (native_gate_pilot_predict) is optional for
+claims: without it the owner decides at the simulated pose. Sandbox builder:
+--fire record|script, --hit-claims shooter|victim|first (with --predict1/2).
+Logs: PILOT_FIRE_ARMED, PILOT_FIRE_STATUS (every 600 ticks), PILOT_FIRE_STOP;
+HIT_CLAIMS_ARMED, HIT_CLAIMS tick= (rows with outcomes), HIT_CLAIMS_REFUSED,
+HIT_CLAIMS_STATUS, HIT_CLAIMS_STOP. Declared state: PFIRE_1 and HITS_1 rows.
+
+E. TESTS (offline)
+
+test_lockstep_gate.exe exits 0 with and without the pinned X4.exe:
+- hit claims native: real call-site patch, stub executed with R14 = bullet
+  through a hand-assembled caller, first-sight keys and ordinals,
+  suppression of an incoming hit, an untouched NPC-on-NPC hit, outgoing
+  shifted evaluation, station hits staying native, no second claim for the
+  same projectile, proposal -> admission (slot and payload refusals) ->
+  resolution at r and r+d with the injected OnHit/cancel/kill (arguments,
+  hit count, keyed RNG word restored), a stale projectile refused, the
+  displayed-pose evaluation, an unwinding injection (word restored, stop
+  111), a changed block (stop 111), restore and pass-through after it;
+  native image: eight pins (tampered refused), the call block and its target,
+  the R14 setup, the Kill vtable slot.
+- pilot fire: group discovery, lease with a foreign controller replaced, a
+  firing gun waiting, triggers from records with the travel mask, an
+  undriven slot, the receipt, a replaced controller failing closed, window
+  end and stop clearing, the script schedule, status; native image: six pins
+  and the Mindless vtable slots.
+Python (merged tree): test_native_gate*.py 791 OK (4 skips: 3 MD schema
+tests need X4LAN_MD_SCHEMA, the C container cross-check needs X4LAN_ZIG and
+passes with it), test_census*.py 22 OK; LuaJIT probe tests (claims: the
+multiplexer's hits section staging every slot, resolution after the pilot
+records, the budgeted proposal packed with the pilot record, receipts in the
+hash, a refused section logged, refusals before loading incl. invalid values
+and native claims without pilot slots; fire: modes, receipt, refusals), the
+3-client carry test of test_native_gate_inputs.py, check_gate_options
+HitClaimOptionTests and PilotFireOptionTests, sandbox --fire / --hit-claims.
+C: lookahead staging (r-1-k, nothing before tick 0) and the budgeted,
+expiring proposal queue.
+
+F. LIVE RUNS WANTED (coordinator; not run here)
+
+F1 fire, scripted, no humans. Pilot test A (fixtures 3/4, source 'script',
+window {30,600}) with native_gate_actor_rng_all = true, bullet cadence
+'every' and native_gate_pilot_fire = 'script'. Pass: census 0 and equal
+digests (PFIRE_1 rows identical), PILOT_FIRE status s1/s2 leased with guns
+(count > 0, empty = 0), bullets created in bursts (bullet counters, hull/
+shield of whatever they hit), no stop 112. If count = 0: the fixtures' active
+primary group is empty (report +0x638/+0x668). If 112: who replaced the
+controller (the Wait/fight order).
+F2 fire, sandbox, human: --fire record (base with all-ship RNG). Space / RT
+fires the slot ship on both screens, census 0; weapon-group keys on the
+parked client must stop with 112 (expected, fail closed).
+H1 claims, sandbox, no human needed: --hit-claims shooter --battle engage
+(Xenon fixture 9 attacks slot 2), predict off. Pass: HIT_CLAIMS rows on both
+clients identical with applied incoming claims from client 2 (owner of slot
+2), suppressed_in equal on both, keyed > 0, census 0, slot 2's hull/shield
+drop only through claims. Then the same with --predict2 observe (ahead
+evaluation against the displayed pose; still census 0).
+H2 full: --predict1 present --fire record --hit-claims shooter, a human on
+client 1 shooting the fixture: outgoing claims from client 1 applied at
+t+d, census 0; note visual timing of own shots (simulated bullets, not
+presented ahead yet).
+Failure meanings: digest divergence at a HITS_1 row = validation saw
+different state (report the row); refused 'distance' on most claims = the
+body-pose assumption or the bound is wrong (report RAW/positions);
+'projectile' = bullets died natively first (apply latency); stop 111 =
+another writer of the call site or an injection fault.
+
+G. COORDINATION
+
+Stop reasons 111 (claims) and 112 (fire); 101 (present). No thunk recipe, no
+capture code edited (lockstep_pilot_inputs*.h untouched; the fire hook sits in
+path_release right after pilot_before_release). The combined adapter owns the
+blob from here: it should call gate.input_split/input_mux and the three
+gate.hit_claims_* functions in the order of section C.

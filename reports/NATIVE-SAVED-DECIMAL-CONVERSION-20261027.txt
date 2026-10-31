@@ -1,0 +1,92 @@
+EXACT SAVED TIME CONVERSION FOR WAIT SELECTION
+27 October 2026
+
+Finding
+-------
+World007 retained a failed trader selector because the native imported value of
+saved text "6.91667" was bits401baaab8a5ce5b5, while Python's ordinary decimal
+conversion produced401baaab8a5ce5b4. Both games had the same native bits. The
+reason is the engine's custom decimal conversion, not cross-client drift in that
+saved field. No world007 log, manifest, result or failure has been changed.
+
+Pinned native path
+------------------
+The complete ExecState import body b5a060/1833 selects XML attribute0x4a1 (time)
+at b5a726, calls12fd30 at b5a72f and stores XMM0 into ExecState+28 at b5a734.
+The full XML double getter12fd30/143 looks up the attribute, passes the saved
+string to14c3090 at12fdad, and otherwise returns the native default time.
+The numeric parser14c3090/1204 includes its internal branch tables. Its ASCII
+digit classifier1a05280/166 and all four arithmetic constants are pinned too.
+The image SHA and prior full importer pin remain unchanged.
+
+For the supported nonnegative plain-decimal path, the parser performs separate
+binary64 SSE2 operations in this order:
+  integer digit: sum = sum * 10; sum = sum + ASCII; sum = sum - 48.
+  decimal point: scale = 1.
+  fractional digit: scale = scale * 0.1; digit = digit * scale;
+                    sum = sum + digit.
+These are not a correctly rounded decimal-to-binary conversion of the complete
+string. Fractional accumulation produces the observed one-ULP difference.
+The pinned constants are10 at2cbe9f8,48 at2cbea98,0.1 at2cbe6e8 and1 at2cbe870.
+Complete digests are in lockstep_world_wait_pins.h and the accompanying JSON.
+
+Manifest change
+---------------
+Schema2 replaces the numeric entry field "time" with "time_text". A selected
+entry may use, for example, "time_text": "6.91667". The builder requires that
+exact decoded XML attribute value in the snapshot, with the same saved owner,
+script, version and blocking index checks and complete snapshot checksum. It
+then computes the native expected binary64 bits through the audited Windows
+operation sequence. The native observer still requires exact bit equality.
+The wire protocol and runtime observation remain unchanged; no engine parser,
+getter, predicate or state mutation is invoked by this conversion.
+
+The supported text grammar has a mandatory integer part: zero or1..15 digits
+without a leading zero. An optional decimal point has1..15 fractional digits.
+Signs, whitespace, exponents, trailing decimal points, non-ASCII digits,
+nonfinite values and longer inputs fail explicitly. This is a bounded supported
+subset, not a claim to implement every branch of the native parser.
+
+Schema1 retains its original numeric conversion and validation unchanged. The
+independent evidence reader accepts either representation but retains native
+error bits and recorded expected bits. Supplying schema2 to an old failed record
+cannot turn that record into a valid capture. Compiled expression min/max values
+still use their existing representation: saved-number conversion is deliberately
+not applied to them. In particular, saved text0.001 converts to3f50624dd2f1a9fd
+on this Windows path; the observed compiled range minimum remains3f50624dd2f1a9fc.
+
+Windows/Linux limit
+-------------------
+The readable Linux parser has a different fractional instruction: DIVSD scale,
+10.0, where Windows uses MULSD scale,0.1. Static arithmetic for the current three
+literals6.91667,6.31667 and7.083 yields matching bits, but that is not general
+decimal parity. Text0.001 is a counterexample: repeated division gives the lower
+...a9fc value, while Windows multiplication gives...a9fd. The new helper is named
+windows_saved_time_bits to preserve this platform distinction. Exact persisted
+text can be a common input; a future Linux selector needs its own audited native
+conversion. No Linux game or runtime parser was executed for this patch.
+
+Validation
+----------
+The Windows C harness executes original SSE2 arithmetic instructions in the
+audited order, with round-to-nearest checked and no compiler reassociation/FMA.
+Eleven exact-bit cases cover zero, integers, both observed selected times, the
+load time, small fractions, long fractions and large supported values. This is
+an arithmetic harness, not execution or redistribution of engine code.
+Actual-image C mode checks all28 Wait pins, including the three new full bodies
+and four constants, and tests refusal when any pinned region is changed.
+
+The183 focused Python/Lua tests pass, including exact text mismatches with equal
+numeric values, unsupported grammar, unchanged schema1 output, retained native
+error8, and independent evidence refusal for old recorded expected bits. The
+native C suite and actual-image C mode pass. The schema2 candidate also validates
+against the immutable real snapshot. Its only changed wire field relative to007
+is the trader's expected saved-time bits, from...e5b4 to...e5b5; patrol and both
+range inputs remain unchanged. Current evidence parsing of world007 with its
+original manifest reproduces the same six failure strings exactly.
+
+Private candidate: .local/native-lockstep/world-wait-manifest-text-008-candidate.json
+SHA256:4d33bbb2a95e18129587f6a59b43ae70cc97909d899f1b61d1ddbbcbfbe16ee7
+Private static bodies: .local/native-lockstep/queue-win-{b5a060,12fd30,14c3090,1a05280}.asm
+The candidate is not a frozen or approved game overlay. No new game, deadline
+change, reseed, approximate matching or normalization was performed.

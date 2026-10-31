@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Test fixture of the UI replay's order family (native_gate_ui_replay_fleet, default off; driven only by
+     native_gate_ui_replay_core.lua): the stock UI only orders `player` ships, the save has none with a pilot near
+     the players, so the listed ships change owner at the same tick on every client. Nothing else lives here: the
+     orders themselves run through X4's own functions. -->
+<mdscript name="X4LAN_UiReplay" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="Own" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_UiReplay'" control="'Own'"/></conditions>
+   <actions>
+    <set_value name="$ship" exact="event.param3.$ship"/>
+    <do_if value="@$ship.isoperational and $ship.isclass.ship">
+     <set_owner object="$ship" faction="faction.player" overridenpc="true"/>
+     <debug_text text="'[X4LAN] UI_REPLAY_FLEET_OWNED ship=%s owner=%s time=%s'.[$ship.idcode, $ship.owner.id, player.age]"/>
+    </do_if>
+    <do_else>
+     <debug_text text="'[X4LAN] UI_REPLAY_FLEET_REFUSED time=%s'.[player.age]"/>
+    </do_else>
+   </actions>
+  </cue>
+ </cues>
+</mdscript>

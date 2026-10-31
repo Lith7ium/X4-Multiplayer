@@ -1,0 +1,118 @@
+WORLD017: SELECTED PATROL POSITION RNG CONVERGES; SESSION STILL FAILS
+28 October 2026
+
+OUTCOME
+
+One authorized disposable Windows pair completed. The first selected patrol
+CreatePosition result now matches exactly, with valid scoped RNG receipts and
+verified caller-state restoration on both clients. Full lockstep still fails
+at tick 2. The frozen validator retains the same 56 ordered errors as World016;
+evidence_valid and session_pass remain false. No automatic retry occurred.
+
+The full imported-ID comparison reconstructs both captured frames without
+parser errors. Frame 1 matches. At frame 2, the retained motion hashes differ
+for saved ships 80d4f and 9d39b. The compared topology, health, timing and
+inventory domains have no differences. This is not complete simulated-state
+coverage: each capture retains 521,929 imported IDs, 426,799 present objects
+and 32,607 unknown-motion objects. No hashes, unknowns or failures were removed.
+
+EXACT EXPERIMENT
+
+Source/DLL: f9c7a97c9adf79b1f3aa457e7bc3d2ab97545241.
+DLL SHA256, 840,704 bytes:
+ee874a7b13e17200a64a0a59ce4a8e9e0de985d3e45802b1caaec7fa9ec09a5c
+Overlay manifest SHA256:
+4e251d18b078b8848bb571e246834f36f58289a8a3f8413d5d21f4f4c36b4861
+Exact proposed invocation SHA256:
+e79ebee8f28f2d3443c12d5e359ff02d6862fdebdf41d7135d36013633f79087
+Final inert input seal SHA256:
+817d55a39fd3d292b38cbb2135b9de9a0009dd647586eeae35bf45edc0020771
+
+World016's snapshot, MD fixture, six watches, three Wait interventions, Find
+composition 2, existing diagnostics and 12-tick/260-second/900-second bounds
+were retained. The only config addition was the explicit Position RNG manifest.
+Eight overlay payloads stayed byte-identical; DLL/probe/config changed. This
+combined DLL also includes inactive creation/registry ACK2 changes, so this is
+not a claim of a single-feature binary. GetSafePos sidecar, new PREBIND and
+creation modes were not configured.
+
+The independent artifact review reproduced the real builder and verified
+583 frozen source files, 197 native inputs, eleven payloads, 110 base files,
+524 canonical release files including four checked bytecode caches, five
+executable pins and the frozen builder/parser dependencies. Fresh prelaunch
+and postrun checks matched the same seals. No moving build was substituted.
+
+SELECTED POSITION RESULT
+
+Both native scope receipts select saved pilot 9d3a4, order.fight.patrol v10,
+slot 215 / stored PC 216, first owner occurrence, during gate loading phase 2.
+The measured Action ordinal happens to be 30; that ordinal is not a seed key.
+The preceding completed Find and three Wait dependency receipts validate.
+
+Both use seed 17bafa51eebe82a5. Native sampler state is def54d4283678009;
+the endpoint after the two pinned direction draws is 0c1c63b492dca87d.
+Radius bits are 46c881ce (25664.90234375). Copied math dispatch flags are
+[1,6] on both clients, stable before/after. Each scope reports applied=1,
+restored=1, normal=1, errors=0 and debt=0. Raw Position STOP has no open,
+overflow, restoration or patch failures; all three Position records validate.
+
+The selected output bytes and downstream Value6 match exactly:
+aaf3954658c981463a5f6c4500000000
+Position: (19193.83203125, 16612.671875, 3781.95166015625).
+
+The caller streams intentionally remain different and are restored exactly:
+client 1: b7215accd8fb4264; client 2: bf5cf390b87653f6.
+Raw Position diagnostics retain that unequal natural input. Their raw RNG
+comparison is not relabeled as equal; the separate verified intervention
+result reports selected_scope_valid=true and outputs_equal=true. This proves
+the selected scoped result, not global RNG or cross-platform math parity.
+
+NEXT OBSERVED DIVERGENCES
+
+The first remaining differing valid typed output is Value7, immediately after
+the corrected Position: Action31, same saved pilot/script/version, slot216 /
+PC217, SetValue vtable2c0fb30 / Execute b77830. Its scalar tag5 values are:
+client 1 ca17d844 = 1728.743408203125;
+client 2 b06e7043 = 240.432373046875.
+Each observed Action bracket advances its natural RNG state exactly one step.
+Value8/GetSafePos retains equal X/Z but these different Y values. Later
+Position55/Value15 and destroyer queue event10 retain the different Y.
+
+The adjacent stock XML has a create_position, a $y range from -2km to 2km,
+then get_safe_pos using base.x/$y/base.z. That is a narrow next binding lead;
+this run did not capture the SetValue expression's evaluated range or prove
+its native draw ownership. No follow-up seed or output replacement is made.
+
+Trader pilot80d54 remains independent: its first differing valid position is
+Value9/GetSafePos Action43, move.idle v4 slot51. The new GetSafePos sidecar is
+absent here. Both clients have ten queue enqueues, ten dispatches and two
+appends, with no queue/trace parser errors. The two movement targets differ;
+there is no extra selected queue batch in this attempt.
+
+GLOBAL LIMITS AND CLEANUP
+
+Unknown Action counts remain 2,057 and 2,064. Unsupported Values10/11/18/19/
+20/21 and incomplete aggregate observer coverage remain failures. Matching
+selected Wait/Find/Position results do not repair those or establish full
+combat, economy, station building, player authority or Linux lockstep.
+
+The runner finished with its strict failure exit after 96.656 seconds. Both
+owned X4 instances closed through WM_CLOSE and exited 0. The released runner
+restored both lanes and staged snapshot slots; both lane locks are released.
+Actual runner, relay and native PID/start/profile identities were retained.
+Cleanup distinguishes a retained terminated process object from a live process
+using its exit FILETIME; no PID-only termination was performed. The separate
+b4 test was untouched. All owned execution/parser handles are closed.
+
+PRIVATE REPRODUCTION EVIDENCE
+
+In the position-rng worktree under .local/native-lockstep:
+world017-final-seal.json / world017-closure / world017-plan
+world-motion-proposed-launch-017.json / world-motion-artifact-audit-017.json
+world017-native-claims.json / world017-cleanup.json / world017-result-seal.json
+world-motion-017/validation.json / world-difference.json
+world-motion-017/selected-causality-summary.json / queue-trace-analysis.json
+world-motion-017/world017-causal-summary.json
+
+The raw logs, old World016 evidence, snapshot and sealed input files remain
+unchanged. Any new intervention requires its own source and artifact review.

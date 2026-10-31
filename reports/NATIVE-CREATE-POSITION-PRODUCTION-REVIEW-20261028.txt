@@ -1,0 +1,103 @@
+CreatePosition production observer: independent review
+28 October 2026
+
+Accepted scope
+--------------
+Production observer 957d132ec475b8d770c6aafd498e2d24e5f53d9b plus correction
+f783d7b0d4af9bea84cacabe264b9b376c9a6f25 pass this independent review. No remaining
+blocker was found within the explicit read-only diagnostic scope. This is not
+a live-game result, demonstrated input equality or deterministic RNG remedy.
+The previously accepted caller-slot premise is documented in
+NATIVE-CREATE-POSITION-ABI-REVIEW-20261028.txt; it was not substituted for review
+of the production wrappers and their actual test output.
+
+Both revisions were exported to separate private Git archives. Every archived
+file remains byte-identical to its exported source. The author's worktree was
+not edited. No game was launched, staged, installed or patched, and no native
+X4 function was executed. Executed machine code belonged to owned test fixtures.
+
+Production review and executable checks
+---------------------------------------
+The four wrappers preserve exactly one original call, including refused paths.
+The outer replay retains RAX through the continuation jump. The sampler takes
+its actual incoming return slot before forwarding; the fixed parent-frame
+reads retain exact caller, descriptor/frame and selected Action identity.
+The new finally paths drain only private observer scopes on abnormal return.
+No repeat getter, native reference acquisition, RNG write or correction appears
+in these wrappers. Configuration is default-off; healthy reattachment is an
+acknowledgement retaining counters, records and export cursor.
+
+Installation/restoration holds its own lock, retains byte ownership independently
+from protection/cache debt and preserves foreign words. Event publication is
+complete-only. Partial guard failures, excess calls, unsupported data, STOP
+overlap and abnormal completion remain failed evidence. The parser joins each
+receipt to a completed selected Action and its validated downstream Value;
+global unknown-owner failures remain separate and strict.
+
+Independent execution of the final revision, using the pinned existing Zig
+toolchain with -O2 -fms-extensions -DNDEBUG, passed:
+* 5357 active production C checks, including the real incoming-T wrapper fixture,
+  all four patch/thunk paths, original-once, SEH, read failures and cleanup debt.
+* The real C Action/position/Value export: 225 malformed raw/alignment cases
+  rejected, four coherent class changes exposed, and an oversized raw row refused.
+* 125 focused Python/LuaJIT tests.
+
+Two separately authored controlled tests on the production baseline also passed:
+* 59 checks: an owned original blocks on an event while another thread performs
+  actual world_position_restore. Open=1 and restore_open=1 remain visible until
+  normal or real SEH completion. The scope drains, original executes once and
+  STOP/unwind failure remains recorded.
+* 58 checks: all four sites are owned simultaneously, including sites sharing
+  an executable page. Persistent protection or flush failure leaves repair debt
+  and sticky failure after owned bytes clear. A later repair restores original
+  bytes and RX while retaining the failure history.
+The final production C delta is only the stack-alignment guard; these lifecycle
+implementations are unchanged by the correction.
+
+Findings and corrections
+------------------------
+Four additional witnesses were reproduced against the original actual C export:
+changing a space vtable in both copies, changing a valid RTTI name in both copies,
+misaligning the sampler return slot by one byte, and appending 2100 spaces to an
+event row. The original parser accepted all four and allowed a claimed paired
+pass. These were evidence-validation defects, not observed native divergences.
+
+The corrected parser retains validated space/reference class information in
+paired semantics: image-relative class addresses, RTTI name, bitmap and COL.
+These fields are explicitly Windows-image diagnostics. Coherent class changes
+remain individually supported captures but are now visible differences, so a
+claimed equality is rejected. Raw local object pointers are not canonical IDs.
+
+Both native and parser guards now require incoming T modulo 16 to equal 8.
+The corrected positive fixtures reflect the actual ABI; a wrong aligned-frame
+claim is refused while the native original still runs once. Raw record length
+is checked before newline removal, closing the trailing-whitespace bypass.
+The exact original witnesses were rerun on the final archive and all four now
+reject claimed equality. No old failure was waived.
+
+Historical default-off evidence and limits
+-----------------------------------------
+An import-only validator reread of untouched World013 through the baseline
+production revision returned the same ordered 56 errors, evidence_valid=false,
+session_pass=false and no configured position capture. The final narrow delta
+does not change this unconfigured path. World013 artifacts were not rewritten.
+
+The existing enclosing Action/Values observers still lack complete abnormal
+cleanup. Their open/incomplete failure remains a limit even when these four
+new scopes drain. Native C++ cleanup bodies were not executed by the fixture.
+Direction draws remain a pinned endpoint relation, not individual observations.
+Repeated reads do not establish a lifetime lease or exclude byte-identical ABA.
+Native capture cost, actual paired input equality and a safe correction remain
+unproved. All broader world, unknown-owner and timing failures remain strict.
+
+Private evidence
+----------------
+The world-find-rng worktree retains .local/create-position-production-review/:
+957d132/ and f783d7b/ immutable exports, production executables and copied C
+exports; review_mutants.py and both counterexample results; review_stop.c and
+review_shared_page.c; world013-regression.json; review-checkpoint.json and
+review-final.json. Final archive SHA256:
+6d2c022015b12d0e7ffbdbc81cb78a3c439b14ed53c20e57e08b16a2285b76d8.
+Final independently built production test executable SHA256:
+eff368372c90fd5ef7b51bb8e406db5e4ba6bd2bf02b11bfba7edabb508d737d.
+All compiler/test handles completed; no test process was retained.

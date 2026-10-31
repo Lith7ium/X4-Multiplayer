@@ -1,0 +1,154 @@
+WORLD011 - SELECTED FIND RESULT CONVERGES; WORLD LOCKSTEP STILL FAILS
+28 October 2026 | One owned, disposable Windows pair; no repeat
+
+The selected FindComponent intervention produced the expected saved component29
+in both clients, with complete local receipts and exact caller RNG restoration.
+This is a narrow live success, not a session pass. The run stopped at tick2 and
+the frozen strict validator retained 6,740 errors. Three watched ships acquire
+different motion inside their first captured Agent update. A separate Nav V2
+logging defect prevents complete reconstruction of the whole-world census.
+
+ARTIFACT AND RUN
+
+Integrated source: 4296f677ab291901abca221e9df2d70787ec5626.
+DLL: 700416 bytes, SHA256
+bc49d20433779a3590c73c436525139c937f52baa1ff6a725ab2bbb307221d4c.
+Overlay manifest SHA256:
+bfb1db335896521963abe3580dfb6022ddccaa7139c62e5cffc8e0d89fcc6115.
+Snapshot SHA256:
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+
+Root independently checked the exact 481 archived source files, 154 build-source
+pins, 11 overlay payloads and absence of extras. Eight common payloads are exact
+World010 bytes; the three input manifests and scenario remain unchanged. The
+only two configuration additions select WORLD_IMPORTED_2 and the reviewed
+FIND_COMPONENT_RNG_1 experiment. Generator LF versus retained old CRLF bytes are
+explicitly distinguished in the private provenance audit; normalized contents
+were equal before retaining exact old bytes. No mutable build was substituted.
+
+One released-runner attempt used b1/b2 and disposable profiles45850/45851,
+with 12-tick/first-mismatch bounds, 260-second runtime and 900-second admission
+timeout. RAM admission had been removed by the owner; canonical release5d5 was
+resolved again. Runner12520 started06:23:59UTC; owned X4 processes56216/53740
+started06:24:02/03UTC. Terminal06:25:44.987UTC reported
+battle_state_mismatch_tick_2. Both games completed graceful close with exit0;
+lane and snapshot restoration succeeded, self-check errors were empty, and
+post-cleanup status showed idle lanes, no X4 process and no queued request.
+
+SELECTED FIND PROOF
+
+All saved IDs below are hexadecimal except explicitly decimal metadata. The
+selection remains pilot9d3a4, order3cdb, saved script38361 DECIMAL,
+order.fight.patrol version10, native slot129/PC130, pre-admission boot2/tick0.
+The existing imported Wait anchor and all selected raw-record joins validate.
+Each client records one anchor, one selected event, one use and four event rows;
+open, restore-open, failures, dropped and anchor-errors are zero at STOP.
+
+Canonical 179-byte key SHA256:
+080994d92a20d8658e7e391ea47ffdef7afe3ca8175ecabcb6fe34b7ba4020bc.
+Seed65d8202ad9940908 advances once to22403ede5ea8c4dd. Modulo4 is1.
+The ordered candidate list is [28,29,2b,428af] in both clients; the result is29.
+Caller RNG57ff1fe453313d48 versus624452d711335bcd is restored exactly in its
+respective client. The opaque full native return is4294967222 in both; it is
+not reinterpreted as a Boolean result. All-call counts332 versus169 do not
+establish global execution parity.
+
+Frozen evidence reports selected_scope_valid=true and selected_outputs_equal=true,
+while global_capture_valid=false and global_rng_parity=false remain explicit.
+The two existing selected Wait interventions and keys remain unchanged. This
+experiment removes one natural draw from the continuing caller stream; it does
+not equalize upstream draws, position sampling, other owners or global RNG.
+Normal live completion does not demonstrate engine exception recovery; source
+tests cover this scope's finally cleanup, while enclosing Action/Values exception
+cleanup remains a separately declared limitation.
+
+NEXT OBSERVED OUTPUT DIFFERENCE
+
+The first five supported Values now match: scalar0, the ordered candidates,
+assigned component29, later component29 and the recorded scalar/time value.
+The first unequal supported result is Value6 inside Action30: pilot9d3a4,
+order.fight.patrol v10, CreatePosition type2c0cdd0/Execute be0ba0,
+native slot215/PC216. Both records validate at boot2/tick0/time7.083, with
+chance0, depth1, no children and program vtable-shape hash985d66488a43c795.
+
+Position outputs:
+  client1 (-9828.1826171875, 17270.96875, 26174.037109375)
+  client2 (-13008.578125, -7362.43017578125, 16828.984375)
+
+Incoming RNG already differs. The paired records prove the same observed action
+boundary and different outputs; they do not prove equal evaluated distribution,
+space/reference or expression inputs. Program shape is not a complete semantic
+program digest. Static/read-only input analysis is required before proposing
+another intervention. No CreatePosition seed or new hook is included here.
+
+All 75 selected Action records and 24 Value events per client are retained.
+Value events10,11,18,19,20,21 fail coverage in each client, with the aggregate
+failure also retained. Unknown Action counts2094/2059 remain unequal. A clean
+selected Find receipt does not clear those independent coverage failures.
+
+QUEUE AND FIRST NATIVE MOTION BOUNDARY
+
+Both queue, provenance and selected world-trace parsers report no errors.
+Client1 has10 enqueues/10 dispatches/2 appends; client2 has15/15/3. The extra
+client2 batch is owner6d940/pilot6d945, move.idle PC67, boot3/tick1 at native
+time7.099666666666667. Its naturally restored Wait deadline is
+7.088310214405805, versus7.362481022434235 in client1. Both natural single-step
+checks pass. The earlier deadline and later exclusive batch are observed;
+this is not a claim that every wake eligibility input has been captured.
+
+Both clients publish owner80d4f and9d39b transform orders at boot2/tick0/time7.083.
+The trader80d4f, from pilot80d54/move.idle PC67, uses the same reference95 but
+different target positions. The destroyer9d39b, from pilot9d3a4/move.seekenemies
+PC48, now uses reference29 in both, but its positions still differ. The latter
+retain the differing CreatePosition x/z results through the later command.
+Reference equality therefore does not imply complete command equality.
+
+Complete WORLD_TRACE evidence establishes three watched motion differences at
+the first Agent call, tick2:6d940,80d4f,9d39b. Captured incoming bank motion and
+native call arguments match in each paired call. Pending count/content differs
+for6d940; pending target vector differs for80d4f and9d39b. After native original,
+physical bank0 motion differs for all three. Watches92baa/930fc have no captured
+bank/model/queue difference at their Agent calls. No930fc command is observed
+before this stop; that absence does not resolve its separate World010 cause.
+
+NAV V2 EXPORT FAILURE AND STRICT LIMITS
+
+The census retains521929 imported IDs,426799 present objects and32607 objects with
+unknown motion per client. Reported frame1 roots match. Frame2 reconstruction
+is INVALID: dense Nav pages exceed the engine DebugError message capacity.
+One first failing page contains ten complete775-byte lines, then440 bytes of
+the eleventh row and a newline:8191 bytes. The twelfth row is absent. C prepares
+12 complete rows in a12288-byte buffer, but the probe logs the entire page in
+one DebugError call. Missing nav_raw, malformed timing fields, stale sparse rows
+and detail mismatches remain errors; raw logs are not repaired or reclassified.
+
+The whole-world comparator lists two motion IDs and zero timing/topology/health
+differences, but also6684 reconstruction errors. Those domain counts are NOT a
+complete affected-set result. In particular the missing80d4f census row hides a
+motion difference independently proved by its complete Agent trace. Neither
+timing equality nor absence of another motion difference can be claimed from
+this invalid frame2 reconstruction. The full validator retains all6740 errors,
+evidence_valid=false and session_pass=false, with no tolerance or exclusion.
+
+The independent Nav reviewer owns a narrow complete-line logging fix capped at
+6000 bytes, with actual Lua truncating-sink tests. It leaves C capture, page size,
+hashes and this failed run unchanged. A future test requires a separately frozen
+and reviewed artifact; no unchanged retry or automatic rerun was performed.
+
+PRIVATE EVIDENCE / NEXT WORK
+
+Private paths are relative to this worktree's .local/native-lockstep/:
+  world-motion-011/client{1,2}/engine-output.log and installed/ (unchanged)
+  world-motion-011/result.json, validation.json, world-difference.json
+  world-motion-011/selected-causality-summary.json
+  world-motion-011/first-remaining-value-difference.json
+  world-motion-011/queue-trace-analysis.json, agent-motion-boundary.json
+  world-motion-011/first-nav-row-failures.json
+  world-motion-artifact-audit-011.json, world-motion-cleanup-011.json
+  world-motion-source-011/, world-motion-build-011/, world-motion-overlay-011/
+
+These logs, configured overlays and local source copies are not committed.
+World010 remains untouched. Independent ownership separates the Nav log fix,
+extra930fc/93101 attribution, unknown-owner diagnostics and the next read-only
+CreatePosition input audit. The next planned pair changes logging only; this
+report authorizes no new game, broader seed, hash waiver or publication.

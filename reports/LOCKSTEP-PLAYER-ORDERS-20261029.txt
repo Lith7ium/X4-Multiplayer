@@ -1,0 +1,184 @@
+LOCKSTEP PLAYER ORDERS - FORMAT V1 - 29 OCTOBER 2026
+
+SCOPE
+Player orders become deterministic lockstep inputs for N players (1..16 slots).
+Default off: config native_gate_player_orders = true (overlay builder flag
+--player-orders PLAN). Offline work only: LuaJIT/Python tests with synthetic
+clients and a mock N-slot gate. No native X4 run has exercised this path yet.
+It needs the variable-length input wire (gate.poll().inputs, gate.propose(hex))
+that is being built separately; the 8-hex 2-player wire cannot carry it.
+
+FILES (tools/dev)
+native_gate_player_orders_core.lua  pure codec, validation, scheduling, outbox
+native_gate_player_orders.lua       engine glue: saved-ID index, UI capture,
+                                    adapter X4LAN_NATIVE_PLAYER_ORDERS
+native_gate_player_orders.xml       MD X4LAN_PlayerOrders: world checks, orders
+native_gate_player_orders.py        Python reference codec, plan builder,
+                                    `compare` for client logs
+native_gate_player_orders_plan_3p.json  example live plan (battle fixture)
+native_gate_probe.lua               bind/apply/propose hook (13 lines)
+build_native_gate_overlay.py        --player-orders PLAN
+tests/test_native_gate_player_orders.py
+
+WIRE FORMAT (one blob per slot per tick; lowercase hex, at most 240 hex chars)
+An empty string means no commands. Integers are big-endian.
+  offset size  field
+  0      1     channel 0x50 ('P')
+  1      1     version 0x01
+  2      1     slot 1..16 (must equal the wire slot the relay delivered it for)
+  3      4     apply tick (1..2^32-1); the tick at which every client applies
+  7      2     seq 1..65535, per slot, strictly increasing over non-empty blobs
+  9      1     command count 1..15
+  10     ...   commands
+Command: op u8, flags u8, subject ref, payload.
+  flags: 1 clear queue first, 2 immediate (insert as current order),
+         4 hold fire (hold only). Bits not allowed for the op are refused.
+Reference: tag u8 = kind<<4 | length, then `length` bytes. Kind 1 = saved
+  component ID (the [0x..] ID of the loaded snapshot), minimal big-endian,
+  length 1..8, first byte nonzero. Tag 0x00 = none (assign only). Kinds 2..15
+  are reserved for later identity spaces (e.g. objects created after loading).
+Runtime UniverseIDs, pointers and display codes are never encoded.
+  op  name     payload                                    MD order
+  1   move     sector ref, x, y, z float32 bits (sector-   MoveWait
+               local metres, |v| <= 1e7, finite, no -0)
+  2   attack   target ref                                 Attack
+  3   follow   target ref                                 Follow
+  4   protect  target ref (escort)                        ProtectShip
+  5   dock     target ref (station or ship)               DockAndWait
+  6   hold     -                                          Wait (holdfire flag)
+  7   buy      station ref, ware (u8 length 1..40,        SingleBuy, locations
+               [a-z][a-z0-9_]*), amount u32 1..1e9,        = [station]
+               price threshold u32 in cents
+  8   sell     same as buy, amount 0..1e9 (0 = no limit)  SingleSell
+  9   assign   commander ref or none, assignment u8        AssignCommander
+               (0 if none, else 1 defence 2 attack
+               3 interception 4 bombardment 5 mining
+               6 trade 7 supplyfleet 8 positiondefence
+               9 assist 10 salvage), group u8 0..10
+Opcodes and assignment numbers are wire values: append only.
+Floats are encoded with round-to-nearest-even; every float32 is exact as a
+Lua double, so all clients pass bit-identical coordinates to MD.
+A fleet is commanded through its commander ship; assign builds fleets.
+
+DECODING (strict; any error refuses the whole blob)
+Reasons: encoding, too_long, channel, version, slot_invalid, slot_mismatch,
+tick_invalid, seq_invalid, count_invalid, truncated, trailing, op_unknown,
+flags_invalid, reference_missing/kind/length/noncanonical,
+coordinate_nonfinite/negative_zero/range, ware_invalid, amount_invalid,
+assignment_invalid, group_invalid. encode(decode(x)) == x for every valid x.
+
+APPLICATION (every client, identical input list)
+1. Receive (gated tick r): slots in order 1..N. Valid blobs with seq <= last
+   seq of that slot: refused_duplicate. apply tick < r: refused_late; > r+64:
+   refused_far; more than 256 pending commands: refused_backlog. Otherwise
+   the commands are scheduled for the apply tick.
+2. Due (tick t): all commands due at or before t, ordered (due, slot, seq,
+   index). Lua resolves saved IDs through an index built once at the first
+   gated tick (all factions' ships and stations plus all sectors, each passed
+   through gate.saved_identity; duplicates become ambiguous) and checks the
+   agreed ownership table: unmapped_*, ambiguous_*, not_owner, self_target,
+   own_target (attack on own ship), commander_not_owned (assign).
+3. Accepted commands raise one UI event each (X4LAN_PlayerOrders/Apply) with a
+   running ordinal; MD refuses a gap (md_sequence), then checks subject
+   operational ship, faction owner (faction mode), sector/target existence
+   and class, ware, then optionally cancels the queue and creates the order.
+4. Every command yields exactly one line on every client:
+   PLAYER_ORDER_APPLIED tick= slot= op= subject= target= result= seq= index=
+   flags= due= received= [time=player.age on MD lines]
+   result is applied or refused_<reason>; blob refusals use op=- index=0.
+   target: saved ID; sector@xbits,ybits,zbits; station/ware/amount/price;
+   commander/assignment/group.
+5. apply() returns a canonical decision summary (PORDERS_1|tick|rows) that
+   the probe appends to the hashed gate state, so a resolver or ownership
+   difference stops the barrier at that tick.
+
+OWNERSHIP
+Default `table`: saved subject ID -> slot, agreed at session start (overlay
+plan), identical on every client, digest logged in PLAYER_ORDERS ARMED. This
+fits a lockstep world with one shared `player` faction, which the stock UI
+needs to offer orders at all. The existing player_factions feature maps each
+machine's own human to `player` and others to x4lan_playerK and is relayed
+asynchronously: it is machine-dependent and must not decide lockstep
+ownership. Optional `faction` mode lets MD accept a subject only if its owner
+is x4lan_player<slot> on every client (scripted orders only; the stock UI
+does not offer orders for non-player ships). Plan key "factions" (config
+native_gate_player_orders_factions) names each slot's faction instead, so a
+slot of the player identity plan that keeps the vanilla `player` faction
+orders `player` ships (reports/LOCKSTEP-PLAYER-IDENTITY-20261029.txt).
+
+CAPTURE (native_gate_player_orders_capture, plan "capture_ui": true)
+No captured order executes locally. The adapter wraps entry points of the
+stock menus found in `Menus` and queues portable commands; the proposal for
+report tick t applies at t+delay (default 3) on every client, the proposer
+included.
+- InteractMenu: orderAttack, orderMoveWait (sector position only),
+  orderFollow, orderProtect, orderDock, orderStopAndHoldFire,
+  orderAssignCommander, buttonAssignCommander (rewritten without the local
+  order-loop reset and intersector defence).
+- MapMenu: orderMoveWait, orderAttack, orderAttackMultiple (single target),
+  orderFollow, buttonConfirmTradeLoop (SingleBuy/SingleSell).
+- Blocked with PLAYER_ORDER_CAPTURE_REFUSED: every other menu.order* function
+  and the known direct order mutators (remove/reorder orders, change
+  assignment, override orders, formation, recall, sync points, default
+  behaviour, order parameters, MapMenu buttonConfirmTrade/TradePerform).
+- Refused at capture: priority orders (shift/ctrl modifiers or
+  priorityOrderMode), move to object/gate, venture/showroom docking,
+  positiondefence, multiple attack targets, fleet units, unmapped objects.
+
+OPEN QUESTIONS
+1. Not interceptable from Lua: direct FFI calls (C.CreateOrder, C.EnableOrder,
+   C.RemoveOrder, SetOrderParam ...) inside unwrapped functions, e.g. MapMenu
+   onUpdate/hotkey/onRenderTargetMouseUp/createOrderQueue paths, the order
+   queue editor, interaction Lua actions (insertLuaAction/prepareActions),
+   ship/station configuration menus, MD-driven player actions and cockpit
+   (player-piloted) control. A native guard (refuse order creation outside
+   the MD Apply cue) would close this; census divergence detects it meanwhile.
+2. Objects created after loading (bought/built ships, new stations) have no
+   saved ID and are refused as unmapped. Needs a lockstep creation identity
+   (reserved reference kind).
+3. Resolution uses a Lua index built from faction ship/station lists and
+   sectors once at tick 1 (one-time cost not yet measured natively). A native
+   saved -> runtime lookup in lockstep_world_identity.h would be O(1) and
+   complete; it assumes X4 does not reuse runtime IDs within a process.
+4. Direct trade (TradePerform with a trade offer) is not portable; v1 maps
+   only the map's buy/sell loop to SingleBuy/SingleSell at one station.
+5. (Superseded for the probe: orders are a section of the input multiplexer,
+   reports/LOCKSTEP-INPUT-MUX-20261029.txt; proposal(tick, budget) packs only the
+   commands that fit and keeps the rest queued.) Interface assumptions for the N-slot gate: gate.poll().inputs is an array
+   1..N of hex strings ('' = none) for the issued tick; gate.propose(hex)
+   accepts '' and returns 0/false only on refusal; a blob reported with tick t
+   arrives in the permit for t+1 (delay >= 1). Adjust in native_gate_probe.lua
+   if the final API differs.
+6. UI reload during a session resets the Lua outbox/schedule on that client;
+   the decision summary hash then diverges and the barrier stops (fail closed).
+7. MD param names follow the 7.x order scripts (MoveWait destination, Attack
+   primarytarget, Wait holdfire, SingleBuy/Sell locations/maxamount/
+   pricethreshold, AssignCommander subordinategroup/setgroupassignment);
+   the order outcome is only verified natively by the live test below.
+
+VERIFICATION (offline)
+python -m unittest discover -s tests -p "test_native_gate*.py": 602 tests OK,
+1 skipped (game-schema check; X4LAN_MD_SCHEMA=1 runs it, ~2 minutes, VALID).
+Covers Lua/Python codec equality, float32 bits, every refusal reason, delay
+and canonical order, 3-client mock relay with distinct runtime IDs per client
+(identical applied lines and decision summaries), UI capture/blocking, probe
+hook, builder plan resolution.
+
+LIVE TEST (coordinator, after the N-slot wire lands)
+Build each lane's overlay from the snapshot battle fixture with
+  --mode battle --snapshot <snapshot> --world-identities (implied)
+  --player-orders tools/dev/native_gate_player_orders_plan_3p.json
+plus the current census stack (same flags as the 0-divergence runs) and the
+N-slot relay/gate with 3 clients, 600 ticks, census observe mode.
+Expected on all three clients (apply = proposal tick + 3):
+  33  slot2 move @2 applied            48  slot3 attack @7->@2, hold @9 applied
+  53  slot1 move @1, assign @3->@1 applied
+  63  slot2 attack @4->@8, follow @6->@2 applied
+  78  slot3 protect @10->@7 applied, attack @11->@12 refused_own_target
+  93  slot2 attack @7->@1 refused_not_owner
+Pass: `python tools/dev/native_gate_player_orders.py compare c1.log c2.log
+c3.log` prints PASS with 10 identical lines (8 applied); one PLAYER_ORDERS
+INDEX line per client with equal mapped/digest; no PLAYER_ORDER_CAPTURE_*;
+no refused_md_sequence; gate state hashes equal every tick; census 0
+diverged objects. A two-client run uses "players": 2, owners for slots 1-2
+only and no slot 3 script.

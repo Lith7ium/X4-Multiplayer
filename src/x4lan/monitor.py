@@ -178,6 +178,9 @@ class Monitor:
                     players[-1]['game']['age'] = round(now-metrics['at'], 2)
                 ships = [str(i) for i, nav in session.navigation.items() if session.owners[i]==slot and now-nav['at']<STATE_SECONDS]
                 players[-1]['pose'] = ('live ships ' + ','.join(ships)) if ships else 'no current ship pose'
+            probe = getattr(self.relay, 'netprobe', None)
+            if probe is not None and probe.enabled and slot in probe.latest:
+                players[-1]['net'] = {k: v for k, v in probe.latest[slot].items() if k != 'slot'}
             self.previous[slot] = {'lease': peer.lease, 'count': peer.state_messages,
                                    'address': players[-1]['address'], 'last_seen': peer.last_seen,
                                    'joined_at': peer.joined_at, 'status': status}
@@ -250,6 +253,10 @@ def render(state, width=100, attached=False):
         game = p.get('game')
         if game:
             lines.append(f'     Game callbacks/s: {game["callbacks_hz"]:g}  Max gap: {game["interval_max_ms"]:g} ms  {game["state"]}')
+        net = p.get('net')
+        if net:
+            lines.append(f'     RTT probe ms: median {net["rtt_ms_median"]}  p95 {net["rtt_ms_p95"]}  '
+                         f'jitter p95 {net["jitter_ms_p95"]}  loss {net["loss_pct"]}%')
     process = state.get('relay_process')
     if process:
         lines.append(f' Relay CPU: {process["cpu_percent_one_core"]:g}% of one core  Peak RAM: {process["peak_memory_mib"]} MiB')
@@ -355,6 +362,8 @@ def run(config, logs: Path, version='unversioned'):
     logs.mkdir(parents=True, exist_ok=True)
     status_path = logs / 'server-status.json'
     try:
+        from .host import require_two_players
+        require_two_players(config)
         session_type = CoopSession if config.get('coop') else EconomySession
         if config.get('world_sync'):
             from .universe import UniverseSession
@@ -372,6 +381,7 @@ def run(config, logs: Path, version='unversioned'):
     screen = Screen()
     path = logs / ('server-' + datetime.now().strftime('%Y%m%d-%H%M%S-%f') + '.jsonl')
     next_refresh = next_addresses = 0
+    probe_log = None
     interfaces = []
     executor = ThreadPoolExecutor(max_workers=1)
     address_job = None
@@ -388,6 +398,13 @@ def run(config, logs: Path, version='unversioned'):
                 while True:
                     now = time.monotonic()
                     relay.step(now)
+                    lines = relay.netprobe.report(relay.session.peers, now)
+                    if lines:
+                        if probe_log is None:
+                            # Created only once a client actually sends RTTPING (net_probe=true).
+                            probe_log = (logs / ('netprobe-' + path.stem.removeprefix('server-') + '.log')).open('a', buffering=1)
+                        stamp = datetime.now(timezone.utc).isoformat(timespec='milliseconds')
+                        probe_log.write(''.join(f'{stamp} {line}\n' for line in lines))
                     if now >= next_refresh:
                         if address_job is not None and address_job.done():
                             interfaces = address_job.result()
@@ -407,6 +424,8 @@ def run(config, logs: Path, version='unversioned'):
                 state['running'] = False
                 publish(state, log)
     finally:
+        if probe_log is not None:
+            probe_log.close()
         relay.close()
         screen.close()
         executor.shutdown(wait=True)

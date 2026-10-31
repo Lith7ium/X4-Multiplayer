@@ -5,8 +5,11 @@
    <conditions><event_ui_triggered screen="'X4LAN_Universe'" control="'Setup'"/></conditions>
    <actions>
     <!-- W01 must not enumerate or remove the existing co-op fixtures. -->
-    <do_all exact="2" counter="$i">
+    <!-- Every shared client ship (two, or one per client in N-player sessions). -->
+    <do_all exact="md.X4LAN_Bubble.Arena.$ships.count" counter="$i">
      <raise_lua_event name="'X4LAN_Universe.Exclude'" param="md.X4LAN_Bubble.Arena.$ships.{$i}"/>
+    </do_all>
+    <do_all exact="2" counter="$i">
      <raise_lua_event name="'X4LAN_Universe.Exclude'" param="md.X4LAN_Bubble.Arena.$targets.{$i}"/>
      <raise_lua_event name="'X4LAN_Universe.Target%s'.[$i]" param="md.X4LAN_Bubble.Arena.$targets.{$i}"/>
     </do_all>

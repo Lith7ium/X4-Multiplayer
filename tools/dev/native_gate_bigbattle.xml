@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Disposable native gate stress fixture for lockstep census runs. Both games run
+     the same cues at the same gated tick (raised by native_gate_probe.lua):
+     BigWar   puts Argon at war with Paranid and Teladi, so imported ships across
+              the universe engage with native AI, weapons, missiles and turrets.
+     BigSpawn creates 40 Argon and 40 Paranid ships (30 S, 8 M, 2 L per side) with
+              fixed seeds near the 6v6 fixture in the player's sector.
+     BigEngage orders every spawned ship to attack its counterpart, other targets
+              allowed. No pose or health replication is involved. -->
+<mdscript name="X4LAN_NativeBigBattle" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="BigWar" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeGate'" control="'BigWar'"/></conditions>
+   <actions>
+    <set_faction_relation faction="faction.argon" otherfaction="faction.paranid" value="-1"/>
+    <set_faction_relation faction="faction.paranid" otherfaction="faction.argon" value="-1"/>
+    <set_faction_relation faction="faction.argon" otherfaction="faction.teladi" value="-1"/>
+    <set_faction_relation faction="faction.teladi" otherfaction="faction.argon" value="-1"/>
+    <debug_text text="'[X4LAN] NATIVE_GATE BIGBATTLE war argon=%s/%s'.[faction.argon.relationto.{faction.paranid}, faction.argon.relationto.{faction.teladi}]"/>
+   </actions>
+  </cue>
+  <cue name="BigSpawn" namespace="this">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeGate'" control="'BigSpawn'"/></conditions>
+   <actions>
+    <do_if value="player.ship">
+     <set_value name="$ships" exact="[]"/>
+     <do_all exact="80" counter="$i">
+      <set_value name="$side" exact="if $i le 40 then 0 else 1"/>
+      <set_value name="$n" exact="if $i le 40 then $i else $i - 40"/>
+      <set_value name="$macro" exact="if $side == 0 then (if $n le 30 then macro.ship_arg_s_fighter_01_a_macro else if $n le 38 then macro.ship_arg_m_frigate_01_a_macro else macro.ship_arg_l_destroyer_01_a_macro) else (if $n le 30 then macro.ship_par_s_fighter_01_a_macro else if $n le 38 then macro.ship_par_m_corvette_01_a_macro else macro.ship_par_l_destroyer_02_a_macro)"/>
+      <create_ship name="$ship" macro="$macro" sector="player.sector" seed="9000 + $i">
+       <owner exact="if $side == 0 then faction.argon else faction.paranid" overridenpc="true"/>
+       <loadout><level exact="1.0"/><variation exact="0"/></loadout>
+       <pilot><select faction="if $side == 0 then faction.argon else faction.paranid" tags="tag.aipilot"/></pilot>
+       <position x="if $side == 0 then -2500m else 2500m" y="100km + (($n - 1) % 5) * 150m" z="4km + (($n - 1) / 5) * 200m"/>
+       <rotation yaw="if $side == 0 then 90deg else -90deg"/>
+      </create_ship>
+      <do_if value="$ship.exists">
+       <append_to_list name="$ships" exact="$ship"/>
+       <create_order object="$ship" id="'Wait'" default="true"/>
+      </do_if>
+     </do_all>
+     <debug_text text="'[X4LAN] NATIVE_GATE BIGBATTLE spawned=%s'.[$ships.count]"/>
+    </do_if>
+   </actions>
+   <cues>
+    <cue name="BigEngage">
+     <conditions><event_ui_triggered screen="'X4LAN_NativeGate'" control="'BigEngage'"/></conditions>
+     <actions>
+      <set_value name="$half" exact="$ships.count / 2"/>
+      <do_all exact="$ships.count" counter="$i">
+       <create_order object="$ships.{$i}" id="'Attack'" immediate="true">
+        <param name="primarytarget" value="$ships.{if $i le $half then $i + $half else $i - $half}"/>
+        <param name="pursuetargets" value="true"/>
+        <param name="allowothertargets" value="true"/>
+       </create_order>
+      </do_all>
+      <debug_text text="'[X4LAN] NATIVE_GATE BIGBATTLE engaged=%s'.[$ships.count]"/>
+     </actions>
+    </cue>
+   </cues>
+  </cue>
+ </cues>
+</mdscript>

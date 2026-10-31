@@ -25,7 +25,7 @@
             <check_value value="true" />
           </conditions>
           <actions>
-            <do_all exact="2" counter="$i">
+            <do_all exact="$arena.$ships.count" counter="$i">
               <set_value name="$ship" exact="$arena.$ships.{$i}" />
               <do_if value="$arena.$host and not $arena.$dead.{$i}">
                 <!-- While a pilot value is live (x4lan_health.xml) it alone decides death; the proxy is
@@ -72,7 +72,7 @@
                 </do_else>
               </do_if>
             </do_all>
-            <set_value name="$mode" exact="if player.occupiedship == $arena.$ships.{1} or player.occupiedship == $arena.$ships.{2} then 'ship' else 'foot'" />
+            <set_value name="$mode" exact="if player.occupiedship and $arena.$ships.indexof.{player.occupiedship} gt 0 then 'ship' else 'foot'" />
             <do_if value="player.spacesuit.isoperational">
               <set_value name="$mode" exact="'suit'" />
               <!-- A one-time hull guard was insufficient in native testing; maintain it until the occupant has left. -->
@@ -156,7 +156,7 @@
             <set_value name="$remoteSuit" exact="event.param3.$object" />
             <set_value name="$remoteGeneration" exact="event.param3.$generation" />
             <set_object_min_hull object="$remoteSuit" exact="100" />
-            <set_object_name object="$remoteSuit" name="'LAN Player %s - Spacesuit'.[3 - $arena.$localSlot]" />
+            <set_object_name object="$remoteSuit" name="if $arena.$ships.count gt 2 then 'LAN Player - Spacesuit' else 'LAN Player %s - Spacesuit'.[3 - $arena.$localSlot]" />
           </actions>
         </cue>
       </cues>

@@ -1,0 +1,130 @@
+PORTABLE ROTATION ARITHMETIC PROPOSAL - 27 OCTOBER 2026
+
+Status: original source-only reference and offline tests. No native hook, engine
+write, adapter change, new native artifact, staging or X4 execution in this work.
+Mixed-native002 remains failed at frame0, before any granted simulation tick.
+
+Observed problem
+
+The two real participants agreed on saved identities, topology, hull, position,
+references, scalar fields and game time, but differed in120 stored rotation
+coefficients across12 fixture ships and two banks. The static-analysis lane
+reproduced those values through the platform-specific saved Euler import paths.
+Do not mask, round, normalize, copy from a peer, or exclude those fields from the
+portable hash. Correct the arithmetic producing the state on both platforms.
+
+A read-only nongame probe on the actual VPS independently resolved sincosf's
+loaded libm mapping, executable permissions, device/inode and backing file hash.
+The host uses glibc2.42; libm is1,096,120 bytes, SHA256
+ff06daa44363e14ff00c80e28d87a281447f23599bf47c72f4fef0028bc41795.
+Input bits00000000 produce sin00000000/cos3f800000;
+3fc90fdb produce sin3f800000/cosb33bbd2e;
+bfc90fdb produce sinbf800000/cosb33bbd2e.
+These agree with the Linux game coefficients and the static lane's WSLglibc2.39
+probe. No X4 was running; the existing Steam process identity was unchanged.
+Private evidence: .local/linux-admission/probe_vps_sincos.json.
+
+Input equality is a separate requirement. The audited native parsers disagree
+on decimal0.8875748217105865478515625: Windows selects3f63381b, Linux3f63381a,
+then their single binary32 degree conversion produces3c7dce66 and3c7dce65.
+Sharing sin/cos alone cannot correct that upstream difference.
+
+Proposed common contract
+
+tools/dev/portable_rotation_reference.py is an offline original reference:
+
+1. Parse at most256 ASCII characters of plain decimal, optional minus and dot,
+   at least one digit. Convert the exact integer ratio to binary32 using nearest
+   even. Missing or empty attributes mean+0; explicit negative zero is preserved.
+   Reject whitespace, plus, exponent syntax, suffixes, locale-dependent spelling,
+   nonfinite values and overflow. This is a deliberately strict common rule,
+   not an emulation of either native permissive parser. All finite binary32
+   values have an exact plain-decimal representation within this size bound.
+2. Multiply once by the audited binary32 constant0x3c8efa35. The reference uses
+   exact integer significands and explicitly rounds to binary32, including
+   gradual underflow; it does not depend on FTZ/DAZ, host rounding mode or FMA.
+3. Evaluate sin/cos for those exact radian bits. Generate pi/2 independently
+   using Machin's identity and integer series at384 fractional bits. Reduce
+   by the nearest multiple of pi/2, evaluate a bounded integer Taylor series on
+   [-pi/4,pi/4], reconstruct the quadrant and round explicitly to binary32.
+   No engine coefficient table, host libm or special +/-90 substitution is used.
+4. Compose all nine coefficients with an explicit shared grouping and binary32
+   rounding after every multiply/add. basis() records the audited mathematical
+   pitch/yaw/roll convention as three stored basis vectors. It does not rename
+   them world pose, alter position, or assume the native grouping is identical.
+   This contract includes signed-zero results; no zero-bit cleanup is applied.
+
+The actual mismatch inputs3fc90fdb/bfc90fdb produce exactly(+/-1,b33bbd2e).
+The decimal midpoint above selects nearest-even3f63381a, then3c7dce65.
+These are genuine common arithmetic decisions, not copied native transforms.
+
+Offline evidence
+
+Ten focused tests pass on Windows and WSL: observed +/-90 inputs, missing/empty
+and negative-zero handling, the parser mismatch, signed subnormal results,
+nearest-even ties/carries, overflow/nonfinite/grammar refusal and sine/cosine
+symmetry, independent rational rounding, a known combined-angle grouping
+counterexample, and refusal of any candidate arithmetic dependency in the oracle.
+No GUI, game library, engine executable or live memory is used.
+
+check_portable_rotation.py independently computes180-digit Decimal reference
+values using Gauss-Legendre pi and Decimal series. Basis checking independently
+uses explicit expression trees for all nine coefficients, exact Fraction
+operations and a binary-search nearest-even binary32 rounder after every node.
+It does not call the candidate's sincos, add, multiply, pack or rounding helpers.
+Signed zeros are compared exactly. Both hosts pass:
+-104,343 finite binary32 radian inputs, including exponent-stratified/extreme/
+ subnormal cases, adjacent quadrant inputs and100,000 seeded random samples;
+-7,674 exact decimal midpoint/below/above cases with independently known answers;
+-343 combined pitch/yaw/roll cases, with all result bits in the digest.
+No trig result differs from the independently rounded reference. All3,087 basis
+coefficients also match the independent per-operation oracle. The common
+corpus SHA256 is0c01fbaadebc090dc7701b5fbf7a23ef09eb77b1c8ccc6e863d4323e1dfc8975.
+Sampled maximum basis squared-norm error is1.9098668779804484e-7 and maximum
+cross-vector dot magnitude6.536299945736346e-8. These are offline quality
+measurements only; neither is an allowed network/state comparison tolerance.
+Private complete host reports:
+.local/portable-rotation/{windows-reviewed,linux-reviewed}.json.
+
+The initial eca3685 checker only measured basis orthogonality and hashed outputs;
+that did not establish the declared operation grouping. The corrected checker
+rejects the review's concrete mutation from(sr*sp)*sy to sr*(sp*sy) in v0.x.
+Inputs pitch3f490fdb/yaw3f490fdb/roll7f7fffff must produce3eaf39e9;
+the mutated candidate produces3eaf39ea. Two of343 combined cases differ, and
+the CLI now fails with two explicit basis mismatches while scalar trig still
+passes. Candidate arithmetic and its prior corpus digest remain unchanged.
+Private independently executed mutated-source CLI proof:
+.local/portable-rotation/grouping-mutant/proof.json.
+
+Reproduce with Python3.12 or later:
+python -B -m unittest discover -s tests -p "test_portable_rotation*.py"
+python -B tools/dev/check_portable_rotation.py --random-count 100000
+  --report .local/portable-rotation/host.json
+A second host can pass '--compare' with the first report; sources are compared
+after CRLF-to-LF normalization. The command above is wrapped for display.
+
+Remaining implementation and acceptance work
+
+This Python oracle is not a production native evaluator, formal all-input
+correct-rounding proof, throughput result, or Windows/Linux engine parity proof.
+The sampled tests are not exhaustive over all finite binary32 angles. The basis
+grouping is explicitly new common semantics, including possible signed-zero
+differences from native paths. It needs review as a versioned arithmetic contract.
+
+A practical native candidate can port the bounded integer algorithm into a
+separate original C module using fixed-size unsigned limbs and explicit integer
+rounding. Compare that module against this oracle under Windows and Linux
+compilers, optimizations, rounding-mode/FTZ/FMA environments and real text
+fixtures. Retain every output bit. Benchmark full import workload; do not assume
+this Python reference's time or a12-ship fixture represents universe load cost.
+Any cache must key exact inputs and retain exactly computed outputs.
+
+The static-analysis lane owns XML lifetime/defaults/import-call ABI and ownership
+review. Hooking one trig routine is insufficient because Windows has an inlined
+Euler path and the native text parsers already differ. Before engine writes,
+review a matched default-off integration that sees the same bounded raw angles,
+preserves original call/return/lifetime behavior and changes only its owned
+rotation output before publication. Unknown forms must refuse without native
+fallback. Exact build/pins, snapshot/content and full unchanged portable hashes
+remain required. A fresh reviewed two-native load must then demonstrate exact
+frame0 equality and proceed through permits; this work has not done that.

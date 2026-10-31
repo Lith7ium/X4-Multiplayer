@@ -1,0 +1,131 @@
+World016: third imported Wait / Find composition - 28 October 2026
+
+Result
+The exact third imported Wait deadline now matches the prior arithmetic
+prediction on both native Windows clients. Neither client emits the extra
+6d940 command batch seen on one client in World014/015. The selected Find
+intervention also validates under the new explicit composition. The session
+still fails: the strict barrier stops at tick2, and the frozen validator retains
+the same ordered56 errors as World015. This is a bounded intervention result,
+not whole-world or Windows/Linux lockstep acceptance.
+
+Reviewed artifact and single execution
+Root source/DLL commit bf86f16f8cb65546ef3802325366503891544536.
+DLL814080 bytes, SHA256:
+  a45374e87fb7c4035b2792b62b4209b1b30dcaca80fa4150f2a53cb624f39ddc
+Overlay manifest:
+  249f3d91af8032160946dcc6170e9e09581326be4ef72be20d18739d46c35f89
+Exact command proposal:
+  92fb495b6451720cab3150f51efd21802a8f8694c37aef8f3d47c7cce9eabdd9
+Config:
+  d92a7ecf3883fc349ada5df605d350914088af92a951656a9c84e1c20217278a
+
+Independent artifact review verified560 immutable source files,189 native/build
+inputs, eleven payloads,110 base files and524 canonical lane-release files,
+including four verified bytecode caches. The snapshot remains78163510... and
+the fixture, six watches, Action/Values/Position diagnostics and run bounds are
+the World015 configuration. Only two configuration fields changed: the third
+Wait policy and the explicit Find composition2 wire. The combined probe also
+contains an inactive GetUp queue diagnostic clause; it was not configured.
+The separately proposed Position RNG intervention is absent.
+
+Root authorized one invocation: two clients on b1/b2,12 requested ticks,
+260-second runtime and900-second admission wait. Fresh ownership and complete
+artifact/release checks passed before that invocation. It stopped on
+battle_state_mismatch_tick_2 after about85 seconds. There was no retry.
+Both clients recorded native STOP reason1/restored1/completed2, exited0 through
+the owned runner's graceful close, and restored their lane and snapshot slots.
+Independent matched-start process-handle checks confirmed both native exits;
+the runner exited and the relay was stopped. Both lanes were idle at cleanup.
+An initial OpenProcess-only absence check encountered retained exited process
+objects; signaled-handle and nonzero exit-time checks correctly distinguished
+process exit from kernel-object lifetime. No unrelated process was touched.
+
+Third Wait: prediction observed
+Saved pilot6d945 belongs to ship6d940. Both clients capture the same selected
+move.idle/version4/XML-index5 import restoration at caller1069bfc, boot2/tick0,
+native slot70/PC71/since0. Saved Exec time is401beeee0f3cb3e6 (native parsing of
+6.98333), with minimum0.1 and maximum0.5. The prior deadline is-1, so this run
+does not take the earlier-retained-deadline case.
+
+Both actual intervention receipts report:
+  seed                 4cf7dda6c67c9349
+  scoped state after   376e7091a7b0a160
+  resulting deadline   401d61a243a31a4c =7.345345551328659
+  resulting reason     2
+The deadline exactly matches eb3360e's prediction. The original returns
+normally with result1, and each client's ambient caller RNG value is restored
+to its own pre-call value; those ambient values still differ between clients.
+All three expected Wait interventions apply, with refused0/open0/restore_open0.
+The raw Wait and scoped-RNG validators report no errors. The first two selected
+Wait seeds remain unchanged. Normal-return TLS restoration does not add native
+Wait exception cleanup or establish ambient/global RNG parity.
+
+Find composition
+Both clients accept descriptor
+44ed014534fb05209d4717179c6858e0d982d05a9e2d2d5a70c946bfa9f0c101 and emit the
+schema2 terminal composition receipt. The independent validator joins all
+three actual Wait and scoped-RNG receipts, then validates the selected Find
+scope, applied1/restored1, zero scope failures and the unchanged179-byte key.
+Both select saved object0x29 using seed65d8202ad9940908 and scoped-after
+22403ede5ea8c4dd. Each caller stream is restored. Selected scope/output equality
+is true; global capture validity and global RNG parity remain false.
+
+Queue and world effects
+Each client records ten enqueues: five from80d54/move.idle/PC67 and five from
+9d3a4/move.seekenemies/PC48. Neither records a6d945-origin or6d940-target batch.
+The queue/trace decoders report no local validation errors. They still retain
+22 paired queue differences and54 trace differences, so matching enqueue counts
+do not imply matching commands or worker inputs.
+
+The imported-world comparator accepts both captures and finds equal roots at
+tick1. At tick2, only motion differs, for saved80d4f and9d39b. Topology, stored
+health and timing have zero differing objects; there is no inventory mismatch.
+World015 also had motion divergence for6d940. The corresponding one-sided
+batch and that object's motion difference are absent in this run.
+This is consistent with removing the specific imported-deadline asymmetry.
+There is still no direct per-context scheduler wake-reason receipt, so the run
+does not prove an exclusive wake cause or general scheduling equivalence.
+
+Both world captures cover521929 imported identities and426799 present objects.
+Unknown motion coverage remains32607 objects. The comparator reports no errors,
+but these figures remain partial-domain coverage, not all native state.
+
+Remaining CreatePosition evidence
+All three Position receipts per client validate under the accepted branch
+schema. Action30, saved9d3a4/order.fight.patrol/version10/slot215/PC216, again has
+equal captured typed inputs: kind0, coordinates absent, space expression absent,
+zero base, sampled range, minimum0, span50000, distribution1, parameter1 and the
+recorded FP modes. Incoming sampler RNG differs:
+  client1 30aa36100435e4f4 -> radius472b9aa3 =43930.63671875
+  client2 bd54fa8e9c026b9c -> radius468beff6 =17911.98046875
+The semantic receipt differs in sampler result, radius, RNG and final output.
+It validates one sampler step and two direction endpoint steps. Actions48/55
+have the supported transform/range-absent path and unequal incoming bases.
+No evaluated-null-space path is exercised here.
+Captured input equality is not complete native math/environment coverage; the
+separate proposed dispatch and numeric-continuation checks are not in World016.
+The receipt supports a next narrowly scoped investigation, not blind seeding
+of the entire Action or a cross-platform trigonometric equivalence claim.
+
+Validation and retained limits
+The frozen bf86 strict validator exits nonzero, evidence_valid=false and
+session_pass=false, with exactly the ordered56 World015 errors. Existing unknown
+ownership and selected Value failures remain, as do early-stop exercise limits.
+The world comparator itself has errors=[] and two motion objects; these are
+distinct scopes. No hashes, tolerances, IDs, inputs or raw logs were repaired.
+The two games in this test are Windows games; Linux compatibility is untested
+by this pair. Existing historical World014/015 artifacts remain unchanged.
+
+Private reproducibility
+The author worktree retains .local/native-lockstep/world-motion-016 with raw
+client logs, installed configuration copies, result/validation JSON, the native
+barrier report, selected-causality-summary.json, queue-trace-analysis.json,
+world-difference.json, checked world016-summary.json and analysis-file-pins.json.
+The surrounding directory retains the one-attempt launch/approval bindings,
+native PID/start claims, independent cleanup checks, frozen source/build/overlay,
+world016-closure inventories and the inert preparation scripts.
+The initial private queue summary printed bytes without a JSON fallback after
+successfully writing its complete analysis file; that stdout-only helper was
+corrected. Raw logs, the completed analysis and frozen production parser were
+not changed. No gameplay source was edited for this report.

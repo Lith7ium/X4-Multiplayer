@@ -1,0 +1,133 @@
+WORLD012 - COMPLETE NAV LOGGING, THREE MOTION DIFFERENCES, NO SESSION PASS
+28 October 2026 | One approved disposable Windows pair; no repeat
+
+The logging-only change fixes the World011 census export failure. Both World012
+streams reconstruct without world-evidence errors. The simulation still stops
+at tick2, with motion differences on saved80d4f,92efa and9d39b. The selected
+FindComponent experiment again produces component29 in both clients with valid
+local receipts and exact caller RNG restoration. All56 remaining strict errors
+remain; evidence_valid=false and session_pass=false.
+
+FROZEN INPUTS AND LIFECYCLE
+
+Source d132a3eec9918eb2855706247cae957f7f9bb8c0 contains the reviewed complete-line
+logging change and World011 report. The DLL is the identical4296f67 binary:
+700416 bytes, SHA256
+bc49d20433779a3590c73c436525139c937f52baa1ff6a725ab2bbb307221d4c.
+All154 C/build-source blobs are unchanged. Root independently checked all482
+archived files, 11 overlay payloads, three unchanged input manifests and the
+unchanged snapshot7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+Overlay manifest SHA256:
+d8a16eb0b44cc92d9969a4497385421e738e90a9f1338f5f601d04ec8280c690.
+
+Only ui/native_gate_probe.lua differs from011. Configuration, DLL and the other
+payloads retain exact011 bytes. The audit records the generator LF versus final
+retained CRLF bytes for the unchanged command files; no semantic fixture change
+or mutable build substitution occurred. The two Wait interventions, natural
+third Wait selection, single Find intervention, five watches and all bounds are
+unchanged. No CreatePosition intervention, new hook or math change is present.
+
+One released-runner attempt used b1/b2, profiles45850/45851,12-tick/first-mismatch
+bounds,260-second runtime and900-second admission wait. Canonical release5d5,
+artifact hashes and idle lane identities were rechecked immediately beforehand.
+Runner26888 started07:15:41.889360UTC. Owned X4 PIDs76656/58552 started
+07:15:44.022/07:15:44.686UTC under that runner at the exact disposable executables.
+Relay tick-1,0,1 matched; terminal07:17:40.491618UTC reported
+battle_state_mismatch_tick_2 after118.454 seconds.
+
+Both games closed gracefully with exit0. Lane restoration and snapshot restoration
+succeeded for both, self-check errors were empty, and canonical cleanup status
+at07:18:25UTC showed idle b1/b2, no X4 processes and no queued request. The normal
+runner warning about writing the disposable snapshot slot is retained beside
+its successful restoration evidence. No retry or extra game was launched.
+
+NAV EXPORT AND CAPTURED ROOTS
+
+Each client emits531937 complete WORLD_OBJECT rows:511921 non-Nav rows and20016
+Nav rows. The latter are exactly774 bytes before the newline, with complete
+198-hex-character nav_raw fields; no short/missing raw row remains. The frozen
+world comparator reports errors=[], compared_snapshots=2 and first_difference=2.
+This removes the6684 reconstruction errors recorded in011 without rewriting
+that failed run or suppressing any parser check.
+
+Each stream retains521929 imported IDs,426799 present objects and32607 objects
+with unknown motion coverage. Frame1 captured roots match. At frame2 the captured
+motion domain differs on80d4f,92efa,9d39b; captured topology, health and enriched
+Nav timing domains match. These are results for the implemented hash domains,
+not proof that all game state or the unknown-motion objects are synchronized.
+
+Physical selector phases are opposite between clients: client1 read0/write1 at
+frame1 and read1/write0 at frame2; client2 has the inverse. Every same-capture
+phase is stable. V2 validates the raw pending/reference/counter and cursor
+relation witnesses while reconstructing their logical timing fields. The raw
+physical differences remain in evidence; no live selector/state was reset.
+
+SELECTED FIND AND NEXT SUPPORTED VALUE
+
+All IDs here are hexadecimal unless explicitly marked decimal. The selection
+remains pilot9d3a4/order3cdb/saved script38361 DECIMAL, order.fight.patrol v10,
+native slot129/PC130. One anchor/event/use per client validates with no failure,
+dropped, open or restore-open debt. The unchanged key digest is
+080994d92a20d8658e7e391ea47ffdef7afe3ca8175ecabcb6fe34b7ba4020bc;
+seed65d8202ad9940908 advances once to22403ede5ea8c4dd, selecting index1/component29
+from the same ordered [28,29,2b,428af] candidates.
+
+Caller RNG2ee87d1b5ddea907 versus754d9ed09cb69886 is restored exactly in its
+respective client. selected_scope_valid=true and selected_outputs_equal=true
+are accompanied by global_capture_valid=false and global_rng_parity=false.
+This local result still does not prove enclosing engine exception recovery.
+
+Supported Values1..5 match. The first supported output difference is again
+Value6/Action30, CreatePosition in order.fight.patrol v10, slot215/PC216,
+pilot9d3a4, boot2/tick0/time7.083. Both raw selected records validate. Outputs:
+  client1 (9423.56640625, -9361.2060546875, 1222.9844970703125)
+  client2 (821.578369140625, 15267.142578125, -10381.861328125)
+
+Incoming RNG is already unequal. Matching owner/script/action/phase does not
+establish equal evaluated radius, base, reference or space. The separate static
+audit follows actual native evaluation and transformation calls; it does not
+re-run expressions/getters or seed the whole Action. There are75 selected Action
+records and24 Value events per client. Unsupported Value events10,11,18,19,20,21
+and their aggregate coverage failure remain. Unknown Action counts2091/2090 also
+remain distinct and globally incomplete.
+
+QUEUES, NATURAL WAIT AND NEW OUTSIDE-WATCH SHIP
+
+Both local queue/trace/provenance parsers report errors=[] and10 enqueues,
+10 dispatches,2 appends. Both batches belong to80d4f and9d39b at boot2/tick0;
+references95 and29 respectively match, while target vectors differ. There is no
+captured6d940 or930fc batch before stop. Natural Wait6d945 restores deadlines
+7.42005770857811 versus7.479587847547531, both beyond the captured tick2 interval;
+both natural single-step checks validate. The unchanged two intervened Wait
+deadlines match. Independent review joins these to their exact local lifetimes.
+Absence of a batch here does not resolve the earlier011 or010 scheduling causes.
+
+New motion ID92efa lies outside the five selected watches. The pristine snapshot
+identifies it as a Teladi S fighter, macroship_tel_s_fighter_02_a_macro, pilot92eff.
+Its saved AI stack is:
+  orders.base v7, script16029 DECIMAL, label loop, time6.91667, index4;
+  order.move.recon v19, script38386 DECIMAL, label gothere, time6.91667,
+    index1, saved order4c69;
+  move.generic v23, script38420 DECIMAL, label move, time_text6.95, index6.
+
+The stack resembles the separately audited930fc/93101 case. It is a concrete
+saved-context lead, not live proof of92eff's restored deadline, command producer
+or scheduler reason. No selected Wait or queue provenance for92eff was captured.
+The separate NPC investigation owns classification of its dynamic wait bound;
+no guessed constant range, additional seed or hash exclusion is introduced.
+
+PRIVATE EVIDENCE AND FOLLOW-UP
+
+Private evidence remains under this worktree's .local/native-lockstep/:
+  world-motion-012/client{1,2}/engine-output.log and installed/
+  world-motion-012/result.json, validation.json, world-difference.json
+  world-motion-012/nav-row-integrity.json, raw-log-hashes.json
+  world-motion-012/selected-causality-summary.json, selected-compact-summary.json
+  world-motion-012/queue-trace-analysis.json, snapshot-92efa/
+  world-motion-artifact-audit-012.json, world-motion-cleanup-012.json
+  world-motion-{source,build,overlay}-012/ and proposed-launch-012.json
+
+Original logs and frozen inputs remain unchanged and uncommitted. The next
+CreatePosition work is a separately reviewed source-only design for observing
+already evaluated native inputs. The new outside-watch ship and prior dynamic
+wait causes remain separate. This report authorizes no further game or change.

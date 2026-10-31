@@ -60,3 +60,26 @@ class DistributionTests(unittest.TestCase):
     with self.assertRaises(RuntimeError):setup.uninstall()
     self.assertTrue(marker.exists());marker.write_text('fixture');setup.uninstall()
     self.assertFalse(marker.parent.exists());self.assertEqual(original.read_bytes(),b'original');self.assertEqual(original.stat().st_mtime_ns,before)
+
+ def test_linux_client_package_installs_and_starts_its_own_profile(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);home=root/'home';config_home=root/'xdg';package=root/'package';package.mkdir()
+   game=home/'.local/share/Steam/steamapps/common/X4 Foundations';game.mkdir(parents=True)
+   (game/'X4').write_bytes(b'\x7fELFfake');(game/'version.dat').write_text('900')
+   (game.parent.parent/'appmanifest_392160.acf').write_text('"installdir" "X4 Foundations"\n"buildid" "23660954"')
+   source=package/'extension/x4_lan_lab';source.mkdir(parents=True);(source/'content.xml').write_text('fixture')
+   meta={'package_id':'client','steam_build':'23660954','platform':'Linux','role':'guest2','dedicated':True,'test_profile':'45842'}
+   (package/'package.json').write_text(json.dumps(meta))
+   with patch.object(setup,'ROOT',package),patch.object(Path,'home',return_value=home),patch.dict(setup.os.environ,{'XDG_CONFIG_HOME':str(config_home)}),patch.object(setup,'ensure_closed'),patch.object(setup.shutil,'which',return_value='/mock/steam'):
+    setup.install(SimpleNamespace(game=str(game),steam_kind='native'))
+    state=json.loads((package/'installation.json').read_text())
+    self.assertEqual(state['profile'],str(config_home/'EgoSoft/X4/45842'));self.assertEqual(state['steam'],['steam'])
+    self.assertFalse((config_home/'EgoSoft/X4/45841').exists())
+    with patch.object(setup.subprocess,'run') as run:
+     setup.start()
+    argv=run.call_args.args[0];self.assertEqual(argv[argv.index('-personalfolderid')+1],'45842')
+    self.assertEqual(setup.GAME_ARGS[setup.GAME_ARGS.index('-personalfolderid')+1],'45841')
+    setup.uninstall()
+    (package/'installation.json').unlink();meta['test_profile']='70000001';(package/'package.json').write_text(json.dumps(meta))
+    with self.assertRaisesRegex(RuntimeError,'Unsupported isolated test profile'):setup.install(SimpleNamespace(game=str(game),steam_kind='native'))
+    self.assertFalse((game/'extensions/x4_lan_lab').exists())

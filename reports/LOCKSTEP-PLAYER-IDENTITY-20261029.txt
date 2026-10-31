@@ -1,0 +1,312 @@
+LOCKSTEP PLAYER IDENTITY: N PLAYERS, PLAYER FACTIONS OR COOP - 29 OCTOBER 2026
+Offline design and tests (LuaJIT/Python, synthetic clients, mocked engine); MD
+validated against the game schema. Live scripted results: section 6b.
+
+GOAL
+N players (2..4 with piloting) each fly their own ship in one lockstep session,
+either as different player factions (`factions`) or as one faction with
+different ships (`coop`). Everything that changes the simulation happens on
+every client at the same gated tick through MD; nothing depends on which
+machine a human sits at.
+
+FILES (tools/dev)
+native_gate_player_identity_core.lua  pure plan validation, canonical text, steps,
+                                      result check (LuaJIT-tested)
+native_gate_player_identity.lua       engine glue X4LAN_NATIVE_PLAYER_IDENTITY:
+                                      saved-ID resolution, UI events, MD results,
+                                      per-tick declared state, optional order block
+native_gate_player_identity.xml       MD X4LAN_PlayerIdentity (one cue per step)
+native_gate_player_identity.py        Python reference: validation, canonical text,
+                                      digest, steps, default plans, `compare`
+native_gate_players.py                N-player session builder (sibling of
+                                      native_gate_sandbox.py, which is unchanged)
+native_gate_probe.lua                 hook: bind after the snapshot check, frame
+                                      after the tick's fixture events (11 lines)
+native_gate_player_orders*.{lua,py}   per-slot faction list for faction ownership
+tests/test_native_gate_player_identity.py
+No native code changed.
+
+1. SESSION PLAN (config native_gate_player_identity_plan, format v1)
+  version 1, mode factions|coop, tick 2..29 (setup tick; default 20),
+  occupied player|pool (default player), reputation mirror|keep (default mirror),
+  slots[1..16]: {ship=<saved ID>} or {create={macro, seed, sector='player'|<saved
+    sector>, x, y, z (integer sector-local metres, |v| <= 1e7), yaw (integer
+    degrees)}}, plus faction:
+      coop      every slot 'player'
+      factions  slot k: 'x4lan_player<k>', or 'player' for at most one slot
+  relations (factions only): every slot pair exactly once, a < b,
+    allied 0.75 | neutral 0 | hostile -0.5 (the base mod's values). No implicit
+    library default decides whether two humans fight.
+Lua and Python refuse the same plans with the same reason (version, mode, tick,
+occupied, reputation, key_unknown, slots, slot_source, ship_invalid,
+ship_duplicate, macro_invalid, seed_invalid, sector_invalid, coordinate_invalid,
+rotation_invalid, faction_mode, faction_invalid, faction_duplicate,
+relations_mode, relation_pair, relation_invalid, relation_duplicate,
+relation_missing). Canonical text
+  PIDENT_PLAN_1|mode=..|tick=..|occupied=..|reputation=..|slots=k:ship:<id>:<faction>
+  or k:create:<macro>/<seed>/<sector>/<x>,<y>,<z>/<yaw>:<faction>,...|relations=a-b:<name>,...
+and its SHA-256 (the plan digest) are identical in Lua and Python.
+
+Occupied ship (factions mode). The singleton `player` entity sits in slot 1's
+ship (00000000000ae79c) on every client. Default: that slot keeps the vanilla
+`player` faction (the builder derives this from --occupied-ship), so slot 1 =
+player, slots 2..N = x4lan_player2..N. --occupied pool moves the occupied ship to
+x4lan_player1 as an experiment (set_owner WITHOUT overridenpc, so the player
+entity's own owner is never touched; the engine's reaction to a human sitting in
+a non-player ship is unobserved). MD refuses a pool owner for the occupied ship
+unless the plan says pool (refused_occupied_ship).
+
+2. SETUP (every client, identical)
+Tick T (setup tick): the glue resolves the saved slot ships (and saved create
+sectors) with one scan over every faction's ships and every sector through
+gate.saved_identity; a missing or ambiguous ID stops the session. It raises one
+UI event X4LAN_PlayerIdentity/Step per step, in this order:
+  1 begin      MD indexes lookup.faction, requires all 16 pool factions
+  faction k    (factions mode, pool slots) set_faction_identity "Player k"/"Pk"
+               (plan names only, never a machine's player name), known, active;
+               reputation=mirror copies the player's relations to every NPC
+               faction that is not relation-locked, both directions
+  ship k       saved: operational ship check, set_owner (overridenpc except for the
+               occupied ship), readback; create: create_ship with fixed macro,
+               seed, sector and position (no safe-position search), owner with
+               overridenpc, Argon AI pilot, default Wait order, object back to Lua
+  relation a-b set_faction_relation both directions, readback within 0.001
+  end
+MD checks the ordinal (a gap, repeat or second session refuses), applies the
+step in the next gated frame and writes one line per step on every client:
+  [X4LAN] PLAYER_IDENTITY_APPLIED tick=T ordinal=n step=<s> slot=<k> <labels>
+     result=applied|unchanged|refused_<reason> <readback> time=<player.age>
+Labels are saved IDs, faction ids, relation names and the plan digest only. MD
+returns '<ordinal>|<result>|<readback>' (and the created ship's object) through
+raise_lua_event; Lua reads them only at the fixed fold tick T+10, because the
+delivery tick of Lua events is not gated. Missing rows, a refusal or a row after
+the fold tick stop the session (fail closed).
+
+Declared state (joins the per-tick digest the relay compares):
+  ticks < T          PIDENT_1:<plan digest>:pending   (differing plans fail at tick 1)
+  T                  PIDENT_1:<digest>:setup:<k/saved ID or create>
+  T < t < T+10       PIDENT_1:<digest>:applying
+  t >= T+10          PIDENT_1:<digest>:<SHA-256 of MD results>:<k/portable ID/owner
+                     faction or dead/planned faction>,...
+The portable ID of a created ship is its created ID (native_gate_created_
+identities) once the gate assigned it, else 'created<k>'. Logs: PLAYER_IDENTITY
+ARMED (plan digest), SETUP, READY (md digest), PLAYER_IDENTITY_STATE when the
+rows change and every 600 ticks.
+
+3. PILOT SLOTS AND ORDERS
+Slot k = client k = pilot slot k: the builder writes native_gate_pilot_slots from
+the plan's ships in slot order; with source 'wire' client k's records fly slot
+k's ship, with 'script' every slot follows pilot_script(slot, tick). The pilot
+manifest is fixed before loading and resolves saved IDs only, so created ships
+cannot be pilot slots yet (builder: --create needs --source none).
+Orders ownership:
+  factions  ownership 'faction': slot k may order every ship its faction owns
+            (MD compares owner with the slot's faction from the new
+            native_gate_player_orders_factions list, so slot 1 = 'player' works).
+  coop      ownership 'table', rows {slot k's ship -> k}: slot k orders only its
+            own ship. DECISION: in coop a slot may NOT order another slot's ship.
+            That ship is flown by another human; an AI order (Wait/MoveWait/
+            Attack...) would switch its flight model and take the flight away from
+            them, and two humans would edit one order queue. Shared non-slot assets
+            (fleet, stations) can be added as further owner rows; a "shared by all"
+            row value is a possible extension, not implemented.
+Orders and wire piloting share each slot's protocol-3 blob through the input
+multiplexer (reports/LOCKSTEP-INPUT-MUX-20261029.txt), so scripted orders run
+with every source (--orders demo). Human sessions block the stock order, travel
+and SETA menu entries locally (the probe's native_gate_pilot_block_orders, as in
+the sandbox), because a stock UI order would exist on one client only; the
+identity glue's own native_gate_player_identity_block_orders remains for
+identity-only sessions. Orders UI capture is refused together with either
+block (both wrap the same menu entries).
+Demo orders: slot 2 orders its own ship to Attack its battle counterpart
+(applied); slot 3 orders slot 2's ship and slot 1 slot 3's ship (2 players:
+slot 2's) the same way (refused_not_owner). An Attack order keeps the
+Steering model a pilot slot needs; the first demo's Wait (hold) would have
+removed it from slot 2 at tick 43.
+
+4. WHAT STAYS PER-PLAYER IN X4 (AND WHAT IT BREAKS)
+X4 has one `player`: one entity, one occupied ship, one wallet, one reputation
+set, one HUD/target. In lockstep that singleton is IDENTICAL on every client
+(same save, same simulation), so it does not desync by itself; it simply belongs
+to slot 1. What differs per machine is UI/input state, and what is missing is a
+per-slot notion of "the player" for slots 2..N.
+
+ State                          factions mode               coop mode
+ player entity / occupied ship  slot 1 only; MD/AI player-  same
+   (player.ship, .occupiedship)   centric logic (encounters,
+                                  mission offers, docking at
+                                  the player, ambient spawns)
+                                  centres on slot 1 for all
+ camera / attention             identical in variant 1 (all clients in slot 1's
+                                cockpit). Variant 2 (--camera-follow) differs per
+                                client: needs native_gate_view_points (builder
+                                refuses without it); remaining camera reads are
+                                the open attention class -> DESYNC risk
+ local input, menus, map,       local per client; native controls parked; order
+   interact menu, soft target   menus blocked (wire) or captured (orders); soft
+                                target changes raise event_player_changed_target
+                                on one client only -> DESYNC risk (documented;
+                                PILOT_CAPTURE rows carry each client's target)
+ money                          one player account (slot 1);  shared wallet (by
+                                pool faction accounts unused  design)
+                                (no UI, no economy manager);
+                                buy/sell orders of slots 2..N
+                                pay from their own (empty)
+                                faction account: deterministic
+                                refusal/failure, not a desync
+ reputation                     slot 1: player's; slots 2..N: shared (one set)
+                                mirrored once at setup, then
+                                diverge by their own kills
+                                (deterministic). Notoriety UI
+                                shows only `player`
+ "player owned" checks          slots 2..N ships are NOT     all slot ships are
+   (isplayerowned, faction.     player-owned: no stock UI    player-owned: stock UI
+   player compares, MD finds    orders, no player            offers orders on every
+   by owner)                    notifications/logbook, NPC   client (blocked/captured
+                                police/pirate logic treats   as above); property
+                                them as an unknown faction   lists, logbook and
+                                (deterministic, but not      notifications include
+                                "player-like")               them on every client
+ HUD colours / names            pool colour, "Player k"      own colour for all
+ boost/travel/fire/assist       only the parked singleton has native player
+                                boost/travel/fire; records carry them, not applied
+ base mod player_factions       asynchronous, machine-dependent ownership: refused
+                                by the glue (player_factions = true stops it)
+Implemented cheap mitigations: plan names instead of local player names; one
+gated MD setup for every ownership/relation change; reputation mirror at setup;
+occupied ship kept `player` by default and never re-owned with overridenpc;
+per-tick owner rows in the declared digest (any client-local ownership change is
+a relay DESYNC at once); explicit relation matrix; stock order menus blocked in
+human sessions; coop own-ship-only orders; refusal of the asynchronous
+player_factions feature. Documented, not mitigated: soft target and other
+UI-driven MD events, per-client cameras without the viewpoint fix, player-centric
+MD for slots 2..N, pool faction economy, native boost/travel/fire for slots 2..N.
+
+5. BUILDER (tools/dev/native_gate_players.py)
+Takes a protocol-3 full-stack base overlay (the sandbox base checks apply), a
+probe with the identity hook (--probe tools/dev/native_gate_probe.lua; refused
+otherwise), and writes the identity block, optional orders block, pilot block and
+the sandbox stack lines (render RNG split, bullet/nav cadence, actor/weapon diag,
+view_points='players', actor_rng_all, world stride, trace stride; engaged battle
+by default). Adds the input multiplexer and adapter Lua files before the probe
+in ui.xml.files, the MD files, player-identity-plan.json and a fresh manifest;
+refuses a base that already has a player orders block. Rebuilding from a players overlay replaces its block. Options:
+--players 2..4, --mode factions|coop, --source wire|script|none, --ships,
+--create (source none), --relations, --relation A-B=NAME, --occupied,
+--occupied-ship, --reputation, --setup-tick, --orders demo|none, --devices,
+--pads, --invert, --delay, --window, --camera-follow, --world-stride,
+--trace-stride, --battle, --capture-log/--no-capture-log, --no-block-orders,
+--full-logs. `plan` prints the plan, digest and expected lines; `compare` checks
+client logs (identity lines identical, all applied/unchanged, exactly the
+planned steps, one equal READY digest; with the orders demo the expected
+PLAYER_ORDER_APPLIED lines).
+Default ships (snapshot capture 005, read-only check): all in zone tempzone of
+cluster_14_sector001 (Argon Prime, sector [0x729]); 00000000000ae79c player scout
+at zone offset 0/36000/0 (the player sits in its cockpit); fixture actors 3/4/5
+0000000000176ad5/176b36/176b97, Argon S fighters at -394.8/36000/700, 800, 900,
+order Wait in the save. --battle engage (default since the live runs) gives them
+their scripted Attack orders: a waiting fixture has no Steering solver and
+cannot be flown (pf3/pc3 with calm: s2/s3 applied 0, no_solver). Created ships use sector-local coordinates: the fixture area is at
+y = 100000 (the Spawn cue's 100 km), e.g. --create 3=ship_arg_s_fighter_01_a_macro@0,100000,-600.
+
+6. LIVE TESTS FOR THE COORDINATOR (not run here)
+Base: the current protocol-3 full stack, e.g. .local/census/overlay-SandboxBase
+(or a newer one; view_points/actor_rng_all are kept). DLL: any current gate build
+(no native change on this branch). Probe: this branch's (or the merged) probe.
+(a) 3 clients, scripted, factions:
+  python tools/dev/native_gate_players.py overlay --base .local/census/overlay-SandboxBase \
+    --gate-dll .local/sandbox/x4lan_gate_64.dll --probe tools/dev/native_gate_probe.lua \
+    --out .local/census/overlay-PF3 --players 3 --mode factions --source script
+  .local/census/runN.sh pf3 .local/census/overlay-PF3 b1,b2,b3 602 3
+(b) 3 clients, scripted, coop: as (a) with --mode coop --out .local/census/overlay-PC3,
+  .local/census/runN.sh pc3 .local/census/overlay-PC3 b1,b2,b3 602 3
+(c) 2 humans (client 1 keyboard/mouse, client 2 XInput pad 0), factions, neutral:
+  python tools/dev/native_gate_players.py overlay --base .local/census/overlay-SandboxBase \
+    --gate-dll .local/sandbox/x4lan_gate_64.dll --probe tools/dev/native_gate_probe.lua \
+    --out .local/census/overlay-PH2 --players 2 --mode factions [--relations hostile]
+  .local/census/runSandbox.sh ph2 .local/census/overlay-PH2 b1,b2 18002 2
+  (coop: --mode coop; controls as in docs/LOCKSTEP-SANDBOX.txt.)
+Check each run: python tools/dev/native_gate_players.py compare <c1.log> <c2.log>
+[<c3.log>] with the same --players/--mode/--source options (the builder prints it).
+Expected on every client of (a), plan digest f11fb45db630facb...854544:
+  PLAYER_IDENTITY ARMED slot=p<k> mode=factions slots=3 tick=20 steps=10
+    occupied=player reputation=mirror plan=f11fb45d...
+  PLAYER_IDENTITY SETUP tick=20 steps=10 slots=1/00000000000ae79c,
+    2/0000000000176ad5,3/0000000000176b36
+  PLAYER_IDENTITY_APPLIED tick=20 ordinal=1 step=begin ... result=applied pool=16 ...
+    ordinal=2,3 step=faction slot=2,3 faction=x4lan_player2,3 mirror=1 result=applied
+    ordinal=4 step=ship slot=1 ship=00000000000ae79c ... faction=player result=unchanged
+    ordinal=5,6 step=ship slot=2,3 ... result=applied owner=x4lan_player2,3
+    ordinal=7..9 step=relation pair=1-2,1-3,2-3 ... relation=neutral value=0
+      result=applied ab=0 ba=0
+    ordinal=10 step=end slot=0 steps=10 result=applied
+  PLAYER_IDENTITY READY tick=30 steps=10 md=<equal on all clients>
+  PLAYER_IDENTITY_STATE tick=30 1/00000000000ae79c/player/player,
+    2/0000000000176ad5/x4lan_player2/x4lan_player2,3/0000000000176b36/x4lan_player3/x4lan_player3
+  PLAYER_ORDERS ARMED ... ownership=faction ...
+  PLAYER_ORDER_APPLIED tick=43 slot=1 op=attack subject=0000000000176b36
+    target=0000000000176cb3 ... result=refused_not_owner
+  PLAYER_ORDER_APPLIED tick=43 slot=2 op=attack subject=0000000000176ad5
+    target=0000000000176c95 ... result=applied
+  PLAYER_ORDER_APPLIED tick=43 slot=3 op=attack subject=0000000000176ad5
+    target=0000000000176c95 ... result=refused_not_owner
+  PILOT_INPUTS ... s1..s3 driving=1 with growing applied counts from tick 30
+  (rebuild from this branch: the overlays of the first live runs were calm)
+(b) plan af0462beaa1c2f80...cb22c65: steps=5 (begin, ship 1 unchanged, ships 2/3
+  applied owner=player, end), STATE rows .../player/player for all three, the same
+  three order lines (slots 1 and 3 refused by the agreed table, without time=).
+(c) plan b8acf86af5921f61...9a0a7d8210: steps=6 (begin, faction 2, ship 1
+  unchanged, ship 2 applied, relation 1-2, end); PILOT_ORDERS_BLOCKED
+  menu=InteractMenu/MapMenu once the menus exist. Add --orders demo to run the
+  scripted orders next to the human pilots (input multiplexer).
+Pass: relay verdict pass (identity rows are in every tick's digest), `compare`
+PASS, census 0 differing objects, STOP reason=1 restored=1. What to look at
+natively: whether a fixture under x4lan_player<k>/player keeps its Wait order and
+Steering (s<k> applied counts), how the HUD shows pool factions, any MD error
+lines around tick 21 (faction activation is observed by vanilla diplomacy/setup
+cues), and the readback values printed in the APPLIED lines (MD boolean/number
+formatting was not observed offline).
+
+6b. LIVE RESULTS (coordinator runs, 29 October 2026, 3 native Windows clients,
+snapshot 005, script source, 602 ticks; logs in the coordinator's .local/census)
+pf3 (factions): all clients STOP reason=1 restored=1; 10 identical
+PLAYER_IDENTITY_APPLIED lines (faction steps: known=1 active=1 mirrored=6
+xenon=-1 argon=0; ship 1 unchanged occupied=1; ships 2/3 applied owner=
+x4lan_player2/3; relations ab=0 ba=0), READY tick=30 md=5659c38a... on all three,
+STATE rows player/x4lan_player2/x4lan_player3 at 30 and 600; orders at tick 43:
+slot 1 refused_not_owner, slot 2 applied, slot 3 refused_not_owner (MD, identical).
+Relay: one DESYNC at tick 600 = the world census capture there (client 3: 6
+objects around zone 8fc, a class already seen in tour-T7; the identity rows
+matched). pc3 (coop): STOP reason=1 on all clients, 5 identical steps, READY
+md=4ea043ae..., all slot ships player-owned, the same three order results (slots
+1/3 refused by the agreed table in Lua, slot 2 applied by MD); no relay DESYNC.
+`native_gate_players.py compare` PASSes both (identity and orders) after two fixes:
+- the adapters bind at UI load, before the base mod's X4LAN_SHA256 exists, so
+  ARMED/begin logged the raw canonical plan instead of its SHA-256 (the cause of
+  the first "steps differ from the plan"): the digest and the steps are now fixed
+  at the first gated tick (bind logs PLAYER_IDENTITY BOUND; ARMED follows at tick
+  1), and compare maps a logged raw plan to its digest, so pf3/pc3 logs compare;
+- Lua logs table refusals at decision time and MD logs applied orders a frame
+  later: compare checks the demo orders in (tick, slot) order.
+Not shown by these runs: flight of slots 2/3. PILOT_INPUTS at tick 600 reads
+s1 driving=1 applied=1713 but s2/s3 driving=0 (no_solver=1142): the builder's
+old calm default left the fixtures in Wait without a Steering solver (the
+coordinator found the same in sandbox-play1). The builder now defaults to
+--battle engage and the demo order to Attack; pf3/pc3 should be repeated.
+
+7. KNOWN LIMITS / UNVERIFIED
+- No native run. MD semantics assumed from the schema and the base mod's native
+  player-factions run: set_faction_relation sets the value (readback enforced),
+  create_ship accepts the float seed Lua passes, set_owner with overridenpc
+  re-owns the fixture's Argon pilot.
+- Created slot ships cannot be piloted (saved-ID manifest, fixed before load)
+  and are unmapped in the orders index (needs a created-ID resolver there).
+- Orders and wire piloting share the blob since the input multiplexer; orders UI
+  capture is still refused next to the pilot/identity order blocks.
+- --occupied pool is an experiment; the default keeps slot 1 = `player`.
+- At most 4 piloted slots (pilot module); plans allow 16 slots.
+- Pool factions get identity/known/active at setup; vanilla cues react to the
+  activation identically on every client (RegisterActiveFactions, diplomacy).
+- The live runs above are scripted (no humans); the 2-human session is pending.
+- A UI reload during a session resets the Lua inbox: the fold check stops it.
+- Everything in section 4 marked as a DESYNC risk.

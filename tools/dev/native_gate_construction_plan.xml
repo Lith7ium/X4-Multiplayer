@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One stock structural base: an actual short build, not instant completion. -->
+<diff><add sel="/plans"><plan id="x4lan_native_construction_base">
+ <entry index="1" macro="struct_arg_base_02_macro"><offset><position x="0" y="0" z="0"/></offset></entry>
+</plan></add></diff>

@@ -1,0 +1,413 @@
+LINUX-VS-LINUX DETERMINISM: RANKED PORT PLAN
+30 October 2026 | From census vps-linux-3 (two native Linux X4 9.00, 600 ticks, stock, no fixes)
+
+WHAT THE CENSUS SHOWS
+Two clients, 521,929 saved objects, 11 captures. 9,851 objects differ at some capture,
+9,395 at tick 600. Tools: census_world.py, census_compare.py (per field and class).
+
+  Newly differing per capture   tick 1: 5   60: 2,460   120: 1,855   180: 1,507   240: 739
+                                300: 694    360: 736    420: 612     480: 551     540: 352   600: 340
+
+  Kind of difference at tick 600                 objects   share
+  timing only, refresh stamp only                  2,659     28%
+  motion with a differing refresh stamp            5,043     54%
+  motion without a differing refresh stamp         1,226     13%
+  health (no motion, no topology change)             422      4%
+  topology (destroyed on one client and fallout)      42    0.4%
+  timing only, other fields                            3
+
+  Timing fields at tick 600: nav.refresh_time 7,892, nav.refresh_relation 4,383, bankN.pending
+  ~270 each, everything else under 10.
+  Attention of the objects with differing motion: level 2 6,372, level 6 64. Every differing
+  refresh stamp is at level 2. These are low attention ships, the case Windows finding 1 describes.
+  Health at tick 600: 357 of the 441 objects with differing health are in sector 0x7a5
+  (cluster_32_sector001), the same size as the hazard region group of Windows finding 15.
+  Classes in order: ShipSmall 5,489, ShipMedium 2,708, ShipLarge 713, ShipExtraLarge 243,
+  Weapon 187, ShieldGenerator 27, all others under 10 each.
+  Tick 1: 5 objects: 2 nav.parameters_due on fixture ships, 3 health in sector 0x8e9. RNG state
+  differs from tick 1 in every run so far.
+
+RANKING
+Counts are this census. "Windows" is what the same fix did there, from
+LOCKSTEP-CENSUS-20261028.txt; it is a guide, not a Linux measurement. Sites are from
+LOCKSTEP-LINUX-MAP-20261029.tsv (total / mapped), and mapped sites still need checking by hand.
+
+1. Serial pathing and path determinism (boot option 1; native_gate_path_determinism = 3)
+   Evidence: 7,892 objects differ in the refresh stamp, 84% of all differing objects. 2,659
+   differ in nothing else and should go at once. The 5,043 that also differ in motion are the
+   next test: the 1 ms QPC budget (bit 2) changes pathing on wall-clock time.
+   Windows: tick 60 from ~1,750-2,000 to ~300-370.
+   Sites: 9 / 4, plus the release site (0x12125e3 -> 0x1a23be0, manager+0x70, known) and the
+   done semaphore. To find on Linux: SyncThreadGameTime, the budget store, the batch vectors.
+   Reuses: the walk, sort and stamp hash of lockstep_path_determinism.h.
+
+2. Hazard region damage (native_gate_region_rng = 'key')
+   Evidence: 357 objects, 81% of the health difference, one sector.
+   Windows: the group is gone (140 passes joined, no mismatch).
+   Sites: 5 / 1. It is a vtable slot swap of U::Region::Move, and the class table already gives
+   the Linux Region vtable; the slot and the damage field walk are to find.
+
+3. Load-time draws: boot hold, AI wait restores, MD resume delays
+   (native_gate_boot_hold, native_gate_ai_wait_rng, native_gate_md_resume_rng)
+   Evidence: the RNG state differs from tick 1 and 5 objects at tick 1. The frame seed (option 2,
+   in bundle 7) only keys the MoveWorker word per frame. Windows re-rolls 18,943 waits and 263
+   cue delays on load, from a stream that differs between clients.
+   Windows: scripts identical at tick 0; with MD resume 25-34 objects at tick 10.
+   Sites: boot hold 6 / 2, AI wait 3 / 1, MD resume 6 / 3.
+   These need world identities only, not the script RNG family.
+
+4. Event order and Gravidar (native_gate_event_order, gravidar_time_sync, gravidar_load_pass,
+   gravidar_sector_order, gravidar_key_all)
+   Evidence: bankN.pending ~270 objects; the timeline keeps growing after tick 60, as on Windows.
+   Windows: tie breaks by heap address; 231 objects at tick 10 without the sector order.
+   Sites: event order 8 / 4, Gravidar 14 / 7. Heap address order is new data on glibc, so these
+   two may matter more on Linux than they did on Windows.
+
+5. Travel mode (native_gate_travel_snapshot or travel_determinism)
+   Evidence: 1,226 objects differ in motion without a differing stamp; rank 1 will show how many
+   of them remain.
+   Windows: one-sided travel events from 104/72 to 6/3 at tick 2.
+   Sites: snapshot 8 / 0, determinism 7 / 1. The determinism variant costs 15-25 ms per frame.
+
+6. Script RNG family (script_rng, ai_schedule, md_timed_rng, find_order). AI schedule went with the Gravidar;
+   the other three are written and pass offline, and have not run on the executable yet.
+   Evidence: not separable until 1-5 are in; this census has no script rows.
+   Windows: tick 60 from 309-327 to 175-252.
+   Sites: script RNG 14 / 10, AI schedule 11 / 5, find order 5 / 2, and the data pins (74 of 93
+   unresolved). The largest port, and ExecState and descriptor layouts differ on Linux. Last on
+   purpose: it comes after the cheap modules, when the census can measure it.
+
+Not ranked yet: attention, nav, ship and flight keys (actor-keyed on Windows), created
+identities (needed once ships die or spawn in numbers: topology 42), the camera and server
+modes. The census decides when they come up.
+
+HOW EACH MODULE IS PORTED
+As the world hash: the shared logic stays in one header, compiled unchanged for Windows (its
+preprocessed output must not change), with the constants, layouts and thread access per platform.
+Each module gets checks in check_lockstep_gate_linux_sites.py, a white-box test on the ELF image,
+an engine scenario where it can be emulated, then one live census.
+
+WHAT TO EXPECT, AND THE LIMIT
+Ranks 1 and 2 together target at most 8,249 of the 9,395 objects (88%): every stamp difference plus
+the hazard group, counting any object in both twice. How many of those are symptoms rather than
+causes is only known after a run, so the number to read after rank 1 is the motion count, not the
+stamp count. Fixture ships and battles
+may show differences later that this no-war census cannot.
+
+RESULTS SO FAR
+Each row is one live census: two Linux clients on one host, 600 ticks, all earlier rows included.
+Objects differing, motion / timing / health / topology where the run reported them.
+
+  Added                          tick 60          tick 600                 total at 600   frame p50/p90 ms
+  portable math, frame seed      -                5,102 / 7,360 / 113 / 45     9,332        23 / 30
+  1 serial pathing, stamps       348 / 55 / 8     2,529 / 276 / 442 / 45       2,915        41 / 59
+  2 hazard regions               343 / 65 / 10    2,691 / 395 / 91 / 46        2,811        88 / 97
+    guarded reads, AI waits      287 / 80 / 10    2,735 / 528 / 90 / 39        2,848        39 / 46
+  3 MD delays, boot hold         173 / 8 / 10     2,330 / 81 / 91 / 25         2,440        39 / 52
+  4a event order                 202 / 49 / 8     2,347 / 287 / 84 / 39        2,447        -
+  4b the Gravidar                90 / 11 / 7      -                            2,274        40 / 49
+  5 travel snapshot, deadlines   41 / 5 / 5       -                            2,143        47 / 59
+  runtime IDs, set mode          92 / 2 / 5       2,206 / 145 / 96 / 49        2,313        -
+  the caller table, two runs     83 / 9 / 7       2,228 / 223 / 96 / 40        2,307        -
+                                 38 / 5 / 5       2,053 / 170 / 92 / 59        2,146        -
+
+Then the script RNG. Objects differing at tick 600, one run per row unless noted:
+  script RNG observed only (run 18)                           1,968
+  script RNG keys (runs 19, 20)                               2, timing only
+  Gravidar sort, spawn RNG (run 21)                           2, timing only
+  created identities, their rows in the census (run 22)       1, timing only
+  nav deadlines (run 24)                                      9, timing only; 0 of any kind at ticks 1 and 60
+
+Reading it. Rank 1 removed the stamps and half the motion. Rank 2 removed the hazard group as predicted.
+The 88 ms was not the module but process_vm_readv plus getpid per guarded read, about 106 us per
+Region::Move: a read is now a plain copy with its fault recovered by a handler, and the frame came
+back to 39 ms. AI waits keyed 18,943 of 18,943 and MD delays 263 of 263, the Windows counts, and their rows are
+equal on both clients. Those load-time draws took tick 60 from 343 to 173, but tick 600 only from about
+2,700 to 2,330: later causes still dominate. Event order alone made timing worse, because it reorders
+delivery while the set of due events still differs: entries first differ at tick 1, by one event.
+
+The tick 1 objects are still five: one shield group (Kha'ak fighter 0x9fb5d and its two lasers, under a
+low-attention attack in the save, the amount set in the first AIDirector::Move) and two nav.parameters_due on
+fixture ships. Both read a random word that already differs in tick 1, by the end-of-frame word.
+
+From the Gravidar on, the differences between runs are as large as those between rows: tick 60 ranges from 38
+to 92 with the same modules, so a single run does not rank a module.
+
+The live tests are the only proof of these modules on the executable; offline they run against stand-ins
+and the executable's bytes.
+
+RUNTIME IDS
+All 521,929 saved objects have the same runtime ID on both Linux clients and on Windows (the same map sum).
+Objects made later do not: without recycling, an allocation on one client only moves every later ID for good.
+next= differs from tick 1, by 3 to 5, on Windows with the same keys too (2 to 3), so it is not a Linux effect;
+the full Windows stack has it equal, and which module does that is not known. The one load row of the caller
+table that differs is the constructor every U::Positional goes through. From about tick 60 the rows that differ
+are simulation objects where they are named: engines, turrets, shields, cargo and docking bays, MD cues, AI
+contexts. No view class shows among the large rows, so the local ID lists are not the next step.
+
+LONG RUNS
+6000 ticks, one run each, so neither ranks the modules between them.
+  run 20L   non-timing 0 through capture 2340, 7 at 2400, 4,309 at 6000.
+  run 22L   created rows in the census. First at capture 1620 (ship 0x907c7), 598 at 3960, 1,022 at 4320,
+            2,023 at 4560, 4,943 at 6000 (topology 267, health 395, motion 4,860; timing 439 counted apart).
+  run 24L   nav deadlines too. First at capture 4140 (5 ships), 160 at 4320, 599 at 4440, 1,284 at 4560, 4,394 at
+            6000 (topology 113, health 210, motion 4,321; timing 280 counted apart).
+In run 22L script entries are equal on every tick before 1616. At tick 1616 client 2 alone has one more due event
+(12 against 13), and with it script entries 35 against 41, draws 57 against 181, find calls 0 against 38 and one more
+created component. The event is not named: event rows stopped at tick 120. They now reach 20000 ticks on Linux.
+Event counts part earlier, by one event at tick 188. Runs 22, 22L and 24 show the same two order hashes there, on
+either client, and run 24L has none of it, so each client seems to take one of two values per run, not tied to the
+slot. It is not the fixture ships' refresh: run 24 has it with their deadlines equal. By tick 1616 of run 22L client 2
+has run 26 more events, and none reached a script.
+In run 24L event order parts at tick 3601 and counts at 3602 (30 against 31). The first motion difference (capture
+4140) comes before script entries part (tick 4181), so there the first census difference is not a one-sided script.
+
+THE NATURAL WORD
+It is seeded every frame, so a difference lasts one tick. It differs on scattered ticks on both platforms:
+  Linux     131 of 600 (run 22), 2,674 of 6000 (22L), 174 of 600 (24), 2,823 of 6000 (24L), first at ticks 32, 40,
+            47 and 46.
+  Windows   147 and 97 of 600 (win-sub2-b, c), 6 of 60 (win-sub3), first at ticks 42, 41 and 46.
+The census stays at 0 outside timing through tick 600 on both anyway. Runs 19 to 21 suggested the fixture ships' load
+deadlines keep the word apart. Run 24 refutes that: the deadlines agree and the word still parts, and the ships agree
+through tick 180 while the word is already apart. The refreshed deadlines then differ (9 ships at tick 600), most
+likely by drawing from the word; that was not traced draw by draw.
+Who draws it, from Windows' frame draw watch (win-sub4: WinSub2 with native_gate_draw_watch_frame, 300 ticks, rows only;
+the watch changes thread timing, so its census does not count): on every one of the 62 ticks where the word differs,
+one client has a draw the other has not, and only two call chains are ever one-sided, of about 23,000 draws:
+  U::NavigationController::vfunc33 0xea77f0 (draw at 0xea7982, from U::Positional::Move)   25 of 25, first tick 34
+  PeriodicAttentionRefresh 0x6d1ff0 (draw at 0x6d206d, from U::Object::Move)              49 of 113, first tick 47
+Both are known on Windows: lockstep_attention.h (each object's next due is left at a value from that client's loading
+frames) fixed by native_gate_attention_all with attention_rng or initial_refresh, and the nav refresh draws keyed by
+native_gate_nav_rng. win-sub4 has neither, Linux has neither ported (gate_nav.h aligns the deadlines, not the draws).
+With the nav deadlines aligned the Linux word first parts at tick 46-47 (runs 24, 24L, 25L), Windows' first attention
+draw; without them at 32-41, near Windows' first nav draw. That pairing is an inference from Windows rows and Linux
+timing. Linux twins: the attention timer 0x1465030 (x4-re pair, high), the nav refresh 0x144a9e0 (hooked already).
+
+THE FIRST ONE-SIDED EVENT
+Run 25L (bundle 24 with event rows through tick 6000, every row kept): the two clients' due events are the same through
+tick 1092. At 1093 client 1 alone delivers U::SupplyWaresAddedEvent on saved station 0x1f2df, at 1094 that and two
+SupplyWaresRemovedEvents. The same follows on stations 0x1b2a0 (2855-2856) and 0x1451a (2966-2967), client 1 each
+time. 25L has no difference at tick 188. Its census parts later: 3 ships at capture 1800 (parent 0x796), 3 at 3060,
+the spread from 4140, 4,458 at 6000; script entries part only at 3043. The link from the stations to those ships is not
+shown. This is Windows' tick-187/1078 class (LOCKSTEP-CENSUS-20261028.txt: station 1f2df is its 1078 event): a station's
+wanted supply orders come from maps keyed by macro heap address, so the truncation remainder and the wanted list follow
+each process's heap. Windows' native_gate_loadout_order 'canonical' removed it (0 of 6 splits against 11 of 20 before).
+The one-event difference at tick 188 in runs 22, 22L and 24, absent in 24L and 25L, matches Windows' split at 187/188
+in about half the runs; event rows did not reach 188 in those runs, so that is an inference.
+
+LOADOUT ORDER
+The Linux twin of native_gate_loadout_order (gate_loadout_order.h, stop reason 172 as on Windows). The sites, read on the
+Linux executable, have Windows' shape: GetWantedSupplyOrders 0x1839ea0 calls the ware sort 0xb03680 at 0x183a470 and
+the deployable, unit and ammunition targets 0x17e89d0, 0x17e86d0, 0x17e8bd0 at 0x183a537, 0x183a6d7, 0x183ac7f; the
+ammunition target calls the existing-users walk 0x1def210 at 0x17e9063, which calls the pick 0x17b5f20 at 0x1defce1.
+The result maps are X4's own tree with Windows' node layout. Two differences: the ware list has an 8-byte head, and each
+rest (units in 0x1e9e3d0, deployables in 0x1df78e0) first gives the remainder to the macros that got nothing in their
+input order (data order, left native); only what is left goes round the map in address order, from 0x1e9e7b0 and
+0x1df8193, where a jmp leads to the shared rest arithmetic. Offline, test_gate_linux runs both native loops on the
+executable's bytes against the stubs: the same counts in 'observe', the id order in 'canonical'; the engine scenario
+protocol2_loadout_order gets the same map order and rest on two peers with reversed macro addresses. Not ported: the
+stock in the rows (0).
+
+ATTENTION
+The Linux twin of native_gate_attention_all (gate_attention.h). The boot option of native_gate_attention_rng or
+_initial_refresh installs the hook (stop reason 53 if it cannot, 54 on a failure, as on Windows). PeriodicAttentionRefresh
+0x1465030 keeps the next due at +0x2d8 (Windows +0x2e0), reads the thread's time at fs:-0x2728 and steps the word at
+fs:-0x2720 inline, then tail-jumps to SetAttention; its 5-byte prologue moves to a trampoline. Only 'all' is ported: each
+saved or created object's first admitted call re-evaluates at once, and every call draws from (tick, key) with the word
+restored after it. The fixture actors' own path and the diagnostic are not ported. Offline: a stand-in timer behind the
+pinned prologue gives saved objects the same dues from different loading dues and words (test_gate_linux), and so do two
+peers (protocol2_attention_all).
+
+NAV KEY
+The other drawer of win-sub4, the nav refresh NavigationController::vfunc33 (Linux 0x144a9e0), keyed on Linux only
+(native_gate_nav_key, in gate_nav.h's existing vtable hook, no new site or stop reason). In an admitted frame on the
+MoveWorker, a controller whose ship (+0x20) has a portable key runs with the thread's word seeded from (tick, key, class,
+the ship's ordinal of the call in the tick, the time's bits), its own domain, and gets the word back after it. This
+differs from Windows, which keys the same call inside actor_rng_all's ship scope, an umbrella over the whole ship Move,
+its agents on the job threads and its weapons; that umbrella is not ported, so a Windows and a Linux client would key
+this call differently. That does not matter while the platforms part at the first step. Offline: protocol2_nav_key
+gives two peers with different natural words the same refreshed deadlines.
+
+RUNS 26L TO 28L
+6000 ticks each, one run per key set, stops reason 1, failures 0 in every module.
+  26L  + loadout order     the station supply events are gone: due events equal through tick 1787 (25L: 1092).
+  27L  + attention         the natural word first parts at 838 (26L: 46), then 914, then often from about 3230;
+                           fixture timing 0 through 3120.
+  28L  + nav key           72,000 of 72,000 refresh calls keyed; the word first parts at 657, then 768, 1,748
+                           ticks in all (27L 1,786): no measurable gain over 27L. Timing 0 through 4200.
+In all three the first difference is the same: at ticks 1788-1790 the two clients make the same two tempzones in the
+opposite order (AddTempZoneEvent on sector 0x53c, then 0x594, on client 1; the reverse on client 2) and ships 0x92d05
+and 0x9404e warp into them on swapped ticks. They are the census's first two objects at capture 1800; their groups
+follow at 1860 and 1920. Non-timing stays at 21-32 objects through 4080, then grows from 4200 (40-53, 182-192 at
+4320) in all three runs; whether that follows from 1788 is not checked.
+
+TEMPZONE ORDER (ready-to-build notes, not built)
+The 1788 swap is Windows' warp/transit family (LOCKSTEP-CENSUS-20261028.txt): the pathing job threads race for the one
+pending-tempzone slot, so which ship gets the next zone, and where it is centred, depends on thread timing. Windows'
+native_gate_tempzone_order 'order' (lockstep_tempzone_order.h, stop reason 144) parks the slot at the pass release,
+records the lookups that find no zone, and after the join grants the smallest request by (sector key, position) on
+the MoveWorker. The Linux twin is on hold until the class C decision; these are its sites, read on the executable.
+  zone request      0x12981b0, Windows FUN_140785db0, in Itanium order: rdi the returned reference, rsi the sector,
+                    rdx the position, ecx create (Windows: sector, reference, position, create).
+  request sites     zone switch 0x142efa0 (Windows 0xe88160): create=1 0x142fa2e, create=0 0x142fb34;
+                    Agent_UpdatePathing 0x1444c70 (Windows 0xe8f250): create=1 0x14490be, create=0 0x1449609;
+                    the region manager's cell request 0x12eb620 (Windows 0xee7290) at 0x12ec389, 'other' on Windows.
+  pending slot      flag 0x3eb9730 (dword), zone 0x3eb96f0 (a reference), lock 0x3eb9700: X4's own mutex, lock
+                    0x1a23650, unlock 0x1a236a0. A store copies the reference with 0x1fa4030 (Windows: inline counts
+                    at +0x40/+0x44); a release is 0xa14540 on the zone +0x38 (Windows 0x96940); the slot is reset with
+                    0x1dc8de0.
+  active test       0x1cb3f40: false if the zone's byte +0x1e6 has bit 2 (Windows flags +0x1e4 bit 0x20000), else the
+                    view word at +0x11c + index * 0x80 must have 0x10000 and not 0x40000, as on Windows. The index is
+                    the thread's own: fs:-0x2620 selects 0x3e7742c or 0x3e77430. RunPass's clear uses the published
+                    index from 0x12021e0 instead; Windows' twin reads the published view for every thread, and so would
+                    the Linux one (0x12021e0).
+  RunPass's clear   inlined into 0x13e35e0 (Windows 0xeabf00): 0x13e3d78 tests the flag; 0x13e4143..0x13e41a9 locks,
+                    tests the zone with the published index, resets the slot (0x1dc8de0) and the flag (xchg 0), unlocks.
+  a third clear     0x1dba740 (Windows 0x9ec1d0) resets slot and flag unconditionally under the lock (0x1dbbcd9,
+                    0x1dbd5f5..0x1dbd620). Its callers are in the load and import code (0x1cdd4a0 = Windows 0x9ee7a0,
+                    0x118a2a0 = Windows 0x8d2b80), so it should never run during a parked pass; the twin would count it.
+New beyond the shared logic: the prologue hook with the Itanium order; lock and references through X4's functions; a
+thread class for the pathing threads between the release and join that gate_path.h already owns (Linux has no
+path_thread_class); the job context on Linux TLS (time fs:-0x2728, word fs:-0x2720); the park and grant at gate_path.h's
+release and join, next to the travel snapshot's. Tests: a synthetic slot and lock with stand-in requests from two
+threads, a two-peer engine scenario. Estimate 400-600 lines with tests.
+
+GRAVIDAR SECTOR LISTS
+The sector count of a pass differs from tick 1, by one or two, on either client: 121 against 122 (run 22), 121 against
+123 (22L), 122 against 121 (24). In 22L both clients gain a sector on the same ticks (1004, 1276, 1304), which looks
+like a list filled lazily during the load. Nothing in the census follows from it so far. The Windows subset has no
+such rows to compare.
+
+WHERE THE PLATFORMS PART
+Windows limited to the keys Linux has, against Linux, one census per tick (win-sub3 against vps-linux-23, client 1 of
+each, 60 ticks, 60 Hz; both with portable math):
+  tick 1    topology, health and motion identical on all 521,929 objects; timing differs on 2.
+  tick 2    574 ships differ, motion only: ShipSmall 382 of 6,164, ShipMedium 150 of 3,071, ShipLarge 27 of 782,
+            ShipExtraLarge 15 of 264.
+  later     832 at tick 3, 948 at 4, 828 at 6, 1,059 at 12, 2,091 at 60. The count falls at times: some ships return
+            to bit-identical. Topology and health stay 0 through tick 60.
+On the 64 watched ships the tick 2 differences are 1 ulp, on 3 ships, in velocity or small rotation entries, with
+positions identical. They move to the previous-state bank a tick later and are gone by tick 5, while others appear.
+The first position differences are at tick 12 (0x9a759 by 2 ulp, 0x9fb5d by 1 ulp). Later, win-sub2-b against
+vps-linux-20 at tick 600: 4,177 motion, 9 health, watched positions 0.00006 to 0.006 m apart.
+So the platforms part at the first simulated step, by rounding and not by logic. This fits class C of
+LOCKSTEP-CROSSPLATFORM-FP-INVENTORY-20261029.txt (compiled arithmetic, not patchable with a bounded set of hooks). The
+instruction responsible is not isolated, so that remains an inference. X4.exe's own Jolt is not excluded, and these
+runs cannot measure its share; redirecting it would still leave class C.
+
+A MIXED RUN
+Bit-equal Windows with Linux is not a question of more keys: run 23 parts at the first step. A mixed run would now
+measure how long logic holds with the rounding present, not where the platforms part. A 600-tick comparison of separate
+runs on the same keys gives most of that without one. It would also need one key set on both sides, including 30 Hz
+(a Linux twin exists in tick_hz and the path budget), the pass stride (unchecked) and gate.fast_reads (needs a stub).
+Post-load IDs differ by about 400 slots across platforms, already on ships made before tick 1, so a second agreed cut
+at the seal would not align them; it is not built, and nothing yet shows that it matters.
+
+OPTION B: REIMPLEMENTING OR REDIRECTING CLASS C
+No work started. Counts are static, from LOCKSTEP-CROSSPLATFORM-FP-INVENTORY-20261029.txt, whose simulation/other split
+is a triage aid. Only the first-part figures above were measured in a game.
+
+How many functions. These are upper bounds; the number that counts is not known yet:
+  simulation functions with FP arithmetic      Windows 3,025 (71,839 operations), Linux 2,912 (84,533)
+  of those with a high or medium twin          1,667 and 1,758; the other 1,358 and 1,154 have none yet
+  high-confidence simulation pairs             1,377; 389 have equal operation counts, which does not prove equal bits
+  proven constant-reciprocal rewrites          438 sites in 220 functions, 140 of them simulation
+Measured: 574 of 10,281 ships differ after the first step, and only ships through tick 60.
+
+How to bound it:
+  1. Only functions that run. The static count includes everything the snapshot never reaches.
+  2. Only functions whose result reaches synchronised state, with the tick-by-tick census as the stopping test.
+  3. Possibly one side. Linux is strict IEEE, so Windows functions compiled strictly in Linux's expression order should
+     give Linux's bits with Linux stock. Inference; it is proven only for Jolt, where X4's own Linux Jolt already matches
+     our deterministic build. Windows-only work also means one class layout per function.
+What does not shrink: a redirect works at function entry, so an inlined expression pulls in its enclosing function, and
+394 simulation pairs differ in vectorisation. Every redirect is pinned to one build and must be rechecked on each game
+update. All code must be our own. Jolt W1-W5 is this same work for one library, and Recast/Detour would need it too.
+Inventory classes M, A, E, D and O are separate and still required.
+
+Evidence to gather first, in this order:
+  E1. Coverage: which of the 3,025 and 2,912 functions run in 600 ticks, by one-shot entry marks on each platform.
+      This replaces the upper bound with a real count and shows how many have no twin.
+  E2. First difference: for the ships that differ at tick 2 (0x7dcd0, 0x7dd7c, 0x7ddb8), inputs and outputs of the
+      functions on their motion path, on both platforms, for one tick. Equal inputs with different outputs name a site.
+      Repeated on a sample of ships, this shows whether the 1 ulp comes from a few functions or many.
+  E3. Classify the E1 set: paired or not, equal or different profile, mechanical rewrite or real reimplementation.
+  E4. Jolt's share: whether those ships have bodies in the Jolt step, from Windows' existing physics trace.
+E1 and E2 each need a small diagnostic build; E3 is offline; E4 is one Windows run. A later pilot of one or a few
+functions would be measured the way run 23 was: the count at tick 2, and the tick of the first position difference.
+
+Results so far (approved as measurement only, no port):
+  E4. Jolt's share at the first part: none in this fixture. W1 (win-sub3's keys + physics trace, 5 ticks): the one
+      active scene steps 37 bodies, all keyed, and their state hashes are the same before and after every step (ticks
+      1-5); the second scene is empty. The watched ships are at attention 2 and have no body. Ships near a camera do
+      get bodies, so this is "not the cause here", not "never".
+  E2. W1's motion watch: the three ships are formation members on U::Path::LinearFlightControlModel (vtable 0x2c4f610)
+      following leader 0x7dc82, no path points, no target. The step trace (native_gate_step_trace, fa068106 and
+      60de87b6) hooks that model's step through its vtable entry (Windows 0xeb27c0 in 0x2c4f680, Linux 0x13ed050 in
+      0x3b62558) and records arguments, the model's 0x200 bytes and the agent's 0x540 bytes before and after the call.
+      W2 (w2c) and L2b (vps-linux-L2b), ticks 1-3: each of the four ships steps once in ticks 2 and 3 on both
+      platforms, 40,066 Linear steps per client in all, the same count on both; the two clients of each platform
+      record the same values. Model fields sit 0x10 lower on Linux; the agent's three flight parameter slots
+      (+0, +0x1a0, +0x340) have the same layout on both.
+      - The leader 0x7dc82, tick 2: vector, dt, time, the whole model and the whole agent equal across platforms; after
+        the call two model fields differ by 1 ulp (Windows +0xe8 = Linux +0xd8: 12585.52; +0x120 = +0x110: 0.9794075).
+        Equal inputs, different outputs: the Linear step itself computes differently. Both platforms ran portable
+        math, exact reciprocals, the fixed FP environment and the decimal parser, so this is class C.
+      - The followers 0x7dcd0 and 0x7ddb8, tick 2: the model is equal on entry, but four agent parameters already differ
+        by 1 ulp in every slot copy (+0x0 263.9727, +0x4 403.0438, +0x8/+0xc 62.3196, +0x11c/+0x120 1583.836).
+        They are computed outside the step, before tick 2: the flight parameter refresh (Windows 0xea1e80 per
+        lockstep_motion_watch.h, Linux twin not located) or the load. A second function with class C.
+      - 0x7dd7c, tick 2: the step's output is equal on both platforms; its census difference at tick 2 (rotation)
+        comes from code after the step. Its one differing agent word (+0x5c) also differs between the two Windows
+        clients, so it is not an input (uninitialised or padding).
+      So the first step already involves at least two functions with class C arithmetic, on the most common ship
+      motion (formations at low attention). The instruction inside the step is not isolated: the two fields are not
+      written through the model pointer directly.
+  E1. Coverage (native_gate_coverage, 7074d5d3): an int3 on each listed entry from tick 1, put back at its first run.
+      The lists are the inventory's simulation functions with FP arithmetic, entries only (fp_inventory.py
+      --coverage-lists): Windows 2,776 (the 3,025 less 249 gap pieces), Linux 2,912. W3 (Windows, boot keys only) and
+      L3 (Linux, portable math and seed only), 600 ticks of the snapshot, failures 0 everywhere:
+        Windows  876 ran on either client (858 on both; 869 and 865), 7 entries skipped as other hooks'
+        Linux    766 ran on either client (754 on both; 756 and 764)
+      About 30% of the static list runs in these 600 ticks. Both Linear steps are among them.
+  E3. The Windows functions that ran (offline, from the inventory's pairs and profiles):
+        467  have a twin that also ran on Linux (340 high, 127 medium confidence)
+              320 of them with a different FP operation profile, 147 with the same counts (not proof of equal bits)
+         71  have a twin that did not run on Linux in L3 (a wrong pair or another path)
+        338  have no twin yet
+      Sizes: 141 under 256 bytes, 368 under 1 KB, 287 under 4 KB, 80 of 4 KB or more (largest 126 KB); 1.6 MB of
+      machine code in all (Linux: 1.9 MB over its 766). 41 of them hold proven constant-reciprocal rewrites (105 sites).
+
+ESTIMATE FOR OPTION B (bit-identical simulation on both platforms by our own code)
+Count: about 870 Windows / 770 Linux functions run in this fixture's first 600 ticks. That is a lower bound for play:
+other activity (combat, docking, trade, building, other sectors) runs more of the 2,776 / 2,912.
+What could shrink it, not measured: functions whose results never reach synchronised state; functions that already
+give equal bits (the 147 with equal profiles are the candidates); doing one side only (Windows reimplemented in
+Linux's strict expression order), which is proven only for Jolt.
+Work, as engineering hours for reading both binaries, writing our own strict-IEEE version, pairing the 338 without a
+twin, and verifying each against both executables with the tick census: about 0.5 h per function under 256 bytes,
+1 h under 1 KB, 3 h under 4 KB and 10 h above, so roughly 2,000 hours for the 876 that ran. Uncertainty: a factor of
+three either way. Lower if most turn out not to matter or to agree already; higher with the functions other play runs,
+with game updates (every redirect is pinned to one build and has to be redone) and with Jolt and Recast/Detour, which
+the same work includes. The tick census gives a stopping test at every step, so it can be done in measured slices,
+starting with the motion path that parts first (the Linear step and the flight parameter refresh).
+
+OPTION B SLICE 1: THE FLIGHT PARAMETER REFRESH (shadow, 30 October 2026)
+native_gate_fp_redirect = 'shadow' (lockstep_fp_redirect.h; Windows lockstep_fp_redirect_win.h, Linux
+linux/gate_fp_redirect.h): the native refresh (Windows 0xea1e80, Linux 0x14378c0) runs unchanged; hooks on its getter
+and M calls capture the inputs, and our strict C recomputes slot +0x0, +0x4 and +0x24 after it and compares them
+per field (max ulp, calls differing, calls compared). Default off, writes nothing; a lost hook site stops with 179.
+Static result, before any run: with equal inputs the refresh's own arithmetic already gives equal bits on both
+platforms. Windows' folded form 100 - ((x-x0)*99)/(x1-x0) equals Linux's 100 + ((x-x0)*(1-100))/(x1-x0) exactly
+(1-100 = -99 is exact and negation commutes with rounding); the clamps agree, NaN included; M differs only for -0
+and NaN. Checked on the executables' own code: the Windows test runs X4.exe's inlined +0x0 block and its M on
+20,000 random inputs each, the Linux test runs the executable's L and M likewise; all equal ours (M except the
+documented -0 case). So the one-ulp split at tick 2 has to come from an input of the refresh (comp+0x5d4/+0x5d8,
+Windows +0x5f4/+0x5f8; the getters G0, G4; w, lane 2 of the owner's query vector; M's c), and FP_REDIRECT_ROWs give
+every input's bits for watched ships on both platforms so the shadow run shows which. Unmeasured until that run.
+Measured (runs FR2/FR3, 30 October; both platforms, each platform's two clients identical): in the census fixture
+the refresh never takes the path with the getters (hits g4 = 0 of 20,130 calls), so its own +0x0/+0x4/+0x24 code
+does not run at all. The values are written in the snapshot load by the refresh's first call, Linux 0x148cb50 /
+Windows 0x6dc610, on fresh slots: for two of the four watched ships (0x7dcd0, 0x7ddb8) Linux is one ulp above
+Windows in +0x0, +0x4, +0x8, +0xc and in +0x10c..+0x120 derived from them (the step trace's four tick-2 values);
+all other bytes, and both other ships, agree. Slice 1's target is therefore 0x148cb50 / 0x6dc610 and its inputs.

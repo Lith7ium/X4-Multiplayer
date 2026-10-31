@@ -1,0 +1,1704 @@
+LOCKSTEP DIVERGENCE CENSUS - 28 OCTOBER 2026
+
+WHY A CENSUS
+The strict barrier stops at the first differing tick, so each live run exposed
+one divergence source. World011-017 all stopped at tick 2. A census run keeps
+both clients running (relay --observe) and compares every world capture, every
+delivered event and every RNG stream, so several sources are found per run.
+Measured on two native Windows clients, same PC, imported save snapshot 005,
+60 ticks. Divergence counts are noisy run to run; two runs per configuration.
+
+TOOLS (tools/dev)
+native_gate_relay.py --observe   record mismatching ticks, keep releasing frames
+census_world.py <run>            first differing capture per imported object,
+                                 grouped by parent into root candidates
+census_threads.py <run>          per-thread TLS RNG words (THREAD_RNG), draws per
+                                 frame via rng_steps.c (X4 LCG + rotr30 step)
+census_jobs.py <run>             per-JTM-job draws (native_gate_job_rng observe)
+census_events.py <run>           delivered due-event multisets per tick
+census_scripts.py <run>          per-script RNG rows joined by portable key
+.local/census/run.sh             two-lane runner wrapper (not committed)
+
+FINDINGS, IN ORDER OF DISCOVERY
+1. Nav refresh timing (pathing determinism, f60cd8b + 35fcae1): low-attention
+   ships were stamped whenever some code queried their position. Deterministic
+   per-frame stamping by saved ID cut divergence from ~280-480 to ~60-140
+   objects at tick 10 and from ~1,750-2,000 to ~300-370 at tick 60.
+2. JTM pool jobs make zero RNG draws (J01); per-job keying (9269fc3) is
+   retained as an opt-in census but has no measurable effect.
+3. Boot RNG anchor: UI-thread stream differs before the first post-load action;
+   draw counts from an identical anchor differ by a few (2448 vs 2445/2452).
+   No measurable effect alone.
+4. Gravidar thread: ~1,000 unseeded draws per frame with equal counts; per-unit
+   keying by saved ID converges the stream (no measurable world effect alone).
+5. Event delivery order: ties in the due-event schedule break by heap address;
+   02b712e reorders each batch by (time, saved ID). Works (0 failures).
+6. Event rows (03a3a7e) located the first divergence: identical Gravidar scan
+   events stamped with the load time on one client and tick 1 on the other.
+   Causes: the Gravidar thread's TLS game-time copy and ungated Gravidar
+   passes in boot phases 1-2 racing the first gated frame. Fixed by
+   native_gate_gravidar_time_sync (7a6b4bb, 0c8a9ff, 5dc8dfe). Tick 1 is now
+   identical on both clients (world hash and every delivered event).
+7. Per-script RNG streams (2e03764): every AI script/MD cue entry draws from a
+   stream keyed by owner saved ID. Shared sim-thread draws drop from thousands
+   to 4-98 per frame; joined script keys have identical draw counts. Tick-60
+   divergence 175-252 (S01/S02) versus 309-327 without it (T07/T08).
+8. Gravidar sector order (d724118, 5c0e5e4, 4612ab5): the same AI scripts ran
+   one tick later on one client because Gravidar Init orders its sector list
+   by object address and Run scans a tenth of it per pass, so the load pass and
+   every pass scanned different sectors. native_gate_ai_schedule with
+   native_gate_gravidar_load_pass (hold Init's load pass until gated frame 1)
+   and native_gate_gravidar_sector_order (scan in saved-ID order; one
+   load-created sector, cluster_black2_sector01_macro, keyed by macro and
+   parent) give identical Gravidar unit counts per tick. Without the order fix
+   H02 diverged 231 objects at tick 10.
+9. Pathing bank parity at admission is equivalent state (indices only); not a
+   divergence source (1fc0710 makes the stamp hash bank-relative).
+10. Boot phase 2 runs exactly two event passes and one universe update; its
+   first AIDirector::Move raced ungated threads. native_gate_boot_hold moves
+   it into tick 1; native_gate_md_timed_rng keys MD condition checks called
+   directly from MDScheduler_Update/Cue_EnterWaiting/Cue_RaiseCueEvent
+   (e0f5bb9). Tick-0 script keysets and draws become identical.
+11. Full stack (F01): tick 0 scripts identical, tick 1 events identical,
+   Gravidar identical; divergence 47 objects at tick 10 and 125 at tick 60
+   (lean baseline 281-387 and ~1,750-2,000). First remaining difference: MD
+   faction-goal cue instances at tick 1 (contrib/ferrite-census-mdorder).
+
+12. MD resume delays (f94d653): loading re-rolls the random delay of every
+   cue whose delay was pending in the save (Cue_ResumeAfterLoad 0x1115960,
+   call 0x1115bad -> EvaluateRandomRange 0xc58da0) outside any keyed scope,
+   so faction managers and goals started at different ticks. The opt-in
+   native_gate_md_resume_rng draws them from a cue-keyed stream: 263 delays
+   with identical key/draw/delay sums on both clients and across runs.
+   Q01/Q02: script entries per tick nearly identical (847/850, 2911/2910);
+   divergence 25-34 objects at tick 10 and 55-76 at tick 60.
+   First remaining difference: StartTravelModeEvent subsets at tick 2.
+13. Travel mode (c2ce18f): Agent_UpdatePathing 0xe8f250 decides travel mode
+   from the formation leader's waypoint flag, which the leader rewrites in
+   the same pathing pass on another job thread. native_gate_travel_determinism
+   runs pathing batch jobs inline on the pathing thread in batch order (about
+   15-25 ms per frame). V01/V02: one-sided travel events at tick 2 drop from
+   104/72 to 6/3 and 3/1; batch order hashes identical across clients and
+   runs; divergence 28-41 objects at tick 10, 55-73 at tick 60.
+   Next lead: AI Wait deadlines re-rolled on import (pilot 80d54 move.idle
+   runs at tick 1 on one client and tick 4 on the other).
+14. AI Wait restores (dbd1f0f): AIDirector_Import 0x1069000 reattaches every
+   blocked Wait (WaitAction::Reattach 0x10a50d0, call 0x1069bf9); the wait
+   keeps no saved deadline and re-evaluates its random duration from the
+   loading thread's natural stream. native_gate_ai_wait_rng keys all 18,943
+   restores by saved owner, script/version/slot/PC and saved start time.
+
+15. Hazard region damage (static analysis; live check pending): big-BW
+   (180), big-BS (300), big-BS2 (240) and cam-CamB (300, no war) diverge in
+   the health domain only for the same 357 objects, cam-CamA not within 600
+   ticks: every ship of sector 0x7a5 (cluster_32_sector001, attention 2)
+   plus the surface elements of its XL carriers; the save lists them as
+   attacked by the sector ("hitbyareadamage"). Script draws and order match.
+   U::Region::Move (slot 674, 0x767410) updates its DamageFields (slot 8,
+   0xee16a0): a pass damages the zones' objects in proportion to the time
+   since the last pass and sets the next pass to now + 1 s + a [0, 0.1 s)
+   jitter from the shared sim-thread TLS word, mid-walk. One shifted natural
+   draw moves the next pass by up to six ticks; every later capture then
+   differs. native_gate_region_rng ('key' / 'observe') runs each
+   Region::Move on a stream keyed by tick and saved region ID (vtable slot
+   swap, stop reason 93) and logs one REGION_RNG_ROW per pass;
+   census_scripts.py joins passes by region, field and rank.
+
+RESULT: W01 AND W02 (29 OCTOBER 2026)
+Full stack plus native_gate_ai_wait_rng, two native Windows clients on one
+PC, imported snapshot 005, 60 ticks, relay in observe mode:
+- relay verdict pass: no declared-state digest mismatch at any tick;
+- world census: 0 differing imported objects in all 7 captures (521,929
+  imported IDs, topology/health/motion/timing domains);
+- event census: 27,468 delivered events per client, none different;
+- script census: all 60 ticks identical in keys and draw counts;
+- AI wait and MD resume key/draw/due sums identical across clients and runs.
+Scope: the declared hash domains and the census instruments above, same
+machine and executable, 1 simulated second, no player input, Windows only.
+It is not a claim of whole-engine equality, long-horizon stability,
+cross-machine or Windows/Linux lockstep. Longer runs are in progress.
+
+STRESS RUNS (29 OCTOBER 2026, same stack, observe mode, world capture every 60)
+- W600a, 600 ticks, no war: no digest mismatch, 0 world divergence.
+- big-BW, faction war (argon vs paranid/teladi), 600 ticks: 2 root groups at
+  the tick-120 capture (Recon pick at tick 63, see below) and the 357-object
+  health-only group (zones 7c9/7cb/7a6/7ca) from the tick-180 capture.
+- big-BS2, war plus 80 spawned ships fighting in the player sector, 300 ticks:
+  events identical (41,641 rows), scripts identical to tick 225, one motion
+  object (176803) at the tick-120 capture, the health group from 240. The
+  spawned ships have no saved ID and are not compared at all yet.
+- tour-T1, as BS2 plus native_gate_player_tour (tools/dev/native_gate_tour.xml:
+  warp at tick 30 to 30 km above the start sector centre, then a new sector
+  every 60 ticks): the 12-ship fixture battle at y=100 km, ~70 km from the
+  warped player, diverges at tick 47 (actor 5 shield 97 vs 96 and a different
+  velocity at an equal position: a hit landed differently), one more actor
+  per tick after. Stopped with reason 46 at tick 391 when the player returned:
+  the dock fixture's extra shape records were rebuilt after the attention
+  round trip and role replacement fails closed.
+- tour-C1, the same overlay and DLL with the tour off, 400 ticks: fixture
+  battle identical throughout; world as BS2. The warp is the trigger.
+- Intermittent load noise seen in several runs without consequences of its
+  own: Recon Evaluate candidate-list sizes at tick 3 (two variants, either
+  client) and two extra due events from one source at tick 7.
+Recon (a4f2429): Evaluate draws are shuffle_list sizes, so a draw mismatch
+under the same key is a different candidate list; native_gate_find_order
+('observe'/'sort') records/sorts find_* lists by saved ID to separate order
+from content.
+
+RESULT: STACK-S1, FACTION WAR, 600 TICKS (29 OCTOBER 2026)
+Full stack plus native_gate_region_rng='key' and native_gate_find_order='sort',
+big-BW war fixture (argon vs paranid/teladi), two native clients, observe mode:
+- relay verdict pass: no declared-state digest mismatch in 600 ticks;
+- world census: 0 differing imported objects in all 11 captures (the 357-
+  object hazard-region group of big-BW/BS/BS2 is gone);
+- region section: 140 damage passes joined, no tick/due/draw/word mismatch;
+- find_order: 8,809 lists, 0 set mismatches, 11 order-only lists sorted
+  (first at tick 1); no Recon Evaluate draw mismatch in this run;
+- remaining differences without world effect: move.seekenemies event rows
+  from tick 328 (9f126 on client 1, 8f3dd at 359 on client 2), and the
+  intermittent two extra due events at tick 7.
+Reproduced by stack-S2 (same overlay plus 098778a): relay pass, 0 differing
+objects in all captures, scripts identical for all 600 ticks, 140 region
+passes equal, 6 order-only find lists sorted. Scope as for W01/W02; two
+runs, so the Recon list-size class (seen in about half the earlier runs) is
+not shown fixed by this.
+
+TOUR WITH THE NEW STACK (tour-T4): region key + find sort + 098778a, war,
+spawn and tour, 385 ticks: the fixture battle still diverges at tick 40 (T2
+also 40, T1 47; T3 with the old per-actor diagnostics not at all to 91), so
+find_* ordering is not the warp cause. Region passes all match; events equal.
+
+HITCHES (frame timing, two clients on one PC, median 27-30 ms per frame)
+- Census world captures cost ~3.2 s in the probe on the tick after each
+  capture (diagnostic only).
+- Script RNG name lookups walked the MD module cue tree with read_local per
+  node: 166/70/100 ms of self time at ticks 47/176/356 in every run (new cue
+  definitions). 098778a reads it with the guarded copy: 3.6/1.5/2.2 ms in
+  tour-T4; frames 177/357 fell from 103-130 ms to 31-40 ms.
+- Ticks 14 and 36 (60-150 ms outside FrameTick) also occur with the bare gate.
+- Sector warps cost 200-700 ms frames while the new sector loads.
+
+LONG HORIZON (long-L1): the S1/S2 stack with world capture stride 300, 1800
+ticks: 0 differing objects at captures 300 and 600; first at 900 (3 objects
+in parent 0x29, motion), 5 at 1200, 26 at 1500, 46 at 1800. Scripts first
+differ at tick 246: fight.attack.object.* stack entries present on client 2
+only (owners 829c6, 9539f, 9e8b8, ace70, 63223), the same owners and tick as
+in big-BS3, absent in S1/S2; FactionLogic StaticDefenseManager cues from 310;
+first find_* set mismatch at 807. Region passes all equal (406).
+
+CAMERA-DEPENDENT SIMULATION (warp agent, a4439f7): U::Bullet::UpdateFlight
+0xd4f240 hit-tests a bullet every frame only while the camera is within 5 km
+(or a view-cache flag is set); farther away the next test is now + 0.1 s +
+Random::FloatState(0.1) on the shared word. In every tour run all fixture
+STATE_ROWs match through tick 39 and the first hits at 40 land on different
+subsets per client (one tick apart). native_gate_bullet_cadence='every' tests
+every bullet every frame (stop 94). NavigationController::vfunc33 0xea77f0
+also picks nav refresh intervals from the camera distance (unpatched).
+long-L2swap (lanes swapped, 600 ticks): pass, 0 differing; no tick-246 class.
+tour-T5 (T4 overlay + bullet_cadence='every' + bullet_diag, 480 ticks): all
+5,748 fixture STATE_ROWs identical while the fixture battle keeps fighting
+after the warps (shields 100->90, two hull losses, identical on both
+clients); first_later=0 on both clients; no stop at the return trip (extra
+dock shape roles re-registered at tick 392). Remaining world divergence in
+this run belongs to other classes: 176803 (spawn runs only), fight.attack
+stack entries from tick 184 (as tick 246 in long-L1), zone 72f from 240.
+
+long-L3 (long-L1 overlay + bullet_cadence='every', 1800 ticks): 0 differing
+objects at captures 300-1200 (L1: first at 900); scripts identical to tick
+1226 (L1: 246), where order.fight.attack.object on capital 9b00f differs; first
+find_* set mismatch 836; world 23 differing at 1500, 35 at 1800. One run of
+an intermittent class, so the improvement is indicative only.
+
+tour-T6 (T5 + native_gate_nav_cadence='far', ddaac1f): fixture STATE_ROWs
+identical for 480 ticks; scripts identical to tick 399 (T5: 184); zone 72f
+(warp destination) still diverges by capture 60; nav cadence counters already
+differ at ticks 32/33 (fixture far-probe refresh 0 vs 1; other 8 vs 4) with no
+near/mid choices, so a non-camera input still reaches those deadlines.
+
+big-BS4 (BS3 + native_gate_portable_created, 98f7f33): path determinism
+unmapped back to the no-spawn level (1,182 at tick 60, 3,600 created keyed),
+Gravidar unkeyed 28; created ships differing in motion at capture 60 fell
+from 40 to 12, 98 created objects by 300; scripts identical to 253. The
+per-actor RNG modules still cover only the 12 fixture ships.
+
+full-F1 (S2 stack + bullet_cadence every + nav_cadence far + weapon_diag +
+created identities + portable created, war, 600 ticks): imported objects 0
+differing in all captures, scripts identical for 600 ticks, region and find
+clean; 2,462 created objects with identical creation digests; 5 created
+objects (one group created at tick 20 by the game) differ in motion from
+capture 360. Median frame 30 ms per client.
+
+LONG-RUN CLASS A (long agent, 9f2f433): the tick-246 (L1, BS3) and 1226 (L3)
+script differences come from a distress drone launched at tick 103 whose
+move.escapepod/move.undock scripts run unkeyed (owner without a portable ID)
+on the natural sim-thread word; its timing splits (243 vs 268 in L1) and the
+nearby ships' Gravidar events and the galaxy-wide report_attack reactions
+follow. Client 1 was the deviating side, not the extra one. With
+created+portable identities (full-F1) the drone is keyed except its first
+wait in its creation frame. Fix option: native_gate_script_rng_unmapped='key'.
+
+tour-T7 (T6 + native_gate_view_points='players', ce98ea9): attention from
+the player object instead of the camera list (total_differ 0, foreign 0);
+world 12 differing (T6: 80), zone 72f from capture 120 (T6: 60); nav
+refresh counts still differ at ticks 32/33 after the warp, so ship activation
+after a warp has another per-client input (physics scene / zone loading
+suspected).
+
+RESULT: big-BS5 (BS4 + native_gate_actor_rng_all + bullet_cadence every +
+nav_cadence far + weapon_diag, 4f1ccb9): the 80-ship spawned battle plus war,
+300 ticks: relay pass, 0 differing objects including created ones in every
+capture, scripts identical for 300 ticks; ACTOR_RNG_ALL ship/agent drawsets
+equal per tick. Every ship's Move and pathing Agent update keyed by its
+portable ID closes the created-ship class (BS3: 103, BS4: 98 differing).
+
+tour-T8 (T7 + created + portable created + actor_rng_all + script_rng_unmapped
+key): 7 differing (T7 12, T6 80): 74d83 in zone 72f from capture 60 (post-warp
+activation), and at 480 a few created objects plus masstraffic.watchdog script
+differences from 362 (mass traffic); first script difference NPC_Killed at 213.
+
+long-L4 (all fixes: long-L3 + nav far + weapon_diag + created + portable +
+actor_rng_all + script_rng_unmapped key + view_points players, 1800 ticks):
+0 differing at 300/600, 4-5 at 900-1800 (L1 46, L3 35), 0 of 4,708 created
+objects differing; first script difference at 592 on owners still without a
+portable ID (rank-keyed), then 9fb3d attack at 644 (class B) -> zone 0x29.
+Median frame 32 ms per client.
+
+CREATED OBJECTS (big-BS3): native_gate_created_identities (c7c0539) on the
+S1 stack plus 80 spawned ships, 300 ticks. Creation is identical on both
+clients (1,789 created IDs, equal creation digest and rows, no foreign-thread
+creations); imported objects 0 diverged; scripts identical to tick 246. The
+spawned ships themselves diverge: 40 in motion at the tick-60 capture, 103
+created objects by 300. Suspected: modules that key/order/include by saved ID
+only treat created ships as unmapped (agent on contrib/ferrite-census-portable).
+
+N-PLAYER LIVE RUNS (29 OCTOBER 2026)
+- orders-O1: three native clients, protocol 3 (native_gate_clients=3, relay
+  --clients 3), player orders plan native_gate_player_orders_plan_3p.json,
+  200 ticks. `native_gate_player_orders.py compare` PASS: 10 identical lines
+  on 3 clients, 8 applied, refused_own_target at 78 and refused_not_owner at
+  93 as planned; identical ID index (11,480 mapped) on all clients; events
+  identical (40,687 rows each). World: only the Recon pair 6f8f6/6f936
+  (Evaluate list size at tick 63; clients 2 and 3 agree, client 1 differs).
+- pilot-A1: two clients, native_gate_pilot_inputs source=script on fixtures
+  3/4, 600 ticks: PILOT_INPUTS rows identical every tick (12 request
+  replacements per tick, 6,852 total, no missing/late), all 7,188 fixture
+  STATE_ROWs identical, scripts and events identical for 600 ticks; the ships
+  fly the scripted forward/turn/pitch/strafe-roll/neutral phases. Only the
+  hazard-region health group (finding 15) diverged, from capture 180.
+- n3-P1: three native clients, protocol 3, scripted pilot slots (player
+  scout ae79c, fixtures 176ad5, 176b36), controls parked, full fix stack incl.
+  view points/actor_rng_all/created, 1200 ticks: relay pass, 0 differing
+  objects for both pairs, PILOT_INPUTS rows identical on all three clients
+  (18 replacements per tick, 21,078 total, none missing), controls restored.
+- pf3: three clients, player identity factions mode (slot 1 player scout as
+  `player`, slots 2/3 fixture ships as x4lan_player2/3, neutral relations),
+  scripted pilots, 602 ticks: identity READY at tick 30 with the same MD
+  digest on all clients and the planned owners; client2 0 differing objects,
+  client3 6 at the final capture (zone 8fc, an existing class from tour-T7).
+- pc3: three clients, coop mode (all slot ships in the player faction),
+  scripted pilots, 602 ticks: identity READY with the same MD digest on all
+  clients, relay pass, 0 differing objects for both pairs.
+- sandbox3-smoke (map/menu tolerant parking, observe-native, 602 ticks): relay
+  pass, 0 differing; park authority=1 (Agent moves the parked player ship),
+  both slots driving, native capture channels zero while parked.
+- pred-P1 (pilot test A + native_gate_pilot_predict observe on both clients,
+  600 ticks): PILOT_PREDICT rows identical on both clients, view_ok 600/600,
+  failures 0; the 357-object group at 600 is the hazard-region class (the
+  PilotA base overlay predates native_gate_region_rng).
+- Correction for pf3/pc3: only slot 1 was flown (slots 2/3 were fixtures
+  waiting in a Wait order without a Steering solver, no_solver=1142); the
+  identity, ownership and order results stand, piloting of slots 2/3 did not
+  happen. The players builder now engages the battle by default (fa76683a).
+- pred-P3: native_gate_pilot_predict {'present',false} (client 1 draws its
+  slot ship at the predicted pose during render slot 10), slots player scout +
+  fixture both driven, 600 ticks: present_applied 599 = present_restored,
+  failures 0, camera_on_ship 600; relay pass, 0 differing objects, scripts
+  identical - the presentation offset does not reach the simulation.
+- pf3b / pc3b: the same with an engaged battle (all three slot ships driven:
+  s2/s3 about 1,685 substitutions each), factions and coop, 602 ticks: relay
+  pass, 0 differing objects for both pairs in both modes; players `compare`
+  PASS (identity steps and the order demo identical on all clients).
+- vps-PF3: pf3b over the relay on the Linux server host (three Windows lane
+  clients through the loopback forwarder), 602 ticks: relay pass, 0 differing
+  objects for both pairs, players `compare` PASS; median frame 43 ms (11 ms
+  round trip).
+- pf3L: pf3b plus spawn_rng / created load / portable keys, 1802 ticks:
+  identical load digest on all three clients, players compare PASS, 0
+  differing objects through capture 600; from 900 the long-run zone-0x29
+  class (as long-L1..L5, not faction related), 38 and 57 differing by 1800.
+- vps-PF3k2: vps-PF3 with protocol 4 lookahead k=2 (112bd45d, relay
+  --lookahead 2, native_gate_lookahead = 2), 602 ticks: relay pass, 0
+  differing objects for both pairs, players compare PASS; median frame
+  31.1 ms (k=0: 43.2 ms), client wait 0.08 ms (k=0: 11 ms) - the round trip
+  to the server host is off the critical path.
+- vps-PF3Lk2: pf3L over the remote relay with lookahead 2, 1802 ticks:
+  players compare PASS, 0 differing objects for both pairs through capture
+  1200; client2 6 at 1500 / 27 at 1800, client3 16 at 1800 (the
+  intermittent long-run class); median frame 34 ms.
+- fire-F1: native_gate_pilot_fire='script' on the player scout and a
+  fixture, 600 ticks: guns leased (4), triggered on 265 ticks, identical
+  fire receipts on both clients, relay pass, 0 differing objects.
+- hit-H1: sandbox with native_gate_hit_claims='shooter' and prediction
+  observe, engaged battle: both clients crashed (access violation) at tick
+  ~14 when the first bullets were hit-tested; with the hit-claims agent.
+- hit-H2 (H1 with the cast fix 78244be5): sandbox, native_gate_hit_claims
+  'shooter', prediction observe on both clients, engaged battle (Xenon
+  fixture attacks slot 2), 602 ticks: client 2 evaluated incoming bullets
+  against its predicted pose and proposed claims (claims_in 39, claims_out
+  2); both clients admitted, resolved and applied the same 41 claims
+  (identical receipts); native hits on slot ships suppressed (71 in, 2 out);
+  relay pass, 0 differing objects.
+- hit-H3: prediction present on client 2 (601 frames drawn ahead and
+  restored), scripted pilot firing on both slot ships (265 triggers,
+  identical receipts) and native hit claims (39 incoming claims from client
+  2 applied identically), 602 ticks: relay pass, 0 differing objects.
+- vps-H3k2: hit-H3 over the remote relay with lookahead 2 (pilot delay 4):
+  frames 29.8 ms, 39 hit claims applied identically, present 465 frames, but
+  both clients stopped at tick ~466 with reason 112 (pilot fire
+  controller_replaced at the same tick on both - the AI-flown slot fixture's
+  combat scripts re-took its guns; deterministic, not a desync).
+- native-N1: X4's own controls (native capture source, 411b4770) with
+  scripted pilots, 603 ticks: native input live with flight control 0,
+  816 routed authority decisions and no override, both slots driven (6,852
+  substitutions, identical receipts), relay pass, 0 differing objects.
+- play2-smoke: the morning play configuration unattended (X4's own
+  controls, fire from record, native hit claims shooter, prediction present
+  on client 1, full stack incl. spawn RNG, created load, nav probe init,
+  mass traffic and region pass sync), 603 ticks: prediction 602 frames, 39
+  hit claims applied identically, no stalls, relay pass, 0 differing.
+- play3-smoke: play2-smoke on build11 (firing lease re-take, speech on
+  the game clock), 603 ticks: 39 hit claims applied identically, relay
+  pass, 0 differing objects including created ones.
+- vps-H3k2b: vps-H3k2 with the lease fix (2c87e1af), remote relay,
+  lookahead 2: the AI took the slot guns twice and the lease re-took them
+  (replaced_by_sim 2, retaken 2, failures 0) on the same ticks on both
+  clients; fire receipts and 39 hit claims identical; relay pass, 0
+  differing objects.
+- play4-smoke: play3-smoke + native_gate_nav_player, nav_params_init and
+  attention_all (build of 4a5af9e6), 603 ticks: player nav upkeep scoped on
+  every tick, prediction 602 frames, hit claims identical, relay pass, 0
+  differing objects.
+- play5-smoke: play4-smoke + native_gate_gravidar_deadlines, 603 ticks:
+  radar factor passes keyed identically, relay pass, 0 differing objects.
+  overlay-Play5 (human length) is the current play configuration.
+- play7-smoke: play6 + native_gate_weapon_fire_rng (build of e6793464),
+  603 ticks: 312 weapon shots keyed identically on both clients alongside
+  the pilots' own guns and hit claims, relay pass, 0 differing.
+- play6-smoke: play5 on feb2ff43 (params re-base for loading-time deadlines
+  only, nav_player only under autopilot: manual=603 under piloting), 603
+  ticks: relay pass, 0 differing. overlay-Play6 supersedes Play5.
+- play8-smoke: play7 (keyed weapon shots) + the viewpoint stand-in camera
+  groups (region, fields, mass traffic, effects, highway), keyed engine
+  refresh and the player timer (build of d9b7fae5), 603 ticks: relay pass,
+  0 differing. overlay-Play8 is the current play configuration.
+Neither run includes a human: orders are scripted and piloting uses the
+script source; wire-captured piloting and UI-captured orders are untested.
+
+FIRST HUMAN SANDBOX SESSION (sandbox-play1, 29 OCTOBER 2026)
+Two clients, protocol 3, pilot wire (slot 1 player scout ae79c, slot 2 fixture
+176ad5), controls parked, device sampler kbm/both, bullet+nav cadence, 6v6
+engaged (calm build: a waiting fixture has no Steering solver). Digests equal
+for all 693 ticks; client 2 had 72 ticks of human input. The user opened the
+map on client 2: X4 reactivated the player controls, the per-tick parked check
+failed (stop 91, stage=restore_refused, controls not touched since no longer
+owned). User feedback: use X4's own controls and bindings; the map must not
+end the session. Both are with the sandbox agent.
+
+LOAD DETERMINISM (long agent, e927d054 / bc36d954): about 20 ships the load
+creates got their loadouts from the loading thread's natural word
+(ShipGenerator::Generate 0xc841b0 -> loadout 0x50e4a0 ignores the caller's
+generator state). native_gate_spawn_rng='key' derives the word from that
+state. long-L7 (L6 + spawn_rng, 600 ticks): both clients created the same 365
+load objects (equal digest), 173 keyed generator calls (22 at boot) paired
+with equal draws, relay pass, 0 differing objects incl. created, scripts
+identical for 600 ticks. vps-V3 (L4 overlay, relay on the server host, 600
+ticks): relay pass, 0 differing objects, frame 43 ms (11 ms round trip).
+
+SCENARIOS (a9216e7d, standard stack without the war fixture): sc-missions
+(1800 ticks): relay digests differ from 900, 25 differing objects by 1800;
+sc-highway (warp mode, 1500 ticks): differing from 300, 100 by 1500 (5
+created); tour-T9 (T8 + native_gate_mass_traffic sync): 172 created objects
+differ from capture 60 (T8: 5) - the sync mode changes created-object
+behaviour and needs analysis. Camera A/B runs stopped at tick 2: the game
+rewrites the camera offset every frame (harness fails closed).
+
+HIGHWAY RERUNS (beacon target): sc-highway-fly (no warp, 3000 ticks) and
+sc-highway2 (warp, 1500 ticks): 0 differing through capture 600, then a
+broad divergence from 900 (fly: 862 by 3000; warp: 177 by 1500).
+Correction: the tick-apart HIGHWAY activity/zone lines first quoted here
+were logged after the relay STOP (ungated); inside the session the player's
+position, speed and highway transitions match. First differences: fly mode
+185 vs 212, scripts woken by the ship computer finishing a speech line
+(speech completion follows audio playback, wall clock); from 328 the known
+Gravidar class; the about 24 far-zone motion groups at 900 may be the newer
+stack rather than the scenario (control run queued).
+
+CAMERA A/B (camera offset harness holds now, ad1d28ee): one client's camera
+moved 70 km (z) for 600 ticks. cam-A3 without view points: 334 differing
+(187 created) from capture 60, digests from tick 50. cam-B3 with view
+points + mass traffic sync: 346 differing from 60 - attention viewpoints
+alone do not make a moved camera safe; the remaining camera inputs (mass
+traffic network and removal, region manager, XS detail, field LOD, resource
+field handoff, physics scene) dominate. tour-T10 (nav probe init + region
+pass sync) stopped at 95 with reason 100 (region pass join failure);
+tour-T10b (observe) 44 differing from 240.
+
+LONG-RUN CLASS B NAMED (sc-missions3, Gravidar watch on 9fb3b/9f121): at
+tick 643 ship 9fb3b's Gravidar scan on client 2 adds 25 saved contacts
+(a contiguous block, 877eb..87992 and others) that client 1 never sees -
+radar visibility differs before any world object does. Suspect: the region
+manager's unjoined async pass (region fields affect radar). Mission lines
+identical (33, compare PASS; accepts, kills and cleanup now happen).
+
+sc-control (no scenario, same stack as sc-highway2, 1500 ticks): 13 differing
+from 900 (2 root groups) - the long-run class without any scenario; the
+highway runs add more (about 24 groups at 900). sc-highway-fly2 (fly mode,
+1200 ticks): the convoy ships created at tick 41 and routed through the
+highway differ by the tick-240 sample (35 differing objects by 1200),
+without any warp.
+
+long-L8 (L7 config, DLL and probe from 23e854f3): relay pass, 0 differing,
+identical load digest - no regression from the night's merges. The tick-0/1
+script rows present on one client only were a logging artifact (the 8,192
+row ring overflowed during boot; fixed 127b74cc, census counts them as
+masked). The real first difference there is at tick 2: a station's
+Gravidar enemy count succeeds on one client only - the same radar
+visibility class as the long-run trigger. hit-H1 crash cause: the hit-test redirect
+declared the 15-argument nearest-hit cast with 8 arguments (fixed 644187fa).
+
+HIGHWAY TRACES (sc-highway-fly3a/3b, fly mode, exact pose trace of the
+player and four convoy ships every tick 100-600): all 2,505 trace lines
+identical on both clients in both runs; the only difference is when the
+ship computer's speech line completes (game time 10066 vs 10116 ms, and
+10616 vs 10116 ms) - speech completion follows wall-clock audio playback and
+wakes scripts on different ticks. 3b: relay pass, 0 differing; 3a: 3 at 900.
+
+SPEECH ON THE GAME CLOCK (sc-highway-fly4a/4b, 695fdbbc,
+native_gate_speech_game_time): the ship computer line is routed to the
+game-clock completion path on both clients (routed 1, failures 0) and
+completes at 10616 ms everywhere; the player and convoy pose traces of 4b
+and of 4a client 1 are bit-identical to each other across runs. 4b: 900
+ticks, relay pass, 0 differing. 4a: client 2 alone shows a sub-centimetre
+offset in the autopiloted player position at tick 382 (rotation and every
+script, order, wait and region row identical before it), which reaches the
+velocity of nearby fixture 11 by tick 440 and 7 objects by 900; not
+reproduced in 4b. Open: an intermittent position source on the player ship
+(candidate: temp zone re-centring on a camera or wall-clock cadence).
+
+RESULT: TELEPORT TOUR IN SYNC (tour-T11, 7f432120): war + 80 spawned ships +
+the player warped through six sectors and back, with nav_probe_init,
+mass_traffic sync, region_pass sync, view points, actor RNG all, created
+identities, bullet and nav cadence, 480 ticks: relay pass, 0 differing
+objects including created ones. The region pass join waits up to about 7 s
+after a warp (2 slow passes), a visible stall. cam-B4 (camera moved 70 km on
+one client, without region pass sync): 239 differing from 60 - the camera
+dependency remains the open multiplayer blocker.
+
+CAMERA AND RADAR, 29 OCTOBER ~06:40 (build of 3cc46a1e):
+- cam-B5 (cam-B4 + native_gate_view_triggers 'observe'): the five pinned
+  camera enter/leave attention handlers never fired (0 on both clients),
+  still 211 differing from the tick-50 digest. The repaired attention rows
+  name the actual callers: return address 0x3d6fc2 re-evaluates 2,967 times
+  on client 1 vs 1,444 on the camera-moved client 2, plus 0x3d597a,
+  0x83497c (zones, from tick 2), 0x6d2097, 0x13a36f3.
+- cam-B6 (block + region_pass sync): nothing blocked, 260 differing from
+  tick 50; the region pass draws thread RNG only on the camera-moved client
+  (34 draws vs 0).
+- long-L9 (Long8 + mass traffic/region pass sync, nav probe init, speech on
+  the game clock, native_gate_gravidar_digest), 1500 ticks: 0 differing
+  through the 600 capture, first digest mismatch at 900, 45 differing by
+  1500. Gravidar scan times part at tick 4 and radar factors at tick 325
+  (classes and active sources identical); attention re-evaluation counts
+  part at tick 48 with identical cameras.
+- st-S1/st-S2 (different starts) stopped at setup: the identity glue's
+  sector scan sees only known clusters; start sectors are now named by
+  macro and resolved by MD find_sector (47cdea3a), reruns queued.
+
+RESULT: DIFFERENT STARTS IN SYNC (st-S1n, a1fccdcb): two players in their
+own factions, player 1 in Argon Prime (occupied scout), player 2's ship and
+its Xenon battle counterpart moved by the identity plan at tick 20 to
+cluster_01_sector001 (sector macro, --start 2=...@0,30000,0
+--start-counterparts), both slot ships flown by the pilot script, 602
+ticks: both start placements confirmed at the fold tick on both clients,
+identical pilot receipts (6,744 substitutions), players compare PASS,
+relay pass, 0 differing objects. Earlier attempts stopped on tooling
+(GetClusters(true) lists only known clusters; MD reads the old sector right
+after <warp>; the battle hash refuses a non-spline steering model, so start
+runs drop native_gate_steering_schema).
+THREE PLAYERS IN THREE SECTORS (dad7d73e): slot 1 in Argon Prime, slot 2
+moved to cluster_01_sector001 and slot 3 to cluster_13_sector001, each with
+its battle counterpart, all three slot ships flown by the pilot script, 602
+ticks on three clients:
+- st-F3b (own factions): every slot driven (1,659 substitutions each for
+  slots 2 and 3, identical receipts), orders 4 identical lines (2 applied),
+  players compare PASS, relay pass, 0 differing in both pairs;
+- st-C3b (coop, one player faction): the same, PASS, 0 differing.
+(st-F3/st-C3 before dad7d73e also passed but slot 3 was never flown: the
+move drops the Steering solver; moved slots now order their own ship.)
+st-F3L (st-F3b for 1800 ticks on feb2ff43 with every fix): all three slot
+ships flown the whole run (31,662 substitutions, identical receipts on three
+clients), identity and orders compare PASS, 0 differing in both pairs
+through the 900 capture; then the long-run class (pairs of unrelated ships
+without a parent, motion only) appears: 8 differing per pair by 1800.
+st-S2n (the same start, wire source, client 2 camera follow, view triggers
+block), 602 ticks: relay pass, 0 differing, but the camera never moved:
+the stock external target view refuses a ship in another sector (10
+attempts, refused 10). A camera for a player whose ship is elsewhere needs
+another mechanism; until then the camera dependency is measured only with
+the camera offset harness (cam-B*).
+
+HIGHWAY BRANCHES (fly5a/5b with nav probe init, mass traffic and region
+pass sync; fly6a/b/c also watching the player's nav cadence): the player's
+autopiloted flight takes one of a few deterministic branches per client:
+reference (11 of 16 client-runs), branch A from tick 382 (3, bit-identical
+across runs and clients), branch B from tick 212, branch C from tick 342.
+Not tied to one client. Cause found in two steps: the player's controller
+calls nav upkeep directly (PlayerController::vfunc33 0xd97e80 -> 0xea77f0 at
+0xd98476), outside the wrapped vtable entry, so nav_probe_init never
+re-based its load-time deadlines. native_gate_nav_player (8f369c2f) brackets
+it: fly7a-d (8 client-runs) show identical player probe deadlines on both
+clients, but the player's nav PARAMETER deadline (params_due) still carries
+its load-time value (8.28 vs 8.66 s at tick 1) and branches remain
+(reference 5, two other branches 3). native_gate_nav_params_init (8e1d9def)
+re-bases that parameter deadline for every covered controller.
+RESULT: HIGHWAY FLYING IN SYNC (fly8a-e, 420a0949, fly mode with nav probe
+and parameter init, nav player, mass traffic and region pass sync, speech on
+the game clock): all 10 client-runs on the same trace, the player's 600 nav
+rows identical on both clients in every field, relay pass and 0 differing
+objects in all five runs (before: about 30% of client-runs branched).
+
+cam-B7 (camera offset 70 km on client 2, e97ef996: attention timer keyed for
+every portable object, viewpoint from the occupied ship, region pass
+centred on the viewpoint stand-in camera): region pass draws and centre now
+identical; newly differing at the tick-60 capture 26 (cam-B5/B6: 120-133),
+187 by 600 (created 154). Remaining camera inputs: mass traffic still reads
+the real camera (first difference tick 2), attention evaluation counts
+part at tick 15, and the attention timer keys only 1 of 85 objects.
+
+long-L10 (long-L9 + native_gate_attention_all + view rows, 1500 ticks):
+attention evaluation counts no longer part (first_view_counts null); 0
+differing through 600, 4 at the 900 capture (2 health, 3 motion domains)
+and no new ones through 1500 (long-L9: 45). Remaining long-run input: the
+Gravidar scan times (tick 4) and radar factors (tick 305); agent on it.
+
+RESULT: LONG RUN IN SYNC (long-L11, 4a5af9e6): the standard stack (Long8)
++ mass traffic and region pass sync, nav probe init, speech on the game
+clock, attention timer keyed for every portable object, and
+native_gate_gravidar_deadlines (every field sector's first radar factor pass
+at its first gated Move, low-attention pass draws keyed by tick and sector),
+1500 ticks: relay pass, 0 differing objects at every capture (300 ... 1500),
+every Gravidar digest (factors, active-unit scan times, classes, active
+sources, sector deadlines and attention) identical throughout. The tick-4
+"scan time" split of long-L9/L10 was the digest reading past passive units
+(fixed 10c0a670); the factor split at 305-325 was the sectors' load-time
+factor-pass deadlines. Before: long-L9 45 differing, long-L10 4.
+
+cam-B8 (cam-B7 + native_gate_region_fields and mass_traffic_camera 'view',
+bd5ca2e9): stopped at the first gated frame on both clients - the stand-in
+camera install found a synced pass busy and failed closed; install timing
+being changed.
+cam-B9/B10 (effect cull on the stand-in camera, effect rows): the cull now
+agrees on both clients, but identical weapon salvos split differently
+between creating effects now and one tick later; the effect rows show the
+game clock at spawn identical and the weapon's shot time stamped
+differently per client (tick 20): the shot time carries a random jitter
+from the firing thread's stream, which earlier client-only draws shift.
+cam-B11 (+ native_gate_weapon_fire_rng: each shot's stream seeded from tick,
+weapon, shot index and call count, e6793464), camera 70 km off on client 2:
+0 differing through the 180 capture, first relay mismatch moved from tick
+40 to 240, 61 differing by 600 (cam-B10: 104; cam-B5: 211). Caveat: the
+cam-B* overlays include native_gate_big_spawn, i.e. the intermittent spawn
+battle class (cam-B12 diverged from tick 60 with 134 created objects, its
+signature); cam-B13 drops the spawn to measure the camera alone.
+cam-B13a (camera 70 km off on client 2, war fixtures, no spawn, every
+camera group on the stand-in, keyed weapon shots): 1 differing object
+through the 540 capture - a low-attention ship 0xa214c whose motion parts
+in the last mantissa bits after a large turn (240) - then 14 more at 600,
+all low-attention ships in separate zones. The camera dependency is down to
+the low-attention movement path's rounding. cam-B13b reproduces it
+exactly. cam-B14 (+ native_gate_motion_watch): every watched field is
+bit-identical until tick 194, when 0xa214c gets a new move target on both
+clients in the same tick whose position differs in the last bits; the ship
+then turns toward slightly different points. The camera-moved client
+computes the target point with different rounding (camera-relative
+intermediate suspected). cam-B14b (+ ship sound split): unchanged.
+cam-B15 (+ move order/target rows): the tick-194 target comes from the
+SetTarget call chain 0xe90064 <- 0xeaed74 <- 0xeaebb2 <- 0xf29cef relative to
+reference 0x72a; only its z coordinate differs in the low bits, with the
+previous path point identical on both clients.
+cam-B16 (+ native_gate_highway_camera: a highway's spline parameter, part of
+its coordinate frame, was set from the point closest to the player camera,
+36a888ad): 0xa214c fixed - 0 differing at every capture through 540 with
+the camera 70 km off on client 2, first relay mismatch moved from 240 to
+600; 14 low-attention ships part just before 600 (next target).
+long-L12 (long-L11 for 3000 ticks): 0 differing through the 1500 capture,
+first digest mismatch at 1800, 35 differing (motion only) by 3000; the
+earliest non-effect difference is two objects (92d05, 9404e) connecting one
+tick apart at 1789/1790; EffectObject attention rows differ in timing from
+tick 31 with identical cameras. long-L13 (+ native_gate_command_order
+'observe') reproduces it at the identical ticks (1789/1790, and pairs at
+~1990 and ~2456), so the input is deterministic per client, not timing
+noise; the pathing pass's event command set already differs at tick 1788.
+The connect is a deferred WarpEvent delivered a tick apart. long-L14 (+
+command order and actor RNG rows, 2000 ticks): the only per-client RNG
+difference in any keyed scope is the player's own ship scope drawing once
+more on client 2 at tick 669 and on client 1 at tick 786 (no pilot module
+in long runs, so the player controller's input/sound tail runs with each
+window's local state); the world parts by the 1500 capture. long-L15 (+
+native_gate_ship_sound_rng 'split'): ship sound starts drew nothing (4
+calls), the player-scope extra draws remain (client 1 at 777, client 2 at
+1106: the ticks vary between runs); the caller is being traced. long-L16
+(+ native_gate_draw_watch, a hardware write watch on the player ship's RNG
+word): 3,137 stores per client, identical except one per client - a
+FloatState draw called from 0x7133f5 under Positional::Move, on client 2 at
+tick 707 and on client 1 at tick 1135. That function is U::Player::vfunc674
+(the player entity's Move): its fleet-reconstitution check fires when game
+time passes a deadline the Player constructor drew unkeyed before tick 1
+(not restored from the save). native_gate_player_timer (3839fb23) re-bases
+it at the first admitted call: long-L17 (2000 ticks) - the check fires at
+tick 901 on both clients, all 4,650 RNG stores and keyed scope rows
+identical, 0 differing objects through the 1500 capture, 7 at 1800 (one
+root). The tick-2 relay difference in L17 (fixtures 5/6 second-body
+inverse inertia, client 1 only) needed both the player timer and the draw
+watch (L17nt and L17nw pass): a diagnostic timing artifact, the draw watch
+is diagnostic-only. long-L18 (timer, no draw watch, 3000 ticks): every
+keyed RNG scope identical on both clients, 0 differing through the 1500
+capture, 16 at 1800, 138 by 3000 (new roots incl. 837f2/8389a); next class.
+
+REGRESSION SWEEP ON BUILD 4a5af9e6+ (every fix incl. nav player and
+parameter init, attention all, Gravidar deadlines, speech on the game clock):
+- sc-missions4, 1800 ticks: 33 mission lines identical (offers, 3 accepts,
+  kill, hunt, visit, reports, cleanup), relay pass, 0 differing at every
+  capture (sc-missions2/3 drifted in the long-run class);
+- tour-T12 (war + 80 spawned ships + 8 player warps), 480 ticks: relay
+  pass, 0 differing including created objects;
+- big-BS6 (the same battle without the tour, so it stays in the player's
+  attention), 900 ticks: spawned ships part in motion from the tick-60
+  digest, 127 created objects differ, client 2 stopped at 596 (reason 68,
+  interrupt check, after the divergence). Bisect: 5 of 6 runs of this
+  battle diverge from tick 60 on every build and with or without the newer
+  keys (BS6p passed once, its exact repeat BS6p2 diverged), so it is an
+  intermittent class of spawned ships fighting next to the player, not a
+  regression of one key; BS5 (older stack, one run) had passed. Separately,
+  one client logs interrupt step read failures near tick 595 (reason 68) in
+  this battle on every build. The bisect did find that
+  native_gate_nav_params_init forced spawned ships' first parameter build
+  early; it now re-bases only deadlines set while loading (a2c753b5).
+  big-BS6wa/wb (+ native_gate_weapon_fire_rng): both diverge the same way
+  from tick 60, so the spawn battle class is not the shot stream; physics
+  contact accumulation between the clustered spawned ships is the lead
+  (agent on it). Physics trace (native_gate_physics_trace) and portable
+  body order (native_gate_body_order, cf9be499): all physics jobs run
+  serially on the MoveWorker (the contact listener lead is refuted); body
+  IDs differ between clients from tick 1 in every run; 'sort' did not
+  remove the class (BS6bsa, bsc diverged, bsb did not). Diverging runs are
+  told apart by the contact set of tick 16 (the first physics step after
+  the spawn) and the post-step state differing; passing runs only differ
+  in body IDs. Named: a spawned destroyer's hull is child 0 or child 8 of
+  its compound collision shape depending on whether its collision file had
+  finished loading on the background loader (a placeholder replaced later
+  is appended at the end), and Jolt orders contacts by sub-shape IDs.
+  native_gate_shape_order (71cdfa0b) moves a late child back to the
+  placeholder's index: BS6soa passed with no physics difference at all;
+  BS6soc still parted at tick 16 because the load finished on different
+  ticks on the two clients (the window the fix does not cover), and BS6sob
+  parted in the pre-step inputs at tick 23. shape_order 'sync' (load a
+  missing file before the shape is built, d8967115): 3 of 3 runs diverged
+  at the shapes stage (tick 16, body mass/inertia), the sync path never
+  loaded (loads=0) and late replacements still differed per client. With
+  the alternate-key interception and a forced mass recompute after a late
+  replacement (5ccd3a9f): mass differences are gone, but the interception
+  still did not fire live (loads=0, alt_keys=0); 1 of 3 runs passed
+  (s2c), s2a parted in pre-step inputs at 21, s2b in child order at 16.
+  With the engine's blocking load (dd7d76be) the sync path works (76
+  loads, 6 late moves per client): no shape or mass difference in any of
+  three runs; s3c passed, s3a/s3b parted only in the movement inputs at
+  ticks 20/21 (two spawned frigates start accelerating a tick later on one
+  client) - the next class of the spawn battle. With
+  native_gate_engine_refresh_rng (each ship's periodic engine-parameter
+  refresh was rescheduled with a draw from the per-client thread stream,
+  d0305386): BS6era and BS6erb passed all 600 ticks with a relay pass,
+  BS6erc still parted in the movement inputs at tick 21 (2 of 3 pass).
+CAMERA AND LONG RUNS, ~11:50: cam-B17/18 traced the 574-590 low-attention
+ships to the same engine-parameter refresh (78855's travel flag reached its
+flight model at 574 vs 598); the fix is in, cam-B19 (with it) queued after
+a boot refusal caused by a diagnostic patch inside another module's pinned
+code (fixed). long-L19: 0 through 1500, 5 at 1800; the remaining long-run
+split is a ship's entry position after a warp (WarpEvent placement),
+agent tracing it. long-L20 (+ native_gate_engine_refresh_rng): 0 differing
+through the 1800 capture, first relay mismatch 2100, 32 by 3000 (no-parent
+group again); the warp entry direction, drawn from the shared per-frame
+word in the safe-position search, is keyed by native_gate_warp_rng
+(9661ccc6), long-L21 queued.
+long-L21 (+ native_gate_warp_rng): same result as L20 (first relay
+mismatch 2100, 32 by 3000, same seeds). The keyed warp words match on both
+clients; what differs is the tick of two warps: ship 8bddc warps at 1990 on
+client 2 but 1991 on client 1, ship ac854 the other way round (two ships at
+the same warp, one admitted per tick, the pick order differs). Agent tracing
+what orders them.
+long-L22 (+ transition rows, 2400 ticks): relay pass, 0 differing; the two
+warps came in the same order on both clients this time (intermittent). Most
+warps (1017 of 1107) are posted with time 0 and none of the two ships'
+warps is a highway-entry transition; the poster is being traced.
+RESULT: COMBINED STACK (full-G1/G1o, ~12:55): the long-run keys plus the
+camera keys in one config (overlay-Full48, build47), 3000 ticks. full-G1:
+0 differing through 1800, first relay mismatch 2100 = the same warp swap
+(2 of 3 runs). full-G1o, client 2's camera 70 km away all run: no swap, 0
+differing through 2100, first mismatch 2400: four Argon fighters travelling
+without a zone parent after identical warps (motion only), a second class
+of the same family. The camera keys add no class of their own.
+PLAY CONFIG overlay-Play9 (~13:00): overlay-Play8 (native controls, fire
+record, hit claims, prediction present, camera groups, engine refresh,
+player timer, weapon fire rng) plus warp_rng, ship_sound_rng 'split',
+view_points_source 'ship', physics_scenes 'viewpoints' and nav_octree
+'sync'; build48. play9-smokea/b: 600 ticks each, relay pass, 0 differing.
+Tick pacing, two clients on one PC (both rendering): play config 23-24
+ticks/s, median 47 ms, p99 63 ms, worst 141 ms (play9) / 234 ms (play8);
+census configs ~12 ticks/s with 3.3-3.6 s stalls at each world capture
+(diagnostic only, not in the play config).
+LIMIT OF nav_octree 'sync': st3-F49 (three players in three sectors, the
+start warps at tick 22) stopped at 22 with stop reason 137 join_timeout:
+moving a ship into another sector requests ~75 octrees there, 8.7 s of
+building (one 1.66 s). A blocking join cannot carry a sector change, so the
+play config drops the key again (overlay-Play10 = Play9 without it); a
+non-blocking publication (agreed through the input wire) is being designed.
+nav_octree 'deadline' (c61b420d: an octree requested at N becomes visible
+at the join of N+30 on every client, built in the background as natively):
+big-BS6nd a/b/c all pass, 0 differing; worst join 121-157 us instead of
+0.34 s, no inline builds. Battles are covered; a sector entry (75 octrees,
+~25 s of building on one thread) is not, hence the agreed variant.
+RESULT: THREE PLAYERS IN THREE SECTORS ON THE CURRENT STACK (st3, build50,
+~13:25): factions and coop, slots 2 and 3 started in cluster_01_sector001
+and cluster_13_sector001, 1202 ticks each: st3-F50n and st3-C50n (no
+nav_octree) relay pass, 0 differing objects for both client pairs.
+st3-F50d ('deadline'): also 0 differing, but the sector entry asked for 76
+octrees and the join of tick 52 built 70 of them inline: a 21.7 s freeze
+(longest single build 1.7 s), as predicted.
+st3-F50L (the same three-sector factions fixture, all three ships piloted,
+3000 ticks): 0 differing through 1800 for both pairs; client 3 parts at
+2100 with the warp-swap group (8bddc ...), client 2 at 3000 with another
+in-transit group (7ec67 ...). The long-run residue is the same warp/transit
+family with three clients as with two.
+CAUSE OF THE WARP/TRANSIT FAMILY (census-zone b7f6f5dd, merged 855b1536):
+the time-0 warps are posted by the parallel pathing jobs. A ship that left
+its zone asks for a zone at its position; only one new tempzone can be
+pending, and the first job thread to take its lock creates it at its own
+ship's position. Which ship gets the next zone (the 1990/1991 swap) and
+where the zone sits (the G1o group's origin) depended on thread timing.
+native_gate_tempzone_order 'order' grants one zone per joined pass on the
+MoveWorker to the smallest request by (sector key, position). Queued as
+long-L23 and full-G2.
+CAMERA, ~13:40: cam-C1e (anchor in camera mode 1) failed closed at the start
+warp (the engine reset the camera mode); cam-C1f (native_gate_viewpoint_
+policy 'sector': mass traffic and highway objects use the view point of
+their sector) passed 602 ticks with 0 differing; its pick counters differ by
+6 between clients (being checked).
+cam-C1g (C1f + policy rows): the mass traffic zone in player 2's sector is
+updated at different ticks per client (tick 100 on client 2, 101 on client
+1, an extra update at 112 on client 2); mass traffic ships are not in the
+census, so the run still passes. Keep viewpoint_policy out of play
+configs until fixed.
+PROBE COST (census-perf, merged 20599ffe): the play config's ~8 ms per tick
+were ~4 ms pure-Lua SHA-256 of the tick state (X4's Lua appears to run
+without the JIT) and ~3.3 ms for ~85 log lines. native_gate_status_stride
+and a native digest (gate.sha256) should bring it under 1 ms; lean play
+config overlay-Play11 queued.
+RESULT play11-smokea (overlay-Play11s = Play10 minus event rows, pilot
+capture, contact/radar row keys, trace stride 3600, status stride 60,
+native digest; world capture kept at 300 only for the census; build54):
+600 ticks, relay pass, 0 differing. Per tick (median, two clients on one
+PC, capture ticks excluded): probe 2.1 ms (Play9: 8.1), outside the gate
+25 ms (33), tick spacing 31 ms (47), p99 47 ms (63). LUA_RUNTIME
+jit=unknown digest=native. overlay-Play11 (no world capture) is the play
+config.
+RESULT st3-F54a (nav_octree 'agreed', three sectors): no hitch (76 octrees
+agreed and shown on all clients, worst join 28 us, slowest 472 ticks after
+its request), but client 2 parted by 600 (one Argon transporter in slot 3's
+sector) with one hidden-octree lookup that client 1 did not have; the
+hidden path is not yet equivalent to a native miss (agent on it).
+RESULT: FIRST CLEAN 3000-TICK RUN (long-L23, ~13:54): the long-run stack
+(Long21 keys) plus native_gate_tempzone_order 'order', warp rows observe
+only, build54: relay pass over 3000 ticks, 0 differing objects at every
+capture, 0 created differing. 205 tempzones granted in the same order on
+both clients; none created outside the order. Before: first mismatch at
+2100 (L20, L21, G1) or 2400 (G1o).
+full-G2 (the combined stack: long-run keys, camera keys, warp_rng, tempzone
+order; build54), 3000 ticks: relay pass, 0 differing, 205 tempzones granted
+alike. Queued: full-G2o (client 2's camera 70 km away), full-G3 (6000
+ticks), play12 smoke (Play11 + tempzone order).
+play12-smokea (overlay-Play12s, build55): 600 ticks, relay pass, 0
+differing. overlay-Play12 (Play11 + tempzone order, no world capture) is
+the play config.
+full-G2o (full-G2 with client 2's camera 70 km away for the whole run):
+3000 ticks, relay pass, 0 differing. The simulation is independent of the
+camera over a long run.
+RELAY STALL GROWING WITH THE SESSION (census-perf, merged b1bddbc7): with
+input blobs on the wire (play, sandbox, N-player), the relay rewrote its
+full JSON report before every permit; the report grows by a tick each time,
+so the client wait grew from 2.6 ms early to 8.1 ms by tick 600 (play11)
+and offline to ~28 ms per tick by tick 1500 (~200 ms by 18000). The relay
+option --input-journal appends each released tick and rewrites the report
+every 60 s. Census configs without input blobs never paid this. Runners
+runN2/runSandbox2/runNLong2 pass it; overlay-Play13 = Play12 + lookahead 1
+(relay --lookahead 1) on build60, smoke queued.
+full-G3 (full-G2 keys, 6000 ticks): 0 differing through 3300, first relay
+mismatch 3600, two independent seeds in two sectors (container
+transporters a1df9, acf94; then 962c1, a1720 at 3900), 225 by 6000; warp
+rows identical until 3845. Suspect: station octrees published on wall-clock
+time when transporters approach to dock (no nav_octree key in this
+stack); full-G4 (+ 'deadline') queued.
+NAV OCTREE CONTENT (st3-F59a, octree content digests, ~14:30): relay pass
+and 0 differing, but two stations' octrees (both flags) have different cell
+counts on each client (e.g. 103201 / 102689 / 102545 cells); 38 of 42
+compared octrees match. The builder thread reads the station's live,
+double-buffered children and part transforms at its own moment, so an
+octree's content depends on wall-clock build timing in every mode,
+including runs without the key (full-G3's transporters at 3600). Fix in
+progress: snapshot the builder's inputs at the request tick's join.
+st3-F59b/c: the same two stations (Antigone factory bases) differ again on
+every client (3 of 3); runs pass because no transporter used them in time.
+sc-missions59 (missions fixture on the full stack, 1800 ticks): relay pass,
+0 differing objects; the script census parts at 981 (some ships enter
+fight.attack.object.station on one client only; find_order reordered
+2779 vs 2781). Agent tracing it: the script is entered through a station's
+own radar scan event (event_gravidar_has_scanned), posted early when the
+station's contact set changes; on one client a station's contact set
+changed 6 s earlier than on the other (four stations, four sectors). The
+contact that differs is not portable (all saved/created objects agree);
+gravidar watch run queued (sc-missions63). find_order is not the cause.
+HIGHWAY ON THE FULL STACK: sc-fly59 a/b/c (highway fixture + full-G2 keys,
+600 ticks each): all pass, 0 differing.
+TOUR ON THE FULL STACK: tour59 a/b part at 60, but only the spawned
+frigates of the fixture's spawn battle (the BS6 class): the full-G2 stack
+lacks shape_order 'sync' and nav_octree; tour63 adds them (+ snapshot).
+OCTREE INPUT SNAPSHOT merged (3b7de867, native_gate_nav_octree_snapshot):
+the main thread collects each requested object's builder inputs at the
+join after the request, the background build fills from that snapshot.
+Queued: st3-F63s a/b (agreed + snapshot, content digests), full-G5
+(deadline + snapshot, 6000 ticks), after full-G4 (deadline alone).
+CAMERA FOR PLAY merged (a3dea0e4): native_gate_camera_anchor 'own' (each
+client not in slot 1 follows its own ship, chase view); cam-P1 queued.
+RESULT play13-smokea (overlay-Play13 = Play12 + lookahead 1, relay with
+--input-journal and --lookahead 1, build60, 1800 ticks): relay pass, 0
+differing. Barrier wait 0.07 ms per tick (Play11: 6.2 ms) and flat over the
+run (ticks 100-600 / 600-1200 / 1200-1800: 0.07 / 0.07 / 0.08 ms); probe
+1.8-2.0 ms; tick spacing median 31 ms in every third. overlay-Play13 is
+the play config (start the relay with --lookahead 1 --input-journal).
+RESULT: CLEAN 6000-TICK RUN (full-G4, ~15:05): full-G3's stack plus
+native_gate_nav_octree 'deadline', build60: relay pass over 6000 ticks, 0
+differing objects at all 20 captures, 0 created differing. Only 4 octrees
+were requested in the run (transporters approaching stations), published
+30 ticks after the request on both clients, none built inline, worst join
+0.3 ms, contents identical. Before: full-G3 parted at 3600.
+CORRECTION (~16:30): those 4 octree requests were at tick 6-36 (created
+ships), not near 3600, and play15-soak (play config, agreed octrees armed
+but no request in the whole run, 6000 ticks) parted at 3600 with the same
+transporter seeds as full-G3. The 3600 class is not attributed to octrees;
+it appeared in 2 of 4 long runs. Agent on it; full-G7 a/b queued.
+full-G7a/b ('deadline' + snapshot, 4200 ticks): both pass, 0 differing.
+Runs with 'deadline' are 4 of 4 clean past 3600; the two that parted had
+no octree key (G3) or 'agreed' that recorded no request (play15-soak), so
+early or pre-arming octree builds are the remaining suspect.
+play15d-soak (play config with 'deadline' instead of 'agreed', build71,
+6000 ticks): pass, 0 differing, but it also recorded no octree request; so
+neither mode acted in the play soaks and the 3600 class may be
+intermittent (2 of 7 long runs). Repeat soaks of both queued.
+PVP HIT AUTHORITY (user decision, 29 Oct 2026): the player being hit
+decides player-versus-player hits (native_gate_hit_claims = 'victim').
+overlay-Play16 = Play15 with 'victim' is the play config.
+LINUX (user decision, 29 Oct 2026): no Wine; the Linux build gets its own
+port of the gate. Per LOCKSTEP-LINUX-FEASIBILITY-20261029.txt this gives
+Linux-only lockstep sessions (all peers on the Linux binary, including a
+Linux full-simulation server); mixed Windows + Linux sessions stay
+infeasible (different compilers and math libraries), and Windows sessions
+use the Linux host as relay. Port started.
+EVERY PLAYER IS PLAYER 1 (user direction, 29 Oct 2026): each client must be
+the native player of its own ship (stock HUD, the game's own camera,
+menus, native controls); no substitute chase camera or custom flight
+mapping. Design: one native player per slot. The engine's own player
+control path runs once per slot per frame on every client with that
+slot's recorded native input and the slot's player state swapped in; the
+local client's UI and camera present its own slot. First step merged
+(53c8ea6d, native_gate_virtual_players 'observe': state map of ~1.1 KB of
+per-player control state in 33 regions, read-only); RE in
+reports/LOCKSTEP-VIRTUAL-PLAYERS-RE-20261029.txt.
+play16-smokea (Play16, victim decides PvP hits): 1800 ticks, relay pass,
+83 hit claim lines per client.
+st3-P15B (three players with body_order 'sort' + shape_order 'sync'): still
+splits at 900; physics step rows already differ at tick 2 (shape hashes) on
+the anchored clients: a camera dependency in the physics scene. Cause:
+the compound-child refresh interval reads the render-side view caches
+(player's sector, distance to the player's ship); native_gate_shape_refresh
+'view' (a873a941) computes it from simulation transforms and the nearest
+view point.
+3600 CLASS (physics agent, 861caee9): station trade-offer updates due at
+ticks 2935-3655 drew from the per-frame RNG word; native_gate_event_rng
+'key' keys every due event handler. full-Ekb (long-run stack + key, 4200
+ticks): pass, 2458 trade events keyed alike. play16E-soak (play config +
+key, 6000 ticks): still parts at 3600; there the number of handled events
+differs per client (trade 2497 vs 2493), i.e. event scheduling itself
+depends on something client-local (suspect: view caches with client 2's
+camera at its own ship). Missions radar: native_gate_gravidar_wide 'sort'
+(2de7e384) keeps native behaviour with a deterministic zone order.
+RESULT MISSIONS (build74/76): sc-missions74w ('wide') and sc-missions76s
+('sort'): relay pass, 0 differing objects, no script split, radar contact
+changes identical (0 differing, 0 one-sided); 'sort' keeps the native late
+drops (106 = 106). Control without the fix: radar rows split at 1548.
+'sort' is the recommended mode.
+3600 CLASS FOLLOW-UP (physics agent, 891bcc1b): the snapshot load
+reschedules build storages with a 0-10 s jitter drawn on the loading
+thread (per client): native_gate_build_rng. One-sided
+SupplyWaresAddedEvents (station wares added lazily, possibly via UI cargo
+queries): native_gate_supply_rows (diagnostic), native_gate_ui_cargo
+'block'. The trade-offer reschedule itself reads no camera data.
+st3-P15S (+ shape_refresh 'view'): refresh counters identical on all
+clients, but compound shape hashes still differ from tick 2 and the run
+splits at 900: the children's poses differ (camera agent).
+FLOATING POINT (fp-inventory, 84616e76): mixed Windows + native Linux is
+not reachable by hooks: the Windows engine (incl. Jolt) was compiled with
+fast-math-style rewrites, the Linux build was not, across ~3,000
+simulation functions. Patchable: the math library (CPU-dispatched FMA3/SSE2
+on Windows), the save decimal parser, denormal mode, approximate rcp/rsqrt
+instructions (results differ between Intel and AMD: a risk for
+Windows-only play across different PCs, untested so far).
+RESULT: FIRST CLEAN 6000-TICK PLAY SOAK (play16F-soak, ~19:10): the play
+config (Play16: native controls, hit claims victim, lookahead 1, relay
+journal, own-ship camera on client 2, agreed octrees + snapshot, tempzone
+order, policy) plus native_gate_event_rng 'key', native_gate_build_rng,
+native_gate_ui_cargo 'block' and native_gate_gravidar_wide 'sort'
+(build77): relay pass, 0 differing objects at all 21 captures; trade events
+2497 = 2497 with identical draws; 2887 build storages keyed alike; the UI
+cargo block never triggered. overlay-Play17 = Play16 + event_rng 'key' +
+build_rng + gravidar_wide 'sort' (build78) is the play config.
+Engine patching rules (user, Egosoft fan policy section 3):
+docs/ENGINE-REIMPLEMENTATION.txt.
+THREE-PLAYER HEALTH SPLIT NAMED (st3-P15C, per-child pose rows): the only
+differing compound children are the two lasers of player 1's own ship
+(ae79c, parts ae7b5/ae7b6), rotation differing from tick 2 on client 1
+(cockpit camera) against clients 2/3 (cameras at their own ships). The
+player ship's weapon aim follows the local camera/crosshair; in lockstep
+it has to come from the slot's recorded aim (virtual-players step 2).
+full-G8 (full long-run stack + event_rng 'key' + build_rng + gravidar
+'sort', 6000 ticks): still parts at 3600 with the same transporters, trade
+events 2499 vs 2500 although the radar sort engaged; the play soak with
+the same fixes passed. Either the play pass was lucky or the full stack
+has another per-client source in the trade chain; agent on it, repeat
+play soak queued.
+play17-soak (overlay-Play17 config, 6000 ticks): pass, trade 2497 = 2497
+with identical draws: the play config holds in 2 of 2 soaks. The full
+stack's residue is tied to its big battle: from tick 1078 client 1 alone
+changes station supplies (engine code, not scripts); supply post rows on
+the four post sites queued (full-G9). st3-P15D (saved-body physics rows,
+1500 ticks): no non-player body differs; the three-player split is only the
+player ship's camera-aimed guns.
+full-G9 (G8 + native_gate_shape_refresh 'view' + supply/event rows, 4200
+ticks): pass, and for the first time the full stack's event delivery is
+identical on both clients (250,541 calls, 746 supply posts, 2,458 trade
+events). The battle's camera-dependent compound shape refresh was the
+per-client feed into the supply and trade chain. 6000-tick confirmation
+(full-G10) queued.
+CORRECTION: full-G10 (G8 + shape_refresh 'view', no diagnostics, 6000
+ticks) parts at 3600 with exactly G8's event counts; shape_refresh was
+armed and active in both G9 and G10. G9 passed only with the supply/event
+row diagnostics on, so the residue is a deterministic per-client
+difference that those hooks mask; bisect runs (G10 + supply rows only,
+G10 + event rows only) queued.
+VIRTUAL PLAYERS STEP 2 merged (9b6b0f5c): slot 1's native input is captured
+as X4's own dispatch stream (input section 0x53, incl. the weapon aim point)
+and replayed through the stock handlers on every client; X4's
+PlayerController flies slot 1 everywhere; second-Player construction spike.
+Live tests (build82, 2 clients, 603 ticks, all relay pass): stock-E1 (slot 1
+flies a scripted demo through X4's own controls, replayed on both clients):
+census 0 differing. vp-G1: X4's own factory built a second U::Player at
+tick 20 on both clients, no crash, session in step. vp-D1 (observe): the
+player's sim/device control state and the per-lane config still differ
+between clients (regions being named).
+play18-soak (overlay-Play18 = Play17 + shape_refresh 'view', build82, 6000
+ticks): parts at 3600 with the same transporters (a1df9, acf94); the play
+config is 2 of 3 soaks, Play17 stays the play config.
+3600 CLASS ROOT TICK (~20:20): "first mismatch 3600" is the world-capture
+stride (the probe joins the last WORLD_HASH, every 300 ticks, into each
+tick's digest). The real start is one RNG-drawing due event at tick 1078
+(full stack; play config: between 1021 and 1080) that one client drops:
+EVENT_RNG drawn/draws step 199 -> 200 / 951 -> 952 at 1078 on both clients
+in every passing run (full-G9, full-Ekb, play16F, play17) and on only one
+client in every run that parts at 3600 (full-G8, full-G10, play16E,
+play18); that client stays exactly one event behind for the rest of the
+run. Which client drops it varies (client 2 in G8/G10/play16E, client 1 in
+play18), so it is not client 2's camera. In the play config pacing
+predicts it in 7 of 7 soaks: failures reach tick 3600 in 121.7-124.9 s,
+passes in 132.8-135.2 s; the full stack shows no single threshold. Near
+it (full-G9 supply post rows): at 1077 a script expression lazily runs
+UpdateTradeOffers for three stations (340cf, 1f2df, 2bb56); at 1078 a due
+event handler (from EventSystem_ProcessDueEvents) adds and removes wares
+at station 1f2df. full-G10e now records event rows for ticks 1000-1120
+to name the event; the physics agent has the lead.
+full-G10s (G10 + supply rows) and full-G10e (G10 + event rows 1000-1120)
+both pass: in G10s neither client fires the 1078 event, in G10e both do.
+THE 1078 EVENT (physics agent, b9f59762): U::SupplyWaresAddedEvent on
+station 340cf, posted at 1077 when a script DoIf looks up a trade-offer
+property; the lookup brings the station's trade offers up to date and the
+update posts the event when its supply wares changed. The handler
+recomputes wanted supply orders from the station's unit counts and draws
+once when it creates an order. Whether it does depends on how far the
+stations' lazily computed state (cargo/production, units in flight, trade
+offers) had advanced at 1077. Besides simulation code the Lua UI advances
+it through property and storage queries at real-time-paced refreshes
+(target monitor, map, station overview), which fits the pacing
+correlation (unproven). native_gate_ui_lazy 'observe' counts and logs
+those Lua-originated updates in admitted frames, 'block' skips them so
+only the simulation advances that state (UI shows the last simulated
+state). Merged as 6198dbcd (build85, stop reason 170). Queued: full-G11o
+(observe + event rows), play19-soak x2 (Play17 + 'block'), full-G11b
+('block', 6000 ticks).
+st3-P15M (P15D + mining/xs camera 'view' + camera probe, build83, 1500
+ticks): the known three-player health split at 900 (8 objects per pair,
+health only, slot 1's camera-aimed guns); mining and XS routes never
+fired in this fixture; the camera probe's only remaining reader is
+zone921 (981 calls on client 1, 6 on clients 2 and 3).
+UI LAZY RESULTS (build85): full-G11o ('observe' + event rows, 4200
+ticks) parts at 3600 with the 1078 event dropped on client 1; play19-soak
+and play19-soak2 (Play17L + 'block') and full-G11b (G10 + 'block', 6000
+ticks) pass with the event on both clients. But every run reports
+lua=0/0/0 blocked=0: the Lua UI never called the three lazy updates, so
+'block' changed nothing and the passes are chance; the UI hypothesis is
+out. The counters of simulation callers on the main thread split at tick
+187 instead: on the deviant client 4 fewer cargo/production updates at
+187 and 5 fewer cargo plus 4 fewer units-in-flight updates by 188
+(cumulative 59/33/9 vs 63/33/9 at 187), the battle station 3bccb's
+window (fixture 11 attacks from 153). The 1078 event is downstream.
+Rows for every caller in a 150-200 window requested; short 400-tick runs
+(full-S187a/b/c) measure the split rate.
+RESUMED (30 Oct 2026). Merged: Linux gate core and world hash (a300167a),
+stock slots pin fix (3302687b), loadout order (dc1e1dff = build95).
+FP LIVE (build91, Play17L, 1803 ticks): all four keys on, fp_env observe
+and default: relay pass, census 0 at 7 captures, every module restored,
+failures 0. Frame period 39.6 / 37.2 ms against 38.0 ms without them
+(one run each); no measurable cost.
+GUN AIM (stock-H2b/c, build91): slot 1's gun rows identical on both
+clients at 214-216 (steering) and 274-276 (boost), client 2 on its own
+camera.
+SLOTS (stock-J1b/J2b/J3b, build94): PILOT_STOCK_ARMED slots=3 on both;
+X4 builds and seats slot 2's player without a crash; then the probe stops
+at tick 26, gate.actor stage=controller_type (slot vtable; agent on it).
+TICK-187 LEAD (physics agent, static; unconfirmed): tick 187 is 3bccb's
+first wanted-supply evaluation since load. The target is recomputed each
+call from maps keyed by macro address, whose order decides the truncation
+remainder and the wanted list order, i.e. per-process heap addresses.
+native_gate_loadout_order 'observe' / 'canonical' test it (queue133).
+HIGHWAY (sc-highway94a): the highway parameter rows are byte-identical;
+a214c's motion first differs at 1154, the tick it enters highway01.
+LINUX ON THE VPS: first attempts: lock mount point missing (fixed);
+X4 Linux loads to the menu in ~2 minutes and runs the probe, which then
+needed ui/sha256.lua from the lanes' base (bundle --extension-base).
+4 CLIENTS: the full-stack config refuses (two-player command fixtures);
+free RAM stayed at 31 GB or more with lanes in use. st4-L95a (3-player
+config): "player identity plan has 3 slots for 4 clients".
+TICK-187 ROOT CONFIRMED (full-L95a-d, build95): loadout rows are identical
+on both clients in the runs that do not split and differ in those that do.
+On a split, one client has cargodrone macro < repairdrone macro by heap
+address, the other the reverse; the truncation remainder goes to the first,
+so 3bccb's target is 13/2 or 12/3 with stock 12/3 (wants +1/-1 or nothing).
+The same flip shows on 3e446 and 3e3d4. full-C95a-f ('canonical', 400 ticks):
+0 of 6 split, against 11 of 20 before (about 1% by chance). Soaks queued.
+SLOT 2 FLIES (stock-J1c/J2c/J3c, build96, 600 ticks): relay pass, census 0
+(1 capture). X4's own factory and take-control seat slot 2's player; ship
+176ad5 flies its demo through X4's own controller on both clients,
+(-394,100000,700) to (3534,98447,2103), PILOT_SHIPS byte-identical over 600
+rows, also with client 2 on its own camera. No human input tested yet;
+presentation (own HUD and camera) not built.
+HIGHWAY SPEED (dfc39733, build97): HighwayFlightControlModel seeds an AI
+ship's speed jitter with its runtime ID; a214c parted the tick it entered
+highway01. native_gate_highway_speed 'key'; sc-highway97a queued. 84 created
+objects still differ at the 1500 capture, unexplained.
+3600 CLASS AFTER 'canonical' (build97, 6000 ticks): play21-soak, play21-soak2
+(Play17L + loadout_order) and full-G12 (full-G10 + loadout_order): all relay
+pass, 0 differing at 21 captures; event counts identical per tick on both
+clients in full-G12 (trade 2499). The fix corrects each client by a different
+amount (full-G12 moved=4357 vs 1015, relinked 4139 on both), as the mechanism
+predicts. Before: 3 of 3 full-stack 6000-tick runs without the octree keys or
+with the same stack (G3, G8, G10) parted at 3600.
+CANDIDATE PLAY CONFIG Play22 (build98: Play17 + loadout_order + order_canon
+canonical + highway_speed + all FP keys): play22-soak2 pass, 0 differing;
+play22-soak: world census 0 at 21 captures and identical events, but the
+relay digest differs from tick 2 to the end through one constant value of
+fixture actor 6 (four floats, low bits), not in the world hash (FP agent).
+Frame period 36.1-36.4 ms against 36.9 for Play17: no measurable cost.
+FIRST 18000-TICK SOAK (play22-long, Play22 config, 2 clients, build98): relay
+pass with 0 mismatches over 18003 ticks, 61 world captures with 0 differing,
+EVENT_RNG identical on every tick (trade 11176), frame mean 36.7 ms, 665 s.
+CORRECTION: dt is pinned at 1/60 s, so this is 5 minutes of game time (not 10)
+and 6000 ticks is 100 s (not 3-4 minutes); earlier statements that used wall
+time were wrong.
+PERFORMANCE (29-30 Oct): the play config's tick costs ~34 ms without captures,
+so the world runs at about 45-50% of normal speed (play22-long: 300 s of game
+time in 665 s). Per client medians: outside 31.8 ms, gate frame 1.5, joins and
+checks 3.9, probe 1.1, relay wait 0.08. perf-Pbare (near-minimal gate) outside
+21.4 ms. 4 clients p50 32 ms on this PC. FP keys cost nothing measurable.
+World captures (diagnostic) are 60 of the 70 frames over 100 ms in play22-long.
+Needed: a tick rate key or agreed per-tick dt (FP agent).
+OPTION B SLICE 1, FIRST LIVE FIX (user: "go fix"; branch contrib/ferrite-fp-redirect,
+f8b7752f shadow, ba15c7b0 redirect, not yet on smoke). The first value to part between
+Windows and Linux is written during the snapshot load by the flight-parameter writer
+(Linux 0x14811c0, Windows 0x6db200): Windows computes 1/den once and multiplies where
+Linux divides. Our strict recompute, matching Linux, ran in shadow on all 41815 calls:
+Linux 0 differing, Windows up to 2 ulp on about 12000 (fr5, vps-linux-FR5). In
+redirect mode (Windows overwrote 18203-18547 values, Linux none) the watched ships'
+slots are bit-identical across platforms (fr6, vps-linux-FR6), and at tick 2 ships
+differing Windows vs Linux fell from 574 to 425 (w4 vs vps-linux-L4, census every
+tick). Next: the function behind the remaining 425 (likely the Linear flight step).
+SLICE 1, SECOND FIX: the Bezier segment length (BezierSpline::Set): Windows inlines it
+in two builders (0x857960, 0x31c640) and sums the four control distances pairwise;
+Linux sums left to right. And our own Linux preload had a bug: GCC's rsqrt/rcp pairs
+through a register copy (8 sites) were rewritten as 1/(1/sqrt(x)) instead of sqrt(x)
+(fixed in the generator, 641e1388). Windows length recompute in redirect (332113a2,
+3680fba6): len_written 9236. Census w5 vs vps-linux-L5 (everything on): differing
+objects tick 2 286, tick 10 564, tick 60 890 (before any fix: 574 at tick 2, 2091 at
+tick 60). Known next: 18 Windows rcp sites still compute 1/(1/sqrt) where Linux now
+uses sqrt (the mirror of our Linux bug); fixed (903bfba1), no census change here.
+SLICE 1, THIRD FIX: Bezier handle length left at 0 by the caller is set to a third of
+the chord: Windows d * 0.333333343f (4 sites in the two inlined builders), Linux
+d / 3.0f. Windows redirected to d / 3 (b1ed8a51): handle_written 32218. Census w7 vs
+vps-linux-L5: differing objects tick 2 25 (286), tick 10 27, tick 60 73 (890; 2091
+before any fix). 521854 of 521929 objects equal at tick 60.
+SLICE 1, FOURTH FIX: the PointGuard formation slot angle: Windows rem*(pi/(m+1)),
+Linux (rem/((m+1)+(m+1)))*2pi; Windows redirected to Linux's order (e0ed3e2b):
+pg_written 93579 in 60 ticks. Census w8 vs vps-linux-L5: tick 2 2 motion + 2 timing
+(25), tick 10 6+2, tick 60 40+2 (73). 521887 of 521929 objects equal at tick 60.
+600 TICKS WITH ALL FOUR FIXES (w9 vs vps-linux-L6, census every 30 ticks): differing
+objects tick 60 42, 120 178, 210 319, 300 353, 450 559, 600 600 (592 motion, 8
+health). Without the fixes a comparable pair had about 4186 at tick 600. Remaining
+roots at tick 2: bomber 8bd90's flight target (relative to another object, the math
+sits behind virtual calls), 1741d4's -0/+0 velocity; a Split fleet in zone 0x920
+parts between 30 and 60. The two timing objects differ between clients of the same
+platform (a load-time deadline, not a Windows/Linux difference).
+NEXT CAUSES NAMED (fr17-fr19, SetTarget hooked on both platforms): the formation
+function is bit-identical on every complete call. The wingman groups part when a new
+far path point is set (08474d at 58, 0adbe8 at 27, 0adfd8 at 48): the agent's stored
+path point already differs, so something before SetTarget computes it differently (up
+to 112384 ulp in height). Bomber 8bd90 at tick 2: the stored path point is equal and
+the converted world target differs (up to 16 ulp): converter arithmetic.
+PLAYERS IN 3 AND 4 SECTORS (view scenes af8eaafc + stand-ins 96aece24, on Play35L):
+scene-n1 (3 clients, 3 sectors, 1202 ticks) and scene-n2 (4 clients, 4 sectors, 6003
+ticks): relay pass, 0 mismatches, shared runtime ID list equal on every logged tick,
+census 0 at 21 captures on all 3 pairs (scene-n2); standins=4/4 uncovered=0/0. A
+released physics scene is now reused once it holds no bodies (525e8815): scene-n3 (4
+clients, 1203 ticks) relay pass, census 0, early:3 blocked:0/0 by tick 120, so no
+player goes without physics after changing sector.
+WINDOWS AGAINST LINUX, E2 RESULT (step trace on both platforms, w2c and vps-linux-L2b):
+the formation leader's Linear flight step gets identical inputs on both platforms and
+writes two model fields 1 ulp apart (class C, with every FP key on); the followers'
+flight parameters already differ by 1 ulp before the step (a second function, likely
+the flight parameter refresh). E1 coverage (w3, vps-linux-L3, 600 ticks): 876 FP
+simulation functions run on Windows, 766 on Linux (a lower bound); 467 paired and run
+on both, 338 with no Linux twin yet. Estimate to make them bit-equal with our own code:
+about 2,000 hours, 700-6,000 (report LOCKSTEP-LINUX-PORT-PLAN-20261030, Option B).
+PLAY35 (build127, every fix: Play34L + field_fill, mining/xs camera, traffic_views
+'view', cutscene_ready, speak_timer, world_hash_shields 'canonical'): play35-long and
+play35-long2, 36003 ticks each, run side by side: both relay pass with 0 mismatches,
+census 0 at 121 captures, median frame 36-37 ms. In this fixture no cutscene ran
+(seen=0) and the traffic pass queued nothing, so those two were armed but not
+exercised here; they are exercised in s2-victim8 (cutscene ready: 3002 ticks, 0
+mismatches) and reg-tour12 (traffic made real on both clients, 302 ticks, 0
+mismatches).
+NPC USE-CASE SPLITS NAMED AND FIXED: OnCutsceneReady fired on asset streaming (13 ticks
+apart); native_gate_cutscene_ready posts it 2 s of game time after the cutscene appears
+(stop 178; 170 was taken). Cost: a talking head may show before its body streams in.
+TELEPORT TOUR: traffic ships near a player made real from the simulation for every
+view point (traffic_views 'view', 4a1c8e9d + 5a3d40c9); first split moved 157 -> 209
+-> 483 (the speak and cutscene cues) -> with every fix, a mission-generation split at
+tick 12 in one run (reg-tour15) that did not repeat in reg-tour16 (62 ticks, pass).
+WINDOWS AGAINST LINUX, MEASUREMENT (user approved): W1 shows the 3 ships that part
+first at tick 2 are formation members on the Linear flight model (Windows 0xeb27c0,
+Linux 0x13ed050); Jolt steps 37 bodies with unchanged state at ticks 1-5, so it is not
+the first-step cause in this fixture. A step trace on both platforms is next.
+FIRST CLEAN 20-MINUTE SESSION (play34-long, build121, Play31L + economy_load_rng, 2
+clients, 30 Hz + cuts, client 2 on its own camera, scripted input, 36003 ticks = 20 min
+of game time in 26 min of wall time with captures): relay pass, 0 mismatches, census 0 at
+121 captures (stride 300). play34-long2, the same overlay alongside: census 0 at 121
+captures, relay mismatch only at 3189-3190 (also in play32-long), a one-ID blip.
+Cause of the 16021-16127 split: each client drew every station's first economy run at
+load from its own loading RNG word (U::Container import 0x3f0530 -> 0x430cc0); keyed by
+saved ID and saved last-run time (a35117d5, stop 177). Not the UI (ui_lazy lua=0 in
+play32-long). Also: shield bytes the lazy shield getter rewrites on one client (scene2/3)
+are now hashed canonically (b9152558; gameplay unaffected); the one-ID MD splits in
+the slot 2 death runs are NPC use-case cues ProcessUseCaseScript and CheckFilterCriteria
+firing a tick apart (s2-victim3, cue names 39c8682f); teleport split at 208 is one mass
+traffic ship made real on client 1 only, traffic_views 'block' does not stop it
+(reg-tour5), writer not named. Respawned slot 2 cockpit fixed (pilot in the seat,
+s2-suit4).
+LINUX 6000-TICK RUNS (VPS, bundles 26-28): loadout_order twin removed the one-sided
+station supply events (event sets equal through 1787 in all three); attention twin
+moved the natural word's first difference from tick 46 to 657-838; nav key little
+measurable. First parting now tick 1788 in all three: two ships enter tempzones in
+opposite order (the Windows tempzone race). Linux tempzone twin is on hold pending the
+user's Windows/Linux decision.
+MENU ACTIONS LIVE (UI replay 31ab1e4c, build116, 2 clients, coop, scripted, 902 ticks):
+u1b (travel), u2b (travel + target), u3b (+ map orders on a fleet ship): relay pass,
+0 mismatches, census 0 at 4 captures each. Slot 2's travel drive starts and stops
+through X4's own setter on both clients (activity rows equal, nested=2 refused
+re-entries, unavailable=0, target_passed=0); orders Attack and MoveWait applied on both
+clients at 543 and 604. Not yet with people, not the queue editor.
+BIG BATTLE 6003 TICKS (reg-big6, build115, shape_order 'sync', flight fix): no stop,
+census 0 at 21 captures; one relay mismatch at tick 4492 on slot 2 only, equal again
+after (not named).
+JOB SHIP SPLIT REPEATS: play30-long (build115) first mismatch 16081 against 16127 in
+play29-long, seeds saved ships 7edeb and 8db04. build rows (a56b8cba) in play31-long.
+TELEPORTS: field fill fixed (reg-tour3, build117): asteroids spawned 74/296/518 on both
+clients, next= equal at 180; a new first mismatch at 211 (motion 584 at 300) remains.
+SCENES CLEARED: scene2 and scene3 (with and without view_scenes) part identically at
+360, health only on 8 objects in slot 1's sector; a one-client write, being named.
+4 OWN COCKPITS 6003 TICKS: p4-L5 (build116) first mismatch 1500 on slot 2 (not named).
+p4-L4 crashed on client 4 at boot (0xC0000005, once).
+HUMAN OVERLAY BOOTS: human-T4 (overlay-Human3: Play29L + present, fire record, victim
+decides, death + respawn 300, speak timer, play mode, 36000 ticks; 642-tick boot check
+through runPlay.sh with the relay journal): relay pass.
+A KILL NO LONGER ENDS THE SESSION (9f5ad680, build113 and 115, Play29L base, aim
+script, scripted input): death-off, death-victim (2402 ticks): relay pass, census 0 at
+9 captures, PILOT_SHIPS equal, slot 1 dead from 1131/1132, game_overs=0. respawn2
+(victim decides, --respawn 300): relay pass, census 0 at 9 captures, slot 1 died at
+1132, new ship, died again at 1732, new ship; d1=0/2/2/1732. Captures show client 1
+in X4's own suit beside the wreck, then in the new ship's cockpit. Slot 2's death
+not exercised yet.
+FIRST 20-MINUTE SOAKS (36003 ticks at 30 Hz, 2 clients, 4 X4 on the PC): no stop in
+either, faults=0, so the npc_actions fix holds. Both DIVERGED: play28-long
+(shape_order=true) first mismatch 1845, 36319 objects by the end; play29-long
+('sync') first mismatch 16127 = 537 s of game time, census 0 through 15600, 39261 by
+the end. First parting is a choice of waiting job ship for the same docking bay
+(saved 1244b1 vs created 800b79cd on one bay, same topology and timing); suspect the
+order of builds.queued, not verified. Rerun for repeatability: play30-long.
+BIG BATTLE: reason 68 was npc_actions again (reg-big2 faults=0). reg-big2 first
+mismatch 21 with shape_order=true; reg-big3 'sync': 0 mismatches and census 0 at 20
+captures through tick 1194, then reason 55 on one client: stale flight sample of a dead
+fixture on a reused address (c33cc5de, from the code; rerun reg-big6). Shape order
+'sync' adds a load hitch for uncached collision files.
+MISSIONS FIXED: reg-missions2 (speak_timer, 'sync'): relay pass, census 0 at 11
+captures. The blip was one speech line ending on the local audio. Costs: all clients
+must use one language, voice audio may end off the text timer.
+TELEPORTS NOT FIXED: cause named (U::Asteroid fields filled from the real camera in the
+render pass), fix native_gate_field_fill='view' crashes X4 at tick 3 (reg-tour2,
+0xC0000005). Being fixed.
+MENU ACTIONS FIRST LIVE: u1, u2, u3 (build115): travel starts on slot 2, then X4 stack
+overflow (0xC00000FD) at tick 193, the travel_stop apply. Not working yet.
+VIEW SCENES FIRST LIVE: scene1 (slot 2 in another sector): anchors and scene steps
+equal, relay mismatch from 600, census 8. Not working yet.
+RELAY: p4-L stopped at tick 1164 with reason 8 because the relay died on PermissionError
+replacing its report (a reader had the file; fixed 0c18bb51). p4-L2 ran at 5-10 s per
+tick from 1767 with client frames normal and a mismatch at 1200 on slot 3; runN4.sh and
+runPlay.sh lacked --input-journal, my error, so the report was rewritten every tick. The
+cause of that slowness is inferred; p4-L4 is the check. Also my error: win-sub2-a failed
+because the relay was edited as it started; killing p4-L2's driver left snapshots in lane
+profiles b1-b4, which failed reg-big4, reg-big5 and p4-L3.
+LINUX, CORRECTED WORDING: with bundle 22's keys, each platform's two clients match
+through tick 600 outside timing (Windows on the Linux-limited key subset). The one
+6000-tick Linux run with created rows in the census parts from tick 1616, on one due
+event that only one client has and that is not named yet, and reaches 4943 differing
+objects by tick 6000. Windows has no long run on this key set.
+WINDOWS AGAINST LINUX PARTS AT THE FIRST STEP (bundle 23 vs win-sub3, census every tick):
+identical on all 521929 objects at tick 1 outside timing; tick 2: 574 ships differ,
+motion only, 1 ULP in velocity or rotation on the 3 watched ships that differ, positions
+equal; 2091 by tick 60; topology and health 0 through 60. Rounding, not logic: fits class
+C in LOCKSTEP-CROSSPLATFORM-FP-INVENTORY-20261029 (about 3,000 functions), though the
+instruction is not isolated. Jolt W1 alone would not close it, and a mixed run is not
+worth doing now. Decision for the user. Earlier guess corrected: nav deadlines do not
+make the natural word equal (bundle 24: differs on 174 of 600 ticks from tick 47).
+SCENARIOS ON PLAY27 (build111, 2 clients, 3003 ticks): all three show something the
+quiet soaks do not. reg-big (big_war + big_spawn): first mismatch 134, client 1 stop
+reason 68 at 235 with INTERRUPT failures=120 (client 2 failures=0), before the fix
+for that stop. reg-tour (slot 1 warped through 7 sectors, slot 2 stays): first
+mismatch 157, 2847 mismatches, 46 objects of type 2ab3148 created at tick 156 on
+client 1 only, census 11744 by tick 3000. reg-missions: relay mismatch at 1678 and
+1679 only, census 0 at 11 captures. Causes not named yet. The earlier "tour 0
+mismatches" (tour63b) was 480 ticks at 60 Hz on an older config.
+REASON 68 AT TICK 15547 NAMED: npc_actions[16384] filled at about 32 actions per
+second of game time because nothing drained it (from the counters; fix 36c6f7a4
+records it only when read; observer faults no longer stop a session). Not yet run
+live.
+LINUX: WITH SCRIPT RNG KEYS 2 OBJECTS (VPS, bundles 19 and 20, 600 ticks, 60 Hz, no
+input, 1 run each): saved objects differing between two Linux clients 2 at ticks 60,
+300 and 600, against 2146-2307 at 600 without the keys (bundle 17). Motion and
+health changed on about 10000 and 480 objects meanwhile, equal on both. The 2 are
+nav.parameters_due on fixture ships. Created objects are not in this census, and
+next= still differs by 1-8; 3 of 474 scripts part. Not yet a mixed session.
+PLAY27 (build111 = Play25 + sound split + keyed shape draw, 30 Hz + cuts):
+play27-soak x2, 6003 ticks = 200 s of game time: relay pass, census 0 at 21 captures
+on both. p4-C2 (4 clients, own cockpits, same keys, stride 300, 640 ticks): relay
+pass, census 0 at 3 captures on 3 pairs; keyed ship draws 71/76/77/76 per client
+(501/700/841 before the sound split); the rest still unnamed, and they do not move
+the world in these runs.
+FIRST SHOTS BETWEEN TWO CLIENTS (hit-off, hit-victim, build110, 2 scouts, own
+cockpits, 30 Hz + cuts, stock aim script, firing through the record, hostile
+relations, 800 m): shots land both ways. PILOT_SHIPS (position, hull, shield) equal
+on both clients at all 93 samples, relay no mismatches; slot 1 shield 100 to 0,
+hull 100 to 0 at tick 1130 (victim decides: 1131), slot 2 shield 100 to 11. Victim
+mode: claims_out=18 on client 1, claims_in=18 on client 2, pvp_policy=18, late=0 at
+tick 600. Both runs then stop with reason 155, stage=stock_controller_changed: the
+destroyed ship takes the stock controller with it, so a kill ends the session
+(being fixed: slot marked dead, respawn). The world census covers only tick 1 here
+(stride 1800). Rerun at stride 300, 1002 ticks, stopping before the kill (hit-off2,
+hit-victim2, build111): relay pass, census 0 at 4 captures, slot 1 hull 42, slot 2
+shield 30, equal on both clients. Scripted input; no human has fought yet.
+FOUR COCKPITS AT NORMAL SPEED (p4-C, build109, 4 scouts, stock demos, --present,
+30 Hz + cuts, 640 ticks): relay pass, census 0 on 3 pairs, 34.0 ms per tick,
+clients 2-4 present=presenting faults=0. human-T (2 clients, --fire record, no
+input): relay pass, census 0. fire-S (--fire script): triggered=302 on both,
+digest mismatch on 343 ticks (73-632, with gaps), PILOT_SHIPS and STATE_ROW
+equal; lazy magazine refill read by each client's own HUD (fix b2edb8ec, build110;
+rerun queued). No hits landed in fire-S; damage from stock fire is untested.
+play26-long (Play24L + 30 Hz + cuts, relay 18003): stopped on both clients at tick
+15547 (518 s of game time) with reason 68: 76 read failures in the interrupt/
+nested action observers in one tick; 0 mismatches, census 0 at 52 captures until
+then. Being fixed along with an audit of every capacity limit.
+RUNTIME ID STEP B LIVE (build108, Play25 = Play24 + runtime IDs, barrier, local
+lists; client 2 on its own camera): play25-soak x2, 6003 ticks: relay 0
+mismatches with the barrier in the digest, census 0 at 21 captures, next=171855
+allocs=1448021 on both clients in both runs (as predicted offline); ui list 47/21
+and 45/20 per client, view 12373 on both. st-C2Ra (own cockpit + the same keys):
+relay pass, IDs equal at 640, ui 26/30, view 7592 both. So simulation IDs stay
+in step with different cameras and with presentation.
+LINUX (VPS, bundle14): travel snapshot + Gravidar deadlines: tick 1 timing 2;
+tick 60 motion 41, health 5, timing 5; tick 600 total 2143. Event sets and order
+identical through tick 10; tick-1 event order hash equal to Windows.
+NORMAL SPEED (build107, Play24 config, 1203 ticks, no captures, 2 clients; tick =
+wall time per tick after tick 60, median of the two runs where run twice):
+60 Hz base 28.9/30.3 ms = 0.55-0.58x real time; native_gate_tick_hz=30 alone
+34.0/33.5 ms = 0.98-0.99x; 60 Hz + path budget 100: 30.6; budget 50: 29.7; pass
+stride 2: 28.3; stride 3: 26.9; fast reads: 27.9. 30 Hz + budget 100 + stride 2 +
+fast reads: 33.3 ms exactly, 1.00x, 5.8-6.8 ms pace to spare. All relay pass;
+walk agrees (0 of 79 rows differ). Budget and stride change the world against
+earlier baselines (agents update less often); watch behaviour in play.
+play24T-soak (30 Hz, 6003 ticks = 200 s of game time): relay pass, census 0 at 21
+captures, 0.90x including captures. Group ablation round 2: region group 27.0 ms,
+gravidar 28.6, mass traffic 29.3, others within noise of base 29.8-30.8.
+Most of the tick is X4's own simulation (sim_us 24 ms). Corrects the earlier
+"about 10 ms overhead": the relay clock had 15.6 ms steps (fixed; perf_counter).
+OWN COCKPIT ON EACH CLIENT (st-C2, build107, 2 clients, stock slots, scripted,
+--present, slot 2 = Argon scout 7a8fe, 640 ticks): relay pass, census 0 (1
+capture), PILOT_SHIPS byte-identical over 640 rows, faults 0. Client 2's screen
+shows the real cockpit of its own ship with the stock HUD (661 m/s against
+client 1's 568); captures kept locally. The fixture fighter's panel view (st-C1)
+is that ship's model, not presentation. Not done: firing, targeting, slot 1's
+messages still shown on client 2, no human input yet.
+MACRO ARENA LIVE (full-M105a-c, build105): same_order=true hash_order=true,
+inverted 0 of 13,294,746, failures 0, misplaced 0, collisions 0, duplicates
+16043. play24-soak x2 (Play22 + shape_order + pick_order + arena, 6003 ticks):
+relay pass, census 0 at 21 captures.
+PRESENTATION LIVE (build104, identity overlay, 1bfd69fc): stock-K3 (2 clients):
+relay pass, census 0, client 2 present=presenting 571 frames, faults 0. p4-S (4
+stock slots) and p4-K2 (4 stock slots + presentation) pass, census 0 on 3 pairs.
+Screen captures: client 2's stock HUD shows slot 2's own speed (1671, 154 m/s
+against client 1's 339), radar and weapons; no cockpit geometry on ship k: black
+space and a flat textured panel. Restores to slot 1's cockpit at stop.
+Scripted only; no person has flown slot 2.
+PERFORMANCE ABLATION round 1 (build103, Play22 config, 1203 ticks, no captures):
+base 32.1 and 29.5 ms period (noise ~2.6); without RNG keys 30.0, created
+identities 30.5, diagnostics 29.3, FP 29.6: none measurable. Pathing, mass
+traffic, region, ordering, radar, camera groups refused on dependencies; round
+2 queued. Serial pathing cannot be removed by key (too many dependents); its
+Windows cost is estimated from perf-Pbare 21.4 vs perf-PathOpt 23.7 ms.
+HIGHWAY TUBE CLEAN (sc-h103a/b, build103: + nav_octree 'deadline' + snapshot +
+runtime IDs, 1800 ticks): relay pass, census 0 at 7 captures, IDs equal at 1800.
+PLAY23 (Play22 + shape_order + pick_order canonical + runtime IDs, build103,
+6003 ticks x2): census 0 at 21 captures, frame mean 35 ms; runtime ID barrier
+differs from tick 36 (26-27 more allocations on client 1 by 6000): local
+allocations differ when cameras differ. Step B requested. fp_env samples=11
+repairs 0.
+LINUX RANK 1 (vps-linux-5): 9,332 -> 2,915 objects differ at 600; timing 7360
+-> 276, motion 5102 -> 2529; frame p50 23 -> 41 ms on the VPS.
+ADDRESS ORDER CENSUS, REAL (full-A101a-c): macros rebuilt after the arm (all
+sampled moved), 5157 on both clients, 6-7% of pairs inverted; wares 1915, same
+order, not rebuilt. Macro arena approved as an opt-in (agent building it).
+ADDRESS ORDER CORRECTION (34aea071): the full-A98 census only saw the start
+menu's macros (the tick sample never fired); the game rebuilds macros at load,
+so the macro arena is not ruled out. Rerun: full-A101a-c.
+FIRST 4-PLAYER LOCKSTEP (p4-Fa, build100, script pilots, factions, FP keys,
+canonical loadouts, 3000 ticks): relay pass, 0 mismatches, census 0 at 11
+captures on all three pairs, min free RAM 28 GB. p4-Ka (stock + presentation)
+crashed client 3 (agent on it). stock-K1/K2: ui_fault:3de6aa on the first
+presenting frame.
+play22-soak's constant actor 6 difference is the shape_order asset-loader race
+(same bits in runs without FP keys), not FP. Adding shape_order to the play
+stack is recommended.
+ADDRESS ORDER CENSUS (full-A98a-c): wares same order on all clients (1915);
+macros inverted in 2-3% of pairs, and 4002-4053 exist before the gate arms,
+the set differing per client: a macro arena is out; canonical per-site.
+RUNTIME ID SYNC built (079d30f7, native_gate_runtime_ids): not a bare
+counter but a FIFO free list (g_UniverseIDMap, generation<<25 | slot); saved
+objects differ by one per-client offset across all sampled objects; creations
+agree while the simulation stays in step except with a camera follow, which
+allocates per client. Live comparison on the highway fixture queued.
+LINUX: world identities pass after a clear hook (the gate read IDs after the
+load freed the map); tick 1 reached; class table rebuilt from RTTI (167
+classes; controllers keep the interface at +0x58 on Linux).
+FIRST NATIVE LINUX LOCKSTEP RUN (VPS, bundle 2aa3e0b8, 2 instances, 600
+ticks): both stop reason 1 restored 1, identities 521929 failures 0, no
+capture problems, frame period median 25 ms under the discard layer. Relay
+differs from tick 1 (no determinism fixes ported): census 5 objects at tick
+1, 9851 by 600. present 426799, unknown_motion 32607, as on Windows.
+FIRST WINDOWS VS LINUX COMPARISON (offline, WORLD_OBJECT rows at tick 1, same
+snapshot, 521929 objects): Windows stock 352,306 equal (motion differs on
+169,603); Windows with FP keys against unpatched Linux 519,954 equal (motion
+1,907, health 56, timing 12). With the Linux FP patches too (vps-linux-4):
+521,914 of 521,929 equal, motion 0, timing 12, health 3. Tick 1 only: nothing
+has simulated together across platforms yet.
+RUNTIME IDS LIVE (sc-rtid99a/b, build99, highway fixture, no highway_speed):
+RUNTIME_IDS_MAP sum identical on both clients and across runs for all 521,929
+objects; a214c no longer differs; head at 1800 equal in run b, off by 9 in run
+a. Barrier digest differs from tick 1 although the map agrees (being fixed).
+sc-hs99a/b (highway_speed alone): a214c gone too. All four runs: 48 created
+objects first differ at the 1500 capture (next highway item).
+RUNTIME IDS: part_runtime rows show one constant offset between clients per
+run (+1, +50, -3 over 37 objects): saved objects appear to take IDs in the
+same order from a counter with a per-process start. Sync being evaluated
+(native_gate_runtime_ids; camera agent).
+LINUX (VPS, bundle 00ab3fc3): native X4 loads the whole snapshot on both
+instances, then both stop with reason 72: WORLD_IDENTITY_STOP calls=521929
+failures=372579 and 378681. Linux agent has the logs.
+PAUSED AGAIN (user, 29 Oct 2026 ~22:35). Head b134a478 (build91:
+shared FP pin view; decimal + AI wait RNG arm together offline; not yet
+live). Results of the resumed queue127:
+- stock-J1/J2/J3 (build90, slots 2..N): all refused at arm, probe line
+  2458 "pilot stock refused"; stock-H2: "physics trace children refused"
+  (children_from=214). Virtual-players agent to look at both.
+- fp-en2 (fp_env 'observe' alone, build89): pass (the first fp-en failure
+  was the shutdown).
+- Tick-187 A/B (400 ticks): R90 (no xs_camera) split in 2 of 4; X90
+  (+ xs_camera 'view') split in 1 of 3 (d did not start). The XS route
+  never fired (xs=0/0/0/0) in either, so the drone hypothesis is not
+  confirmed and xs_camera is not the fix.
+To run when resuming: fp-dc + all-keys on build91 (Play17L), fp-xr2.
+PAUSED (user, 29 Oct 2026 ~22:00). Head 8e74b827 + f2e085c9 (build90:
+slots 2..N, supply wants, FP, ui_lazy). Agents stopped; queues 124-126
+stopped (J/J2/J3/H2 and the XS A/B not run). Open items when resuming:
+1. Tick-187 split (root of the 3600 class): battle station 3bccb wants
+   one cargo drone and a repair-drone change (-1) at 187 on the normal
+   client, nothing on the deviant one (inferred from the missing cargo
+   calls; no split has been recorded with the ware rows on yet). CORRECTED:
+   supply_wants "masking" the split rests on 0 of 3 runs against a 9 of 16
+   overall split rate, about 8% by chance; not established. The same
+   caution applies to the G9/G10 "diagnostics mask it" reading and to the
+   pacing correlation. Planned test: interleaved A/B overlay-FullR90 vs
+   overlay-FullX90 (+ native_gate_xs_camera 'view'; the full config
+   lacks it), 400 ticks x4 each (queue125.sh).
+2. FP live: all four keys armed and restored cleanly, but the play config
+   refused to arm. One key at a time (build89, Play17L, 303 ticks):
+   portable_math pass; decimal: "AI wait RNG refused" (the world-wait
+   module's saved-decimal pins vs the decimal reader patch); exact
+   reciprocal: client 2 stopped at tick 2 with reason 6; fp_env: lane
+   launch failed (unconfirmed, rerun). FP agent has the first report.
+3. Virtual players: slots 2..N merged (f2e085c9, stop 161), untested
+   live: queue126.sh (stock-J1/J2/J3, H2 with child rows from 214).
+4. Highway tube on the stack (sc-highway87a) parts at 1200 on one
+   transporter (a214c) while the camera-relative highway walk runs.
+5. Linux: Jolt study merged; Linux agent was catching up the linux-gate
+   branch (local, not merged), then the Linux world hash and a VPS live
+   test script.
+6. build_native_gate.py --test without --native-image fails in
+   test_transition.exe (illegal instruction) since before 3d106479.
+TICK-187 ROWS (build87, ui_lazy_rows {150,200}, 400 ticks): the split
+appears in 1 of 3 (full-S187) and 3 of 4 (full-R187a-d) short runs.
+UpdateTradeOffers on battle station 3bccb is entered identically on both
+clients at 187 (same calls, same next-update state), but only one client
+takes the branch inside it that brings the station's cargo up to date
+(four cargo updates at 187, then four units and two cargo updates from
+due events at 188). No lazy update touched 3bccb in 150-186; the deciding
+station field is being named (physics agent). R187e and f: split too
+(5 of 6 rows runs, client 2 deviant each time).
+HIGHWAY TUBE ON THE STACK (sc-highway87a: Sc-highway2 warp fixture on the
+fly86 stack + camera probe, build87, 1800 ticks): the player enters the
+local highway at ~1110 and the camera-relative highway walk sites run
+(52,650 calls, equal on both clients); one transporter-class ship (a214c)
+differs in motion from the 1200 capture (equal at 900). Camera agent
+checks whether the walk places it.
+FLOATING POINT MERGE (3567cd5c, build88): portable math library (156),
+exact reciprocal (157, 1262 instructions in 819 windows), one MXCSR (158)
+and the decimal reader (159) for Windows, the Linux preload and the
+dedicated-server key; no gate address lies within 16 bytes of a
+reciprocal window. Builds use tools/dev/build_native_gate.py (it links
+the portable math sources). Live tests fp-20o/20d/20c queued.
+CAMERA MERGE (2bac2218, build86): Zone::vfunc921 is HUD line of sight
+only. Crystal respawns (destroy + Random::U64 pick) were decided by the
+local camera's 3 km distance; now by the nearest view point of the
+crystal's sector (mining group). xs_detail answers from the stock slots'
+soft targets and external views in a stock session.
+VIRTUAL PLAYERS ROUND 3 (build84 = 3d106479: slot 1's view in the stock
+record v3; 2 clients, 603 ticks): stock-I1 (client 2's camera on its own
+ship), stock-H1 (+ child rows) and stock-E2 (+ hit claims victim) relay
+pass with records=570 replayed=14 flight=1/1 on both clients; slot 1's
+gun parts (ae7b5/ae7b6) have identical poses on both clients at ticks
+1-3 with different cameras (P15C differed from tick 2); E2 admitted,
+resolved and applied 38 PvP claims on both. vp-D3 (observe): sim and
+config hashes now equal, device differs (camera pick) only. vp-G2
+(construct): relay parts at 601; the second Player's construction moved
+one more guard byte on client 2 (0x38f0bc4) and client 2's sim region
+changes 8 more times (agent on it).
+sc-missions70a/b (radar post rows with scan inputs): both pass with 0
+differing objects; station 29bfd drops a ship from its contacts at 980 on
+one client and at 1439 on the other; station 28a77 drops two more
+contacts on client 2 at 1774 with identical scanner inputs. Rows are with
+the agent.
+st3-F63sa (agreed + native_gate_nav_octree_snapshot, build63): relay pass,
+0 differing; all 76 octrees captured at their request's join and built
+from the snapshot; every content digest identical on all three clients,
+including the two stations that differed in every F59 run. The collection
+adds ~1 ms to the request frame. st3-F63sb: the same (2 of 2); census
+octree content 42 compared, 0 differing for both pairs (parser fixed,
+f05efbe8).
+cam-P1 (native_gate_camera_anchor 'own', camera_context 'view', build63):
+602 ticks, 0 differing; client 1 keeps its own camera, client 2 follows its
+own slot's ship in the chase view (screen capture). cam-C1g2: the traffic
+zone of view point 2 now activates on the same tick on both clients (equal
+pick counts), but the new distance rows read implausible positions; the
+policy stays out of play configs until that is fixed.
+PROBE AND FRAME (census-perf c8929596, merged 5533c326): the growth of the
+per-tick time outside the gate in play13 (26 -> 31 ms over 1800 ticks)
+follows the game world (created objects alive 644 -> 4979, warps and
+find_* calls up several times), not our modules, whose timings stay flat;
+state sampling now reads memory with a guarded copy instead of one
+ReadProcessMemory call per field (digest unchanged).
+Play14 = Play13 + camera_anchor 'own' + camera_context 'view' + nav_octree
+'agreed' + snapshot (build64): smoke queued.
+TOUR ON THE FULL STACK: tour63 a/b (player teleport tour with its spawn
+battle, full-G2 keys + shape_order 'sync' + nav_octree 'deadline' +
+snapshot, build63): both pass, 480 ticks, 0 differing incl. created.
+sc-missions63 (gravidar watch): relay pass, 0 differing objects; the
+station-script split came at 1475 this time (981 before), intermittent.
+full-G5 (full-G4 + nav octree snapshot, build63): 6000 ticks, relay pass, 0
+differing (second clean 6000-tick run); 4 octrees requested, all from
+snapshots.
+RESULT play14-smokea (overlay-Play14s: Play13 + camera_anchor 'own',
+camera_context 'view', nav_octree 'agreed' + snapshot; relay journal and
+lookahead 1; build64; 1800 ticks): relay pass, 0 differing. Client 1 flies
+from its own cockpit, client 2 follows its own ship in the chase view the
+whole run (screen captures). Barrier wait 0.07 ms, probe 1.38 ms, outside
+the gate ~27.5 ms per tick (two clients on one PC). overlay-Play14 is the
+play config; launch with
+  LOOKAHEAD=1 sh .local/census/runSandbox2.sh <name> .local/census/overlay-Play14 b1,b2 18003 2
+cam-C1g3 (policy with identity-initialised transforms): view point 2's
+traffic-zone distance is now identical on both clients (~69 km), but the
+zone is still switched on one tick apart; the difference is in the
+switch-on step after the test (being traced).
+CENSUS CAPTURE COST (census-perf fdd04107, merged d6ff1fa3): world captures
+read objects through the guarded copy instead of ~6-7 million
+ReadProcessMemory calls; full-G6 (full-G5 keys, build67, 1800 ticks): relay
+pass, 0 differing, capture stalls 0.75-0.88 s (full-G5: 3.66-3.74 s). The
+first capture's log writing (tick 9, 3.2 s) remains.
+sc-missions68a/b (gravidar post rows): both pass with 0 differing objects;
+script splits at 1346 / 1593. The one-sided radar contact changes are
+portable saved ships entering or leaving a station's contact set one scan
+earlier on one client (e.g. station 1ec3b gains ship 9efec at 1345 on
+client 1 only); the scan's range/visibility input is being traced.
+cam-C1g4a (policy + nav_octree 'agreed' + snapshot, build69): every policy
+row identical on both clients; view point 2's traffic zone switches on at
+the same tick. The remaining switch-on difference was octree build timing
+(the lane build collects objects whose models/octrees are available).
+Mass traffic near the second player is deterministic with agreed octrees;
+Play15 = Play14 + viewpoint_policy 'sector' queued. cam-C1g4 (without
+agreed): client 1 crashed at ~tick 10 (execute access violation outside
+any module, right after NVIDIA Streamline errors in its log, which no
+other run shows); rerun cam-C1g4b passed without a crash and shows the
+mechanism: both clients collect the same objects for the lane build, but
+the build succeeds at tick 85 on one client and at 88 on the other.
+play15-smokea (overlay-Play15 = Play14 + viewpoint_policy 'sector',
+build69, 1800 ticks): relay pass, 0 differing, wait 0.08 ms, probe 1.4 ms.
+overlay-Play15 is the play config (same launch line as Play14).
+st3-P15L (three players in three sectors with the full play stack: own-
+ship camera on clients 2 and 3, policy, agreed octrees + snapshot,
+tempzone order; 3000 ticks): 0 differing through 600, then at 900 clients
+2 and 3 (both camera-anchored in other sectors) differ from client 1 in
+the health of three fighters and their weapons in client 1's sector. Some
+damage path follows the camera's sector; isolation runs without the
+policy and without the anchor: st3-P15Ln (no policy) splits the same way,
+st3-P15La (no camera anchor) passes 1500 ticks: the anchor is the cause
+(a reader of the camera's anchor/sector in the damage path): anchored
+clients evaluate attention a different number of times; st3-P15V (view
+trigger block incl. cutscene sites) still splits, and its caller counts
+name one attention evaluation site (called from 0x80dbe1) that runs 9 / 2
+/ 6 times by tick 36 on the three clients. For two
+players in one sector
+(Play15) this does not arise; a session where players separate is
+affected until fixed.
+st3-F55a/b (agreed octrees with lookup rows): F55a parted by 600 on one
+transporter in a sector a player warped into (lookups and visibility
+identical on all clients), F55b passed. The agreed-mode class is
+intermittent (2 of 3); the long absence of octrees after a sector entry
+(~470 ticks) is the suspect.
+
+RESULT: CAMERA-INDEPENDENT SIMULATION (cam-B19, d9b7fae5): client 2's
+camera moved 70 km from client 1's for the whole run (war fixtures, no
+spawn battle), 600 ticks: relay pass, 0 differing objects at every capture,
+every watched ship's motion and engine-parameter refresh identical. Keys on
+top of the standard stack: view_points 'players' with source 'ship',
+attention_all, region_pass/mass_traffic sync with region_camera,
+region_fields, mass_traffic_camera, effect_camera and highway_camera on
+the viewpoint stand-in camera, weapon_fire_rng, engine_refresh_rng.
+Before: cam-B5 211 differing from tick 50; cam-B16 0 through 540, 14 at
+600 (engine-parameter refresh delay drawn from the per-client stream).
+
+RESULT: SPAWN BATTLE 3 OF 3 (big-BS6ns a/b/c, ~12:40): the frigate start
+class (two spawned frigates began to move at tick 20..24 depending on the
+process) waits for each object's navigation octrees, which a background
+thread builds and publishes on wall-clock time. BS6no ('observe') showed
+the same octrees published one tick apart on the two clients. With
+native_gate_nav_octree 'sync' (every octree requested in frame N is built
+and published at the frame join, before N+1, on every client) all three
+600-tick runs passed: relay pass, 0 differing objects, 11 builds, all at
+joins. Cost: the join waits for the builds, up to 0.34 s in one frame when
+the battle spawns. Before: BS6er 2 of 3.
+
+RESULT: TWO PLAYERS IN TWO SECTORS, BOTH UNDER PHYSICS (cam-C1a/C1b,
+~12:20): coop, player 2's ship moved to another sector at tick 30
+(identity starts), cam-B19 camera keys. cam-C1a: 602 ticks, relay pass,
+0 differing. cam-C1b adds native_gate_physics_scenes 'viewpoints' (the
+engine's second physics scene follows player 2's ship on every client):
+relay pass, 0 differing, the same scene key and call count on both clients.
+Before this, the second player's surroundings ran without physics.
+CONTROL cam-L0 (no camera offset, 1800 ticks): first relay mismatch 1320,
+a Xenon fighter in zone003_cluster_43_sector001 (1320), a defence module
+of the pirate base there (health, 1620). cam-L1/L2 (camera 70 km away) show
+the same zone and module, so this is an out-of-sight combat class there,
+not a camera dependency. cam-L1b (cam-L1 + the refresh fallback for ships
+without a portable key, a294ef65): the zone003 class is gone (nothing at
+1320-1620), but four Teladi fighters in a gate zone part at 660 (motion and
+timing). The camera configs lack the long-run keys (warp_rng, spawn_rng,
+player_timer ...); the combined stack (overlay-Full48) is queued.
+cam-C1c (C1b + native_gate_camera_anchor: client 2's camera follows player
+2's ship): the screen of client 2 leaves its own cockpit and shows a hull
+from inside (window capture), but the simulation parts from tick 20: client
+2 handles six more local events in the anchor's first tick, and ships and
+two effect emitters in player 2's sector differ by 300. Native code still
+reads the camera's anchor; the presentation path is not neutral yet.
+Cause: the start warp re-parented client 2's anchored ship, and SetParent's
+camera check fired camera enter/leave events at once (attention one tick
+early). With native_gate_camera_context 'view' (the check starts from view
+point 1 on every client) cam-C1d passed: 602 ticks, relay pass, 0
+differing, client 2's camera on player 2's ship the whole run. Client 2's
+screen still shows a panelled interior instead of the ship from behind; the
+render eye is not the anchor plus offset (being traced).
+RESULT cam-C1e2 (~14:25, build57): the anchor sets camera mode 1 only
+inside the view-bank refill and adopts engine camera rewrites: 602 ticks,
+relay pass, 0 differing; client 2's window shows player 2's ship from 40 m
+behind in open space in the other sector (screen capture), its own
+cockpit again after the stop. A client can now watch a ship in another
+sector without perturbing the shared simulation.
+
+REMOTE RELAY ON THE LINUX DEDICATED SERVER HOST (29 OCTOBER 2026)
+The protocol-3 relay (pure Python) runs on the Linux server host; two
+Windows lane clients reach it through tools/dev/udp_forward.py (the lane
+tool keeps clients and the session server on loopback). The relay binds
+non-loopback only with --allow-from (source allowlist, plus a host
+firewall rule for the one client address); Barrier remote mode accepts
+those reporters. vps-V2 (all-fixes overlay incl. created_load, 600 ticks)
+ran end to end over the internet: median frame 42 ms vs 31 ms locally,
+wait_ms 11.2 = the round trip (each tick waits for the relay's permit). A
+bounded lookahead (inputs apply at t+d) is being designed to take the round
+trip off the critical path. A Linux full-simulation peer is a separate,
+later step (feasibility study running).
+
+OPERATION NOTE
+Run one two-client pair at a time: two concurrent pairs exhausted RAM.
+
+STATUS
+All interventions are default-off and opt-in through config keys; none is a
+claim of whole-world, cross-platform or long-horizon lockstep. Raw evidence
+stays under .local/census (not committed).

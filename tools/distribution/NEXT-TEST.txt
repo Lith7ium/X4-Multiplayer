@@ -1,7 +1,7 @@
 X4 Multiplayer {{VERSION}} — INTERNAL HUMAN TEST CANDIDATE
 25 October 2026 | Windows/Linux host or guest | TWO players per session
 
-Use the matched 7.5.0 packages, included host server and a NEW invitation.
+Use the matched 7.6.0 packages, included host server and a NEW invitation.
 Do not overlay a configured 7.4.1 folder. Close both games and the old server;
 use the ORIGINAL package's 09-REMOVE-MOD, then extract the new package separately.
 Host: 01 INSTALL -> 02 PREPARE WORLD -> 03 SERVER -> 05 START X4.

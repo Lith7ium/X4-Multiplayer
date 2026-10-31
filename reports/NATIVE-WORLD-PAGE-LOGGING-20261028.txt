@@ -1,0 +1,86 @@
+Native world page logging: bounded complete-line emission
+28 October 2026
+Base: 4296f677ab291901abca221e9df2d70787ec5626
+
+Scope
+-----
+Source fix and offline regression checks only. No game launch, installation,
+staging, native write, new hook, or new native acceptance. The original World011
+capture remains invalid. Its raw files and validation are unchanged.
+
+Failure independently reproduced
+-------------------------------
+The frozen World011 probe sent each C world page directly to DebugError.
+WORLD_HASH_PAGE is 12; the C output buffer is 12288 bytes. Dense Nav V2 rows fit
+that buffer but exceed the observed logging bound.
+
+Each client's tick 2 contains 834 truncated page blocks. Each block has ten
+774-byte rows, followed by 440 bytes of its eleventh row; the twelfth is absent.
+Including LF terminators this is 10*775 + 440 + 1 = 8191 bytes. The stored CRLF
+form is 8202 bytes. The summary declares 10008 changed objects, but only 9174
+object lines survive: 8340 full rows plus 834 partial rows. This is a logging
+failure, not evidence that the C buffer or Nav canonicalizer omitted rows.
+
+Replaying the unchanged frozen world parser produces 3342 errors per client:
+834 malformed timing fields, 834 missing Nav raw fields, 834 incomplete enriched
+timing receipts, 834 selector/capture mismatches, one incomplete delta, one
+independent root mismatch and four detail/hash mismatches. Sparse reconstruction
+retains the previous phase for missing rows, explaining the selector failures.
+The complete run validator also reports other errors; none are waived here.
+
+Two watched motion records retain complete tick-2 object rows and one complete
+206-byte detail each. Each detail's SHA256 matches its same-frame object hash,
+and the peer details differ. Those localized differences are real observations;
+the incomplete census cannot establish that they are the only differences or
+that any whole-world domain is equal. Causal analysis remains separate.
+
+Implementation
+--------------
+Only tools/dev/native_gate_probe.lua changes production behavior. Each native
+page is validated as a nonempty string below 12288 bytes and divided at its
+existing LF boundaries. Each DebugError call is at most 6000 bytes. Every byte,
+row and order from the page is preserved; no values are normalized or filtered.
+Empty rows, unterminated rows, and a single row exceeding 6000 bytes fail through
+the existing probe error path. The entire page is checked before its first
+chunk is emitted. A rejected page therefore cannot produce a frame hash/report.
+Native capture, page size, hashing, exports, schemas, selectors, parsers and
+default V1 configuration are unchanged.
+
+Verification
+------------
+463 native-gate Python/Lua tests PASS with LuaJIT, no skips:
+  PYTHONPATH=tools;tools/dev;src;tests
+  python -m unittest discover -s tests -p test_native_gate*.py -q
+
+Five new production-Lua tests use a truncating DebugError sink, including both
+8190- and 8191-byte payload limits to cover the final-newline interpretation.
+They check exact full-page byte roundtrip, a partial final page, twelve raw-only
+phase changes with unchanged canonical roots, a following zero-change sparse
+frame, and correct independent selector reconstruction with no parser errors.
+Restoring the old direct DebugError call reproduces rejected incomplete data.
+Maximum-width formatter fields survive unchanged but remain schema-invalid.
+Empty/non-string/oversize/unterminated pages abort without a page chunk, frame
+summary or gate report. Removed sparse rows and corrupted raw counters remain
+independently rejected. The production Lua is loaded and exercised through its
+actual update path; native API callbacks are modeled for these offline checks.
+
+Additional private exact-image C exporter check:
+  Windows image SHA256:
+  19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891
+  Existing test_lockstep_world_nav.c: PASS 1462 checks.
+  Valid actual C page: 12 rows, 9264 bytes, exact Lua roundtrip, largest call
+  5404 bytes; independent Python parser errors 0.
+  Widest actual C page: 12 rows, 10032 bytes, exact Lua roundtrip, largest call
+  5852 bytes. Deliberately invalid maximum field values still cause 28 parser
+  errors. The old direct-call mutant also fails on the valid actual C page.
+The private wrapper includes the existing C test and calls the real production
+lua_world_page exporter using owned fixture memory. It does not execute X4 code.
+The C page checks validate export/logging boundaries, not a live game logger.
+
+Remaining acceptance
+--------------------
+Review and integrate the exact source, then run a fresh matched native capture.
+Require all page rows, same-frame raw selectors, independent roots and the full
+validator to pass. Preserve World011 as failed evidence; do not reconstruct its
+missing values or suppress errors to obtain a passing comparison. This fix
+repairs diagnostic transport and does not itself repair simulation divergence.

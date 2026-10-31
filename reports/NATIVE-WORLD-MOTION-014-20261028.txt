@@ -1,0 +1,112 @@
+WORLD014: EVALUATED POSITION OBSERVER BRANCH REFUSAL
+28 October 2026 | internal disposable two-native-client diagnostic
+
+RESULT
+
+The one authorized pair completed two admitted frames and stopped at the first
+strict mismatch. Evidence validity and session pass are false. The frozen
+validator retains 64 errors: the exact ordered 56 World013 errors plus eight
+Position errors. No retry, new seed, tolerance, hash exclusion or state repair
+was performed. World013 remains unchanged.
+
+Both native processes exited normally after owned WM_CLOSE. Both lane and
+snapshot restoration receipts succeeded; the released lane inventory then
+showed idle/unlocked b1/b2, no X4 processes, no instance mutex and no queue.
+Released-runner wall duration was 92.813 seconds. Controlled simulation time is
+not a wall-time performance measurement.
+
+FROZEN INPUTS
+
+Source: 1a72a645769b6bbf7557723e18106a0c0cc6527e, 540 exported files.
+DLL source: 52af120ec2adb9d1a56decfdd33a09adf06b1a78, 181 native/build inputs.
+DLL: 777728 bytes, SHA256
+729a3517a3d80e531909b427b26e0cd4057489498b5bb14dbb1e0e0664a76c1d.
+Overlay manifest SHA256:
+ae379f506e8dd35bfda142e8465359477eeafc37d266952aca319f601bbf1086.
+Proposed command SHA256:
+d9e57f6c1f710042d36c9a112d2d7fdb9f3b2858dec2500ba7cc1272fec9f76d.
+
+Snapshot, scenario, six watches, three input manifests, existing Wait and Find
+keys, WORLD_IMPORTED_2/stride 1, 12-frame ceiling, 260-second runtime and
+900-second admission bound were unchanged from World013. Canonical release
+5d5a680ec6ef supplied b1/b2 and no RAM admission gate. Only the read-only
+world_position configuration was newly enabled. Eight of eleven overlay
+payloads remained byte-identical; DLL, probe and configuration changed.
+
+This is not a single-feature DLL comparison: the reviewed cumulative native
+changes include actor exception cleanup and unconfigured GetUp, Euler and
+construction facilities. Independent source/input review acknowledged that
+scope before launch. No other optional feature was enabled for this pair.
+
+POSITION OBSERVER FAILURE
+
+Each client exported three complete 21-row receipts. All three carry only
+WP_COUNTS (256); selected_valid is false. There were no dropped rows, open
+scopes, restore overlap, abnormal returns, owned patches or outstanding
+protection/flush/patch failure debt at STOP. These clean lifecycle counters do
+not make the failed receipts valid.
+
+The native call/return vectors (outer, transform, radius, sampler) were:
+
+  Action 30, native PC216: [1,0,1,1], one sampler, both clients.
+  Action 48, native PC61:  [1,1,0,0], no sampler, both clients.
+  Action 55, native PC6:   [1,1,0,0], no sampler, both clients.
+
+The current outer receipt requires transform, radius and sampler each exactly
+once. The observed vectors identify the count assumption that refused these
+calls. A correction requires the exact native branch predicates and copied
+absence evidence; simply accepting observed vectors or making every count
+optional would weaken validation. The static author is auditing this separately.
+
+The invalid Action30 receipt nevertheless retains the original raw evidence:
+both scalar sampler inputs are span 50000 (float bits 47435000), distribution 1,
+parameter 1; the copied minimum has tag 0/payload 0 and difference tag 5/value 50000.
+Raw unused Value bytes differ and are retained. Incoming TLS RNG states are
+5602241357601584715 and 9521067954126935711; returned radius bits are 47103100
+and 4700b3c6 (36913 and 32947.7734375). The observed sampler entry slots satisfy
+the Win64 alignment. No claim of complete equal evaluated inputs follows from
+this failed receipt, and no RNG intervention is justified by it alone.
+
+FULL WORLD AND SEPARATE COMMAND TIMING
+
+The two complete census snapshots reconstruct without parser errors. Imported
+identity count is 521929; present 426799; unknown-motion count 32607 remains.
+Frame 1 roots agree. Frame 2 differs in captured motion for saved IDs 6d940,
+80d4f and9d39b. Captured topology, health, timing and inventory comparisons
+agree. Unknown motion/AI coverage prevents a universal-world parity claim.
+Physical navigation selector differences remain in raw witnesses; the reviewed
+V2 logical-state reconstruction does not erase them.
+
+All six watched lifetimes bound successfully. Trace events are 54/61 and queue
+events 22/33, with no trace/queue/provenance errors or outstanding queue tokens.
+Client 1 has 10 enqueues, 10 dispatches and 2 appends; client 2 has 15/15/3.
+The extra client 2 batch belongs to 6d940, pilot 6d945, move.idle native PC67,
+gate phase 3/tick 1/time 7.099666666666667. The natural restored Wait deadlines
+are 7.375565255241394 and 7.087113044638112. This is consistent with unequal wake
+eligibility; the exact scheduler pass/reason is still not captured. It remains
+separate from CreatePosition and from the two deliberately scoped Wait seeds.
+Neither 930fc nor 92efa produced an extra watched batch in this run.
+
+The existing two Wait interventions still match, with no Wait/RNG parser
+errors. The selected Find scope is valid locally and returns saved 29 on both
+clients, with caller RNG restoration. This does not establish global RNG parity.
+
+Global unknown Action counts are 2092/2095 and six selected Values failures
+remain per client. Four copied unknown samples (20 rows) per client are locally
+supported, but they still lack canonical leaf identity; copied ancestry is not
+a replacement for that identity. No global coverage failure was suppressed.
+
+REPRODUCTION AND NEXT STEP
+
+Private immutable raw run: .local/native-lockstep/world-motion-014/.
+The frozen source-014 validator produced validation.json. The frozen world
+comparator produced world-difference.json. Independent read-only analyses are
+selected-causality-summary.json, queue-trace-analysis.json and
+position-native-refusal.json. Preflight, exact argv and lifecycle are retained
+in the adjacent launch/artifact audit receipts. Raw player logs stay private.
+
+Next work is a source-only branch-policy correction with exact native inputs,
+zero omitted records, full parent/output joins and forbidden/repeated/missing
+call regressions. World014 must retain its original 64 errors and error 256
+receipts. A future native attempt requires separately reviewed source and frozen
+inputs; none is authorized by this report.

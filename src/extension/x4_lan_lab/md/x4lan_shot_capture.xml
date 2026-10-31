@@ -145,7 +145,8 @@
        </do_if>
       </do_if>
       <do_elseif value="$fresh and $own and $capUndo and $ai != $capMe and $mine">
-       <set_value name="$undo" exact="$capRemote.{$ai}"/>
+       <set_value name="$undo" exact="$ai le 2 and $capRemote.{$ai}"/>   <!-- $capRemote covers ships 1/2; an attacker ship 3+ is never replayed here -->
+
       </do_elseif>
      </actions>
     </library>

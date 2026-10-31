@@ -14,6 +14,11 @@ The Windows import-path file includes this package's own scripts. Linux's Tar
 archive preserves runtime links and executable modes. Runtime files are not
 installed globally or downloaded by the launchers.
 
+Native gate modules built with the portable physics module (native_gate_jolt_portable)
+contain Jolt Physics 5.5.0 compiled from the official source tag, Copyright 2021
+Jorrit Rouwe, MIT License: third_party/JoltPhysics-5.5.0/LICENSE. Keep that license
+with every package that includes such a module.
+
 X4: Foundations and its game assets are not included. Install X4 through Steam.
 This experimental mod is not an official Egosoft release. Steam and ZeroTier are
 separate products; neither is bundled here. Do not redistribute locally extracted

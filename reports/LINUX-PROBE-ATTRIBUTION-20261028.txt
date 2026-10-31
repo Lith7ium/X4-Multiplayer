@@ -1,0 +1,86 @@
+LINUX PROBE BUILD-REFUSAL ATTRIBUTION
+28 October 2026 | source and nongame tests only
+
+This branch derives from accepted preparation source c2f71cc. Its counterpart
+Rust commit002a1a3 in linux-log-attribution emits the closed x4-build-refusal-v1
+record with actual PID/start_ticks/reason/executable_bytes/pinned_bytes. The old
+mixed004 result remains invalid; no attempt has been retried.
+
+AgentEvidence accepts only executable_size refusals with positive bounded PID,
+positive u64 start_ticks and executable_bytes strictly below the pinned size.
+The record must have precisely the specified fields/order/version. It cannot
+override any native verification or lifecycle fault. Unknown reasons, missing
+identity, unavailable fields, native-sized images and malformed records refuse.
+
+The observer and portable probes pass their independently held PIDFD claim's
+PID/start generation. A helper PID must differ from the native PID even when its
+claimed start differs. Helper start time cannot precede native creation. Duplicate
+or reused helper PIDs are rejected, and at most16 diagnostics can be queued. A
+record received before the claim remains pending; it cannot establish readiness.
+Only the exact claimed native VERIFIED permits helper diagnostic attribution.
+Any foreign VERIFIED is fatal regardless of ordering, including queued records.
+The process generation cannot change after binding. Adjacent START lines are
+ignored for attribution. Generic old post-VERIFIED refusals remain fatal.
+
+The existing old pre-verification small-executable diagnostic compatibility path
+is retained, bounded and tightened to require a positive size below the pin.
+It still cannot independently verify the native process. Observer, portable and
+admission REFUSED lines always abort; normal native status checks remain intact.
+The result records attributed_build_refusals separately from historical
+unattributed_preverification_build_refusals. No ordinary frame or math receipt is
+replaced by a helper diagnostic.
+
+Seven new tests cover before/after/interleaved records, pending verification,
+claimed PID with same/different start, stale/duplicate/reused identities, changed
+claims, invalid/unavailable fields, foreign VERIFIED, runtime faults and bounds.
+Together with existing observer/portable probe tests:31 WSL tests pass; Windows
+passes26 with5 existing Linux-only skips. Rust145+7 and strict Clippy also pass.
+
+tools/dev/check_linux_build_refusal.py runs twelve concurrent owned nongame Python
+executables under a private candidate preload. It retains actual PIDFDs, compares
+every emitted PID/start/executable size to independent proc observations, verifies
+complete shared-log records and all process exits, and checks default-off first.
+The production parser is replayed with a plainly synthetic native VERIFIED row.
+This actual-helper check passes under WSL using the private debug agent; it does
+not claim a verified game or cross-platform gameplay. No game/VPS or release
+artifact was launched, frozen, replaced or staged. Fresh agent/bridge/source
+manifests and independent review remain required before a future native attempt.
+
+INDEPENDENT REVIEW FOLLOW-UP
+The initial Python commit8b9ca4c contained a real startup error: a result field was
+assigned before the result dictionary existed. It also searched unanchored agent
+markers and could overlook malformed/interleaved foreign verification or refusal
+records. Independent production-main counterexamples showed incomplete final log
+tails and fatal records beyond the first1MiB could be ignored at success. The old
+commit remains preserved; these are source defects, not additional native runs.
+
+The follow-up initializes the result correctly and requires one anchored agent
+record with only an optional exact three-decimal timestamp. Duplicate/embedded
+markers, arbitrary prefixes, tab separators, malformed verification and refusal
+records fail closed. Every runtime REFUSED/FAULT, scheduler STALL and explicit
+incomplete FINAL is fatal. DISARMED must match a deliberately allowed clean scope
+and scheduler/restore tuple; observer disarm-file completion is allowed only after
+its owned completion request has been published. Faulted/unowned disarm is fatal.
+
+Both probes now use one final acceptance function after all independent evidence
+reads. Each real log must have no unterminated tail or unread bytes. The cutoff
+re-hashes all consumed bytes (bounded by the existing8MiB cap), checks the digest
+against the bytes actually parsed, and rechecks handle/path identity and metadata.
+Same-inode equal-length rewrites fail even with restored mtime. The report records
+the exact consumed-byte hash and cutoff; later appends are explicitly not covered.
+Malformed UTF-8 is rejected rather than silently replaced.
+
+The actual unmodified portable main is tested with modeled native/coordinator
+joins and real FreshLog files: clean completion passes; an unterminated agent
+refusal, a complete fatal record beyond1MiB and an unterminated world ERROR all
+exit1. Shared terminal-boundary tests cover both logs, missing files, late appends
+and equal-length rewrites. These are nongame tests and do not certify native joins.
+The final focused suite has37 WSL tests; Windows passes32 with5 Linux-only skips.
+The twelve actual nongame preload helpers still pass. Rust002a1a3 is unchanged.
+
+Final independent counterexamples also require unique native VERIFIED records and
+a repeated8MiB cap check at terminal cutoff. Separate duplicate verification now
+refuses, including an otherwise matching PID. A deterministic real-file test
+appends the ninth MiB after the read's initial fstat; terminal acceptance rejects
+that consumed size. The final suite is38 WSL tests, Windows33 plus5 Linux-only
+skips; actual twelve-helper validation remains passing. No Rust change is needed.

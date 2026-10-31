@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lockstep player identity (config native_gate_player_identity, default off; driven only by
+     native_gate_player_identity.lua). Every client receives the identical ordered steps of the
+     session plan at the same gated tick. MD resolves factions, applies ownership, creates planned
+     ships, places start ships and sets relations, then writes exactly one PLAYER_IDENTITY_APPLIED
+     line per step and returns one result row to Lua. It never invents plan content. Pool factions
+     x4lan_player1..16 come from the base extension's libraries/factions.xml and are resolved through
+     lookup.faction, so a missing pool refuses the setup instead of breaking script load. -->
+<mdscript name="X4LAN_PlayerIdentity" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="State">
+   <actions>
+    <set_value name="$ordinal" exact="0"/>
+    <set_value name="$ready" exact="false"/>
+    <set_value name="$byId" exact="table[]"/>
+    <set_value name="$isPool" exact="table[]"/>
+   </actions>
+  </cue>
+  <cue name="Step" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_PlayerIdentity'" control="'Step'"/></conditions>
+   <actions>
+    <set_value name="$a" exact="event.param3"/>
+    <set_value name="$result" exact="''"/>
+    <set_value name="$detail" exact="'-'"/>
+    <set_value name="$ship" exact="null"/>
+    <!-- Lua numbers arrive as floats: compare by value. Ordinal 1 is always 'begin' and runs once
+         per session; any gap, repeat or reorder refuses (fail closed in Lua). -->
+    <do_if value="$a.$ordinal != State.$ordinal + 1 or ($a.$ordinal == 1) != ($a.$step == 'begin')">
+     <set_value name="$result" exact="'refused_md_sequence'"/>
+    </do_if>
+    <do_elseif value="$a.$step == 'begin'">
+     <do_all exact="lookup.faction.count" counter="$i">
+      <set_value name="$f" exact="lookup.faction.{$i}"/>
+      <set_value name="State.$byId.{'$' + $f.id}" exact="$f"/>
+     </do_all>
+     <set_value name="$pool" exact="0"/>
+     <do_all exact="16" counter="$i">
+      <set_value name="$f" exact="@State.$byId.{'$x4lan_player' + $i}"/>
+      <do_if value="typeof $f == datatype.faction">
+       <set_value name="$pool" operation="add"/>
+       <set_value name="State.$isPool.{'$' + $f.id}" exact="true"/>
+      </do_if>
+     </do_all>
+     <set_value name="$detail" exact="'pool=%s occupied=%s'.[$pool, player.occupiedship != null]"/>
+     <do_if value="$pool != 16">
+      <set_value name="$result" exact="'refused_pool_missing'"/>
+     </do_if>
+     <do_else>
+      <set_value name="State.$ready" exact="true"/>
+      <set_value name="$result" exact="'applied'"/>
+     </do_else>
+    </do_elseif>
+    <do_elseif value="not State.$ready">
+     <set_value name="$result" exact="'refused_not_ready'"/>
+    </do_elseif>
+    <do_elseif value="$a.$step == 'faction'">
+     <set_value name="$f" exact="@State.$byId.{'$' + $a.$faction}"/>
+     <do_if value="typeof $f != datatype.faction or not @State.$isPool.{'$' + $a.$faction}">
+      <set_value name="$result" exact="'refused_faction_invalid'"/>
+     </do_if>
+     <do_else>
+      <!-- Plan names only ("Player N"): never a machine-local player name. -->
+      <set_faction_identity faction="$f" name="$a.$name" shortname="$a.$short" prefixname="$a.$name" description="'Lockstep player slot (X4 LAN Lab): %s'.[$a.$name]"/>
+      <set_faction_known faction="$f" known="true"/>
+      <set_faction_active faction="$f" active="true"/>
+      <set_value name="$changed" exact="0"/>
+      <!-- Reputation at start: this slot faction takes the player's relations to every NPC
+           faction that is not relation-locked (locked ones come from the library). -->
+      <do_if value="$a.$mirror == 1">
+       <do_all exact="lookup.faction.count" counter="$i">
+        <set_value name="$o" exact="lookup.faction.{$i}"/>
+        <do_if value="$o != faction.player and $o != $f and not @State.$isPool.{'$' + $o.id} and not $o.isrelationlocked">
+         <set_value name="$want" exact="faction.player.relationto.{$o}"/>
+         <set_value name="$d" exact="$f.relationto.{$o} - $want"/>
+         <set_value name="$back" exact="$o.relationto.{faction.player}"/>
+         <set_value name="$e" exact="$o.relationto.{$f} - $back"/>
+         <do_if value="$d gt 0.000001 or $d lt -0.000001 or $e gt 0.000001 or $e lt -0.000001">
+          <set_faction_relation faction="$f" otherfaction="$o" value="$want"/>
+          <set_faction_relation faction="$o" otherfaction="$f" value="$back"/>
+          <set_value name="$changed" operation="add"/>
+         </do_if>
+        </do_if>
+       </do_all>
+      </do_if>
+      <set_value name="$detail" exact="'known=%s active=%s mirrored=%s xenon=%s argon=%s'.[$f.knowntoplayer, $f.isactive, $changed, $f.relationto.{faction.xenon}, $f.relationto.{faction.argon}]"/>
+      <set_value name="$result" exact="if $f.knowntoplayer and $f.isactive then 'applied' else 'refused_faction_state'"/>
+     </do_else>
+    </do_elseif>
+    <do_elseif value="$a.$step == 'ship'">
+     <set_value name="$f" exact="if $a.$faction == 'player' then faction.player else @State.$byId.{'$' + $a.$faction}"/>
+     <do_if value="typeof $f != datatype.faction or ($a.$faction != 'player' and not @State.$isPool.{'$' + $a.$faction})">
+      <set_value name="$result" exact="'refused_faction_invalid'"/>
+     </do_if>
+     <do_elseif value="$a.$source == 'saved'">
+      <set_value name="$ship" exact="$a.$object"/>
+      <do_if value="not @$ship.isoperational or not $ship.isclass.ship">
+       <set_value name="$result" exact="'refused_ship_missing'"/>
+      </do_if>
+      <!-- The singleton player entity sits in the occupied ship on every client: it moves to a
+           pool faction only when the plan says so, and its control entities never change owner. -->
+      <do_elseif value="$ship == player.occupiedship and $f != faction.player and $a.$occupiedpool != 1">
+       <set_value name="$result" exact="'refused_occupied_ship'"/>
+      </do_elseif>
+      <do_elseif value="$ship.owner == $f">
+       <set_value name="$result" exact="'unchanged'"/>
+      </do_elseif>
+      <do_else>
+       <do_if value="$ship == player.occupiedship">
+        <set_owner object="$ship" faction="$f"/>
+       </do_if>
+       <do_else>
+        <set_owner object="$ship" faction="$f" overridenpc="true"/>
+       </do_else>
+       <set_value name="$result" exact="if $ship.owner == $f then 'applied' else 'refused_owner_readback'"/>
+      </do_else>
+     </do_elseif>
+     <do_elseif value="$a.$source == 'create'">
+      <set_value name="$m" exact="@macro.{$a.$macro}"/>
+      <set_value name="$sector" exact="if $a.$hassector == 1 then @$a.$sector else player.sector"/>
+      <do_if value="not $m">
+       <set_value name="$result" exact="'refused_macro_invalid'"/>
+      </do_if>
+      <do_elseif value="not @$sector.isclass.sector">
+       <set_value name="$result" exact="'refused_sector_invalid'"/>
+      </do_elseif>
+      <do_else>
+       <!-- Fixed macro, seed and sector-local position: no safe-position search (it draws
+            randomness). The pilot comes from the Argon people and takes the slot owner. -->
+       <create_ship name="$ship" macro="$m" sector="$sector" seed="$a.$seed">
+        <owner exact="$f" overridenpc="true"/>
+        <loadout><level exact="1.0"/><variation exact="0"/></loadout>
+        <pilot><select faction="faction.argon" tags="tag.aipilot"/></pilot>
+        <position x="($a.$x)m" y="($a.$y)m" z="($a.$z)m"/>
+        <rotation yaw="($a.$yaw)deg"/>
+       </create_ship>
+       <do_if value="@$ship.isoperational">
+        <create_order object="$ship" id="'Wait'" default="true"/>
+        <raise_lua_event name="'X4LAN_PlayerIdentity.Ship' + $a.$slotname" param="$ship"/>
+        <set_value name="$result" exact="if $ship.owner == $f then 'applied' else 'refused_owner_readback'"/>
+       </do_if>
+       <do_else>
+        <set_value name="$result" exact="'refused_create_failed'"/>
+       </do_else>
+      </do_else>
+     </do_elseif>
+     <do_else>
+      <set_value name="$result" exact="'refused_source_invalid'"/>
+     </do_else>
+     <do_if value="@$ship.isoperational">
+      <set_value name="$detail" exact="'owner=%s occupied=%s macro=%s'.[$ship.owner.id, $ship == player.occupiedship, $ship.macro.id]"/>
+     </do_if>
+    </do_elseif>
+    <do_elseif value="$a.$step == 'start'">
+     <!-- Different starts: a saved ship moves to a fixed point of a saved sector (no safe-position
+          search, which draws randomness), after every ownership step. -->
+     <set_value name="$ship" exact="$a.$object"/>
+     <set_value name="$sector" exact="null"/>
+     <do_if value="$a.$hassector == 1">
+      <set_value name="$sector" exact="@$a.$sector"/>
+     </do_if>
+     <do_elseif value="@macro.{$a.$sectormacro}">
+      <find_sector name="$sector" macro="macro.{$a.$sectormacro}"/>
+     </do_elseif>
+     <do_if value="not @$ship.isoperational or not $ship.isclass.ship">
+      <set_value name="$result" exact="'refused_ship_missing'"/>
+     </do_if>
+     <do_elseif value="not @$sector.isclass.sector">
+      <set_value name="$result" exact="'refused_sector_invalid'"/>
+     </do_elseif>
+     <do_else>
+      <!-- The move takes effect after this action block (live st-S1m: $ship.sector still read the
+           old sector here), so Lua checks the placement at the fold tick. -->
+      <set_value name="$detail" exact="'from=%s to=%s owner=%s macro=%s'.[$ship.sector.macro.id, $sector.macro.id, $ship.owner.id, $ship.macro.id]"/>
+      <warp object="$ship" sector="$sector">
+       <position x="($a.$x)m" y="($a.$y)m" z="($a.$z)m"/>
+       <rotation yaw="($a.$yaw)deg" pitch="0deg" roll="0deg"/>
+      </warp>
+      <set_value name="$result" exact="'applied'"/>
+     </do_else>
+    </do_elseif>
+    <do_elseif value="$a.$step == 'relation'">
+     <set_value name="$fa" exact="if $a.$fa == 'player' then faction.player else @State.$byId.{'$' + $a.$fa}"/>
+     <set_value name="$fb" exact="if $a.$fb == 'player' then faction.player else @State.$byId.{'$' + $a.$fb}"/>
+     <do_if value="typeof $fa != datatype.faction or typeof $fb != datatype.faction or $fa == $fb or ($a.$fa != 'player' and not @State.$isPool.{'$' + $a.$fa}) or ($a.$fb != 'player' and not @State.$isPool.{'$' + $a.$fb})">
+      <set_value name="$result" exact="'refused_faction_invalid'"/>
+     </do_if>
+     <do_elseif value="$a.$value lt -1 or $a.$value gt 1">
+      <set_value name="$result" exact="'refused_relation_invalid'"/>
+     </do_elseif>
+     <do_else>
+      <set_faction_relation faction="$fa" otherfaction="$fb" value="$a.$value"/>
+      <set_faction_relation faction="$fb" otherfaction="$fa" value="$a.$value"/>
+      <set_value name="$ab" exact="$fa.relationto.{$fb}"/>
+      <set_value name="$ba" exact="$fb.relationto.{$fa}"/>
+      <set_value name="$detail" exact="'ab=%s ba=%s'.[$ab, $ba]"/>
+      <set_value name="$result" exact="if $ab - $a.$value gt 0.001 or $ab - $a.$value lt -0.001 or $ba - $a.$value gt 0.001 or $ba - $a.$value lt -0.001 then 'refused_relation_readback' else 'applied'"/>
+     </do_else>
+    </do_elseif>
+    <do_elseif value="$a.$step == 'end'">
+     <set_value name="$detail" exact="'player=%s'.[@player.occupiedship.owner.id]"/>
+     <set_value name="$result" exact="'applied'"/>
+    </do_elseif>
+    <do_else>
+     <set_value name="$result" exact="'refused_step_unknown'"/>
+    </do_else>
+    <do_if value="$result != 'refused_md_sequence'">
+     <set_value name="State.$ordinal" exact="$a.$ordinal"/>
+    </do_if>
+    <debug_text text="'[X4LAN] PLAYER_IDENTITY_APPLIED %s result=%s %s time=%s'.[$a.$head, $result, $detail, player.age]"/>
+    <raise_lua_event name="'X4LAN_PlayerIdentity.Result'" param="'%s|%s|%s'.[$a.$ordname, $result, $detail]"/>
+   </actions>
+  </cue>
+ </cues>
+</mdscript>

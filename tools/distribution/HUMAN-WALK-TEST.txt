@@ -1,0 +1,78 @@
+X4 MULTIPLAYER — HUMAN ON-FOOT AVATAR TEST
+26 October 2026 — INTERNAL {{VERSION}} CANDIDATE
+
+This document starts no game or server. Use one matched dedicated set (server plus
+at least two clients; three clients for W06) built from the same commit, a fresh
+shared world and fresh client folders. Internal session packages switch avatars on
+(walking_avatars=true in the generated config.lua); check that line on every client.
+Keep combat, cargo and mission cases out of this run.
+
+Record the case ID, the time, each client's player number, and the station name
+and ID code (e.g. ABC-123) where you stand. For each case report PASS / FAIL /
+INCONCLUSIVE / NOT RUN with a short description of every client's view. A short clip
+helps with jumps and animation. After the run, collect each client's X4 debug log
+(procedure in HUMAN-DAMAGE-TEST.txt) and the server log; search for "WALK_".
+
+Useful log lines (clients):
+  WALK_MD_READY / WALK_READY          avatars are armed (once after the world loads)
+  WALK_SEND sent=N state=S kind=K     this client publishes its own pose (every 5 s)
+  WALK_AVATAR slot=pK created         first avatar for player K
+  WALK_SHOW / WALK_PLACED slot=pK     player K is drawn (ok=true) and where
+  WALK_HIDE / WALK_HIDDEN slot=pK reason=...
+        stale (no pose for 1 s), not_on_foot (piloting/spacesuit), context (station or
+        ship not found here), elsewhere (another sector), floor (no walkable floor at
+        that position here), forget (disconnected for 30 s)
+  WALK_DROP reason=...                a received pose was refused (format, slot, order ...)
+  WALK_ROOM_MISMATCH                  placed on a different local room than the sender's
+  WALK_TRANSFER / WALK_TRANSPORT      elevator (transporter) rides, local and remote
+  WALK_TRIGGER                        a local door/terminal trigger (never replicated)
+
+W01 — TWO CLIENTS ON ONE STATION
+Both clients dock at the same station (LAN Trading Station Beta first, then any NPC
+station from the starting sector) and leave their seats. Client A walks slowly
+across the dock area; client B watches. Expected on B: a standing/walking character
+named "Player <A's number>" at A's position, facing A's direction, moving smoothly
+(no jumps every 0.2 s), feet on the floor. Swap roles. Note any position offset in
+metres and whether the walk animation plays or the figure slides.
+
+W02 — LEAVE AND RETURN TO THE SEAT
+Client A goes back to the cockpit and takes the pilot seat. Expected on B: A's figure
+disappears within about one second (WALK_HIDE reason=not_on_foot); A's ship stays
+visible as before. A leaves the seat again: the figure reappears at the ship.
+
+W03 — ELEVATOR / TRANSPORTER
+Client A uses the platform elevator (transporter) from the landing pad to the dock
+area, and later to another destination (e.g. the trading or bar area if the station
+offers one). B stands next to the elevator. Expected on B: A's figure walks into the
+elevator, the elevator door/animation plays, and the figure appears at the
+destination (WALK_TRANSPORT started ... finished). If B's game has no such room
+(interior not generated there), A's figure is hidden with reason=floor rather than
+placed somewhere wrong. Record what B sees in both cases and whether the elevator
+door moves on B. Doors that open by proximity are local: note whether they open for
+A's figure on B.
+
+W04 — UNDOCK, OTHER STATION, OTHER SECTOR
+A undocks, flies to a second station in the same sector, docks and walks. B stays.
+Expected: A's figure disappears at undock and does not appear at the old station;
+when B also docks at the second station, A's figure is there. Repeat with a station
+in another sector: while B is in a different sector, the log shows reason=elsewhere
+and nothing is drawn.
+
+W05 — DISCONNECT
+A closes the game (or loses the connection) while standing on the station. Expected
+on B: the figure disappears within about one second (reason=stale) and is forgotten
+after 30 s (reason=forget). A rejoins and walks again: the figure returns
+("WALK_REMOTE slot=pK new connection" on B).
+
+W06 — THREE CLIENTS
+Three clients stand on the same station. Each must see the two others, each with
+its own figure and name, moving independently. One client leaves the station:
+only that figure disappears on the other two.
+
+W07 — INSIDE A SHARED SHIP (only if the shared ship has a walkable interior)
+A walks inside its own docked shared ship (behind the cockpit, if possible). B boards
+the same ship. Expected on B: A's figure inside the ship at the right place. With the
+supplied S-class ship this case is usually NOT RUN; report it as such.
+
+Report the first failing step and keep all logs. A figure visible in one game is not
+proof of shared physics: the avatar is a local NPC that follows the remote pose.

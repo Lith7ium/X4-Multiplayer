@@ -47,6 +47,33 @@ class BodyProtocolTests(unittest.TestCase):
         self.assertTrue(any(a==P1 and p.startswith(f'WALK|1|{self.a}|{self.b}|1|2|'.encode()) for a,p in self.s.snapshots(.2)))
         self.assertFalse(any(p.startswith(b'WALK') for _,p in self.s.snapshots(1.2)))
 
+    def test_walk2_context_pose_is_validated_forwarded_with_slot_and_rate_limited(self):
+        station='1|station|0|cluster_14_sector001_macro|ABC-123|station_gen_factory_base_01_macro'
+        def walk(seq=1,context=station,pose='12.5|0|-3|90|1.4|5.25|0',address=P2,now=.1,room='room_a_macro'):
+            self.s.receive(f'WALK2|1|{self.b}|{seq}|{context}|{room}|{pose}'.encode(),address,now)
+        walk(address=FOREIGN)
+        for context,pose in [('2|station|0|s_macro|ABC-123|m_macro','0|0|0|0|0|0|0'),
+                             ('1|none|0|-|-|-','0|0|0|0|0|0|0'),('0|ship|1|-|-|-','0|0|0|0|0|0|0'),
+                             ('1|ship|3|-|-|-','0|0|0|0|0|0|0'),('1|ship|0|-|-|-','0|0|0|0|0|0|0'),
+                             ('1|station|1|s_macro|ABC-123|m_macro','0|0|0|0|0|0|0'),
+                             ('1|station|0|-|ABC-123|m_macro','0|0|0|0|0|0|0'),('1|deck|0|-|-|-','0|0|0|0|0|0|0'),
+                             ('1|station|0|s macro|ABC-123|m_macro','0|0|0|0|0|0|0'),
+                             (station,'nan|0|0|0|0|0|0'),(station,'100001|0|0|0|0|0|0'),(station,'0|0|0|361|0|0|0'),
+                             (station,'0|0|0|0|-1|0|0'),(station,'0|0|0|0|101|0|0'),(station,'0|0|0|0|0|-1|0'),
+                             (station,'0|0|0|0|0|0|-1')]:
+            walk(context=context,pose=pose)
+        walk(room='')
+        self.assertFalse(self.s.walkers2)
+        walk();walk(context='1|ship|2|-|-|-')
+        self.assertEqual(self.s.walkers2[self.b]['fields'][1:3],['1','station'])
+        rows=lambda now:[p.decode() for a,p in self.s.snapshots(now) if a==P1 and p.startswith(b'WALK2')]
+        self.assertEqual(rows(.2),[f'WALK2|1|{self.a}|{self.b}|p2|1|{station}|room_a_macro|12.5|0|-3|90|1.4|5.25|0'])
+        self.assertEqual(rows(.3),[])
+        self.assertEqual(len(rows(.4)),1)
+        walk(seq=2,context='1|ship|2|-|-|-',now=.45);self.assertEqual(len(rows(.46)),1)
+        self.assertEqual(rows(1.5),[])
+        self.assertFalse(any(a==P2 and p.startswith(b'WALK2') for a,p in self.s.snapshots(.5)))
+
 @unittest.skipUnless(LuaRuntime,'LuaJIT unavailable')
 class LifeAdapterTests(unittest.TestCase):
     def make(self,slot='p1'):
@@ -106,25 +133,4 @@ class LifeAdapterTests(unittest.TestCase):
           assert(X4LAN_BUBBLE_API.life.suit==77)
           local found=false;for _,p in ipairs(sent) do if p:find('|suit|1|1|100|-9800|300|',1,true) then found=true end end
           assert(found and not X4LAN_BUBBLE_API.state.failed)
-        ''')
-
-    def test_walking_avatar_moves_hides_on_stale_data_and_survives_reordered_packets(self):
-        l=self.make();l.globals().X4LAN_CONFIG.trading=True
-        for disabled in (None,False):
-            l.globals().X4LAN_CONFIG.walking_avatars=disabled
-            l.execute((UI/'walk_game.lua').read_text())
-            l.execute("assert(X4LAN_BUBBLE_API.walk==nil and events['X4LAN_Walk.Pose']==nil)")
-        l.globals().X4LAN_CONFIG.walking_avatars=True
-        l.execute((UI/'walk_game.lua').read_text());l.execute('''
-          X4LAN_BUBBLE_API.trade={state={ready=true},frame=function() end,receive=function() return false end}
-          now=10.1;frames.onUpdate();assert(countRequest('Setup')>=1)
-          events['X4LAN_Walk.Pose'](nil,'2|1|2|3|90|0|0');now=10.4;frames.onUpdate()
-          local found=false;for _,p in ipairs(sent) do if p:find('WALK|1|',1,true) then found=true end end;assert(found)
-          local f={'WALK','1',client.lease,string.rep('b',32),'1','2','1','2','3','90','0','0'}
-          client:receiveExtension(f,now);frames.onUpdate();assert(countRequest('Move')==1)
-          client:receiveExtension(f,now+.1);assert(countRequest('Move')==1)
-          f[5]='2';f[6]='5';client:receiveExtension(f,now+.2);assert(countRequest('Move')==1)
-          now=12;frames.onUpdate();assert(countRequest('Hide')==1)
-          f[6]='0';client:receiveExtension(f,now);frames.onUpdate();assert(countRequest('Move')==2)
-          now=13.2;frames.onUpdate();assert(countRequest('Hide')==1)
         ''')

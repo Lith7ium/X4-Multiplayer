@@ -1,0 +1,120 @@
+Explicit third import-Wait / Find composition - 28 October 2026
+
+Scope and reason
+This source-only change adds one opt-in composition for the previously observed
+6d945/move.idle saved Wait, alongside the two existing Wait interventions and the
+unchanged selected FindComponent intervention. It adds no hook, RNG algorithm,
+native getter, callback ownership, or broad Wait selector. No game, installation,
+World015 package or old evidence changed. Test outputs are private offline builds.
+
+The arithmetic report eb3360e correctly reconstructed the unequal World014
+deadlines and proposed a third-entry policy change. Independent review found
+that the policy alone cannot run with Find: the old builder pins policy file
+66dc5770..., and the native Find dependency explicitly requires entry3 to observe.
+This is experiment composition pinning. Find's 179-byte semantic seed and actual
+anchor depend on pilot9d3a4/order3cdb, not on pilot6d945's incoming stream.
+The new composition is explicit; those old guards are not broadened in place.
+
+Exact public interface
+The default remains native_world_find_selection.json, schema1, canonical SHA
+1a0272594d0989d56476d130f1842e4f3f5e62de7041122c7e3a379559995a07.
+Its file, FIND_COMPONENT_RNG_1 wire and STOPschema1 fields remain unchanged.
+
+The new inert document is tools/dev/native_world_find_third_wait_selection.json:
+  schema: 2
+  composition: third-import-wait-v1
+  enabled: false
+  canonical descriptor SHA256:
+    44ed014534fb05209d4717179c6858e0d982d05a9e2d2d5a70c946bfa9f0c101
+  exact third-intervention Wait policy file SHA256:
+    0b6860b77bc96f1f1abfe017ab1c28c2674d06e5416605ac735e7c9b32c9c70f
+
+Activation still requires the explicit --world-find-rng-manifest path plus all
+existing Wait, Wait-RNG, Action/Values, snapshot and early-trace dependencies.
+No new boolean implicitly activates the composition. The same native Lua
+world_find_rng_config API receives the new wire:
+  FIND_COMPONENT_RNG_2;<snapshot SHA>;<program shape>;<Find seed>;<descriptor SHA>;
+All fields are exact constants for this supported composition. Existing Lua
+ordering stays Wait observation -> Wait policy -> Action -> Values -> Find.
+
+The new descriptor embeds the exact three-entry Wait policy for independent
+validation. Only the former third observation is changed to intervene, with
+saved6d945, move.idle/version4/index5, time_text6.98333, min0.1/max0.5,
+slot70/PC71/since0. The two prior Wait selections and keys remain unchanged.
+The policy suffix is3,intervene,70,71,0,6.98333. Raw policy bytes are pinned,
+including the existing candidate's CRLF formatting; canonical descriptor hashing
+is a separate operation. Serializing the embedded policy with indent2, final
+newline and CRLF gives the pinned file. Reformatting it requires separate review.
+
+Find identity and sampling remain exactly the old 179-byte key:
+  key SHA080994d92a20d8658e7e391ea47ffdef7afe3ca8175ecabcb6fe34b7ba4020bc
+  seed65d8202ad9940908; one-step22403ede5ea8c4dd; selected saved result29
+The composition identifier is not inserted into that key. The new third Wait
+seed is4cf7dda6c67c9349, with expected one-step376e7091a7b0a160. Given the observed
+inputs and no earlier retained deadline, the arithmetic prediction is
+401d61a243a31a4c (7.345345551328659). It is a prediction for the next separate run,
+not a native result from this work or a guarantee that all commands now agree.
+
+Native guards and retained configuration
+First configuration parses the exact wire and latches composition1 or2 together
+with the existing manifest/shape/seed/digest. The old predicate is unchanged.
+Composition2 requires the complete exact three-entry policy wire, schema2 and
+snapshot words. It also checks every parsed entry in order: saved ID, bounded
+name/text, version, index, native time/minimum/maximum bits, intervention policy,
+slot, PC, since, seed and script/time hashes. Foreign reordering, policy changes,
+extra/missing entries and changed scalar guards refuse. No observe-or-intervene
+fallback exists. The new string comparisons read only known bounded fields.
+
+The same retained composition and dependencies are checked for read-only healthy
+UI reload acknowledgment. No counters, buffers, cursor, seed or callback is reset.
+Cross-mode reattachment, late first install, STOP, existing failure/open/restore
+debt and foreign callback/closing dependency guards retain their refusals.
+Original-call, borrowed-input, finally, same-TLS restoration and locking code is
+unchanged. The separate Wait wrapper still supports normal-return cleanup only;
+this change does not add native Wait exception safety or general ambient RNG
+synchronization. Unrelated global unknown coverage remains an error in the full
+session validator.
+
+Evidence and builder composition
+The builder checks the exact snapshot, observation, policy and Action file
+digests for the selected descriptor. Both reviewed combinations are supported:
+old Find plus old policy, and new Find plus new policy. Both crossed pairs refuse
+before output creation. Existing action/observation byte pins remain unchanged.
+
+Only the new native STOP uses schema2 and appends composition=<descriptor SHA>.
+Event and identity rows retain the old layouts and Find seed. The independent
+parser requires exact new configuration, snapshot and observation/policy wires;
+it joins all three validated raw Wait records with the actual scoped-RNG receipts,
+requiring applied/restored proof, original policy/count/phase guards and retained
+failure semantics. A manifest alone is insufficient. A natural third receipt,
+missing rows, failed raw validation, changed selector or wrong STOP composition
+cannot report the selected scope valid. Paired comparison requires the same
+composition; matching Find output under different compositions is insufficient.
+
+Offline verification
+- Actual production C exact-image harness: both modes, three-entry parsers,
+  first-install and read-only used/unused phase1/2/3 reload, scalar/order/snapshot/
+  wire mutants, cross-mode refusal, STOP/debt/foreign dependency cases, original
+  once, full result, actual owned-memory SEH and normal-return TLS behavior pass.
+- Full native gate build/test driver passes with the exact immutable Windows
+  image supplied read-only. Existing Position, GetUp, Euler, construction,
+  transport and restoration checks remain in that run.
+- 44 focused Python/actual-LuaJIT tests pass. New tests keep the old179-byte key,
+  reject absent/natural/invalid composed receipts, and exercise exact new-wire
+  forwarding with the existing boot and UI reload order.
+- 736 native Python tests pass on Windows, with7 Linux-only skips. Those7 actual
+  subprocess/loopback tests pass separately on WSL. An earlier full invocation
+  omitted tools from PYTHONPATH and had6 import errors; the corrected run above
+  supplies tools;tools/dev;tests;src and passes.
+- Actual production builder against the immutable snapshot and actual pinned
+  observation/action/policy files: old+old and new+new build and parse back into
+  the exact descriptor; both crossed pairs fail with no output directory.
+- Historical revalidation preserves World014's exact ordered64 errors and
+  World015's exact ordered56 errors, evidence_valid=false/session_pass=false.
+
+Private reproducible evidence is in this tree's .local/third-wait: native-full.txt,
+c-tests.txt, python-focused.txt, python-full-correct-env.txt, linux-seven.txt,
+compose.py/composition-result.json and historical.json. Test DLLs and generated
+offline overlays stay private and are not approved launch/staging artifacts.
+Independent composition review and root integration remain required before a
+new controlled pair. This change does not repair or reinterpret either old run.

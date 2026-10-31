@@ -1,0 +1,424 @@
+BOUNDED DYNAMIC SHIP REGISTRY - 27 OCTOBER 2026
+
+Construction exposed an enrollment gap: its native builder is outside the
+twelve saved battle ships and can diverge before a build order is submitted.
+The existing movement, AI, radar, weapons, damage, contacts and shape hooks
+all select that fixed registry. Slots 13 and 14 have separate dock-anchor
+semantics, including extra body roles and a full-refresh policy. A capacity
+increase without explicit roles would incorrectly treat builders as anchors.
+
+The registry now distinguishes fixture ships 1..12, dock anchors 13..14 and
+sixteen bounded dynamic ship slots 15..30. Storage slots are not RNG identities.
+Dynamic creation handles encode admitted creation tick (31 bits), authority
+(8 bits, currently system/players 0..2) and ordinal (24 nonzero bits). The high
+bit is reserved for the RNG namespace. The existing schema-2 tuple mixer takes
+the complete handle with that bit set; fixture and anchor keys are unchanged.
+No native ID, pointer, local allocation order or truncated slot enters the key.
+Reservations must precede creation, be ordered by canonical handle, and never
+reuse a slot. Exact retries are idempotent; changed retries are refused.
+
+The API validates macro, true faction, native lifetime, controller and agent
+ownership, and retains both reservation and first-update evidence.
+MD raise_lua_event can queue delivery, so its callback is not assumed to be a
+creation boundary. Read-only observers at existing native hooks will detect a
+matching lifetime updated before binding and refuse initialization in that
+case. A later state reset is not an acceptable substitute for early enrollment.
+
+ship_reserve(handle, macro, owner, creation_tick) returns a bounded slot;
+ship_bind(handle, exact_decimal_native_ID) returns 1; ship_status(handle)
+returns a canonical SHIP_REGISTRY_1 receipt without local runtime IDs.
+Reservations must occur under the admitted tick before MD creation. Native
+binding requires all relevant existing updater hooks and the serial pathing
+boundary. It excludes imported saved objects and refuses changed identities,
+duplicate lifetimes, unsupported native types, stale creation windows and any
+observed update before binding. A bounded pending-lifetime table refuses on
+overflow. Missing or invalid enrollment stops with reason 75.
+
+Read-only observers cover ship, navigation, agent, steering, spline, AI,
+attention, shape, radar events/scans, weapon, damage, death, mass, velocity,
+contact and parameter callbacks. Only the intentional parameter initializer
+on the actual UI thread is excluded during preparation. A worker or any other
+update during preparation is recorded and refused. Reservation publication,
+pending records and prepared-state publication use the registry lock; the
+observer activation flag is published atomically.
+
+Preparations retain the existing native radar, movement-parameter and flight
+paths, after TLS/view checks and the existing radar completion wait. Spline
+and absent flight models retain their native lifetime behavior. Read-only
+owner validation additionally pins the complete true-owner getter at
+0x352b10/8 and the ownership string layout reader at 0xafdfd0/269. No new native
+patch site or thunk is introduced.
+
+The probe supplies a synchronous physical-weapon enrollment helper to the
+construction adapter. It enumerates actual weapon and turret components,
+allows empty physical slots, and refuses occupied surface turrets because
+that native layout is not covered by the existing fighter-gun schema. The
+construction owner selected an explicit unarmed loadout before creation and
+separately hashes actual empty weapon/turret occupancy each frame. This is
+bounded construction coverage, not general XL combat support.
+
+The independent validator accepts dynamic contact/source/shape actor IDs only
+when declared by a complete native registry footer. It checks receipt cadence,
+creation identity, exact first-update/preparation ordering, weapon coverage and
+first-navigation RNG against the full creation handle. Initial native deadline
+preimages remain visible separately from applied first-refresh results. Existing
+world hashes and strict contact order comparisons remain unchanged.
+
+Native C tests and 103 Python/LuaJIT tests pass, including negative lifetime,
+capacity, ordering, owner/controller, late-update, worker-during-preparation and
+occupied-turret cases. The construction reproducer and actual earliest-update
+boundary remain untested. No passing native/gameplay claim follows from these
+registry tests.
+
+The first construction pair stopped at reservation, before creating its builder.
+The owner-getter guard checked eight bytes with an expected digest accidentally
+calculated over sixteen bytes including alignment padding. The expected digest
+now covers precisely the complete eight-byte function. Independent reads of the
+pinned executable verify all four registry digest/length pairs. This was a
+setup refusal; the run establishes no dynamic enrollment or gameplay result.
+
+After that pin repair, both clients reserve slot 15 at tick 5, then refuse binding
+at tick 6 before registration or preparation. The MD creation/event-return rows
+precede the Lua binding callback. This demonstrates deferred event delivery,
+but the broad identity refusal prevents a conclusion about its first update.
+
+Static inspection corrects two earlier assumptions. The accepted primary vtable
+belongs to U::ShipSmall, not the generic ship class. The direct true-owner getter
+is slot 708 (+0x1620); slot 706 (+0x1610) returns an apparent owner when present,
+otherwise the true owner. The guard now checks the correct direct getter while
+retaining its exact function pin and field relationship.
+
+Identity refusals now identify the failing predicate and include bounded local
+type/getter RVAs, macro/owner name lengths, controller/agent relationships, and
+existing pending-update tick/kind. These reads do not enroll or initialize an
+object, change late-update classification, or enter portable hashes. Unknown
+classes remain refused. The pending observer shared the small-ship type check,
+so the previous zero pending count cannot establish absence of large-ship updates.
+Large-ship acceptance also requires coverage of its separate move/death vtable
+entries; sharing native target functions does not make those entries hooked.
+
+The bounded follow-up supports the exact completed classes U::ShipSmall and
+U::ShipExtraLarge. U::ShipLarge is a separate class and remains unsupported,
+as do transient base-class objects and other ship classes. Native RTTI locator
+and base descriptors were checked directly in the pinned executable: both
+supported classes have zero-offset Ship, Controllable and Object bases. The
+complete extra-large constructors delegate to the same Ship constructors and
+then change only the five corresponding vtable pointers. Macro/name and direct
+owner fields therefore retain the reviewed common base layout. Navigation
+controller construction and agent allocation independently establish owner,
+parameter-buffer and navigation-slot relationships used by enrollment.
+
+Move and death now install both supported-class vtable entries. Their native
+target functions and ABIs are identical; both complete functions are pinned.
+Each entry uses exact compare-and-swap, failed second installation rolls back
+the first, and restoration attempts each still-owned entry independently.
+Tests preserve third-party replacements and retain ownership after a conflicting
+restore so a later retry can restore the remaining hook. Every original remains
+called once. No new thunk or boot option is introduced.
+
+The other pending observers use common native function/call sites or separately
+validated navigation, pathing, steering, spline and radar object types. They
+retain exact runtime and owner relationships. The completed-class predicate is
+shared by pending macro observations and enrollment from reservation onward.
+An observed extra-large update before binding refuses initialization in the
+same test as a small-ship late update; unsupported classes remain rejected.
+Successful binding additionally returns local class/layout and function-pin
+evidence without changing its first return or canonical registry receipt.
+
+This is ready for a new native boundary diagnostic, not accepted XL simulation.
+The actual builder class must match the native diagnostic. Subsequent child
+objects, including construction drones, need their own enrollment evidence;
+the builder reservation does not implicitly register them. The explicit
+unarmed fixture and independent occupied-slot census remain required.
+
+The fresh extra-large-covered pair passes the identity guard but refuses
+binding on both clients: a native AI observation for the same runtime lifetime
+occurred at tick 6 before the Lua callback. Reservation was tick 5; no native
+registry binding or preparation was published. Both games stopped with reason
+75 and restored their hooks. Their initial station, storage and builder poses
+match, and the builder has zero installed weapons/turrets. This establishes
+that the queued Lua callback is too late. It does not locate the AI observation
+relative to the MD create/event-return rows, because those records lack a
+shared intra-frame ordinal. A later state reset is still refused.
+
+Binding now retains its read-only class/layout diagnostic after successful
+identity checks, so a subsequent boundary refusal also reports the actual
+class and pending update. This closes an evidence omission in that run; the
+run itself did not print the exact native class RVA before its late refusal.
+An earlier native boundary and its thread/TLS eligibility remain to be proven.
+
+The next diagnostic annotates the first pending AI execution at the existing
+director wrapper, after actor lookup and before the unregistered original call.
+It records the script path/hash, instruction value, native caller, actual class,
+owner-chain depth, UI-thread status, TLS view/time and pending operation. Field
+read flags distinguish unsupported data from zero values. The first attempted
+read is immutable even when unsupported; subsequent executions cannot replace
+its provenance. The annotation requires an already observed pending lifetime
+and creates no reservation or actor binding. It calls no engine implementation
+and changes no RNG state. The existing unregistered original call remains once.
+The record survives a late-binding refusal through the existing diagnostic text.
+Unit coverage checks those properties, including unsupported reads and retention
+across refusal; a fresh native capture is still required to identify the script.
+
+That capture now identifies the first observed AI entry on both clients as
+orders.base at instruction zero, through the expected director call site.
+All diagnostic reads succeed. Both resolve the same extra-large class, macro,
+player faction and navigation/controller relationships, with a two-parent
+owner chain, UI-thread execution and TLS view 1. Both still refuse binding
+before registry publication or initialization, stop with reason 75, restore
+hooks and close normally. This is a valid causal observation of late enrollment,
+not a passing construction session. The generic orders.base wrapper does not
+by itself identify the explicit Wait order as the trigger. The recorded registry
+operation is diagnostic metadata, not the position within a native MD stack.
+
+The next observer is explicitly read-only and default off. The evaluated native
+numeric-event dispatch is bracketed only for the exact construction Boundary
+and Builder names while one creation reservation remains pending. It copies the
+borrowed name and retains the raw 64-bit payload, native caller, UI/main-thread
+identity, TLS view/time, sampled readiness and sink target. Expression evaluators
+are never called again. The original call executes once with unchanged arguments
+and its byte return value is preserved. Readiness is sampled outside the native
+lock and cannot identify which branch the original took or prove Lua synchrony.
+
+Boundary markers 1/2 bracket create_ship (including its nested pilot setup),
+3/4 bracket the Builder event, 5/6 bracket add_units, and 7/8 bracket the default
+Wait order. Markers retain the original MD action order and parameters. Immutable
+enter/leave records share an atomic observation ordinal with the first pending
+AI annotation. Both records retain the actual local native thread ID. Only a
+matching thread establishes same-thread ordering; across different threads the
+ordinal orders observation points, without proving a simulation dependency.
+UI/main membership and TLS view are observed independently, with no assumption
+that UI and main are the same thread. This does not expose a separate nested
+pilot boundary. The
+Builder payload is checked against the later lossless decimal bind identity.
+Unknown names/callers, truncated reads, ambiguous pending reservations, capacity
+overflow and restoration conflicts are explicit failures. No actor is prepared
+at this new boundary, and the existing late-update refusal remains unchanged.
+Open observed calls and their peak count are retained. Restoration closes new
+capture admission and records outstanding calls without waiting for engine code;
+the trampoline storage remains alive. Any open call at restoration or STOP fails
+completeness validation even if its leave record is published subsequently.
+
+The diagnostic uses native_gate_registry_md_trace / --registry-md-trace and
+requires imported identities, AI observation and serial pathing. Native tests
+verify both complete function pins and their call bindings from a supplied
+read-only executable. The ABI harness executes the actual five-byte prologue
+through the emitted entry/dispatch/trampoline, checks wide arguments, AL values,
+stack alignment, shadow space, nonvolatile RBX and original-once behavior.
+Additional checks cover option dependencies/reload, borrowed-name lifetime,
+first-only AI provenance, unsupported reads, CAS restoration and independent
+phase/payload/ordinal validation. These checks establish observer mechanics;
+a fresh paired native capture is still required before choosing an earlier
+enrollment boundary. No construction acceptance follows from unit tests.
+
+The marked capture now observes every expected MD pair before the first AI
+entry, all on the same local UI thread with view 1 (main-thread membership is
+zero). The native Builder payload matches the later decimal bind identity.
+However, the observer also classified the existing Station and Storage events
+as unknown names, producing four failures. That capture remains invalid. The
+intact marker subset narrows the AI boundary but cannot prove that navigation
+or another initialization-sensitive update did not precede it. Binding still
+refuses before publishing or preparing the actor.
+
+Schema 2 fixes the classification explicitly: Station and Storage are ancillary
+kinds 3/4, with their exact names, component-event caller and nonzero payload;
+all eleven native event calls produce 22 enter/leave rows. Unexpected names still
+fail. Their bounded original name is retained, with hex encoding for characters
+that would otherwise break the trace format. No namespace-wide ignore is used.
+
+Every first covered pending native wrapper entry now captures a shared ordinal and actual
+thread at its existing observation site. The first tick, kind, runtime
+lifetime, ordinal and thread remain immutable even if later workers observe the
+same object. Bounded registry_update receipts retain other new lifetimes too,
+so every ordinal gap is auditable. The validator selects the exact Builder
+payload, compares its first update and first AI with the Builder dispatch, and
+reports whether those observations share a native thread. A first navigation
+update before Builder dispatch stays visible even when its first AI is later.
+These additions use existing wrappers and leave initialization, registration,
+late-update refusal and all strict state/contact hashes unchanged.
+
+PASSIVE PRE-BIND MOTION DIAGNOSTIC
+
+The deferred Lua builder callback previously called GetObjectPositionInSector
+before attempting enrollment. Static inspection shows that export reaches the
+navigation transform getter and its mutable pathing refresh. The registry's
+navigation observer covers the update wrapper, not every transform getter.
+Thus its receipt is the first covered update, not proof of the first possible
+initialization-sensitive access. The existing capture remains unchanged.
+
+ship_raw_motion(handle, exact decimal runtime ID) now returns stored motion
+without calling a transform, navigation, position or rotation getter. The
+reserved macro/true owner, supported completed native class, runtime lookup,
+controller/Agent ownership and any existing binding are checked before and after
+each capture. Two captures require equal pointers, raw references, selected
+fields and read/write bank selectors; a changed admitted tick also refuses.
+This is sequential guarded evidence, not an atomic owner/generation lease.
+The reservation, pending-update evidence, actor arrays and native game fields
+are untouched. Failure follows the existing registry refusal/STOP path.
+
+SHIP_RAW_MOTION_1 exposes sector_pose_supported=0, selector checks, unknown
+reference flags/count, and three fixed byte strings. Motion is the exact
+190-byte world-navigation schema; timing is its 45-byte object/navigation schema.
+The 136-byte raw_pose subset is parent saved ID, then each bank's first four xyz
+vectors and its two normalized references, with the current read bank first.
+Those four vectors are stored translation/basis fields in a local reference
+frame; no Euler angles or sector coordinates are inferred. Timing and velocity
+are separate so intentional parameter preparation cannot hide a transform change.
+Nonzero unresolved references are flagged explicitly. The mandatory private
+SHIP_RAW_MOTION_LOCAL_1 return preserves exact runtime and all five raw reference
+IDs for local pre/post comparison, including unresolved frame identities. These
+local IDs never enter portable hashes or seeds. Unknown-reference flags do not
+establish complete frame semantics, and missing sector pose prevents strict
+construction acceptance even if the passive diagnostic itself is valid.
+
+The probe requires this capability before construction setup. New passive target
+callback receipts correlate Station and Storage native IDs with the exact
+ancillary MD payloads, without adding a target pose getter. Existing historical
+trace handling remains intact. The independent result explicitly labels update
+coverage as registered_wrapper_entries_only.
+
+C tests compare the passive byte schema against the existing world reader,
+exercise both bank phases, stable rereads, identity/selector/read/tick failures,
+bounded exports, unresolved local references, and pre/post transform separation.
+They also verify no object, controller, Agent, reservation, pending record or
+actor enrollment changes. Actual-image observer ABI checks and 111 focused
+Python/Lua checks pass. No native construction pair has used this addition, and
+no enrollment mutation or late-update exception has been introduced.
+
+PASSIVE NATIVE BOUNDARY RESULT
+
+The next paired capture removed diagnostic transform getters for the builder,
+station and storage. Both passive builder records reconstructed completely and
+matched exactly, with stable bank selectors and no unresolved references. Their
+translation fields remain local to the recorded parent frame, not sector pose.
+The native MD provenance validator accepted all 22 paired records, exact target
+callback identities, explained ordinals and clean observer restoration.
+
+Both clients nevertheless refused binding before any preparation. The exact
+builder lifetime's first covered entry lies between the before-create and
+after-create markers on the same native thread. Its later annotated normal AI
+run follows the final setup marker. Therefore neither the Builder event nor the
+final setup marker is early enough under the existing enrollment guard.
+
+The first record's historical kind 6 is emitted by a shared AI-context helper.
+That helper is also called from interrupt/range and radar wrappers, so this
+record alone does not uniquely identify normal AI execution. Static pilot
+startup creates the base order context and runs a script initialization range
+before queuing the normal task. That range runner executes native script steps;
+it cannot be assumed to be a harmless condition lookup. Exact caller/range
+provenance is the next diagnostic needed to test this explanation. No existing
+record is discarded or relabeled to permit late initialization.
+
+The final setup marker is also not a lifetime lease: the Builder event carries
+a raw component ID, and the later marker carries a numeric phase. Generation-
+checked registry lookup performs no reference acquisition or exclusion against
+owner changes/removal. Existing native preparation includes a Gravidar wait and
+unit locks whose eligibility inside the MD call stack has not been established.
+The deferred armament census likewise cannot prove subtree eligibility before
+a hypothetical earlier native publication. These are required boundaries for
+any future enrollment design, not permission to modify native scheduling.
+
+The MD provenance subset is valid negative boundary evidence; overall evidence
+validation and the construction session still fail. The pair stopped at the
+existing late-update refusal, and both disposable lanes were restored. Sector pose, physical construction
+drone lifetime coverage and actual early builder enrollment remain unproved.
+
+FIRST COVERED AI-FAMILY ORIGIN OBSERVER
+
+An additive observer now brackets the existing normal AI, generic script-range,
+context-event and radar wrappers. No new native hook or enrollment path is added.
+It annotates only the immutable first pending kind-6 record, preserving that
+record's runtime identity, kind, tick, ordinal and native thread. A failed or
+unknown first attempt remains failed; a later normal AI call cannot replace it.
+The existing later AI annotation remains separately identified.
+
+Private origin receipts include the exact caller classification, range, mode,
+context and execution pointers, both stored program counters, owning entity and
+parent depth, actual class, script preimage, TLS view/time and RNG before/after,
+plus the original native result. Range caller verification reuses the shared
+IRQ classifier from the communication work: seven complete function pins, nine
+direct call sites, and reconstruction only of the gate's owned AI/IRQ patches.
+Unknown callers retain explicit unverified classification. No caller or address
+becomes a portable identity, hash input or RNG seed.
+
+Activation follows IRQ installation and requires its existing option in addition
+to the MD observer's earlier dependencies. This is still controlled by the MD
+diagnostic option. A schema marker in the frozen configuration makes the new
+receipts mandatory for new captures; historical captures remain explicitly
+without origin coverage. Existing first-update and MD schemas are unchanged.
+
+Per-thread scopes retain at most sixteen first records; pending lifetime storage
+remains bounded at 256. Unknown reads, overflow and changed caller ownership are
+reported as failures. Restoration closes admission without waiting under engine
+locks. Any original still open at STOP leaves sticky incomplete coverage even
+if its exit is published later. This does not prove native lifetime exclusion.
+
+Tests execute each production wrapper with unregistered pending objects and
+verify original-once calls, exact range arguments/results, unchanged observer RNG
+behavior, first-attempt retention, strict late refusal and cross-thread STOP.
+The actual-image harness verifies all shared caller pins, owned reconstruction
+and tamper rejection. Parser checks cover completeness, capacity, exact joins and
+script preimages. The earlier passive capture still parses as negative boundary
+evidence without origin support. The following native result tests the script
+initialization explanation; actual early enrollment remains unproved.
+
+
+NATIVE STARTUP-RANGE RESULT AND PASSIVE PRESENCE FOLLOW-UP
+
+The next paired diagnostic identifies the exact builder lifetime's first covered
+entry as the verified base-order script initialization range, before create_ship
+returns. Both clients report the same script, range, mode, program counters and
+completed native call on the same local thread as their construction markers.
+The later normal AI call remains separately annotated. Each initialization call
+leaves its own RNG unchanged, but the incoming RNG states differ across clients.
+This is not evidence that the range is harmless or may be skipped by enrollment.
+
+Origin and MD provenance validation both pass for this negative boundary result.
+The strict run still refuses late enrollment before preparation, and overall
+construction evidence remains invalid. Both disposable lanes exited and restored.
+Passive raw pose and motion agree, but read/write selectors and one timing byte
+differ across clients. Those differences remain in the evidence unchanged.
+
+Static creation tracing finds that the selected owner-expression branch assigns
+the true owner before pilot startup; another creator branch has different order.
+Pilot startup constructs the base-order context and executes its initialization
+range. Loadout application and a NavigationController creation call occur later
+in the inspected generator. Factory completion and an ExtraLarge primary vtable
+therefore do not by themselves prove that the Nav Agent already exists. Indirect
+paths have not all been excluded. Current preparation is not eligible merely
+because an earlier native boundary has been identified.
+
+An additive first-origin identity receipt now captures passive presence only.
+It checks the actual supported ship class and runtime ID, the exact true-owner
+getter slot and raw owner pointer, then the current controller pointer/type.
+Only the exact NavigationController class permits owner/slots/Agent field reads;
+Agent owner is read only after the slots-to-Agent relationship matches. No engine
+getter, native reference acquisition or initialization is performed. No absent
+controller is created, no owner is rewritten, and no late update is excused.
+
+Each component records unobserved, absent, unreadable, unsupported, partial, or
+matching listed relationships. Two sequential reads record equal, changed, or
+unreadable status while retaining the original snapshot. Equal reads do not prove
+atomicity, lifetime exclusion, owner immutability or enrollment readiness. Unknown
+raw class-pointer changes remain visible to the internal comparison even when
+neither pointer has an image-relative classification. Names, IDs and pointers are
+private diagnostics and never become seed or portable hash inputs.
+
+REGISTRY_ORIGIN_IDENTITY schema 1 is separate from the unchanged origin schema.
+It joins the immutable first runtime/order/thread, remains bounded to 256 rows
+of at most 1023 bytes, and is mandatory only when the new configuration schema
+marker is present. Historical evidence retains explicitly absent presence
+coverage. Negative presence states are valid diagnostic data, not successful
+initialization. Full pins cover the owner getter, controller storage, Nav
+construction/attachment, Agent allocation and Agent constructor, including the
+constructor's exceptional tail. The same existing opt-in controls capture.
+
+Actual-image C tests pass for all six added layout spans and tamper refusal.
+Production-wrapper tests retain original-once behavior, first-record immutability
+and strict late refusal. Presence tests cover all twenty first/second read fault
+positions, unsupported class branching, absent/partial relationships, changed
+rereads, bounded rows and no native-object writes. The 125 focused Python/Lua
+checks pass, including historical handling, exact joins, bounds and negative
+presence states. This follow-up has not been run in a native game. Actual early
+builder enrollment, sector pose and physical construction-drone coverage remain
+unproved.

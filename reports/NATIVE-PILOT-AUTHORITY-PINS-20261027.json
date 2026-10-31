@@ -1,0 +1,761 @@
+{
+  "schema": 1,
+  "purpose": "Static/read-only audit only. Candidate intervention is not implemented or approved; no complete transitive dependency claim.",
+  "image": {
+    "machine": "8664",
+    "timestamp": 1780395501,
+    "size_of_image": 117084160
+  },
+  "functions": [
+    {
+      "rva": "00e5d380",
+      "size": 214,
+      "sha256": "ef39acf755eaecacd63bb4b33fe48ad93094952929135412787ef0efe0b3b4b4",
+      "role": "native velocity request setter"
+    },
+    {
+      "rva": "01a051ac",
+      "size": 104,
+      "sha256": "be7f7a85a2ed85a1e43da3c16eae7855355364090586e265546c95748cae83b0",
+      "role": "native scalar rounding helper"
+    },
+    {
+      "rva": "00ec7200",
+      "size": 10109,
+      "sha256": "bff420d07fb655ff195560b395af5decc0ab5b2ecf9691481e578eb3282eb796",
+      "role": "Steering update and publication"
+    },
+    {
+      "rva": "00e95fb0",
+      "size": 2048,
+      "sha256": "c72b49324fed4c46ad78a1b40c100ec7c710e9ae636e6f5cfe6ccd19d258e20d",
+      "role": "per-Agent solver preparation"
+    },
+    {
+      "rva": "00ecce50",
+      "size": 189,
+      "sha256": "29a4f53de85b2366df267d731d0aa30e47e8d2b97972b627161628a3d23ed4eb",
+      "role": "behavior completion predicate"
+    },
+    {
+      "rva": "00eccf10",
+      "size": 614,
+      "sha256": "b200de0820044acdca15139e69ef7b73c49665c3763173fdd5ca6e1c727333a4",
+      "role": "behavior completion predicate"
+    },
+    {
+      "rva": "00e88160",
+      "size": 4760,
+      "sha256": "0e48033bdb74b55f24f2a490504340d445cc70b07c8606105c97778b99bf84ab",
+      "role": "native command completion/advancement"
+    },
+    {
+      "rva": "00e8f250",
+      "size": 10613,
+      "sha256": "ae0d8b729a39a75f83b1c3d783585f587de1cc2e5eff846620f2f0c482504f52",
+      "role": "Agent update, reused world-motion audit"
+    },
+    {
+      "rva": "00e8dfc0",
+      "size": 4180,
+      "sha256": "3ceb3030f466a8d7346de9359a97b67e0fc1098593d0ed14188b434527b2306c",
+      "role": "pending queue consumer, reused world-motion audit"
+    },
+    {
+      "rva": "00e8d850",
+      "size": 1892,
+      "sha256": "e32a6ed0c9172b1d4c28fdc3880a0b1aff3b7678e96e9d47fa0c0b765f6efa79",
+      "role": "main queue consumer, reused world-motion audit"
+    }
+  ],
+  "candidate_entry": {
+    "rva": "00e5d380",
+    "complete_first_instruction_bytes": 5,
+    "cas_word_bytes": 8,
+    "preserved_adjacent_bytes": 3,
+    "prefix8_sha256": "858de2543d54a1d0184abb98bfc98436391f10ac26af34e6522961521e62affa",
+    "status": "proposal only; no hook reservation or patch"
+  },
+  "native_request_calls": [
+    {
+      "rva": "00ec91c7",
+      "size": 5,
+      "target": "00e5d380",
+      "group": "angular",
+      "axis": 0,
+      "sha256": "63d718a279939ef0f627d716dc194730c66e61ce05bb42bb382696d27046fe2e"
+    },
+    {
+      "rva": "00ec91e9",
+      "size": 5,
+      "target": "00e5d380",
+      "group": "angular",
+      "axis": 1,
+      "sha256": "c01b130a5c7534d91ce911815a4170b2e65f81a382cc79afff72100623a729c3"
+    },
+    {
+      "rva": "00ec920b",
+      "size": 5,
+      "target": "00e5d380",
+      "group": "angular",
+      "axis": 2,
+      "sha256": "a758f665596b9690079ab7f214579f51486195e394cfac6917b974c60f497cf8"
+    },
+    {
+      "rva": "00ec922b",
+      "size": 5,
+      "target": "00e5d380",
+      "group": "linear",
+      "axis": 0,
+      "sha256": "e147e23010699a356a075bdf80b5ce746b8cb7a83b9b9b64e05fe4d6a46aff32"
+    },
+    {
+      "rva": "00ec924d",
+      "size": 5,
+      "target": "00e5d380",
+      "group": "linear",
+      "axis": 1,
+      "sha256": "e9e7351993e36ff6bd05550b036968b03c6d572a1c35e352958ddd2ff391e973"
+    },
+    {
+      "rva": "00ec926f",
+      "size": 5,
+      "target": "00e5d380",
+      "group": "linear",
+      "axis": 2,
+      "sha256": "a8ce9a44abb9c4d5dd86e745bba614dcf005ac1755f07bf185c80f593a27f903"
+    }
+  ],
+  "immutable_epsilon": {
+    "rva": "02cbe470",
+    "size": 8,
+    "float64": 0.0001,
+    "sha256": "244daf676b076b34d5be3f723196f6a9a2fa7e81a05c781394a14fa645e1d6d8"
+  },
+  "ownership_and_deferred_audit": {
+    "scope": "read-only static evidence; no hook, retention, ownership transaction or control write authorized",
+    "functions": [
+      {
+        "rva": "000ced70",
+        "size": 184,
+        "sha256": "3209f7be0616de6d0ecc20ce3cfd82fd16d0524c09635d86995210598b0a5f36",
+        "role": "registry lookup including16-bit native ID generation check"
+      },
+      {
+        "rva": "000cbe70",
+        "size": 414,
+        "sha256": "2ace935f514d696f4be0acbcb538baa81c82ebd95c2839d0f3906a73b340a921",
+        "role": "registry removal, generation increment and FIFO reuse"
+      },
+      {
+        "rva": "000cc220",
+        "size": 268,
+        "sha256": "5ead430da168fdfe1f4dfb0eb328b7dd6b04cf1dc6a5ee56ea3bcfb133916bd2",
+        "role": "assign native component ID under registry lock"
+      },
+      {
+        "rva": "000cc500",
+        "size": 353,
+        "sha256": "b512d37e15c7d8d1e3deba7ae50e18cf3b94e93805668bea8a7834fb8eee22e3",
+        "role": "insert native pointer and encode generation in returned ID"
+      },
+      {
+        "rva": "000cb5c0",
+        "size": 88,
+        "sha256": "a94e41a98500914223e06fcb22cc8f1de075714dcf0c6825d429230de9f761d1",
+        "role": "ID base deletion and registry removal"
+      },
+      {
+        "rva": "006d38c0",
+        "size": 612,
+        "sha256": "d7aece976b890688acd6b6ba606d3bc959dee1ea4db664a58e943b01c94c7005",
+        "role": "true owner setter, immediate field writes before events"
+      },
+      {
+        "rva": "00e8afd0",
+        "size": 830,
+        "sha256": "3f9c30773b60355419b9cfeb91ecc67247a4a5a9876873b5d6724634506a9230",
+        "role": "direct Agent pending append bypassing e89e40"
+      },
+      {
+        "rva": "00e86bb0",
+        "size": 4416,
+        "sha256": "f9058c5168d815dbde0ae41dc46a62c378907fdd513a8f7c5cee58c711923ba0",
+        "role": "Agent import, additional direct pending writer"
+      },
+      {
+        "rva": "00eacd40",
+        "size": 245,
+        "sha256": "2b270bde3dbf64151f2a3d69077f5dc90efd758101981317fcdc05decfcbe9dd",
+        "role": "manager enqueue under queue critical section"
+      },
+      {
+        "rva": "00eace40",
+        "size": 785,
+        "sha256": "475eca6da99a7a143f3f4ceb4ece14b45c36bbbbee2cb624a1c268d8cc062818",
+        "role": "manager detach/dispatch/delete under consumer lock"
+      },
+      {
+        "rva": "00e98000",
+        "size": 60,
+        "sha256": "8bcc56a748535ef501b6b7f548d6fbbe3cd5b27d5212b13d428d24be2075b2b0",
+        "role": "AddTargetPoint dispatch"
+      },
+      {
+        "rva": "00e89e40",
+        "size": 141,
+        "sha256": "4acf143b3200d1632cd984d9881f2a43a07d3d6786059c4dd0d8659821dbbc9e",
+        "role": "Agent pending append"
+      },
+      {
+        "rva": "00e98040",
+        "size": 55,
+        "sha256": "8918662a034aeabfdc63810686cfd906f906d8d41581e9141fcb79d79d59c764",
+        "role": "Abort dispatcher bypasses append"
+      },
+      {
+        "rva": "00e89f10",
+        "size": 382,
+        "sha256": "122cfef79d4d41f3c350c46f35d352019dca1bd58cbe93e2f8a4511318beb99f",
+        "role": "Abort clears queue and updates model plus chained commands"
+      },
+      {
+        "rva": "00e980b0",
+        "size": 11,
+        "sha256": "a1acc045188cbd2be1b9461a03c2e4f4bc10aab8ee9e90992d983e6e559c3d04",
+        "role": "Set dispatcher writes Agent f76"
+      },
+      {
+        "rva": "00e980c0",
+        "size": 11,
+        "sha256": "091619c74c9e3f6a05ea5577e8456e30c24de25f8d527632cd5bd6fc2c57a8f3",
+        "role": "Set dispatcher writes Agent f77"
+      },
+      {
+        "rva": "00e980d0",
+        "size": 11,
+        "sha256": "11294c3dfd93488ff2aa33caad79a92019de81142a348f6a8739eaa62af9e3b8",
+        "role": "Set dispatcher writes Agent f78"
+      }
+    ]
+  },
+  "native_takeover_audit": {
+    "purpose": "Static/read-only native takeover and release audit. No invocation or patch authorization; not a complete transitive dependency pinset.",
+    "extent_validation": "Complete contiguous recursive PE chained-unwind extents, including internal alignment/jump-table data; Ghidra instruction-body byte count recorded separately. Leaf/tail routines fully disassembled.",
+    "functions": [
+      {
+        "rva": "00175a00",
+        "size": 66,
+        "sha256": "712e88aa8e43cf4271c06f866dd64b6a0c2fbf938852efa14138ecc78fc9455e",
+        "role": "singleton input-context enable counter",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 66
+      },
+      {
+        "rva": "00179760",
+        "size": 54,
+        "sha256": "ec618b3d0aa0db0021012ccc43509c3f6c7d0cbaa234f506d7a7b0c08bd474c7",
+        "role": "singleton input-context disable counter",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 54
+      },
+      {
+        "rva": "00d9cc30",
+        "size": 137,
+        "sha256": "2f09f72542b0e0526df12d2df393b4c5fb2a2a909ac4539162a8125417f6ee27",
+        "role": "singleton input-context activation predicate",
+        "unwind_fragments": 3,
+        "ghidra_body_byte_count": 137
+      },
+      {
+        "rva": "001ffa00",
+        "size": 382,
+        "sha256": "687b2404372f1c24215d45cb99f09c2096e2cd782a678004ddfc5c5ec89784bb",
+        "role": "script SetEntityToPost wrapper",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 382
+      },
+      {
+        "rva": "0044d790",
+        "size": 2299,
+        "sha256": "6f2d085106b7b99ee5a0dfa0ce5d5f272195dd43aa4fcc480dcbfc65d4680307",
+        "role": "native post assignment and notifications",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 2296
+      },
+      {
+        "rva": "0035b8a0",
+        "size": 1332,
+        "sha256": "21cf3cb1237650c26747101f4d94f94b8a13205850af9ec3d0bcae9da596d357",
+        "role": "control-position action, including asynchronous NPC leave-chair request",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 1332
+      },
+      {
+        "rva": "00716670",
+        "size": 1803,
+        "sha256": "97059160fb612744e6c5932852fa13324fc79c3f5ffd5b91a212ccced018d21d",
+        "role": "native player control-position entry",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 1795
+      },
+      {
+        "rva": "0070e630",
+        "size": 776,
+        "sha256": "51b3699b268980c8327e20a346e1f11fbc6fb6f5df2577bee7ed38741885d7de",
+        "role": "player pilot-post and ship takeover path",
+        "unwind_fragments": 3,
+        "ghidra_body_byte_count": 776
+      },
+      {
+        "rva": "004ed040",
+        "size": 144,
+        "sha256": "86e4c032c48f7b681dd7c2d189723e6ab6d700591f03293e12b895d831ac65bd",
+        "role": "Defensible wrapper around ship pilot entry",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 144
+      },
+      {
+        "rva": "004500a0",
+        "size": 730,
+        "sha256": "9c05b270f67d60de38a00713724c8e6cce9e2934692151be662e878d62b883d9",
+        "role": "ship pilot controller construction and replacement",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 730
+      },
+      {
+        "rva": "00d83ae0",
+        "size": 761,
+        "sha256": "8dc02f6d8f93ead6ba5f019efcebfcc668721cfb63bf05de76f6c1b44616cd93",
+        "role": "PlayerController constructor transferring existing NavigationController",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 761
+      },
+      {
+        "rva": "00d83550",
+        "size": 787,
+        "sha256": "e97ff648019827beca69d4b62e3411c90d59f846d6eae31a1c4209477c1a70df",
+        "role": "PlayerController constructor with fresh navigation binding",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 787
+      },
+      {
+        "rva": "00ea4a00",
+        "size": 375,
+        "sha256": "c55b28f9e7b1f10a740d2436077b498e29a6940031da6d5d0c04afeeb8fba117",
+        "role": "fresh NavigationController constructor",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 375
+      },
+      {
+        "rva": "00ea4c00",
+        "size": 654,
+        "sha256": "5094ca3adf5fe63c6a9f6cd6e98020e405c4ed5f461469ce935973fd7a9afaf1",
+        "role": "NavigationController transfer with synchronized Agent f79 update",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 654
+      },
+      {
+        "rva": "00ea5230",
+        "size": 172,
+        "sha256": "c9fe1483f364247f6c6eda00dd3b03598c38785ac7e5a3557de1fdab968c26af",
+        "role": "NavigationController destructor body",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 172
+      },
+      {
+        "rva": "00ea9230",
+        "size": 364,
+        "sha256": "a4e5a29a47b9256cd0ca82b0426acef96db4341c8186ed913d9f70deb4553b4f",
+        "role": "ClearOwner, Agent removal conditional on controller 58 ownership flag",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 364
+      },
+      {
+        "rva": "00745e00",
+        "size": 711,
+        "sha256": "acd257ef830505bca734583af1fbb2460f8bb09d2bb07d323cbe4596856343b2",
+        "role": "Positional controller replacement and owner binding",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 711
+      },
+      {
+        "rva": "006cd8b0",
+        "size": 39,
+        "sha256": "9317be9e33cdf30695ab01f4dfb062d85b836a872a3019c103cf9279c4ff2a32",
+        "role": "Object wrapper around Positional controller replacement",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 39
+      },
+      {
+        "rva": "00d9cdb0",
+        "size": 202,
+        "sha256": "4bf36ee839d2c6e13cd05f73a203a795dfd818ffb6c9c541df1d5a7d1219b573",
+        "role": "PlayerController owner binding",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 202
+      },
+      {
+        "rva": "00d84c20",
+        "size": 1244,
+        "sha256": "be54c529ecbce01377450ef1c583fe747c80399bac1b226fd9d58ce41f973a17",
+        "role": "PlayerController input initialization with singleton global state",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 1244
+      },
+      {
+        "rva": "00d88710",
+        "size": 759,
+        "sha256": "e9600674841db99135a2509e27eca8147552ad5b6b9b383508e43c4c21613890",
+        "role": "global input-context callback and flight-control notification ordering",
+        "unwind_fragments": 7,
+        "ghidra_body_byte_count": 759
+      },
+      {
+        "rva": "00d9c590",
+        "size": 902,
+        "sha256": "5986110543f3a5e70fb3fc671e121375b6f136cb633922e616b234afd8c67cd0",
+        "role": "player controls activation, mode0 enqueue and local-state preparation",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 902
+      },
+      {
+        "rva": "00d8dd00",
+        "size": 75,
+        "sha256": "a7edf1951f0e2c26938681dab588717ba15cad0c99d840c0ddc1c3a56b02d279",
+        "role": "PlayerController model-change virtual method",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 75
+      },
+      {
+        "rva": "00ea1ad0",
+        "size": 23,
+        "sha256": "723dd61555a68a7bb7221070356cf3a431913aebb45e5dd4afff91e2ac029bd7",
+        "role": "NavigationController model-change virtual method",
+        "unwind_fragments": 0,
+        "ghidra_body_byte_count": 23
+      },
+      {
+        "rva": "00eac900",
+        "size": 94,
+        "sha256": "b646fbc88682b1d2c94cc22b2feeb2acb7c50881a8a84e9154f12505d28579a5",
+        "role": "SetFlightControlModelOrder allocation and enqueue",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 94
+      },
+      {
+        "rva": "00e979d0",
+        "size": 14,
+        "sha256": "22550dfdea5fb4c9914cf2f22613a65353fd3e1bdd23f9ac64cd7634e7889249",
+        "role": "SetFlightControlModelOrder dispatch forwarder",
+        "unwind_fragments": 0,
+        "ghidra_body_byte_count": 14
+      },
+      {
+        "rva": "00e87cf0",
+        "size": 1124,
+        "sha256": "c9d5c8e4b36b4814dc9bf479faa0c8921aeaf4904465cb827f4f4a0634779f5b",
+        "role": "Agent flight-model replacement including mode0 removal",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 1094
+      },
+      {
+        "rva": "00e91c40",
+        "size": 51,
+        "sha256": "5645c35d373c7ddcd6a949846bb4e830dced8bf285b7a42b53bc315e1c4116fb",
+        "role": "mode0 bank-copy wrapper",
+        "unwind_fragments": 0,
+        "ghidra_body_byte_count": 51
+      },
+      {
+        "rva": "00e91c80",
+        "size": 469,
+        "sha256": "cc7cb3eddac78b21847b8a4c6488d34e4f64577ebc34bc6a71a80aad8f38d031",
+        "role": "typed motion-bank copy",
+        "unwind_fragments": 0,
+        "ghidra_body_byte_count": 469
+      },
+      {
+        "rva": "0070eb10",
+        "size": 230,
+        "sha256": "1a4d39658051fd2b3ad9856415fd425850f0f5093798fe1f4cba798dfba84a6e",
+        "role": "FlightControlStarted notification",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 230
+      },
+      {
+        "rva": "0070ec00",
+        "size": 230,
+        "sha256": "2865ebcc782e41edae8e5a8f87ab1ce21656f4bde4236f33849a4c70ead0c82c",
+        "role": "FlightControlStopped notification",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 230
+      },
+      {
+        "rva": "00716e20",
+        "size": 1481,
+        "sha256": "010ba9e22844f7a03046316572ee102ea8e689ec94e42ec048be93428f1d0852",
+        "role": "native player control-position release",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 1481
+      },
+      {
+        "rva": "0070e940",
+        "size": 345,
+        "sha256": "637b2d64ca6d7fc98c9ef5777ecf085b462afa12ea601f2bdca39423fdda97c7",
+        "role": "player pilot ship release path",
+        "unwind_fragments": 3,
+        "ghidra_body_byte_count": 345
+      },
+      {
+        "rva": "007e1f10",
+        "size": 100,
+        "sha256": "d82afe88fdea028b34c229f6c44cb3903cdf909d3257bd803318b4b7f9321cb6",
+        "role": "Ship wrapper around pilot release",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 100
+      },
+      {
+        "rva": "00450380",
+        "size": 1110,
+        "sha256": "8682c85c8ad6cc9040517c50831418a3ed43fb11b80c5d599fb8169baa5ac60e",
+        "role": "ship pilot release to NavigationController",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 1110
+      },
+      {
+        "rva": "00d9c250",
+        "size": 831,
+        "sha256": "3b8bc7c183957b354e5b52bd2a47754504e24a396081aeb586fe4af1a2372e81",
+        "role": "player controls deactivation and native model-selection enqueue",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 831
+      },
+      {
+        "rva": "00ea8cf0",
+        "size": 1332,
+        "sha256": "8d94c7bcd214c10c531b48f7bcd8f3ddb87b49025a437416d0a9123c429a0615",
+        "role": "fresh navigation owner/Agent binding and deferred commands",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 1332
+      },
+      {
+        "rva": "00eac530",
+        "size": 582,
+        "sha256": "7b02058e82f6d8acf92e189f5982eae449af06dc045fcb41be1d182ea374267c",
+        "role": "synchronized Agent registration",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 582
+      },
+      {
+        "rva": "0099abe0",
+        "size": 2156,
+        "sha256": "aa0a4bd8af4a026a868b5ac1fc810def6f9f3e547cdc0b984cc945fc4f10ec3e",
+        "role": "event-system queue flush, distinct from pathing manager queue",
+        "unwind_fragments": 1,
+        "ghidra_body_byte_count": 2131
+      }
+    ],
+    "virtual_slots": [
+      {
+        "vtable_rva": "02b7feb8",
+        "slot_offset": "2190",
+        "target_rva": "004ed040",
+        "rva": "02b82048",
+        "size": 8,
+        "sha256": "67830e914bf4896298465093c4f4ab2c0b6a5c46c6602299f4aa05f582a18d76",
+        "role": "saved Small pilot-entry wrapper"
+      },
+      {
+        "vtable_rva": "02b7feb8",
+        "slot_offset": "2198",
+        "target_rva": "007e1f10",
+        "rva": "02b82050",
+        "size": 8,
+        "sha256": "dd54fe1b913e406b4ad3e15d27bac427e2f7c2556a7d1f18c6d40582e5e70049",
+        "role": "saved Small pilot-release wrapper"
+      },
+      {
+        "vtable_rva": "02b7feb8",
+        "slot_offset": "19e8",
+        "target_rva": "006cd8b0",
+        "rva": "02b818a0",
+        "size": 8,
+        "sha256": "80f90aad66f387761eb43b78edbfa6124b521391d2efcf58a36d7b646b6573f7",
+        "role": "saved Small component controller replacement"
+      },
+      {
+        "vtable_rva": "02c39488",
+        "slot_offset": "198",
+        "target_rva": "00d8dd00",
+        "rva": "02c39620",
+        "size": 8,
+        "sha256": "6de3310ce142d2073074b3dacd0bdfcf66a0027ab2fc32be75222513b64fc8cb",
+        "role": "PlayerController model selection"
+      },
+      {
+        "vtable_rva": "02c51c38",
+        "slot_offset": "8",
+        "target_rva": "00e979d0",
+        "rva": "02c51c40",
+        "size": 8,
+        "sha256": "f9fabbc04c77e9579c4598df1fcc5b6136cdacd14085a22598b36ee5511d0ea6",
+        "role": "SetFlightControlModelOrder dispatch"
+      }
+    ],
+    "direct_edges": [
+      {
+        "caller_rva": "0035b8a0",
+        "rva": "0035bdc8",
+        "size": 5,
+        "target_rva": "00716670",
+        "instruction": "call",
+        "sha256": "2b1c1751037a99a785f6a21dbf902dbfd272e452250d1a8cc0346ecedc3511ae"
+      },
+      {
+        "caller_rva": "00716670",
+        "rva": "007167cc",
+        "size": 5,
+        "target_rva": "0070e630",
+        "instruction": "call",
+        "sha256": "b6707108957c685868883142bcd2f110570bd2fd68f7d25660579a2c53d0678f"
+      },
+      {
+        "caller_rva": "0070e630",
+        "rva": "0070e707",
+        "size": 5,
+        "target_rva": "0044d790",
+        "instruction": "call",
+        "sha256": "307a45f2952517df314e929c3a74ca20f74a855eeb980f798c7f49927ba061d0"
+      },
+      {
+        "caller_rva": "004ed040",
+        "rva": "004ed04d",
+        "size": 5,
+        "target_rva": "004500a0",
+        "instruction": "call",
+        "sha256": "26234a84b3fd6b24161fb285bfbcabe3f6b210d9cb154fddfb3e0741c9eb0dd1"
+      },
+      {
+        "caller_rva": "004500a0",
+        "rva": "00450293",
+        "size": 5,
+        "target_rva": "00d83ae0",
+        "instruction": "call",
+        "sha256": "55cbf697c7349797cf7d8bd3b4ada8b9d3f5ddefc2fae8e85c00867284bf4983"
+      },
+      {
+        "caller_rva": "00d83ae0",
+        "rva": "00d83b21",
+        "size": 5,
+        "target_rva": "00ea4c00",
+        "instruction": "call",
+        "sha256": "5b736ab77dedb1fabec7f3b9d8a431e6d82fbc7718fc64d88c7ffd0db725e2e7"
+      },
+      {
+        "caller_rva": "00d83ae0",
+        "rva": "00d83d93",
+        "size": 5,
+        "target_rva": "00d84c20",
+        "instruction": "call",
+        "sha256": "25795a1f814de4dcb887184ad3c8b79ce363677297e5273a016ab13ad4e11cc3"
+      },
+      {
+        "caller_rva": "006cd8b0",
+        "rva": "006cd8b9",
+        "size": 5,
+        "target_rva": "00745e00",
+        "instruction": "call",
+        "sha256": "d2edfc180949be0406eb134c56541d7119dcb2fd6dccf2952dd76d9afec7e0d1"
+      },
+      {
+        "caller_rva": "00ea5230",
+        "rva": "00ea5290",
+        "size": 5,
+        "target_rva": "00ea9230",
+        "instruction": "call",
+        "sha256": "23929b96c1c07c12cb61dc463d9ea51a428b00da10445230a209c33a82a74c7d"
+      },
+      {
+        "caller_rva": "00d88710",
+        "rva": "00d888a7",
+        "size": 5,
+        "target_rva": "00d9c590",
+        "instruction": "call",
+        "sha256": "2cdd8529c08d7644bfd25fd7779a347cd54ef909f430ac9b48d64ea108849650"
+      },
+      {
+        "caller_rva": "00d88710",
+        "rva": "00d888da",
+        "size": 5,
+        "target_rva": "0070eb10",
+        "instruction": "call",
+        "sha256": "5089fdab01739c834a6723f95dcb95827d69cffac9587d7398a6e2e77b0756f7"
+      },
+      {
+        "caller_rva": "00d8dd00",
+        "rva": "00d8dd21",
+        "size": 5,
+        "target_rva": "00eac900",
+        "instruction": "call",
+        "sha256": "38600653d52a2800eaa1645d62ca57bb6dd1888d0987326a8ad50ae4c19ee6d4"
+      },
+      {
+        "caller_rva": "00eac900",
+        "rva": "00eac959",
+        "size": 5,
+        "target_rva": "00eacd40",
+        "instruction": "jmp",
+        "sha256": "1eda07eca073cb6744a3d36d0eba79d505c7c530f2dc718a98d88791f084da37"
+      },
+      {
+        "caller_rva": "00e979d0",
+        "rva": "00e979d9",
+        "size": 5,
+        "target_rva": "00e87cf0",
+        "instruction": "jmp",
+        "sha256": "e07e03f4ced5a47cdc0d1258299169539ebb3295d75b78a2c360570c59079d28"
+      },
+      {
+        "caller_rva": "00e87cf0",
+        "rva": "00e88020",
+        "size": 5,
+        "target_rva": "00e91c40",
+        "instruction": "call",
+        "sha256": "9f06022e73d43cce9b12481592e0404543206b854e08b3f91e20245d4a4c4d4f"
+      },
+      {
+        "caller_rva": "00e91c40",
+        "rva": "00e91c6e",
+        "size": 5,
+        "target_rva": "00e91c80",
+        "instruction": "jmp",
+        "sha256": "cbd094eacfb95b6be78ec86efa771ece530f5b6a11fcea8bd945ff190afb0213"
+      },
+      {
+        "caller_rva": "00716e20",
+        "rva": "007170d2",
+        "size": 5,
+        "target_rva": "0070e940",
+        "instruction": "call",
+        "sha256": "dc437e9dfcec46bdb6dde5764a42b68c6b6c7adff398cbd8104b84d18eb171e4"
+      },
+      {
+        "caller_rva": "007e1f10",
+        "rva": "007e1f33",
+        "size": 5,
+        "target_rva": "00450380",
+        "instruction": "call",
+        "sha256": "0683194498bb29fbdea94810614404bf5d52497df3893d81d9aca970b4443150"
+      },
+      {
+        "caller_rva": "00450380",
+        "rva": "004505db",
+        "size": 5,
+        "target_rva": "00ea4c00",
+        "instruction": "call",
+        "sha256": "c4ca8cad139b7a02cce28fc19c6c320db15d304670b507bad7f7bb3fd6ef1e10"
+      }
+    ]
+  }
+}

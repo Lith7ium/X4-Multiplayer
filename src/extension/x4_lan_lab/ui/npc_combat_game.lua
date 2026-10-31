@@ -8,6 +8,12 @@ local nativeCode=C.GetObjectIDCode -- Before identity_game's display-only overri
 local U,P,s,c,h,d=A.universe,X4LAN_UNIVERSE_PROTOCOL,A.state,A.coop,A.health,A.shot
 local n={records={},states={},claims={},pending={},seq=0,serial=0,cursor=0};A.npcCombat=n
 local function log(v) DebugError('[X4LAN] NPC_COMBAT '..v) end
+-- Host NHP cadence. A record is read every poll, but NHP is sent only when its health or
+-- death changes, and otherwise repeated with a new sequence every KEEPALIVE seconds. The
+-- relay forwards new sequences only; a guest binds health while its newest sequence is
+-- under 5 s old, so 1.5 s survives two consecutive lost datagrams. Formerly every read
+-- was sent: up to 128 NHP per 0.1 s.
+n.KEEPALIVE=1.5
 local function integer(v,max) local i=P.integer(tostring(v));return i and i<=(max or 2147483647) and i end
 local function percent(v) local x=tonumber(v);return x and x==x and x>=0 and x<=100 and x end
 local function key(id,gen,e,sg) return table.concat({id,gen,e,sg},'|') end
@@ -15,7 +21,7 @@ local function fresh(now) return not A.paused() and h.mdStamp and now-h.mdAt<=.5
 local function validGen(e) local g=h.valid[e];return g and g>(h.closed[e] or 0) and g end
 local function pilot(e,sg,slot)
  return c.owners[e]==slot and c.pilots[e]==slot and validGen(e)==sg and
-  (slot=='p1' or cfg.slot=='p2' and h.live and h.live.entity==e and h.live.gen==sg or
+  (slot=='p1' or cfg.slot~='p1' and h.live and h.live.entity==e and h.live.gen==sg or
    cfg.slot=='p1' and h.remote[e] and h.remote[e].gen==sg)
 end
 local function send(fields) s.transport:send(table.concat(fields,'|')) end
@@ -78,7 +84,7 @@ end
 function n.receive(f,now)
  if f[1]~='NHP' and f[1]~='NCLAIM' and f[1]~='NACK' then return false end
  if n.failed or not s.client or f[3]~=s.client.lease then return true end
- if f[1]=='NHP' and cfg.slot=='p2' and #f==14 and U.latest and f[4]==U.latest.epoch then
+ if f[1]=='NHP' and cfg.slot~='p1' and #f==14 and U.latest and f[4]==U.latest.epoch then
   local id,gen,seq=integer(f[5]),integer(f[6]),integer(f[7])
   local hu,sh=percent(f[12]),percent(f[13]);local r=id and U.replicas[id];local old=id and n.states[id]
   if not id or not gen or gen==0 or not seq or not hu or not sh or not r or
@@ -90,13 +96,13 @@ function n.receive(f,now)
  elseif f[1]=='NCLAIM' and cfg.slot=='p1' and #f==12 and f[5]==s.client.lease then
   local id,gen,e,sg,seq,hits=integer(f[6]),integer(f[7]),integer(f[8],2),integer(f[9]),integer(f[10]),integer(f[11],1000000)
   local r=id and n.records[id];local sup=e and d.support[e]
-  if not r or r.dead or r.gen~=gen or not e or e<1 or not sg or not pilot(e,sg,'p2') or not seq or not hits or
+  if not r or r.dead or r.gen~=gen or not e or e<1 or not sg or not pilot(e,sg,c.owners[e]) or not seq or not hits or
    not sup or f[12]~=sup.digest or not safe(r) or not f[4]:match('^[a-f0-9]+$') or #f[4]~=32 then return true end
   local k=key(id,gen,e,sg);local p=n.pending[k]
   if p and (seq<=p.seq or hits<p.hits or p.source~=f[4]) then return true end
   n.pending[k]={id=id,gen=gen,e=e,sg=sg,seq=seq,hits=hits,source=f[4],digest=f[12],strength=sup.strength,
    confirmed=p and p.confirmed or 0,next=p and p.next or 0}
- elseif f[1]=='NACK' and cfg.slot=='p2' and #f==10 and U.latest and f[4]==U.latest.epoch and f[5]==s.client.lease then
+ elseif f[1]=='NACK' and cfg.slot~='p1' and #f==10 and U.latest and f[4]==U.latest.epoch and f[5]==s.client.lease then
   local id,gen,e,sg,count=integer(f[6]),integer(f[7]),integer(f[8],2),integer(f[9]),integer(f[10],1000000)
   if id and gen and e and sg and count then
    local p=n.claims[key(id,gen,e,sg)];if p and count<=p.hits then p.ack=math.max(p.ack,count) end
@@ -105,11 +111,11 @@ function n.receive(f,now)
  return true
 end
 function n.count(payload)
- local f=P.split(tostring(payload),'|');if #f~=6 or n.failed or cfg.slot~='p2' then return end
+ local f=P.split(tostring(payload),'|');if #f~=6 or n.failed or cfg.slot=='p1' then return end
  local id,gen,serial,e,sg,hits=integer(f[1]),integer(f[2]),integer(f[3]),integer(f[4],2),integer(f[5]),integer(f[6],1000000)
  local r=id and n.records[id];local state=id and n.states[id]
  if not r or r.gen~=gen or r.serial~=serial or not state or not state.alive or not e or e<1 or not sg or not hits or
-  not pilot(e,sg,'p2') or not d.support[e] or not safe(r) or (h.now or 0)-state.at>=5 then return end
+  not pilot(e,sg,c.owners[e]) or not d.support[e] or not safe(r) or (h.now or 0)-state.at>=5 then return end
  local k=key(id,gen,e,sg);local p=n.claims[k]
  if not p then p={id=id,gen=gen,e=e,sg=sg,hits=0,ack=0};n.claims[k]=p end
  p.hits=math.max(p.hits,hits)
@@ -121,6 +127,9 @@ function n.read(payload)
  if not r or r.gen~=gen or r.serial~=serial or not hull or not shield or (f[6]~='0' and f[6]~='1') then return end
  if f[6]=='1' and (r.dead or not safe(r)) then return end
  r.hull,r.shield,r.dead,r.readAt=hull,shield,f[6]=='0',h.now
+ local now=h.now or 0;local sent=r.sent
+ if sent and sent.hull==hull and sent.shield==shield and sent.dead==r.dead and now-sent.at<n.KEEPALIVE then return end
+ r.sent={hull=hull,shield=shield,dead=r.dead,at=now}
  n.seq=n.seq+1
  send({'NHP',1,s.client.lease,s.client.lease,id,gen,n.seq,r.sector,r.code,r.macro,r.owner,hull,shield,r.dead and 0 or 1})
 end
@@ -129,7 +138,7 @@ function n.applied(payload)
  local id,gen,serial,e,sg,count=integer(f[1]),integer(f[2]),integer(f[3]),integer(f[4],2),integer(f[5]),integer(f[6],1000000)
  if not id or not gen or not serial or not e or not sg or not count then return end
  local p=n.pending[key(id,gen,e,sg)];local r=n.records[id]
- if not p or not r or serial~=r.serial or count>p.hits or not pilot(e,sg,'p2') then return end
+ if not p or not r or serial~=r.serial or count>p.hits or not pilot(e,sg,c.owners[e]) then return end
  p.confirmed=math.max(p.confirmed,count)
  send({'NACK',1,s.client.lease,s.client.lease,p.source,id,gen,e,sg,p.confirmed})
 end
@@ -154,7 +163,7 @@ function n.frame(now)
   for _=1,math.min(count,128) do
    n.cursor=n.cursor%count+1
    local entry=list[n.cursor];local id=cfg.slot=='p1' and entry.id or entry
-   local replica=cfg.slot=='p2' and U.replicas[id];local state=n.states[id];local r=n.records[id]
+   local replica=cfg.slot~='p1' and U.replicas[id];local state=n.states[id];local r=n.records[id]
    -- A terminal host fact remains actionable when the motion/baseline feed has
    -- expired. Never wait for another pose packet to retire a confirmed death.
    if replica and state and not state.alive then n.hide(replica,now) end
@@ -170,22 +179,26 @@ function n.frame(now)
    end
    if r and safe(r) and (cfg.slot=='p1' or replica and replica.object==r.object and state and state.alive and now-state.at<5) then
     local a=args(r)
-    if cfg.slot=='p2' then a.hull,a.shield,a.sequence=state.hull,state.shield,state.seq;replica.npcBound=true end
+    if cfg.slot~='p1' then a.hull,a.shield,a.sequence=state.hull,state.shield,state.seq;replica.npcBound=true end
     call('Bind',a)
    end
   end
   -- Destruction is reported by a native event and retained after baseline removal.
   if cfg.slot=='p1' then
-   local dead={};for _,r in pairs(n.records) do if r.dead and r.sector==U.wanted then dead[#dead+1]=r end end
+   local dead={};for _,r in pairs(n.records) do if r.dead and U.wanted[r.sector] then dead[#dead+1]=r end end
    for i=1,math.min(#dead,128) do
     n.deadCursor=(n.deadCursor or 0)%#dead+1;local r=dead[n.deadCursor]
-    n.seq=n.seq+1;send({'NHP',1,s.client.lease,s.client.lease,r.id,r.gen,n.seq,r.sector,r.code,r.macro,r.owner,0,0,0})
+    -- The death itself was sent by n.read; repeat it at the keepalive cadence only.
+    if not r.sent or not r.sent.dead or now-r.sent.at>=n.KEEPALIVE then
+     r.sent={hull=0,shield=0,dead=true,at=now}
+     n.seq=n.seq+1;send({'NHP',1,s.client.lease,s.client.lease,r.id,r.gen,n.seq,r.sector,r.code,r.macro,r.owner,0,0,0})
+    end
    end
   end
  end
  for k,p in pairs(n.claims) do
   local state=n.states[p.id]
-  if not state or not state.alive or state.gen~=p.gen or not pilot(p.e,p.sg,'p2') then n.claims[k]=nil
+  if not state or not state.alive or state.gen~=p.gen or not pilot(p.e,p.sg,c.owners[p.e]) then n.claims[k]=nil
   elseif now-state.at<5 and p.hits>p.ack and now>=(p.next or 0) and d.support[p.e] then
    p.next=now+.25;n.seq=n.seq+1
    send({'NCLAIM',1,s.client.lease,state.epoch,p.id,p.gen,p.e,p.sg,n.seq,p.hits,d.support[p.e].digest})
@@ -193,7 +206,7 @@ function n.frame(now)
  end
  for k,p in pairs(n.pending) do
   local r=n.records[p.id];local sup=d.support[p.e]
-  if not r or not pilot(p.e,p.sg,'p2') then n.pending[k]=nil
+  if not r or not pilot(p.e,p.sg,c.owners[p.e]) then n.pending[k]=nil
   elseif not r.dead and safe(r) and sup and sup.digest==p.digest and p.hits>p.confirmed and now>=p.next then
    p.next=now+.5
    local a=args(r);a.shooter,a.sgen,a.base,a.count,a.strength=p.e,p.sg,p.confirmed,math.min(p.hits,p.confirmed+20),p.strength

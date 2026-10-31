@@ -8,9 +8,11 @@
    <!-- Latch before Prepare: observed mode never starts scripted replay guns.
         stop_shooting on the actual player ship also suppresses manual input. -->
    <set_value name="$arena.$projectileVisualEnabled" exact="@event.param3.$observed == true"/>
-   <set_value name="$arena.$shotVisualMode" exact="[0,0]"/>
-   <set_value name="$arena.$shotVisualGen" exact="[0,0]"/>
-   <set_value name="$arena.$shotVisualAt" exact="[-10s,-10s]"/>
+   <!-- Per shared ship; visuals run for ships 1/2 only (ship 3+ entries stay neutral). -->
+   <set_value name="$arena.$shotVisualMode" exact="[]"/><set_value name="$arena.$shotVisualGen" exact="[]"/><set_value name="$arena.$shotVisualAt" exact="[]"/>
+   <do_all exact="[$arena.$ships.count,2].max" counter="$i">
+    <append_to_list name="$arena.$shotVisualMode" exact="0"/><append_to_list name="$arena.$shotVisualGen" exact="0"/><append_to_list name="$arena.$shotVisualAt" exact="-10s"/>
+   </do_all>
    <set_value name="$ticket" exact="[0,0]"/><set_value name="$sequence" exact="[0,0]"/>
    <set_value name="$wanted" exact="[0,0]"/><set_value name="$objects" exact="[null,null]"/>
    <set_value name="$failed" exact="false"/>

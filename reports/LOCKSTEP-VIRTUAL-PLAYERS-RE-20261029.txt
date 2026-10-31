@@ -1,0 +1,1738 @@
+LOCKSTEP VIRTUAL PLAYERS: X4'S OWN PLAYER CONTROL PATH, PER SLOT
+29 October 2026 | offline static analysis of the pinned Windows X4.exe 9.00
+(SHA-256 19750a65...6891, base 0x140000000; RVAs below) + step 1 built (default
+off); live test A analysed and step 2 (slot 1 through X4's own path) built, default
+off, sections 11-13; step 3 spike (a second U::Player: construct built, seat
+designed), section 14; round 3 (live results, map fixes, slot 1's view in the
+record), section 15; round 4 (round 3 results; slots 2..N through X4's own path,
+built default off; 3-client needs; presentation design), section 16. No X4 was
+launched here. [F] = read in the binary (decompiled or disassembled,
+function pinned where it matters); [I] = inference; [P] = earlier report or run.
+
+GOAL (user): every player ship flies with the game's own player systems. Each
+client "thinks" every player is player 1: in the simulation, on every client, in
+a fixed slot order, X4's own per-frame player control path runs once per slot k
+with the player-side state swapped to slot k's block and the input replaced by
+slot k's recorded input. Slot 1 runs the same way. Local presentation (HUD,
+camera) belongs to the local-player work (contrib/ferrite-local-player).
+
+0. SHORT ANSWERS
+
+- The path: input dispatch (VBI slot 4, MoveWorker) -> stock handlers write the
+  process-global input bank 0x2f4b720..0x2f4b998, the Universe player's fields or
+  the occupied ship -> component tree Move (slot 3: Player::Move 7113e0,
+  PlayerController::vfunc33 d97e80, weapons' PlayerShootController 7e8bc0) ->
+  PlayerController::Update d95180 (slot 3, after the pathing join): device stage
+  (raw bank -> processed channels) then sim stage (control scheme -> requests ->
+  own solver d93440 -> authority d8dd50 -> publish). Activities (travel, scan,
+  long-range scan, SETA) are MD: the handler signals the player entity and
+  md/modes.xml calls set_player_activity (710ed0), which engages the drive.
+- All of it runs on the MoveWorker. The input state is mostly process-global
+  (one bank, not per controller); the rest is the Universe player's fields and
+  the PlayerController object of the occupied ship.
+- It can run for a ship the player entity does not sit in only if (a) that ship
+  has its own PlayerController (Controllable::vfunc1074 creates one) and (b)
+  "the player" resolves to that ship: 9fc550 and about 15 other accessors walk
+  the singleton player's parent chain, d95180 itself checks the player's zone.
+  1,041 functions read the singleton (*(0x143d198f8)+0x230); 68 of them are in
+  the direct-call closure (depth 3) of the per-frame control path.
+- A per-slot swap is cheap and allocation-free (about 1.1 KB of globals and
+  player fields, memcpy) if it happens only on the MoveWorker while no other
+  simulation thread runs (gate serial pathing gives that from path_release on).
+  The hard parts are identity (who "the player" is) and the MD-driven
+  activities, not the bytes.
+- Recommended: N player entities (one U::Player per slot, seated in its ship
+  through the stock control-position path), the scope swaps the singleton
+  pointer plus the global block, and the input record is the stock dispatch
+  stream (kind, id, value) replayed through the stock dispatchers in the slot's
+  scope. Fallback: one entity, accessor redirection. Section 6.
+- Built: step 1, native_gate_virtual_players='observe' (default off, read-only):
+  the block map with classes, pins, swap/scope primitives (offline-tested), a
+  per-frame observation of the canonical player's block and a census of every
+  registered input handler. Section 8.
+- Built since: the map corrected from live test A (camera pick is DEVICE,
+  neighbours of the guard pages named; section 11) and step 2,
+  native_gate_pilot_stock (default off, stop reason 155): slot 1 flies with X4's
+  own player control path on every client from client 1's recorded stock
+  dispatch stream. Section 12; live tests wanted in section 13.
+
+1. THE PER-FRAME PATH (MoveWorker 0x1212490 [P]: wait semSimStart, kick pathing,
+VBI slots 0..16 in order)
+
+1.1 Frame order inside slot 3, U::UniverseFrameUpdate 9fdef0 [F]
+  9fdf95  Galaxy vfunc 0x1510 (slot 674 = Move): the component tree. Player::Move
+          7113e0 (U::Player slot 674), every ship's Move and with it the
+          controller upkeep (PlayerController::vfunc33 d97e80: 1,199 calls in
+          1,200 ticks on the MoveWorker [P NATIVE-PLAYER-CONTROLS]) and the
+          weapons' shoot controllers (PlayerShootController::vfunc14 7e8bc0:
+          2,398 evaluations [P]).
+          Pathing workers run concurrently with this unless the gate's serial
+          pathing joins them in path_release (path_options&1) [F lockstep_gate.c].
+  then    MD scheduler, AIDirector::Move, conversations.
+  ...     Path::PathingManager::WaitAndSwapBuffers (stock join).
+  9fe2a9  controller = 9fc550(0x143d196f0)   (0x3d196f0+0x208 = Universe ptr)
+  9fe2d7  d95180(controller, game time)      the only call of d95180
+  9fe459/9fe48b XPhys::Scene::Step (two scenes)
+  9fe5d0  717ed0 (player target/aim from the CAMERA: Universe+0x3d0 +0x770, writes
+          player+0x6c88), 9fe5ed 718d50 when 0x3d19b08 is set.
+Slot 4 XIn::Base -> 1250170: context callbacks (1251fe0/1252320, SPACE d88710)
+and the dispatchers 1255cd0 (actions) / 1255dd0 (states) / 1255ee0 (ranges) over
+the InputMapping multimaps at *(0x6cf1560)+0x63e0 (+0 actions, +0x40 states,
++0x80 ranges; node +0x20 key, +0x28 handler; map+8 = root) [F, P]. Slot 6: UI
+(Lua). So the dispatch of frame t feeds d95180 of frame t+1.
+
+1.2 Every registered input handler [F: all lea r8 targets of the registration
+calls 1255610/12556f0/12557e0; pinned in step 1, checked in the image test]
+  registrar  handler   kind    ids (names from the engine's INPUT_* tables)
+  d898c0     d86c80    action  STOP, TOGGLE_TRAVEL_MODE, TOGGLE_SCAN_MODE,
+                               TOGGLE_LONGRANGE_SCAN_MODE, TOGGLE_SETA_MODE
+             d870b0    state   STEER_*, ROLL_*, STRAFE_* (key flags 0x2f4b7e8..7f9),
+                               ACCELERATE, DECELERATE, FULLFORWARD, FULLREVERSE,
+                               INVERT_THROTTLE, MATCH_SPEED, BOOST
+             d87f70    range   STEERING_YAW/PITCH/ROLL/PRIMARY/SECONDARY,
+                               MOUSESTEERING_*, THROTTLE, MOUSEWHEEL, STRAFE_*
+  71b6c0     71bac0    action  NEXT/PREV_TARGET, TARGET_NEXT_ENEMY/TARGET,
+                               NEXT/PREV_SUBCOMPONENT, TOGGLE_FLIGHT_ASSIST,
+                               TOGGLE_STEERING_AXIS, TOGGLE_AUTOPILOT,
+                               TOGGLE_GUIDANCE, TOGGLE_TARGET_LOCK, DOCK, UNDOCK,
+                               GET_UP, DEPLOY_COUNTERMEASURE, turrets, drones,
+                               squad, deploys, zoom goggles, cover, stance, debug
+             71c640    state   TARGETMOUSE_*, FP_INTERACTION_MENU_MOUSECLICK,
+                               LOOTMAGNET, SUSPEND_FLIGHT_ASSIST, FIRE_* (4)
+             71ca10    range   FIRE_* (4)
+  9ed1f0     7e8ef0    state   FIRE_* -> triggers 0x38f0728/72a, 0x2f4b6d8
+             7eb070    state   FIRE_* (bomb launcher)
+             7e90b0/7eb160 range FIRE_*
+             d7d3b0/d7d5c0/d7d690  first-person walking (FP_*, MOUSELOOK)
+  af12b0     af1db0    action  weapon groups (CYCLE_*, SELECT_*_1..10), next
+                               ammo, DESELECT_TARGET, dialogs, radar mode
+             af3e70/af3ee0     dialog/interaction/compass menus
+  GameClient::Init 1223ce0: 122c070 (mouse steering toggles, TOGGLEAUTOROLL,
+             TOGGLEAIMASSIST, PAUSE, save/load menus, QUICKSAVE/LOAD, camera
+             views, cinematic, TOGGLE_REDUCED_SPEED_MODE), 122d740/122d970 camera
+  UI:        304f10 widgets, 8d3090 menus (OPEN_MAP...), e1c020 map, 10ea140
+             cinematic, 1177590 dialog, GameClient ctor 8c5e10 (HUD), ac2aa0 start
+  dynamic:   AddonManager::RegisterBindings ad5a10 (ad1e00/ad1e70); CommAction,
+             InfoAction, BasicScanAction, TeleportLuaAction register at run time.
+Simulation-relevant: the d898c0, 71b6c0 and 9ed1f0 groups, af1db0's weapon
+groups/DESELECT_TARGET, and 122c070's option toggles (autoroll, aim assist,
+reduced speed). The rest is presentation/UI or must stay refused (pause,
+save/load).
+
+1.3 PlayerController::Update d95180 (7221 bytes) [F]
+  entry   bind: if controller+0xe0==0 -> d84c20 (resets the GLOBAL bank, below).
+          player = singleton; its nearest ancestor of class 0x6d (zone) must equal
+          0x146b661e8 (the controller's environment zone, d8dfe0) else return.
+          memo controller+0xf0 (one update per game time); reentry flag
+          0x38f4db4 set at d952f3, cleared before each return (d96d5b).
+  device  d952fa..d95bdc: mouse steering curve (config *(0x6cf1538)+8 via
+  stage   14e0180), cursor/direct mouse steering d88a10 at d954e2 (reads the input
+          object's cursor; writes 0x2f4b738..740; gated by flight control),
+          keyboard ramps from key flags, accelerate/decelerate ramp via d88fe0
+          (throttle setpoint 0x2f4b75c), hold timer 0x31c1fd8, roll->yaw mix by
+          input+0x912c, invert input+0x905b/905c -> processed channels
+          0x2f4b750/754/758 (rot), 0x2f4b788/78c/790 (lin), full-stop 0x2f4b7d0/7d1.
+          At d95bdc the linear channels are live in xmm5/6/10.
+  sim     d95bdc..: strafe clears player+0x6aad (assist suspended) -> 710ad0;
+  stage   d924d0 (coefficients 0x31be630..670 from the ship), d94700 (assist
+          off), control scheme d6d420 on *(0x6cf25d0) (libraries/controlschemes;
+          conditions d69680 call 9fc550, ea7600 boost, ea7650 travel, ea7690),
+          SetControllerValueID d8fb60 -> velocity requests e5d380 on
+          controller+0x6db0/+0x13080, integrate d93440 (solver controller+0x3b0;
+          trigger-object sweep with the player ship; 9f7860), authority d8dd50,
+          publish (vfunc +0x30/+0x38/+0x50), d96dc0 avoidance (option 0x2f4b9cc),
+          d85700 zone/warp, highway effects (allocations, PostEvent), player
+          statistics 69a490 on *(0x6cf1670).
+  d8dd50  = autopilot 0x2f4b7d8 || (!flight 0x2f4b828 && assist (vfunc49 d9bf70:
+          ship+0x450 bit && singleton player+0x6aac/6aad/6aae) && !highway
+          0x6b661d0) || !component+0xd1. +0xd1 is the tree-wide "in the live
+          universe" flag (3d9460 from Component::vfunc624/NewGame/Import), not a
+          player flag [F].
+1.4 Controller upkeep and getters [F]
+  vfunc33 d97e80 (per frame, tree phase): desired/smoothed throttle 0x2f4b760/764,
+  sticky throttle and feedback 0x2f4b830..994, match speed 0x2f4b786, autopilot
+  branch through NavigationController::vfunc33 ea77f0, "stop ship in menus"
+  option 0x2f4b9bf (zeroes the setpoint while flight control is off).
+  vfunc34 d98e50: [I] transform/environment change (it calls SetTransform/
+  SetVelocity, d8dfe0, stop boost 6d8660, stop activity 9fd330).
+  Getters read globals too: vfunc13 d8c650 (throttle fraction: 0x2f4b760/790,
+  0x6b661d0), vfunc49 (assist, singleton fields), vfunc56..67 (limits, 0x31be6xx),
+  vfunc6/7/10 (transform/velocity/acceleration: inlined d8dd50). They are called
+  from anywhere, also off the MoveWorker [P pnat routing].
+1.5 Weapons [F]
+  Weapon::vfunc999/1000 install a PlayerShootController (ctor 7e5a40, reads
+  player+0x6e20/+0x6dd0) on a weapon, primary/secondary; [I] the caller is the
+  player ship's weapon-group setup (virtual, not traced).
+  vfunc14 7e8bc0 decides fire from the global triggers 0x38f0728..72b and the
+  singleton activity (+0x6ab4==2 blocks secondary); aim vfunc21 7e8650 reads aim
+  assist 0x2f4b9c0/9c4 and player+0x6c60..0x6c88 (aim data, target). Weapon
+  vfunc1041 / MissileLauncher read flight control 0x2f4b828.
+1.6 Boost, travel, SETA, scan, autopilot, assist, target [F]
+  BOOST d870b0 case 0x11: ship = 9f7860() (the singleton's occupied ship); ship
+    vfuncs 6d8870/6d8830 (boost state), +0x2020 (start boost), 6d8660 (stop),
+    +0x1f78, 6d84c0; clears player+0x6aad; throttle 1.0; UI +0xf0 notification.
+  TRAVEL/SCAN/LR SCAN/SETA d86c80 -> 9fd120/9fd330: PostEvent "startactivity" /
+    "stopactivity" to the singleton player entity. md/modes.xml cues
+    Mode_Travel/Mode_Scan/Mode_ScanLongRange/Mode_SETA listen with
+    event_object_signalled object="player.entity", use player.occupiedship and
+    run set_player_activity (Scripts::SetPlayerActivityAction c09070 -> 710ed0,
+    the only writer of player+0x6ab4 besides load/ctor), which engages the
+    mechanics: entering travel 6d8bf0 on the ship (55aeb0 = the player's ship),
+    leaving travel 6d9190, leaving SETA 72d5f0, scan 706670 (with the
+    controller's target), plus cockpit tint and UI sounds (presentation).
+  STOP 0x7b: CancelSeta, autopilot stop 72bb10, engine resets 6d9600/6d8660/
+    6d8960 on the ship, throttle 0, full stop flag.
+  FLIGHT ASSIST 71bac0 0xdd -> 710d50 (player+0x6aac); SUSPEND 71c640 0x85.
+  AUTOPILOT 71bac0 0xb3 -> 72bdc0(player); target 0x2f4b7d8.
+  TARGET 71bac0 0xa7..0xaa -> 8c3720/8c31c0/8c3470 (target manager
+    *(0x6cf2210)+0x40/+0x50); player+0x6c88 is rewritten each frame by 717ed0
+    from the camera (camera-dependent player state, see 5).
+  MATCH SPEED d870b0 0x5b -> d9cd00 / 0x2f4b786.
+  Feedback (sounds/voice/UI) everywhere: 1257950/1257a20/1257b00 on
+    *(0x6cf1890), 14e8ec0 on *(0x6cf15b8), Lua event sink *(0x6cf1520)+0x3b8.
+
+2. WHERE THE STATE LIVES [F unless marked]
+
+Input bank 0x2f4b720..0x2f4b998 (0x278 bytes, default image from d85100, reset
+by d84c20 on every controller bind except 0x2f4b7e0/7e4). Classified in step 1:
+  720..750 DEVICE  mouse 720..728, key ramps 72c..734, analog rot 738..740
+                   (d88a10), steering axes 744..74c (ranges 0x1d..0x1f)
+  750..770 SIM     processed yaw/pitch/roll, setpoint 75c, desired 760,
+                   smoothed 764, min/max 768/76c
+  770..784 DEVICE  throttle axis last 770, 774, hold 778, ramp base 780
+  784 SIM bound  785 DEVICE invert throttle  786 SIM match speed  787 DEVICE
+  788..794 SIM     processed x/y/z
+  794..7d0 DEVICE  analog linear 794..79c, key ramps 7a0..7a8
+  7d0..7e0 SIM     full stop 7d0/7d1, autopilot target 7d8
+  7e0..7e8 LOCAL   controls enabled 7e0, deactivation count 7e4 (menu/map shares)
+  7e8..828 DEVICE  key flags 7e8..7fe, axis timers 800..820
+  828 SIM flight control   829 LOCAL contexts requested
+  82a..998 SIM     highway brake 82a, 82c, vfunc33 state 830..994
+Other globals:
+  0x6b661d0..f0 SIM environment (highway flags, zone 0x6b661e8; d8dfe0)
+  0x31be630..684 SIM coefficients (d924d0 per frame; vfunc56..67 read them)
+  0x31be770..77c SIM bind state; 0x31be6b8..76c CONFIG (read only, d94700)
+  0x31c1fd8 DEVICE hold timer; 0x38f4db5/db6 DEVICE mouse steering saved
+  0x38f0728..72b SIM triggers; 0x2f4b6d8 SIM fire-at-cursor
+  0x38f072c/72d, 0x38f4dc8..dcf SHARED MD input locks (1132900/1132af9)
+  0x38f4db4 d95180 reentry flag (0 between calls)
+  0x2f4b9be..9cc OPTION: autoroll 9be, stop ship in menus 9bf, aim assist
+    9c0/9c4, collision avoidance 9cc (user settings, per machine)
+  0x3d19b10..b3c CONFIG flight settings (9e7dc0 at load)
+Universe player (*(0x143d198f8)+0x230, fallback 0x143d196d8; U::Player, [I] at
+least 0x8a638 bytes): +0x70 parent, +0x308..0x310 controlled controllables (posts),
++0x6aac assist, +0x6aad assist suspended, +0x6aae override, +0x6ab0 steering
+axis toggle, +0x6ab4 activity, +0x6ab8 control position id, +0x6c60..0x6c88
+aim data and target, +0x6dd0/+0x6e20 shoot setup, +0x8a628/+0x8a630 control
+position state (70e630).
+Per ship: the PlayerController (0x19520 bytes, vtable 0x2c39488) in the
+controllable's controller chain (+0x200, type 0x2f), copy-constructed from the
+ship's NavigationController (type 0x2e, d83ae0) so it keeps the Agent (+0x30)
+and its own solver (+0x3b0).
+Local device/presentation (never simulation): input object *(0x6cf1560)
+(+0xce0 SPACE active, +0x8e20, +0x9053..+0x9064 mouse steering modes, +0x905b/
+905c invert, +0x9129..912b, +0x912c roll mix, cursors +0x8fe0), config
+*(0x6cf1538) (response curve +8, wheel step +0x6c, timings +0x80..+0x94),
+camera *(Universe+0x3d0), soft target manager *(0x6cf2210).
+
+3. CAN THE PATH RUN FOR A SHIP THE PLAYER DOES NOT SIT IN? [F, I where marked]
+- A ship needs its own PlayerController. Creation: Controllable::vfunc1074
+  4500a0 (allocates 0x19520, d83ae0 from the NavigationController, installs via
+  vfunc 0x19e8, then 6e1e00, UI refresh). Its only caller is the take-control
+  path 70e630 <- 716670 (control position activation: ControlPositionAction
+  vfunc2 35b8a0, Player::vfunc76 7052f0, 7142a0, 11f553f): reparent the player
+  into the control room (3d8420), player+0x6ab8 = position, 7aa710(ship,
+  player), Gravidar 10b2e80(*(0x6cf1650), 0, ship), HUD weapon pointer, then for
+  the pilot position 70e630: release the previous controllable (70e940 ->
+  vfunc1075), new->vfunc1074, travel activity restart.
+- d95180 runs only for the controller 9fc550 returns, and 9fc550 needs: the
+  singleton player's vfunc 0x1c50(0) true, a non-null entry in player+0x308..
+  0x310, and the player's nearest Controllable ancestor equal to that entry.
+  d95180 also requires the player's zone == 0x6b661e8. So the path is tied to
+  where the player entity physically sits.
+- The binding d84c20 resets the global bank and reads the singleton (camera
+  head controller d895a0 checks the player too; it only adds one if the camera
+  has none, so a second controller does not touch the camera [F]).
+- Everything that asks "the player's ship" walks the singleton: 9fc550, 9f7860,
+  9f7a40, 9f9250, 55b150, 9f9590, 9f7950, 9f7c20, 9fcd70, 9fccd0, 9f7b30,
+  9f7d30, 9fcf00, 9fcfd0, 9f76e0, plus inline walks (d95180's zone check,
+  70e630, d895a0). 1,041 functions reference 0x143d196d8; 542 of them are under
+  400 bytes; 68 lie in the depth-3 direct-call closure of d95180, vfunc33,
+  vfunc34, the flight/player/weapon handlers and 9fd120/9fd330.
+- [I] Nothing in the flight model itself (d93440, solver 1197fe0) is
+  player-ship-only: the solver is shared with Steering, and +0xd1 is not a
+  player flag. The player-only parts are the identity checks above, the global
+  bank, the trigger sweep / avoidance through the singleton's ship (d93440,
+  d96dc0) and Gravidar's player-ship registration.
+
+4. WHAT A SAFE PER-SLOT SWAP NEEDS
+- Thread/phase: swap only on the MoveWorker and only while no other simulation
+  thread runs. With the gate's serial pathing (path_release joins the pass
+  before slot 0 continues) the component tree phase, d95180 and slot 4 run with
+  the pathing workers idle [F lockstep_gate.c]. Physics jobs run inside Scene::
+  Step (after d95180); the main thread renders concurrently (presentation only).
+- Readers off the MoveWorker must never see a swapped value: PlayerController
+  vfunc6/7/10 (inlined d8dd50) and the getters are called from pathing/physics
+  for neighbours. They need per-controller answers that do not read the swapped
+  globals (the pnat module already routes vfunc6/7/10 and d8dd50; the same
+  routers would answer from a per-slot authority snapshot taken at the end of
+  each slot's d95180 scope).
+- Bytes: SIM (and with the dispatch-replay record also DEVICE) regions plus the
+  identity (singleton pointer or accessor redirection), exchanged in place
+  (step 1's vpl_exchange: no allocation, no temporary block). Never swapped:
+  LOCAL (0x2f4b7e0/7e4, 0x2f4b829: this client's menus), SHARED (MD locks),
+  CONFIG. The reentry flag 0x38f4db4 must be 0 at enter and leave.
+- Identical on every client: fixed slot order 1..N, fixed points in the frame,
+  slot stores initialised by the stock bind (d84c20 inside the slot's scope),
+  OPTION values per slot from the session config (not the local machine).
+- Per-call, not per-thread: a scope must wrap exactly one stock entry (one
+  d95180 call, one vfunc33 call, one replayed dispatch, one shoot decision), so
+  nothing between two entries sees a foreign slot.
+
+5. WHAT BREAKS (or must be handled) [F unless marked]
+- Activities are MD: md/modes.xml listens on player.entity and acts on
+  player.occupiedship, set_player_activity writes the singleton. A slot's
+  startactivity must reach a per-slot equivalent (section 6).
+- Presentation inside simulation handlers: UI feedback sounds/voice
+  (1257950/1257a20/1257b00, 14e8ec0), Lua event sink notifications, cockpit
+  tint and sounds from modes.xml, HUD weapon pointer in 716670. Replaying slot k
+  on client j plays slot k's feedback on client j unless filtered per scope.
+- Camera-dependent player state: 717ed0 writes player+0x6c88 (target) from the
+  local camera every frame; 7e8650 (aim) reads it; Player::Move checks the camera
+  at 713037 (camera+0x868). With per-client cameras (local-player work) this is a
+  desync class of its own, independent of virtual players.
+- Gravidar: 716670 registers the ship as the player's radar ship; slot ships
+  were registered as NPC units at load (10b2820 sets the player flag only for
+  the occupied ship). [I] map discovery stays slot 1's.
+- Per-machine options alter simulation: autoroll 0x2f4b9be, stop ship in menus
+  0x2f4b9bf, aim assist 0x2f4b9c0/9c4, collision avoidance 0x2f4b9cc, boost
+  toggle mode 0x38f52d7, mouse/joystick curves in *(0x6cf1538).
+- The SPACE context (menus, map) toggles flight control per client today
+  (d88710 -> d9c250/d9c590: Steering model, AbortPathOrder, transform adoption).
+  Per slot it must come from the record.
+- AI pilot of slot ships: [I] the stock take-control path replaces the NPC as
+  controlling entity (7aa710); while flight control is on the controller owns
+  motion and AI flight orders do not move the ship; AI scripts still run.
+  Unverified at run time.
+- Allocations/events are fine if identical: highway effects, activity events,
+  boost feedback allocate and post in the same order on every client when the
+  same slots replay the same inputs. Not fine: anything keyed on the local
+  client (feedback, camera).
+- Player statistics (69a490) and "player owned" UI state accumulate per entity.
+
+6. DESIGN: N VIRTUAL PLAYERS
+
+Identity, option 1 (recommended): one U::Player per slot. The Player ctor 6fa8e0
+already repoints the singleton (Universe+0x230 = this, ref-counted) whenever a
+Player is constructed (ComponentFactory::Create 8e0250 -> 6fa0b0; 8e2ec0 ->
+6f8fd0, [I] the load path). A scope for slot k stores the singleton pointer and the
+global block and loads P_k and slot k's block; every reader (all 1,041 functions,
+inline walks included) then sees P_k with its own seat, posts, assist, activity,
+aim and target. P_k is seated in ship k through the stock control-position path
+716670 inside scope k, which creates C_k through vfunc1074 and binds it
+(d84c20 resets slot k's bank). Open: creating extra Player components (factory
+call at a gated tick vs. snapshot injection), Player::Move for P_k (wrap U::Player
+slot 674 into scope k), MD that listens on player.entity (activities).
+Identity, option 2 (fallback): one entity; the scope swaps the player-field
+regions in place and redirects the accessors listed in section 3 plus the inline
+zone check. Larger hook surface, events posted to the one entity are not per
+slot, activities would need the same MD adapter.
+
+Input record (recommended): the stock dispatch stream. On the capturing client
+the three dispatchers (already re-stated by pnat) keep presentation/UI ids local
+and record every control id as (kind, id, value) in dispatch order, plus SPACE
+activation edges and d88a10's three outputs per tick (the only control input
+that is not a dispatch: cursor position). At apply tick t+d every client, for k
+in slot order, opens scope k and replays slot k's events through the same
+multimap walk (all registered handlers of that id, stock order), then d95180
+for C_k runs with its full device and sim stages (d88a10 answers from the
+record inside a scope). Device state (key flags, ramps, timers) is then per
+slot too, and no handler needs splitting. Per-slot settings (OPTION class, the
+config/input-object fields the device stage reads) are fixed per slot at
+session setup. Alternative (smaller block, more surgery): record the processed
+channels after d95bdc and splice d95180's sim stage per slot; mixed handlers
+(throttle keys, wheel, stop, match speed touch the ship) would need splitting.
+
+Per frame (serial pathing, MoveWorker):
+  path_release (frame start, workers joined): replay queue of tick t ready.
+  tree phase: Player slot 674 and PlayerController slot 33/34 entries for
+    non-canonical P_k/C_k run inside scope k; PlayerShootController slot 14/21
+    for slot k's weapons inside scope k (trigger bytes are slot state).
+  after the stock d95180 (call site 9fe2d7): for k=2..N scope k: replay slot
+    k's events, d95180(C_k); slot 1 symmetric (its events replayed before the
+    stock call). Authority snapshot per controller for off-thread readers.
+  slot 4: local dispatch -> record (control ids) / run (UI ids).
+  MD: per-slot activity adapter (own MD listening on each P_k, calling the
+    activity setter for P_k inside scope k at a gated point).
+
+7. IMPLEMENTATION PLAN (each step default off, own stop reason, offline tests,
+then a scripted smoke before humans)
+ 1. DONE here: block map, pins, swap/scope primitives, 'observe' + handler
+    census. Risk: none for the game (read-only; one pinned getter call).
+ 2. BUILT (section 12; deviations listed there). Slot 1 through the wire with
+    the stock path ("symmetric slot 1"): record the
+    local dispatch stream + d88a10 outputs + SPACE edges, replay at t+d for slot
+    1 on every client before the stock d95180; the PlayerController keeps
+    flight control (no parking); refused list shrinks to UI-only ids (pause,
+    save/load). Gives slot 1 boost/travel/SETA/assist/fire/targets with X4's own
+    feel. Risk MEDIUM-HIGH: dispatcher re-statement for replay, d88a10 hook,
+    feedback filtering for remote replays, MD activities for slot 1 work as
+    stock (singleton = slot 1), the "stop ship in menus" option and every OPTION
+    must be session-fixed. Live: two clients, one human, census 0.
+ 3. Identity spike (offline RE + one scripted live probe): create a second
+    U::Player at a gated tick and seat it in slot 2's ship through 716670 inside
+    a scope; or fall back to option 2. CONSTRUCT BUILT, seat designed (section
+    14; it needs the step 4 scope). Risk HIGH: unknown factory side effects
+    (Player ctor allocations, PlayerCreatedEvent, Gravidar, UI lists), the NPC
+    pilot, save/census side effects.
+ 4. Slot 2..N stock path: scope wrappers for Player slot 674, PlayerController
+    slots 33/34 and the d95180 call site; authority routers for vfunc6/7/10 and
+    d8dd50 answering per controller; per-slot authority snapshot. Risk HIGH:
+    off-thread readers, nav_player owns vtable slot 33 today (merge), getters.
+ 5. Weapons per slot: shoot controllers on slot ships (stock install via the
+    weapon group path), vfunc14/21 in scope. Risk MEDIUM (launch RNG scope
+    already proven for the singleton [P]).
+ 6. Activities per slot: MD adapter mirroring md/modes.xml on each P_k, native
+    activity setter (710ed0) for P_k in scope; feedback/tint local-slot only.
+    Risk MEDIUM.
+ 7. Presentation join with the local-player work: HUD/camera of client k read
+    slot k (their scope), feedback filter, 717ed0's camera-to-target write.
+    Risk MEDIUM (desync class: camera-dependent player state).
+Coordination: pnat (lockstep_pilot_native.h) owns the dispatchers, d88a10 and
+the vfunc6/7/10 routers today; step 2 should extend those pieces rather than add
+a second owner. nav_player owns PlayerController slot 33.
+
+8. STEP 1 BUILT (default off)
+Key: X4LAN_CONFIG.native_gate_virtual_players = 'observe' (needs the snapshot
+boot and native_gate_serial_pathing; tools/dev/check_gate_options.py knows it).
+Files: src/native/engine/lockstep_virtual_players.h (+ _lua.h),
+lockstep_gate.c (include, one call in path_release, five Lua methods),
+tools/dev/native_gate_probe.lua, tests (below).
+Live behaviour: once per admitted frame on the MoveWorker in path_release before
+the pathing pass is released (workers idle, previous frame complete): resolve
+the Universe player and its PlayerController (pinned getter 9fc550, vtable
+check), gather the 33 regions (1,093 bytes, 631 of them SIM) with guarded reads,
+hash per class, count per-region changes, prove CONFIG constant and the reentry
+flag clear, diff the seven guard pages (every page holding a region) for changed
+bytes outside the declared regions, and once take the InputMapping census (retried
+for up to 600 passes until the input object is readable; all three multimaps, handler classes flight/player/weapon/hud/walk/client/ui/addon/
+unknown, unknown and addon registrations listed by kind:id:rva). No game write,
+no hook. Arming refuses unless all 29 whole-function pins match.
+Log lines: VPLAYER_ARMED mode=observe; VPLAYER tick=N mode=observe stage=...
+passes player controller missing unbound reentry identity sim/device/local/
+option/shared/config hashes changed=<region mask> changes=sim/device/local/
+option/shared config_changes undeclared census nodes read_failures (status
+stride applies); VPLAYER_MAP tick=N census=1 nodes=... action.flight=...
+list=...; at stop VPLAYER_STOP, VPLAYER_REGIONS name:class:changes:first:last,
+VPLAYER_UNDECLARED rva+length,...
+Scope primitives (step 2 onwards, offline-tested, not reachable from Lua):
+vpl_store_init, vpl_enter (MoveWorker only, slots 2..4, store present, reentry
+clear, never nested), vpl_leave (same thread, reentry clear, canonical bytes
+returned exactly, else refused).
+Tests: test_lockstep_virtual_players.h in test_lockstep_gate.c (table tiles the
+d84c20 bank exactly, no overlaps, all in .data, guard coverage; exchange
+round trip touches only SIM; scope refusals and canonical-change detection;
+observe on the fake image: no player, census of a fake multimap, SIM/DEVICE
+change attribution, CONFIG change, undeclared guard bytes, reentry, unbound,
+identity change, foreign vtable); with the X4.exe path: all 29 pins and every
+handler RVA of the census table found as a lea r8 target in a pinned
+registration function, the input+0x63e0 multimap offset, regions inside .data.
+tests/test_native_gate_virtual_players.py: probe arming before loading and after
+a UI reload, per-tick status, census logged once, stop lines, off by default,
+refusals, option rule. Results: test_gate.exe exits 0 with and without the
+image; tools/dev/build_native_gate.py --test --native-image passes;
+python -m unittest discover -s tests -p "test_native_gate*.py": 920 OK (4
+skipped); tools/dev/check.py on this PC: 2142 tests with the same 44
+environment failures as an unchanged ebaa63b8 checkout (Windows symlink
+privilege, Linux/terminal launchers, the 32-bit transport DLL), none in a
+touched module.
+
+9. LIVE TEST WANTED (coordinator; nothing was run here)
+A. Smoke, 2 clients, scripted pilots, 600 ticks: the sandbox overlay
+   (docs/LOCKSTEP-SANDBOX.txt) plus native_gate_virtual_players='observe' and
+   native_gate_status_stride unset. Expect on both clients: VPLAYER_ARMED;
+   stage=observing from tick 1 with player=1 controller=1 reentry=0
+   config_changes=0 read_failures=0; one VPLAYER_MAP whose flight/player/weapon
+   counts equal the static table (action.flight=5 state.flight=25
+   range.flight=14 action.player=33 state.player=10 range.player=4
+   state.weapon=8 range.weapon=8, plus whatever UI/HUD sets are registered at
+   tick 1) and the list of dynamic registrations; relay pass (no digest change).
+   Compare the VPLAYER rows of both clients tick by tick: with parked controls
+   the SIM and DEVICE hashes should be equal on both clients (the stock sim
+   stage is deterministic under no input); any SIM difference names a region
+   to classify. VPLAYER_UNDECLARED gives the bytes next to the block that
+   change (to extend or confirm the map).
+B. The same with --controls native and one human on client 1 touching only
+   steering, throttle and a refused key (boost): DEVICE and SIM hashes of
+   client 1 diverge from client 2 exactly while input is live (which regions:
+   changed=), refused ids leave SIM unchanged. This is the record step 2 needs.
+C. Parked sandbox (no --controls native): open/close the map on one client:
+   bank_controls_share and bank_contexts (LOCAL) change on that client only,
+   nothing else. With --controls native the SPACE edge (pnat_space) also zeroes
+   the processed channels and resets the axis timers: SIM and DEVICE change on
+   that client, which is exactly the per-slot "controls active" edge the record
+   has to carry.
+
+10. LIMITS / UNVERIFIED
+- Static only. Region meanings come from readers/writers in pinned functions;
+  bytes a scope would have to move that no static reader names (virtual calls,
+  pointer arithmetic) are what the guard pages and live test A/B are for.
+- Thread claims rely on the gate's serial pathing and earlier observations
+  ([P] 1,199 vfunc33 calls on the MoveWorker); off-thread readers of the
+  PlayerController getters are known from pnat, not enumerated.
+- Creating additional U::Player entities is unproven; option 2 remains open.
+- The census reflects registrations present at the first observed tick; UI
+  modules may register later.
+- MD modes.xml was read from the extracted base game scripts; DLC/extension
+  overrides of the same cues were not checked.
+
+11. LIVE TEST A (vp-A1, coordinator): FINDINGS AND MAP CHANGES
+Run (coordinator, 29 Oct): Play16s sandbox + observe, 2 clients, 603 ticks, relay
+pass; VPLAYER_MAP identical on both (census=1 nodes=270: action.flight=5
+action.player=33 action.hud=46 action.walk=1 action.client=36 action.ui=14
+action.addon=2 state.flight=25 state.player=10 state.weapon=8 state.hud=5
+state.walk=12 state.client=12 state.ui=17 range.flight=14 range.player=4
+range.weapon=8 range.hud=4 range.walk=6 range.client=2 range.ui=6): the static
+table of section 1.2 is complete for flight/player/weapon. stage=observing,
+player=1 controller=1 missing=0 unbound=0 reentry=0 identity=0 config_changes=0
+on both. DEVICE, LOCAL, OPTION and SHARED hashes equal on both.
+a) SIM differed from tick 30: one region. VPLAYER_REGIONS: every SIM region
+   changed equally on both clients (bank_flight_control 2 at 28..603, bind_state
+   24 at 2..25) except player_aim_target (player+0x6c60, 0x30 bytes): 2 changes
+   on client 1 (304..305), 221 on client 2 (3..603). [F] Its writer is
+   717ed0, called every frame from 9fe5d0 in slot 3: it picks from the local
+   camera (view ray, cursor) and writes player+0x6c00..0x6d34 (pick 6c00..6c10,
+   aim 6c60..6c80, picked component 6c88, last pick 6ce0..6d34). The two
+   clients' cameras and cursors differ, so the block is per-client by
+   construction. Change: region player_camera_pick, player+0x6c00, 0x138 bytes,
+   class DEVICE (local input, like the cursor), replacing player_aim_target;
+   the soft target player+0x6dd0 (8 bytes, set by 9fcd70 on target selection,
+   read by match speed and the PlayerShootController constructor) is its own
+   SIM region, player_target (was player_shoot_target). Consequence for step 2
+   [I]: anything that aims through the camera pick (fire at cursor, the
+   PlayerShootController aim, missile lock) or follows the soft target (match
+   speed, scan mode) cannot be replayed until the pick and the target are part
+   of the record or of a per-slot scope. The PlayerShootController aim is now
+   part of the record (12.1); firing, match speed and scan mode stay refused
+   (section 12).
+b) CONFIG differed between the lanes (client 1 3a47088e38815a5f, client 2
+   1aab4de10bef8f2d) but never changed within a run. The class holds two
+   regions: coefficient_tables 0x31be6b8 (0xb4 bytes, read by d94700 only) and
+   flight_settings 0x3d19b10 (0x30, written by 9e7dc0 at load). Which bytes
+   differ is not visible from one class hash: VPLAYER_HASHES (per-region FNV at
+   tick 1, every 300 ticks and at stop) and VPLAYER_RAW class=config|option
+   (raw bytes at tick 1 and at stop) now name them. [I] Both are read by the
+   stock path (d94700 coefficients, the flight settings), so a lane difference
+   there is a desync source for step 2; step 2's receipt carries its own
+   fingerprint of the user options the stock path reads (section 12), which
+   turns a settings difference into a relay desync at the first tick instead of
+   a drift.
+c) Undeclared guard bytes (26871 / 28993 byte changes): the list was capped at
+   64 ranges and consisted of engine globals of other subsystems on the guard
+   pages. They are now declared as neighbours (masked out of the undeclared
+   diff, changes counted per entry in VPLAYER_NEIGHBOURS at stop), named by
+   their readers/writers [F]: zone_move 2f4b6c8+0x10 (U::Zone::Move, 8419b0),
+   fn_8d27f0 2f4b6e8+8, pathing_buffer_index 2f4b6f4+4
+   (g_PathingStateBufferIndex2, the pathing state double buffer index read by
+   d8ddb0, d93440 and about 50 pathing/navigation functions), view_cache_index
+   2f4b718+8 (UniverseFrameUpdate, PublishComponentViewCache), gravidar
+   2f4b99c+4 (AI::Gravidar::Run), particle_emitters 2f4bb18+8
+   (frkPEmitterEmit/Restart), fn_fa7600 31befd0+8, production_trade 31c1fa0+0x20
+   (ProductionModule::ComputeEfficiency, Player::AddTradeSubscription),
+   fn_db3b0 38f06d8+0x10, scene 38f0720+4 (Scene::vfunc915), game_load_save
+   38f0ae8+8 (GameClass NewGame/Load/Save), event_listener_stack
+   38f0bb8+0x4008 (g_EventDeliveryListenerStackDepth plus 0x100 x 0x40 bytes of
+   g_EventDeliveryListenerStack, cleared by 99b450; pinned by the image test).
+   None is player control state. The next observe run lists what is left
+   (the pages 0x38f4000, 0x3d19000 and 0x6b66000 were past the 64-range cap).
+Tests: the neighbour table is disjoint from every region, the reentry flag and
+itself, each entry touches a guard page and lies in .data; the observe test
+flips neighbour bytes (counted per neighbour, not undeclared); the image test
+pins the d8ddb0 read and the 99b450 clear of the listener stack.
+
+12. STEP 2 BUILT: SLOT 1 THROUGH X4'S OWN PATH (stock piloting, default off)
+Key: X4LAN_CONFIG.native_gate_pilot_stock = true with capture source
+{'stock','device'} and device {false,<device>} (client 1 captures, client 2
+samples slot 2 with the device sampler); sandbox: native_gate_sandbox.py
+--controls stock [--stock-script demo]; docs/LOCKSTEP-SANDBOX.txt section
+"Slot 1 through X4's own player path". Stop reason 155. Files:
+src/native/engine/lockstep_pilot_stock.h (new), lockstep_pilot_native.h (stock
+mode of its dispatcher, SPACE and cursor entries, arming, pins, checks),
+lockstep_pilot_inputs.h (slot 1 has no pilot record in stock mode),
+lockstep_pilot_inputs_lua.h (gate.pilot_stock, _capture, _apply, _inject,
+_frame), lockstep_hit_claims.h + tools/dev/native_gate_inputs_core.lua +
+native_gate_inputs.py (input section kind 0x53 'S', version byte 2, last in wire
+order, first in packing priority), native_gate_probe.lua, check_gate_options.py.
+How it works [F for the engine parts, built and offline-tested]:
+- Capture (client 1, MoveWorker, slot 4 dispatch): the stock dispatchers
+  1255cd0/1255dd0/1255ee0 (pnat's entries) look up each dispatched id. Replay
+  set (steering/strafe/roll keys and axes, throttle axis, accelerate/decelerate,
+  full forward/reverse, stop, boost, travel, long range scan, SETA, flight
+  assist toggle and suspend, turret mode, loot magnet, throttle invert):
+  recorded as (kind, id, value) in dispatch order, not run.
+  Refused set (fire buttons/triggers/at cursor, weapon groups and ammo, match
+  speed, scan mode, autopilot, guidance, dock/undock, get up, squad orders,
+  deploys, countermeasures, drones, cover/stance, reduced speed, debug):
+  logged (PILOT_NATIVE_REFUSED), never run, on every client. Everything else
+  (camera, menus, map, HUD, mouse look, target selection, walking, mouse
+  steering mode) runs locally as before. The SPACE context edge (d88710: menus
+  and the map take or return controls) runs only its input-object side locally
+  (mouse steering save/restore, 9062/9064, d9cc30 refresh) and is recorded as
+  an event in the same order. The three outputs of cursor/direct mouse steering
+  (d88a10, 2f4b738..740) are recorded per frame, and slot 1's aim (12.1).
+- Wire: one record per tick (record v2: version, flags active/cursor/aim,
+  capture tick low 16 bits, three cursor floats, the aim point in the ship's
+  frame (three floats) and the mouse steering flag, up to 33 six-byte events;
+  30..228 bytes), input section 'stock' (kind 0x53). Only slot 1 may send one; every
+  client stages it for capture + delay (3) and client 1 checks its own echo.
+- Replay (every client, path_release of the apply tick: MoveWorker, previous
+  frame complete, before the pathing pass): every handler the multimap holds
+  for a recorded id must be one of the five stock handlers (d86c80, d870b0,
+  d87f70, 71bac0, 71c640), else stop; then each event in order: SPACE edges
+  through the simulation half of d88710 (flight control 2f4b828, the bank
+  fields it zeroes or times, d9c250 release / d9c590 handoff with d8dd50's
+  authority, Flight Stopped 70ec00 / Started 70eb10; the input object's
+  9062/9064 are put back to this client's own), other ids through every
+  registered handler (the stock walk). In this frame's d95180 the d88a10 call
+  runs stock (with flight control for its own call on client 1 while its local
+  context is active but the replayed state is still off, so the outputs exist
+  to record) and its outputs are replaced by the replayed values of the tick
+  (zero before the first record). d95180, the control scheme, the solver
+  d93440, boost, travel/scan/SETA (md/modes.xml) and flight assist then run
+  stock on every client; the authority predicate and the transform routers stay
+  stock (the PlayerController flies slot 1, not the Steering model). Slot 1's
+  weapons aim at the replayed aim (12.1).
+- Schedule (pnat): tick start-3 parks controls as before (flight 0 on every
+  client); start-2 starts capture and gives the contexts back, so client 1's
+  record carries the SPACE edge that hands slot 1 to the PlayerController on
+  every client at start+1; window end: removed at stop+1, controls handed back
+  through the stock path at stop+2 (relay ticks window end + 3).
+- Receipt (digest, every tick): PSTOCK_1:tick:events:record hash:flight:settings.
+  settings = FNV of the user options the stock path reads (2f4b9be..9c7
+  autoroll/stop ship/aim assist..., 2f4b9cc collision assist, 38f52d7 boost
+  toggle, 38f52d8 force shooting at cursor, input object 8e20/905b/905c/
+  912c..912f, config +68/+6c/+80/+88/+90/+94/+c8/+294 (the last two: aim assist
+  angle and range of 7e8650), and the
+  mouse response curve sampled through its own evaluator 14e0180 at six
+  points). Use identical input settings on all test profiles.
+- Fail closed (reason 155): a missing or delayed record, more than 33 events in
+  one tick, a foreign handler under a replayed id, unreadable settings, flight
+  control different from the replayed state (stock_flight_drift), a changed
+  controller/ship/input object, slot 1 not the occupied ship, plus every pnat
+  check, plus the aim checks of 12.1. Pins: 70eb10, 70ec00, 14e0180, 71bac0,
+  71c640, 9fc550, 7e8650, 7e8e60, 719750, 55aeb0, 3dde10 (whole-function
+  SHA-256), d88710's call order (d888a7 d9c590, d888da 70eb10, d889b9 d9c250,
+  d889e1 70ec00, d88892 d8dd50), the aim slot of the PlayerShootController
+  vtable and Weapon::Move's call through it, on top of pnat's pins.
+Deviations from the plan of section 7 step 2: parking at start-3 stays (it gives
+every client the same flight=0 start, the first replayed SPACE edge then hands
+over identically); the refused list does not shrink to UI-only ids: fire stays
+refused (the aim is replayed since 12.1, firing is a later step), match speed and
+scan mode stay refused because the soft target is local (section 11a); slot 2
+keeps the device sampler and the Steering model (step 4).
+12.1 Aim of slot 1's weapons (live finding st3-P15C, coordinator) [F unless marked]
+  Finding: with three clients the only differing compound children were slot
+  1's two weapon_gen_s_laser_01_mk1 (rotation words of their pose from tick 2);
+  the player's gimbals follow each client's own crosshair.
+  Path: Weapon::Move 8132d0 loads the controller's vtable slot 21 (8140f1 mov
+  r13,[rax+0xa8]) and calls it at 8141c2 with (controller, &aim, &aim2, frame,
+  weapon, &weapon transform, two weapon floats, five flags); a false result
+  skips the aim. For the player's guns the controller is a
+  PlayerShootController (vtable 0x2b7d1a8, slot 21 = 7e8650). 7e8650: manual
+  aim when vfunc15 7e8e60 says so (input object +0x9053 mouse steering, and fire
+  at cursor 2f4b6d8 or the force-shooting-at-cursor option 38f52d8); the aim
+  point is the camera pick of 717ed0 (player +0x6c60, valid when +0x6c80 >= 0
+  and +0x6c88 is set and not the own ship, given in the frame of the player's
+  first class 0x6d ancestor and transformed with 3dde10 into the caller's
+  frame) or else 719750, the local camera's cursor ray point 100 km out
+  (camera transform 985050, cursor from the input object +0x64a0). Aim assist
+  (options 2f4b9c0/9c4, +0x9053 again) compares the aim with the soft target's
+  direction (config +0xc8 angle, +0x294 range) and may hand over to
+  BasicShootController::vfunc21 7e72b0 (target lead, simulation only). Every
+  other input is simulation or a fingerprinted option.
+  Built (stock mode): client 1 samples its aim after this frame's 717ed0 (in
+  the capture, Lua, frame thread): the pick point transformed into the ship's
+  frame (3dde10 zone -> ship), or 719750 relative to the ship, plus +0x9053;
+  record flag 4. Every client: from the first pnat pass of the session to stop+1
+  the PlayerShootController vtable slot 21 holds pstk_aim, which on the frame
+  thread transforms the replayed point (or, before the first replayed record or
+  for a record without aim, the neutral point 1000 m along the ship's +z [I],
+  steering 0) into the player's class 0x6d frame (3dde10 ship -> zone), writes
+  it to +0x6c60 with +0x6c80 = 1, +0x6c88 = the player (set, not the ship) and
+  +0x9053 = the replayed flag, calls 7e8650 and puts the four fields back. The
+  stock function then computes the same aim on every client, aim assist and
+  target lead included. Failures stop the session (reason 155):
+  stock_aim_install, stock_aim_lost (slot replaced), stock_aim_resolve (no
+  player, ship or zone). A call off the frame thread (a presentation reader, if
+  any) keeps the stock result and is counted (foreign; expected 0 [I]).
+  Status aim=installed/calls/replaced/neutral/samples/sample_failures/foreign.
+  Tests: the codec with the aim block and its refusals; the sample from a pick
+  and from the cursor ray; the slot taken at the first pass and given back at
+  stop+1; calls through the slot before the first record (neutral), after the
+  replay (the recorded pick reaches 7e8650 in the zone's frame with the
+  recorded steering) and with the slot off (untouched), fields put back; image:
+  the aim pins, the vtable slot and Weapon::Move's load and call.
+  Not covered [I]: 717ed0 itself still queues event 0xed for the component
+  under the local crosshair every frame (g_EventCommandQueue, also via 999fb0)
+  and writes +0x6ce0.. last pick; 718d50 runs after it with the local camera;
+  slot 1's firing stays refused.
+  Further camera-centric readers (camera agent, static, to be routed through
+  the slot's player state once each client has its own camera):
+  U::SignalLeak::Move 651310 measures the player's distance through the render
+  view caches (9fc7b0), so station signal-leak checks depend on each client's
+  render state; XPhys::XShapeFilter::vfunc2 drops the player camera's ship from
+  one query layer (global 0x395cd5c) while that camera is in cockpit view
+  (Ship::vfunc836); 717ed0 and 718d50 (per frame from UniverseFrameUpdate) read
+  the camera.
+Tests: test_lockstep_pilot_stock.h (codec and wire vector, verdict tables
+disjoint and every pnat refusal outside the replay set unless deliberately
+replayed, capture/staging/echo/ring, replay through a fake multimap in order,
+SPACE local/replayed split, cursor window and replacement, settings
+fingerprint, schedule from park to hand back, every fail-closed reason; image:
+the six pins and d88710's call order); tests/test_native_gate_inputs.py (kind
+0x53 in Lua, Python and the C header: valid/invalid containers, ordering,
+priority); tests/test_native_gate_pilot_stock.py (two synthetic clients with
+the real probe and multiplexer: client 1's blob holds only the stock section,
+client 2's its legacy pilot record, both stage the same stock and pilot records
+and hash the same receipt; scripted events ride the record; a stock section
+from slot 2 stops the session; arming refusals per client; builder block,
+refusals and relay ticks; option checker rules). Results: test_gate.exe exits
+0 with and without the image; build_native_gate.py --test --native-image
+passes; python -m unittest discover -s tests -p "test_native_gate*.py": 949 OK
+(4 skipped); test_native_*.py: 10 errors, all also in an unchanged 53c8ea6d
+checkout (which has 11: 'dev' module path, ticklog snippet extracts, a Windows
+identity setup), none in a touched module.
+
+13. LIVE TESTS WANTED (step 2 and the map changes; nothing was run here)
+D. Observe re-run (2 clients, scripted, 603 ticks, as A): VPLAYER_HASHES and
+   VPLAYER_RAW name the CONFIG region and bytes that differ between lanes;
+   expect SIM equal on both now that the camera pick is DEVICE;
+   VPLAYER_UNDECLARED shows what is left after the neighbours,
+   VPLAYER_NEIGHBOURS their activity.
+E. Stock smoke (2 clients, no humans): overlay from native_gate_sandbox.py
+   --controls stock --stock-script demo --window 30 600, relay ticks 603. Pass:
+   relay pass, census 0; PILOT_STOCK_ARMED capture=1 / capture=0;
+   PILOT_INPUTS stage live from tick 28, mode=stock, flight=1/1 after tick 31;
+   PSTOCK_1 receipts equal (the digest says so); the demo flies slot 1 the same
+   on both screens (throttle up at 40, yaw 130..190, pitch 210..250, boost
+   270..330, travel 360..510, stop 530, flight assist off 550..590); injected=13
+   on client 1; dropped=0 on client 2 without input; no stop before 601.
+F. Human session: as E without --stock-script; client 1 flies slot 1 by hand
+   with X4's own bindings (keyboard/mouse, mouse steering on/off, map and menus
+   open/close, boost, travel, SETA, flight assist), client 2 flies slot 2 with
+   the pad or keeps hands off. Watch for DESYNC, a reason-155 stop and its
+   PILOT_INPUTS stock= field. Same input options on both profiles first.
+
+14. STEP 3 SPIKE: A SECOND U::PLAYER (construct built, seat designed)
+14.1 How X4 builds a player [F]
+- ComponentFactory::Create 8e0250 (10656 bytes) takes 17 arguments; layout from
+  its prologue (rbp = entry rsp - 0x47) and from Universe::CreateComponent's
+  call at 338ae7: rcx universe, rdx &out, r8 parent, r9 connection, then on the
+  stack 0x20 a5, 0x28 a6 (child connection), 0x30 macro, 0x38 a8, 0x40 activate
+  (byte 1), 0x48 a10, 0x50 a11 (dword), 0x58/0x60/0x68 three strings (the
+  engine's empty std::string 0x31c0f60, r15 at 3386b0), 0x70 a15, 0x78 mode
+  (dword, stored at component+0x68), 0x80 post-init (byte 1). Runtime creations
+  (Scripts::CreateObjectAction b9fa60, 908580, SpawnObjectAtPos) pass parent 0
+  and mode 0 and attach afterwards (Space::AddChild).
+- The class switch reads macro+0x44 (8e02a5, <= 0x6d, RVA table 0x8e2a38). Case
+  0x4c: 879bc0 allocates 0x8a7e0 bytes, 6fa0b0 constructs U::Player: Entity base
+  551d70 (name from g_SessionSeed via 6ea780) over Positional over
+  Component::Component 3d2400 (AssignNewID; +0x58 = macro+0x48, +0x60 macro,
+  +0x68 mode, +0x70 parent 0), the player fields, then 6fa8e0.
+- 6fa8e0: Universe+0x230 = the new player (the old one's reference released;
+  it would be destroyed if the Universe held the only one), *(0x6cf1580)+8 from
+  the new player's macro data, two Random::FloatState draws from the calling
+  thread's TLS word (slot0+0x318) for timers, three RenderStateRequester objects
+  (0x950 bytes each, "camera" render state), owner = the ownerless faction
+  (vfunc 721 = 554a70: ChangedOwner/ChangedTrueOwner events), timeline
+  registrations, InputMapping context requests 9, 10 and 6 for requester 6
+  (refused with a log line when present).
+- Factory tail: 47e7b0 stores the out reference; a parent and connection make
+  3d8390 connect it; child components from the macro's connections
+  (macro+0x60..0x68, 0x98 bytes each) are created recursively; vfunc 574 (0x11f0)
+  is the empty 963b0 for Player; with post-init 8e2bf0: 8e2c50 (connections
+  between children), vfunc 588 (Positional 7453f0), with activate vfunc 578 =
+  Player::vfunc578 6fb230 (HelmetMovementController on the player's movable,
+  730df0 context 0x46 with the global flag 0x38f0719, 730f30 when it has a
+  control position, 8e8450) and 3d3170 (+0xd0 = 1 down the tree).
+- No runtime path builds a U::Player: the canonical one comes from the save
+  (8e2ec0 -> 6f8fd0 -> 6fa8e0). [I] A runtime Player is therefore the spike's
+  main unknown; only a live run shows what the factory and the post-init do
+  with it.
+14.2 How X4 seats the player [F] (716670, callers ControlPositionAction 35b8a0,
+  Player::vfunc76 7052f0, 7142a0, 11f54c0)
+- 3d8420 connects the player to the control room (connection type 0x2f60e70);
+  Player::vfunc624 702f40 runs on the first parent: registry 0x6cf2230
+  (a37d10), PlayerCreatedEvent to every ancestor (no base-game or DLC MD script
+  listens to event_player_created; only event_player_created_signal_leaks,
+  another event), 730df0; zone/sector changes (6df090/6d9ce0, discovery
+  70bed0/7dcba0), Gravidar 10b2e80 of the local player, PlayerVisibleRoom events.
+- +0x6ab8 = the control position, 730f30, 7aa710 (the ship's 0x57 listener group),
+  10b2e80 (the Gravidar at *(0x6cf1650)), the HUD weapon pointer, 70eee0, then for
+  the pilot seat 70e630: the ship's vfunc 1074 (Controllable::vfunc1074 4500a0:
+  a PlayerController of 0x19520 bytes from d83550, or d83ae0 copying the
+  NavigationController, installed through vfunc 829, 6e1e00), event 0x1fa,
+  9fd120 or 8e8450/9fa3f0; and 70dc50: StartControlEvent to the player, the room
+  and the ship, Universe+0x470/+0x478 vfunc 0x1550(now), bank 0x2f4b7e0 = 1,
+  d9cc30, 0x38f4e80++, d81d20, ControlStartedEvent, 730df0. Other positions open
+  menus. Then 8c6380, the ship's vfunc 0x1c50, 9fbef0, the seat animation
+  (7173f0 / 717a90).
+- [I] Seating through 716670 is "the local player takes control": it writes the
+  global bank, the local Gravidar and HUD and opens menus. For slot 2 it has to
+  run inside the step 4 scope (singleton = slot 2's player, bank = slot 2's
+  block, presentation parts filtered). The PlayerController it creates for slot
+  2's ship is driven only by vfunc33 (the component tree); d95180 runs for the
+  singleton's controller only (9fe2d7 via 9fc550), and vfunc33 reads the global
+  bank: without the scope slot 2 would fly on slot 1's input. So seating is the
+  next spike step, together with the scope wrapper of step 4.
+14.3 Built: native_gate_virtual_players = 'construct' (default off, stop 160)
+  'observe' plus, at the first pass at or after the admitted tick
+  native_gate_virtual_players_construct_tick (default 20, 2..18000), in
+  path_release on the frame thread (where MD, AI scripts and every other
+  simulation creation run; the pathing pass joined): one call of the factory
+  exactly as CreateComponent makes it (parent 0, connection 0, macro of the
+  Universe player, activate 1, mode 0, post-init 1), then
+  - the singleton put back to the canonical player, its reference restored,
+    the new player's Universe reference dropped (the out reference is kept for
+    the rest of the process);
+  - the TLS RNG word, *(0x6cf1580)+8 and 0x38f0719 put back (rng=, render=,
+    context= say whether the call moved them);
+  - the canonical block must be byte-identical (every region; else
+    block_changed); guard-page bytes the call moved are counted (guard=);
+  - refused before the call: Universe player not a U::Player, its macro class
+    not 0x4c, fewer than two references, the empty string not empty, the d95180
+    reentry flag set; after it: an access violation inside the factory
+    (construct_fault), no object, a singleton that is neither player;
+  - every later pass: the singleton is still the canonical player, the new
+    player has its vtable, a reference and no parent (else singleton_changed,
+    p2_lost, p2_parented), and the gate stops with reason 160.
+  Status: VPLAYER rows (mode=construct) end with spike=construct
+  spike_stage=waiting|constructed|failed why= at= due= p1_refs= p2_refs=
+  singleton= rng= render= context= guard= checks=; the probe logs VPLAYER_SPIKE
+  on every stage change. Pins: 8e0250, 6fa0b0, 6fa8e0, 879bc0, 6fb230, 3d2400,
+  551d70, 8e2bf0, 554a70, 47e7b0 (whole functions) and the switch entry
+  0x8e2a38[0x4c] = 0x8e2149; the image test also checks the call 8e2160 ->
+  6fa0b0, the 0x8a7e0 allocation, Player vtable slots 578 (6fb230) and 574
+  (963b0, ret), and CreateComponent's activate/post-init bytes, its empty-string
+  load and its call of the factory. Offline tests: a fake factory doing what
+  6fa8e0 does; restores, checks and 13 fail-closed reasons.
+  Not done here: seating, a per-slot scope, the new player's own block
+  (it is not observed yet), its removal (it lives until X4 exits; unparented
+  components are not part of the universe tree [I], so a save should not carry
+  it, unverified).
+14.4 Live test wanted (G)
+G. Construct smoke, 2 clients scripted, the vp-A1 overlay with
+   native_gate_virtual_players = 'construct' (tick 20), 603 ticks, X4's debug
+   log kept. Pass: no crash; VPLAYER_SPIKE tick=20 spike_stage=constructed
+   why=- on both clients with singleton=1, p2_refs=1 and equal rng=/render=/
+   context=/guard= values; spike_stage stays constructed (checks rising to 583);
+   VPLAYER hashes (all classes) unchanged by the construction; relay pass and
+   census 0. Expected in the debug log: "[InputMapping::AddContextRequest]
+   There is already a ContextRequest" (three or four lines). A
+   construct_fault, block_changed or a stop with reason 160 is a result too:
+   send the VPLAYER_SPIKE/VPLAYER_STOP rows and the debug log lines around tick
+   20.
+H. Aim check (with E or F, 3 clients if possible: clients 2/3 camera-anchored at
+   their own slot ships as in st3-P15C, native_gate_physics_trace_children on):
+   PHYSICS_CHILD rows of slot 1's weapon children (ae79c parts ae7b5/ae7b6) equal
+   on all clients from tick 1; PILOT_INPUTS aim= calls and replaced equal and
+   rising on every client, foreign 0, sample_failures 0 on client 1.
+
+15. ROUND 3: LIVE RESULTS, MAP FIXES, SLOT 1'S VIEW IN THE RECORD
+15.1 Live results (coordinator, build82 = 9b6b0f5c, 2 clients, 603 ticks)
+E stock smoke (overlay-StockE1, demo script): relay pass, census 0. From the
+  logs: both clients stock=... records=570 (ticks 31..600) replayed=14 (the 13
+  demo events and the SPACE edge) space=1/1 flight=1/1 cursor=573 and the same
+  settings fingerprint 8b30ae0d6de8772f; client 1 recorded=14 injected=13
+  dropped=0, client 2 dropped=0; aim=.../1200/1200/60/... on both (two guns x
+  600 ticks, neutral for ticks 1..30), samples=576 on client 1. Slot 1 flew the
+  demo identically: PILOT_SHIPS of ae79c equal on both clients at every sampled
+  tick, x/z from 0/0 (tick 30) to 1098.96/2874.96 (tick 600), yaw 0.392 and
+  pitch 0.213 from the steering, the travel burst between 360 and 510 and the
+  slowdown after the stop at 530. The PSTOCK_1 receipts are in the digest, not
+  logged: relay pass = equal on every tick.
+G construct spike: constructed on both at tick 20, no stop. p1_refs 26/24 is the
+  canonical player's reference count before the call, which includes references
+  held by presentation objects of each client (UI, HUD, camera handles) [I]: not
+  simulation state and not used by the spike; p2_refs 12/12 is the new player's
+  count after the construction, equal. guard 6/5: the number of guard-page bytes
+  the call moved; their RVAs are now listed (guard_at=, up to 8) to name the
+  differing one.
+D observe re-run (vp-D1): sim and config differed from tick 1 but never changed:
+  - sim: only region environment (0x6b661d0, 0x20). Its last 8 bytes 0x6b661e8
+    are the zone pointer d95180 compares (written by 8d2b80/d84730): a process
+    address. Fix: split into environment (0x18 bytes) and environment_zone (8,
+    pointer), whose hash uses the zone's portable identity (component+8 ->
+    world_identity_portable; 1 without one). Expect sim equal on both clients.
+  - config: only 0x31be719..0x31be71b, three bytes after the bool at 0x31be718
+    (client 1 00 00 00, client 2 13 f1 e5): padding, never read (the only reader
+    d94700 reads dwords up to 0x31be714). Fix: coefficient_tables split around
+    the padding. No setting differs between lanes b1/b2; the profiles need no
+    alignment for this.
+  - device: player_camera_pick (local camera), as classified.
+15.2 Slot 1's view in the record (record v3; camera agent inventory section B)
+  The simulation reads the local camera's mode (*(Universe+0x3d0)+0x868, 0 =
+  cockpit) in four places that change how the player's ship flies and fights:
+  - d924d0: in cockpit mode the twelve controller coefficients are scaled by the
+    camera FOV factor 97c140 (d93052..d93087);
+  - Engine (secondary vtable slot 5) 54ee80: the player's ship's engines get the
+    macro's cockpit factor (+0xb70) only in cockpit mode (54efb5..54efd6);
+  - Ship::vfunc836 7d4d40 (XShapeFilter, query layer 0x395cd5c): the camera's
+    ship is excluded only in cockpit mode (7d4d7a);
+  - 9fbf50 floating view (an external camera not on the player's object):
+    Weapon::vfunc1041 81bb50 and MissileLauncher::vfunc1041 6093e0 (Weapon::Move
+    81476c, manual control of the player's guns) are off while it is true.
+  Record v3 (stock section version 3, head 43 bytes, up to 31 events): view flag
+  8 with the cockpit and floating bits, the FOV factor and the soft target
+  (player+0x6dd0 as a portable ID, 1 = without one). Every client answers the
+  four reads from the replayed view of the tick (cockpit, factor 1, not floating
+  until the first record): the three blocks get a five-byte jump (one 16-byte
+  CAS, the rest of the block untouched) to trampolines on a page near the image
+  that call the stubs with the stock register and stack state and return to the
+  block's own continuations; the two calls of 9fbf50 are re-pointed. Installed
+  from the first pass of the session with the aim slot, checked every pass
+  (stock_view_install, stock_view_lost), removed at stop+1. Pins: d924d0,
+  54ee80, 7d4d40, 81bb50, 6093e0, 9fbf50, 97c140 and the continuation bytes
+  (image test). Status view=installed/fov/engine/ship/weapon/neutral/samples/
+  unportable. Tests: codec, sample (cockpit, external, unportable target), the
+  patched bytes and trampolines, stubs neutral and replayed, removal.
+  For other modules (camera agent: native_gate_xs_camera): vpl_slot_count(),
+  vpl_soft_target(k) (portable ID; compare with world_identity_portable of a
+  ship's runtime ID), vpl_external_view(k), in lockstep_pilot_stock_view.h
+  (included early through the pilot modules). Slot 1 has a record today; the
+  other slots answer no target, cockpit.
+15.3 Other camera- and player-centric readers (inventory section B), status
+  - handled in stock mode: the aim (7e8650 with 719750, 12.1), the four view reads
+    above;
+  - presentation (left local): 6da210 (Object::vfunc701 cockpit/exterior effects),
+    HUD and UI callers of 9fbf50 (HelperModule::InitializeUI, IsFloatingViewActive,
+    docking bay/zone/processing module vfunc693, Highway::vfunc674 [I]);
+  - soft target: getters 9fccd0 (MD player.target via Lua::GetPlayerTarget and
+    cd5910, missile lock MissileLauncher::vfunc998, Defensible::vfunc1067,
+    Zone::vfunc693, Player::vfunc674, 4ef380 weapon mode, ...) and 1a4d00 read
+    player+0x6dd0, which target selection sets locally (setter 9fcd70; input ids
+    0xa7..0xaa through 71bac0 and HUD clicks). Next step: the record already
+    carries slot 1's target; applying it means routing every input/UI call of
+    the setter for the slot's player through the record (capture on client 1,
+    apply on every client at the apply tick with the stock setter, so its events
+    fire at the same tick everywhere) while MD's set_player_target keeps
+    applying directly (it is simulation) - the setter's callers have to be told
+    apart first;
+  - interactions through the camera pick +0x6c88 (ControlPosition, TriggerPart,
+    Activate*Console, OpenCrate, HackPanel, TriggerAnimation, CycleAirlock),
+    PlayerShootController ctor 7e5a40 (+0x6e20/+0x6dd0), the bomb launcher
+    controller 7eadc0: walking and cockpit interactions are the player entity's
+    own actions; they need the slot's picked component in the record (a portable
+    ID) when slots walk; not used by the sandbox (slot 1 stays seated);
+  - the render-view readers SignalLeak::Move 651310 (9fc7b0 view caches) and
+    717ed0's event 0xed for the component under the crosshair: still local.
+15.4 Live tests wanted (round 3)
+I. View: E again on this build with client 2 switched to an external camera
+   (or a different FOV option) for part of the window: relay pass, census 0;
+   view=1/... fov/engine/ship/weapon counts rising equally on both clients,
+   samples on client 1, unportable 0 when no target is selected.
+D3. Observe re-run (as D): sim hashes equal on both clients, config equal,
+   device different (camera pick) only; VPLAYER_NEIGHBOURS and the remaining
+   VPLAYER_UNDECLARED list.
+G2. Construct again: guard_at= names the guard bytes the construction moved
+   (compare the two clients' lists).
+E2. Stock smoke with --hit-claims victim (now accepted).
+H. As in 13 (3 clients, aim).
+16. ROUND 4: ROUND 3 LIVE RESULTS; SLOTS 2..N THROUGH X4'S OWN PATH
+16.1 Live results round 3 (coordinator, build84 = 3d106479, 2 clients, 603 ticks)
+I1 (demo, client 2's camera on its own ship): relay pass. The view reads per site
+  differ between the clients (engine 6920/1240, ship 4340/5152, weapon 3574/3180;
+  fov 600/600, neutral 908/908). Harmless: every call of a view stub answers from
+  the replayed view of the tick (slot 1's record; neutral before it), whatever the
+  caller, so a simulation caller gets the same answer on both clients; the count
+  only says how often the site ran. The sites are virtual or widely called (Engine
+  secondary slot 5, XShapeFilter Ship::vfunc836, Weapon::vfunc1041): engine effects,
+  render-side shape queries and HUD weapon state reach them per client and depend
+  on what the local camera sees [I]. fov (d924d0, only from d95180) is equal, as it
+  must be. To separate the callers the status now has view_threads=
+  frame/main/other (each fov/engine/ship/weapon): the main thread renders
+  (presentation), other threads are physics/pathing jobs, the frame thread runs
+  the tree and d95180. Expect main to differ and other to be equal; frame can
+  differ only through the camera picks of 717ed0 (9fe5d0, DEVICE: the aim it feeds
+  is replaced by the record) - any other frame-thread difference is a lead.
+H1 (physics children, ticks 1-3): equal, including ae79c's gun parts. For a
+  window with replayed aim and steering: native_gate_physics_trace_children = 216
+  (the last tick, not a count) with native_gate_physics_trace_children_from = 214
+  (demo steering range 2 = -0.4 from tick 210, applied from 213), and a second run
+  276 from 274 (boost, applied 273).
+E2 (hit claims victim): pass, as expected (claims are proposed by the victim's
+  client only: claims_in/proposals differ by role, admitted/resolved/applied equal).
+D3 (observe): as predicted: sim and config equal, device differs (camera pick).
+G2 (construct): the relay diverged at 601-603, after the pilot window (30-600,
+  native controls): client 2 had local input at capture ticks 595..600 (its slot-2
+  records carry z and throttle 0x07ae = 0.06 at 595-598 and 600). In native mode
+  that input is recorded for slot 2 (deterministic) but also stays in client 2's
+  own PlayerController bank (bank_device_throttle 595, bank_rot_throttle 595..603,
+  controller state 598..603 changed on client 2 only); at 601 the controls return
+  to the stock path and ae79c follows each client's own bank: divergence. Not the
+  construction (STATE_ROWs and census equal, the spike checks passed every pass).
+  Runs with native controls should end the relay at the window end, or nobody
+  touches a lane window near the end. The two guard lists differ only in 0x38f0bc4:
+  0x38f0bc0..bc7 is the first entry of the event listener stack (neighbour
+  event_listener_stack, g_EventDeliveryListenerStackDepth + 0x800 pointers), a heap
+  pointer pushed while the new player's events are delivered: per process, both
+  clients changed bytes 1..3 and client 2's pointer also byte 4. config_changed on
+  client 2 = 0x31be71c..0x31be71f set to 0x37501da8 at 602/603 (after the controls
+  returned). No instruction in the image addresses it RIP-relative (the coefficient
+  readers stop at 0x31be714, d94700 reads 0x31be720..): moved out of
+  coefficient_tables_2 (now 0x31be720, 0x4c) into the neighbours (dword_31be71c),
+  counted, not a config change.
+16.2 Built: stock piloting of slots 2..N (default off, stop reason 161)
+  native_gate_pilot_stock_slots = 'all' or a list holding 1 (default: slot 1 only)
+  with native_gate_pilot_stock. src/native/engine/lockstep_pilot_slots.h; the
+  record, staging and replay pieces are per slot in lockstep_pilot_stock.h.
+  Capture: every client whose own slot is a stock slot records its own stock
+  dispatch stream, SPACE edges, cursor outputs and view exactly as client 1 does
+  (gate.pilot_stock(1, mask)); the aim stays slot 1's (slots 2..N have no player
+  guns yet). Travel, long-range scan and SETA (MD activities on player.entity) are
+  refused for slots 2..N at capture and at staging. The record rides section
+  'stock' from its own client; every client stages every stock slot's record
+  (the echo check on the author's client only); a missing one stops (155,
+  stock_missing_slot). Receipt: PSTOCK_1:... then |Sk:events:hash:flight per slot.
+  Replay (every client, fixed slot order, all on the frame thread):
+  - take-2: P_k from X4's factory (vps_make, the construct spike: singleton, RNG
+    word and flags put back, canonical block unchanged), never connected.
+  - take-1: seat in scope k: P_k's control position = pilot (0x395cdb0), assist
+    bytes copied from slot 1's player, no activity or target; parent (inside scope
+    k only) = the ship's cockpit room +0x410 (class 0x19; the ship itself when it
+    has none), controlled-object vector = {ship k} at the pilot post's index
+    (*(0x38f4de8)+0x1b0). Ship vtable 1074 must be Defensible::vfunc1074 4ed040
+    (and 1075 Ship::vfunc1075 7e1f10): it creates C_k (PlayerController from the
+    ship's Agent controller, bank reset d84c20 and environment d8dfe0 in slot k's
+    store) and registers P_k as listener of the ship's events. 9fc550 in the scope
+    must return C_k on ship k. C_k's vptr then points at a private copy of the 71
+    PlayerController slots: 33/34/35/36 open scope k around the stock entry, 6/7/10
+    take a per-slot route, all others count and jump to the stock entry.
+  - The scope: SIM, DEVICE and LOCAL image regions exchanged with slot k's store
+    (store starts as: SIM copied from the canonical block, DEVICE zero, LOCAL fixed
+    to "controls started 0x2f4b7e0=1, no deactivation share, contexts requested
+    0x2f4b829=1": identical on every client, menus of any client never touch
+    slot k), singleton = P_k, P_k's parent/vector as above, reentry flag clear at
+    both ends, canonical bytes hashed before/after; frame thread only, never nested.
+  - Per frame: path_release after slot 1's replay: scope k, slot k's events
+    (pstk_slot_replay: SPACE through the simulation half of d88710 with C_k and
+    P_k, the rest through the stock handlers); tree phase: C_k's upkeep (slot 33)
+    in scope k where the tree calls it; 9fe2d7: the only call of d95180 now goes
+    through a near page to pslot_update: the stock d95180 for slot 1's controller,
+    then d95180(C_k, game time) in scope k. d88a10 answers slot k's cursor in scope k,
+    the view stubs answer slot k's view on the frame thread in scope k.
+  - Motion authority: 6/7/10 of C_k answer the original inside scope k, else the
+    Agent base (ea5a70/ea6280/ea66c0) or the PlayerController branch from slot k's
+    global predicate taken at its last scope exit (autopilot || (!flight control &&
+    assist && !highway)); the branch is the stock prologue without the global test,
+    jumping to the flight-control continuation (d8a6ee/d8b45a/d8b7e4: the live
+    +0xd1 test, then the controller's own state). d8dd50 (pnat's authority patch,
+    installed in this mode) answers C_k from the same snapshot outside its scope
+    and slot 1's controller from its snapshot while another slot's scope is open.
+    Physics and pathing jobs never see a swapped global (no scope is open then).
+  - stop+1: scope k, stock vtable back, ship vtable 1075 (C_k released, P_k's
+    listener removed), call site restored. An abnormal stop releases on the frame
+    thread, else leaves the seats working (their scopes stay correct).
+  Stops (161, PILOT_INPUTS ... slots=failed slots_why=...): construct refusals of
+  vps_make, ship_unresolved, ship_vtable, ship_controlled, player_parented, post,
+  post_index, pilot_position, store, seat_scope, take_fault, take_controller
+  (9fc550 in the scope not C_k on ship k), controller_vtable, hook_install,
+  hook_lost, update_missing (a frame without the re-pointed call), singleton_changed,
+  ship_lost, controller_lost, player_lost, replay_missing/scope/leave/refused, any
+  of C_k's scoped entries called off the frame thread or inside another scope
+  (upkeep_scope, environment_scope, owner_scope, change_scope, *_leave),
+  release_vtable/_lost/_fault/_leave, hook_restore.
+  Status (in PILOT_INPUTS after view=): slots=stage slots_why= slots_mask= hook=
+  updates=frames/hook calls routes=6/7/10 hits, per slot sk=seated/predicate/room/
+  scopes/updates/upkeep/environment/owner/replays/refused, getters_out=slot:calls
+  (C_k's stock entries called outside its scope: they read slot 1's bank).
+  Pins (image test): UniverseFrameUpdate, the call site (one 16-byte block, the only
+  d95180 call), 6/7/10 heads with the copied prologues, the skipped test
+  (cmp [0x2f4b7d8],0; jne) and the continuations, 33-36, take/release and the
+  Controllable halves, both PlayerController constructors, d84c20, d8dfe0, 49,
+  55b150, 9f7860, Player::vfunc906, the Agent transform; the PlayerController
+  vtable's 71 entries.
+  Tests (C, fake image region): arming refusals, construct, seat (scope contents
+  at the take, canonical untouched, store holds the reset), the vtable copy, the
+  call through the page (both updates, singleton per scope), upkeep/environment in
+  scope, routes inside/outside, counting thunks, d8dd50 answers, a call from
+  another thread (161), client 2's capture (travel refused, no aim), staging (echo,
+  travel refused for slot 2, slot outside the set), slot 2's replay in its scope
+  (handoff on C_2, Flight Started on P_2, slot 2's flight in its store only), the
+  route switch with flight control, receipts and status, missing slot record
+  (155), missing update (161), release, seat refusals, a roomless ship. Python:
+  probe arming and the per-slot sections with two synthetic clients, demo2, the
+  sandbox block, the option checker.
+  Accessors for the local-player work: vpl_slot_player(k), vpl_slot_ship(k),
+  vpl_slot_controller(k) (seated slots 2..N), vpl_slot_count(), vpl_soft_target(k)
+  and vpl_external_view(k) now answer every stock slot from its record.
+  stock-J1/J2/J3 (build90) refused before tick 1 on both clients ("pilot stock
+  refused"): pslot_pins hashed all of UniverseFrameUpdate, and the boot hold has
+  already patched its call at 0x9fe093 by then (BOOT_HOLD_ARMED comes before the
+  pilot arming; the offline image tests never had it installed). Fixed: the pin
+  covers the call site's neighbourhood 0x9fe2a9..0x9fe2db only, as every other
+  module pinning inside that function does; the image test keeps the whole-function
+  hash on the file's bytes. The probe also checks all five pin tables early
+  (gate.pilot_stock_pins, where 'observe' and 'construct' have passed theirs live),
+  and every refusal names itself: PILOT_STOCK errors read "pilot stock refused:
+  <reason>", from the gate pins_native|stock|slots|construct|players:<rva> or a
+  stage (after_first_tick, thread, cx16, pilot_not_armed, no_suppress, not_wire,
+  no_functions, slots_without_1, slots_range, capture_not_a_stock_slot,
+  stock_slot_not_capturing, capture_with_device, slots_window, slots_factory,
+  slots_fns, slots_rerun, rerun_mode, rerun_capture, rerun_slots). Offline test
+  on a relocated copy of the image: the real boot_hold_arm first, all five tables
+  from scratch, the whole gate arming path, the call site installed and restored.
+  stock-J1b/J2b (build94) passed the arming, built and seated slot 2 at 25/26 with
+  no crash, then stopped at 26 in gate.actor: section 16.8.
+16.3 Not per slot yet (measured or listed, not hidden)
+  - C_k's other stock entries called outside scope k read slot 1's bank
+    (getters_out names them: 5, 13, 22, 26, 49, 51-54, 56-68 read bank, coefficients
+    or environment). The live counts decide which get routes next.
+  - Inside scope k, slot 1's controller (global vtable) answers 6/7/10 from slot
+    k's globals when slot k's own update asks about it (collision avoidance):
+    the same on every client, wrong in kind when their flight states differ.
+  - "The player's ship" readers outside a scope are slot 1's: engine cockpit
+    factor and the camera ship filter (pview), weapons: PlayerShootControllers, if
+    take-control gives ship k any, aim at slot 1's replayed point and fire from
+    slot 1's triggers (fire is refused in stock mode; weapons per slot is step 5).
+  - MD activities for slots 2..N (travel, long-range scan, SETA) are refused.
+  - Events posted to P_k (Flight Started/Stopped, ship events through its listener)
+    reach no MD cue (md listens on player.entity = slot 1's player) [I].
+16.4 Live tests wanted (round 4)
+J. Two clients, --controls stock --stock-slots all --stock-script demo
+   --stock-script2 demo2 --window 30 600 (relay 603). Pass: relay pass, census 0;
+   PILOT_STOCK_ARMED capture=1 slots=3 on both (script demo / demo2); PILOT_INPUTS
+   at 600 on both: slots=live slots_why=- hook=1, updates equal to the frames since
+   tick 26, s2=1/.../1 (room found) with scopes, updates, upkeep and replays rising
+   equally on both clients and refused 0; PILOT_SHIPS of 176ad5 equal on both and
+   following demo2 (accelerate from 48, steering range 2 from 143 and range 1
+   from 223, boost 293-353, decelerate 383-433, stop at 483); slot 1 as in E. STOP: slots=released. Send
+   slots_why, getters_out and routes on any stop.
+J2. As J with --camera-follow (client 2 watches slot 2 through the stock target
+   view): the same pass criteria; view_threads per client.
+J3. As J with --battle calm (slot 2 without its Attack order).
+K. After J: one human on client 2 flying slot 2 with X4's own controls (keyboard,
+   mouse steering, boost, assist toggle), client 1 idle.
+16.5 Which steps need a 3-client sandbox, and what that takes
+  Two clients already run a non-canonical slot both as the own slot (client 2)
+  and as a remote slot (client 1). A third client is needed for: two non-canonical
+  scopes in one frame (slots 2 and 3: stores, routes and P_k/C_k kept apart, the
+  order of the two factory players' IDs), a client that replays two remote stock
+  slots, the aim test H, and presentation of slot 3 while slot 2 is remote. It
+  takes: a third lane (b3: its own X4 installation copy and test profile 45841 on
+  the same PC, enough RAM/VRAM for three instances), a third slot ship in the same
+  sector (a fixture of capture 005, e.g. actor 4 0000000000176b36, checked with the
+  sandbox's ships command), the relay with --clients 3, and the sandbox builder
+  generalised from its two-entry lists (--slot3, per-client device/script lists,
+  @X4LANE_CLIENTS@ = 3); the gate side is already N-slot (PILOT_SLOTS 4, slots
+  'all' takes every pilot slot), the input mux carries one blob per client.
+16.6 Presentation for slots 2..N (step 3 design; local client only, not built)
+  Client k presents slot k's ship as "the player" with X4's own camera, HUD,
+  target and menus; client k's simulation never changes because of it:
+  - A presentation scope on client k for its own slot only: the same scope
+    (singleton = P_k, parent/vector, slot k's bank) around the stock presentation
+    entry points that run on the frame thread outside the simulation phase: the
+    UI/Lua slot (VBI slot 6: HUD update, menus, the FFI getters such as
+    GetPlayerOccupiedShipID), the camera update and the camera pick 717ed0 (whose
+    result is DEVICE). Every SIM byte and P_k's simulation fields are hashed on
+    entry and exit; a change is a refusal, not a silent write.
+  - Camera: the stock camera modes act on "the player's ship" inside that scope,
+    so cockpit, external and target views follow ship k through X4's own camera
+    code (no mod-made chase view); the render thread only reads the camera object.
+    Slot k's view is recorded per tick already (record v3).
+  - UI actions that mutate the world (soft target 9fcd70, orders, travel/SETA
+    buttons, weapon groups) are captured on client k as record events of slot k
+    (the soft target already rides record v3; orders as their own kinds) and
+    replayed on every client at the apply tick in slot k's scope through the stock
+    setter, so their events fire at the same tick everywhere.
+  - Order of work: the presentation scope with its SIM-write detector (offline),
+    camera, HUD readers, target, menus/orders, then the MD activity adapter for
+    slots 2..N (mirror md/modes.xml on each P_k, activity setter 710ed0 for P_k in
+    scope k). Owner: the local-player work; this module provides the scope and the
+    vpl_slot_* accessors.
+16.8 Every reader of a controller's vtable (stock-J1b: gate.actor refused the slot's
+  controller at tick 26 on both clients; "the game survived the seat" otherwise)
+  C_k's primary vptr is the private copy, so a reader that compares it sees neither
+  RVA. Scan: every comparison with 0x2c39488 or 0x2c51158 (constants and macros),
+  every read of a controller's first word, every "vtable inside the image" test on a
+  controller, every +0x200 read. Two helpers: pslot_canonical_vtable (copy -> stock
+  PlayerController) and pslot_vtable_is_copy. A stock PlayerController is never
+  treated as a slot's: on these paths it means the local player's own controller.
+  Counts as PlayerController (mapped):
+  - lockstep_hit_native.h hitn_vtable_is (hitn_bank accepts Nav or Player banks);
+  - lockstep_motion_watch.h motion_watch_rva (ctrl_vt = PlayerController, no Nav
+    fields, as the occupied ship);
+  - lockstep_world_hash.h world_hash_motion (kind 0x2c39488, flags 8: motion not
+    claimed by the census, as the occupied ship; PILOT_SHIPS covers it every tick);
+  - lockstep_transition.h transition_read_native (new; the RVA it stores would be
+    garbage): a watched ship's take-over reads as PlayerController.
+  Accepted as a slot's controller (copy only, not a stock PlayerController):
+  - lockstep_gate.c lua_actor (new, the J1b stop). Same fields on the same Agent;
+    the Agent's model may be a class the fixture path never saw: steering=slot:
+    generation:model RVA (the probe accepts it; other controllers stay
+    unsupported, which stops);
+  - lockstep_agent.h agent_identity (narrowed from any PlayerController): the Agent
+    stays actor k's, also for lockstep_request.h, lockstep_spline.h and the
+    registry parameters, which go through it.
+  Must not count (they mean this client's own player; C_1 outside any scope):
+  lockstep_player.h player_context, lockstep_pilot_inputs.h
+  pilot_player_controller, lockstep_virtual_players.h vpl_pass_using,
+  lockstep_player_origin_native.h, lockstep_player_getup_native.h,
+  lockstep_transition_prebind.h, lockstep_transition_watch.h (compare the state above).
+  Nav only, stay Nav only (a PlayerController takes the same path as on the occupied
+  ship):
+  - lockstep_path_determinism.h (admitted=0, counted as skipped);
+  - lockstep_world_nav.h (reached only for kind Nav).
+  Not reached for a slot ship (saved, seated after boot):
+  - lockstep_snapshot_fixture.h (boot, before take-1), lockstep_registry_native.h and
+    lockstep_registry_raw.h (dynamic ships only), lockstep_creation_trace.h and
+    lockstep_registry_origin_identity.h (tokens of objects being created).
+  Fail closed if combined, not used by the sandbox, no change:
+  - lockstep_portable_windows.h portable_native_actor (portable frames): stage
+    controller_lifetime;
+  - lockstep_world_trace.h world_trace_identity (world trace watches, native_gate_
+    world_trace_ticks): the watched controller pointer changes at the seat anyway,
+    so a vtable mapping would not help; a slot ship must not be watched.
+  No vtable test at all: lockstep_nav.h, lockstep_params.h, lockstep_velocity.h,
+  lockstep_request.h (controller==self and +0x28/+0x40 only), lockstep_pilot_inputs.h
+  pilot_resolve, lockstep_pilot_predict.h. Not ship controllers: lockstep_pilot_fire.h
+  (gun controllers), lockstep_dock.h (dock classes), lockstep_physics_trace.h (XPhys
+  body controllers), lockstep_region_camera.h and lockstep_view_points.h (only X4's
+  own getters, which reach the copy's routes), lockstep_flight.h and
+  lockstep_spline.h (the Agent's model).
+  J1b status at 26: s2=1/0/1/3/1/1/0/0/0/0: the seat, one upkeep, one update; routes
+  162/27/14 and getters_out 3:19,26:1,27:1,30:1,46:65,49:14,50:14,68:4 in that one
+  frame. Predicate 0 at the seat with flight control 0: vfunc49 said no assist, so
+  the PlayerController branch moves ship 2 until SPACE instead of the Agent. [I]
+  d9bf70 requires a flag bit on the ship (+0x450) that an NPC fighter may lack; the
+  same on every client. Next run: watch PILOT_SHIPS of 176ad5 for ticks 26..33.
+16.9 Slots 2..N fly (stock-J1c, J2c, J3c, build96): the getters_out verdict
+  J passes: relay pass, census 0, PILOT_SHIPS byte-identical over 600 rows, 176ad5
+  flies demo2. getters_out of C_2 at 600 (J1c, both clients equal; J2c client 2,
+  camera on its own ship): 3:9255/20427 8:28 12:792/7418 14:286/4978 21:28 23:28
+  26:575 27:575 30:575 42:56 46:31111/37557 49:5309/13558 50:5309/13558 51:1 52:1
+  54:893/7469 57:12/1138 58:51 59:50 61:50 62:51 63:51 64:50 66:50 67:51 68:2060/2631.
+  What each entry does [F, decompiled]:
+  - No slot state at all: 3 IsClass, 8 and 21 (21 jumps to 8) the controller's own
+    fields, 12 NavigationController::vfunc12 (through 6/7, which are routed, and the
+    zone), 26 d8d900 (own fields and the Agent's stamp; once per frame, equal), 27/42
+    "return true", 30 "return false", 46 "scale 1". Harmless, whatever their counts.
+  - Reads slot state, pure: 14 smoothed throttle 0x2f4b764, 23 highway 0x6b661d0, 50
+    d9c020 (highway, the stop-in-menus option, autopilot, flight control), 49 d9bf70
+    (50, a flag bit on the ship +0x450, the singleton's assist fields), 52, 54
+    (0x1a..0x21: feedback 0x2f4b978..994, else the Nav properties, which ask 14, 49),
+    57..67 (limits from the coefficients 0x31be63x..670), 68 (linear channels).
+  - Writes: only 26 (own fields) and 51 (queues a steering model for the ship; once).
+  Verdict on the J2c differences (3, 12, 14, 46, 49, 50, 54, 57, 68): not a desync
+  lead by themselves. None of them writes or draws; each answers from replicated
+  state (the bank outside a scope is slot 1's, the same on every client), fingerprinted
+  options and the controller's own fields, so a simulation caller gets the same
+  answer on both clients however often anyone else asks. The count difference has
+  to come from callers that depend on the camera. [I] They are rendering: X4 renders
+  on the frame thread in VBI slot 10 (view_threads showed 0 on the main thread, my
+  round 4 note was wrong), and 7dd1d0 (ship property, through slot 54 to the Nav
+  properties, which reach 14 and 49) is what animated parts and effects ask for.
+  This build proves it: getters_out now counts simulating callers only (with their
+  return addresses, PILOT_STOCK_CALLERS slot:rva:count every 600 ticks) and
+  getters_render the calls inside slot 10; view_threads gained the rendering share.
+  Expect in J2c: getters_out equal on both clients, only getters_render different.
+  A difference left in getters_out would be the lead, and its caller is named.
+  The semantic question is separate: a simulation caller of C_2 outside its scope got
+  slot 1's state, the same on every client, wrong in kind. Static callers: 6d9b60
+  (Object, from Scripts::EvaluateComponentProperty: AI and MD scripts) and ea1e80 (the
+  Agent's parameters) ask 49. Routed now: 49 (both arguments), 50, 14, 23 answer
+  slot k's values taken at its last scope exit (the state only changes inside the
+  scope), the stock getter inside it. Not routed yet, counted with callers: 52, 54,
+  57..68: they take float arguments, so a route needs the register-preserving thunk;
+  the next run's PILOT_STOCK_CALLERS says whether any simulating caller matters.
+16.10 Presentation built, first step: camera and HUD (default off, --present, stop 162)
+  src/native/engine/lockstep_pilot_present.h; arming gate.pilot_present(hud) after
+  gate.pilot_stock; on slot 1's client nothing changes (it records own_player).
+  - Scope: client k's own slot only, frame thread, no slot scope open. SIM and DEVICE
+    regions hold a COPY of slot k's store (the store is never touched, so a simulation
+    write discards itself at the exit, and a changed SIM byte is counted and named);
+    LOCAL stays this client's (menus, contexts); P_k's SIM fields are saved and put
+    back (the same count); singleton = P_k. The canonical block comes back byte for
+    byte (tested with a hash). Slot and presentation scopes refuse each other.
+  - Entries, nothing else runs in it: VBI slot 6 (UI::CUIController::Move, vtable entry
+    0x2bc07d8, compare-and-swapped at the window start: Lua, FFI getters, HUD update;
+    the probe's own frame is paused out, gate modules read the canonical player), VBI
+    slot 10 (GameRender::Move through the render split's wrapper; hence the split is
+    required), the dispatch of PSTK_LOCAL ids in VBI slot 4 (camera, menus, map), and
+    the camera bank refill 0x9fe573 in UniverseFrameUpdate (re-pointed through the
+    slots' near page, this camera only).
+  - Camera: X4's SetAnchor 0x97de40(camera, P_k, P_k, 1, 1) in the scope at the window
+    start, the path a seating player takes (71abd0: head controller, contexts). The
+    eye is X4's seat connection 0x75d110(ship, &xf, room, &position) written to the
+    camera's local PosRot, since P_k has no real seat connection. P_k's parent and
+    vector now hold from the seat to the release (upward pointers only, no tree walk
+    reaches P_k; slots.h), because a camera anchored on P_k resolves it from any
+    thread phase. Stop+1: anchor and PosRot back through the same call. Refusal if the
+    camera is not in cockpit mode at the start (camera_not_cockpit).
+  - HUD's place: X4's 0x8e8450 (called on seat changes, not per frame; [F]) connects
+    the UI anchor Universe+0x470 to the player's room at the seat's connection; called
+    in the scope at the start, as the canonical player at the stop, and again in the
+    scope by a pass that finds X4 moved it back for slot 1. This is the one real
+    topology change: two rooms' child lists differ from the other clients'. [I] the
+    anchor has no simulation role, but only a census run proves it: if --present shows
+    a difference and --present camera does not, that is the cause.
+  - Fails: an access violation inside an entry closes the scope, ends presentation and
+    stops the session (162, why=<entry>_fault:<rva>): the first live runs name the X4
+    code that did not expect P_k. Refused simulation writes are not failures: counted
+    refused=sim/player/lastregion; every one is a UI action to turn into an event.
+  - Status (PILOT_INPUTS): present=stage present_why= present_slot= scopes= ui= render=
+    local= refills= skipped= refused= faults= camera_mode= on_slot= eye= hud=mode/moves.
+  - Tests, offline only: C flow on a fake region with fixtures for every X4 call (scope
+    contents, pause, refused write, fault, render, local id, refill, mutual refusal,
+    anchor reissue, stop restores all); real image: pins with the boot hold installed,
+    the vtable entry's value, the refill call's bytes round trip; Python: arming order,
+    pause/resume around the probe's frame, refusals, sandbox block, checker rules.
+  The start, the anchor reissue and the stop run on client k only, inside the frame
+  (path_release): the thread's simulation RNG word is put back around them, rng_moved=
+  counts a draw, so a non-zero count is a finding, not a desync.
+  Exposure [I]: the singleton and the bank swap are process-wide, so a worker thread that
+  reads them during slots 6 and 10 on client k would see slot k. The slot scopes already
+  run with the pathing workers released and J stays census 0, but those windows are
+  short and slot 10 is long. If --present and --present camera both differ from a run
+  without it, look here first.
+  Not known until a screen capture, in the order I would look:
+    [H] the head controller may overwrite the camera's PosRot (+0x838 update): then the
+        eye= value is right but the view sits at the room's origin.
+    [H] HUD readers outside these entries: radar (Gravidar 10b2e80 was built for the
+        canonical player at the seat; not moved here), monitors' render targets.
+    [H] Player::Move (canonical) resets a non-cockpit mode through 9fa960 when ship k
+        is outside slot 1's sector: external views only work in slot 1's sector so far.
+  Not built yet, next steps in this order: (1) soft target as a recorded event: record
+  v3 carries the field, the setter 9fcd70 runs in scope k at the apply tick on every
+  client (for now refused and counted); (2) camera pick 717ed0 for P_k (cursor aim);
+  (3) Gravidar on ship k; (4) Player::Move's camera rule through the scope; (5) menus'
+  world actions (orders, weapon groups) as record kinds; (6) the MD activity adapter
+  for slots 2..N.
+  Live test K (2 clients, nobody at the keyboard): --controls stock --stock-slots all
+  --stock-script demo --stock-script2 demo2 --present --window 30 600. PrintWindow on
+  client 2 at ticks 15 (before: slot 1's cockpit) and 100, 300, 590 (ship 176ad5's own
+  cockpit, moving as demo2), and on client 1 at the same ticks (slot 1's cockpit).
+  Pass: relay pass, census 0, PILOT_SHIPS identical, status present=presenting
+  on_slot=1 camera_mode=0 faults=0, and at 603 present=stopped with the capture back on
+  slot 1's cockpit. Then: K2 --present camera if K shows a census difference; K3 a
+  human on client 2 who flies, looks at the HUD and cycles cameras.
+  The same run answers 16.9: getters_out equal on both clients, getters_render not.
+16.11 N clients: 3 and 4 as routine (tools/dev/native_gate_players.py)
+  st4-L95a failed at the identity bind because its overlay was built for 3 players; the
+  builder already had the fourth slot (fixture actor 5, 0000000000176b97, x4lan_player4,
+  six relations). Rebuild with --players 4 from any overlay, a 3-player one included: its
+  players block is replaced, nothing of the old plan stays (tested). Added:
+  - --source stock: every slot through X4's own player path (the sandbox's --stock-slots
+    all for N clients): capture source and device per client, default window 40..640
+    (slot players are built at start-5: the identity must be ready by then, refused
+    otherwise). --stock-script demo: demo, demo2, demo3, demo4 per slot. --present.
+    Orders stay off by default: the stock record may take most of the input blob.
+  - --tick187 observe|canonical: ui lazy and supply wants rows 150..200, loadout order.
+    --fp default|observe: portable math, exact reciprocal, decimal, fp environment.
+    --set native_gate_KEY=VALUE for anything else. All three also in the sandbox; each
+    replaces the base's line for that key, and the option checker still applies.
+  - --present removes a play base's native_gate_camera_anchor = 'own' (the chase harness
+    is exclusive with it).
+  - Session notes name runN4.sh for 4 clients (the released lane tool caps at 3).
+  Gate side: nothing to change. PILOT_SLOTS is 4, every loop runs over the mask. New C
+  flow, three stock slots on client 3 with two factory players: two seats, one frame
+  canonical then 2 then 3, each with its own player and bank; a write in scope 2 stays in
+  slot 2's store; separate vtable copies, authority answers; presentation of slot 3 with
+  slot 2 remote; both released. Offline only, as everything here: the four-instance run
+  is the first test of scopes in that number. In factions mode a stock slot's ship is
+  owned by x4lan_player<k>; J ran without an identity plan, so that pairing is new too.
+  Commands (base = a protocol-3 full-stack overlay, e.g. overlay-St4L95):
+    native_gate_players.py overlay --base <base> --gate-dll <dll> --probe
+      tools/dev/native_gate_probe.lua --out <new> --players 4 --source script --window 30
+      3000 --tick187 observe --fp default --start ... --start-counterparts
+    native_gate_players.py overlay --base <base> --gate-dll <dll> --probe
+      tools/dev/native_gate_probe.lua --out <new> --players 4 --source stock --stock-script
+      demo --present
+16.12 stock-K1/K2/p4-Ka: ui_fault:3de6aa; presentation redone as an identity overlay; J2d
+  What faulted. 0x3de6aa is the first read of 0x3de630, the view-cache transform:
+  cmp r9,[rax+rbx+0xe0], rbx = rcx = component A, rax = bank<<7, so it compares the second
+  component with A's published parent. It faults when A is NULL and the second is not [F
+  for the instruction; A = NULL is I: K1 logged no registers]. Direct callers of 0x3de630:
+  0x983a00 (Camera::vfunc4, Scene::vfunc915), 0x775e70, Highway, Positional and Zone submit
+  paths. All pass "this" or a guarded value except 0x983a00, which passes its argument
+  unguarded when the camera has a scene (+0x8d0) [F]. Why P_k gave NULL [I]: view-cache
+  ancestor lookups such as 0x3d91e0/0x3d92c0 (102+ callers, many in UI 0xb4xxxx) start at the
+  published parent +0xe0+A*0x80, and P_k, never in the tree, was never published, so "the
+  player's zone" came back NULL. The exact chain was not logged; present_fault= now does.
+  The other fault-path facts:
+  - p4-Ka client 3 is not a new fault class: it logged the same ui_fault:3de6aa and STOP
+    reason=162 before X4 exited with 0xC0000005 during the stop rows. Clients 2 and 4 hit the
+    same fault and closed. [I] The crash came after the stop: X4 kept running with the
+    camera anchored on P_k and the UI's frame cut short by the caught fault.
+  - restored=0 in K1 came from REGION_CAMERA_STOP stage=restore_busy, not from presentation.
+    But the stop did leave state behind: it ran from the tick gate (not the frame thread),
+    so pres_restore and pslot_restore could not act: slots=left_seated hook=1, the camera
+    still on P_k. The singleton itself was back (pres_leave ran in the handler).
+  What changed.
+  - The singleton no longer changes. X4's own player has everything a world load gives
+    it; for the length of a scope it takes slot k's identity: parent +0x70 = room k, vector
+    +0x308 and position +0x6ab8 = P_k's, the published parent of this thread's view-cache
+    bank = room k, SIM fields = P_k's. Bank as before. Every byte back at the exit. All
+    upward pointers: room k's child list does not gain the player.
+  - The camera is not touched at all: it stays anchored on the canonical player, and the
+    walks from there lead to ship k inside the scope, so simulation readers of the camera
+    see what they see on client 1. No SetAnchor, no eye to write, nothing to restore.
+  - Self-test at the start, in the scope, before any UI: GetPlayerOccupiedShipID must
+    answer ship k, 0x3d91e0 must answer room k through the published parent (stop 162
+    identity_occupied, identity_view_parent); controlled ship and zone are logged (asks=).
+  - A fault closes the scope and restores everything at once on the frame thread (UI entry,
+    refill call, HUD anchor, X4's UI lock, which the fault skipped): present_restored=1.
+    present_fault= has address, access, registers, and the chain from
+    RtlLookupFunctionEntry/RtlVirtualUnwind, image RVAs, up to 24 frames. Tested with a
+    real access violation in the C flow.
+  - A failure found outside the pass no longer stops from the tick gate while seats are
+    held: the gate lets frames run (at most 120) and the frame thread's next pass stops with
+    the original reason, so seats and hook are released. A normal end of session still stops
+    from the tick gate: seats stay (as J always did), presentation hooks go back by
+    compare-and-swap, the HUD anchor stays (present=stopped_anchor_left); restored= counts
+    the hooks. REGION_CAMERA restore_busy may still give restored=0 after a failure: not
+    addressed here.
+  Audit of singleton reads (static, 9.00). 1041 functions inline the singleton read
+  (null object 0x3d196d8), touching 250 Player fields >= 0x6800. The direct-call closure of
+  UI::CUIController::Move holds only 305 functions and 1 reader: the UI reaches the player
+  through vtables and Lua/FFI, so this list is by name (exports, Lua::, UI::), not by
+  reachability, and is not complete. About 70 fields; the ones whose reader is a UI name
+  and that the Player constructors do not set: 0x6ab8 is set by the seat; 0x6aad/6aae,
+  0x6bb0/6bb8 (InstallClothingMod, AddBuildTask6), 0x6d91/6d92 (AnarkRenderEngine::vfunc13,
+  SetExternalViewAllowed), 0x8a488/8a490 (diplomacy), 0x8a5xx and 0x184xx (online), 0x8a730,
+  0x8fd1/8fd4, 0x9053..9066, 0x9128 (InitializeUI, CUIController::vfunc66, OnInputAction),
+  0x19390..19504 (PlayerController::vfunc33), 0x6960..6998 (AI::Gravidar::Run). With the
+  overlay they read the canonical player's real values, so none can be unpopulated. What
+  this leaves is the reverse: fields that still describe slot 1 on client k. Known: camera
+  pick 0x6c80/0x6c88 (GetCurrentCrosshairMessage, CUIController::vfunc82), Gravidar 0x69c0
+  and the fields 0x6960..6998, alerts 0x8a6b8..6c8. Expect the radar and crosshair to show
+  slot 1's until they get their own step; a screen capture decides.
+  stock-J2d: my expectation in 16.9 was wrong. getters_out stays different on client 2
+  because "simulating" only meant outside the scope and outside render slot 10. The extra
+  callers, named from PILOT_STOCK_CALLERS and the code [F for the functions]:
+    54:54f248 (792/7418), with what it calls (NavigationController::vfunc54: 12:ea3f.., 14:ea3f..,
+      49:ea406d, 57:ea77a8) and 3:6e0130: 0x54f190, engine.cpp "Unsupported sound curve input
+      for engine sound": the engine sound's curve, U::Engine interface at +0x30.
+    54:7dd295 (101/51): 0x7dd1d0, ship.cpp, the ship sound's curve. It is lower on client 2.
+    49:6de482 and 3:6e1d10 (2820/5740): Object::vfunc822 through 0x6e1cf0. Slot 822 has one
+      outside caller, U::Engine::vfunc843, whose only caller is
+      U::Object::EngineGlowValueSource::vfunc5: engine glow.
+    68:97f004 (0/570), with 3:6de60e and 49:d8ba04 (+570 each): 0x97ee40 (from 0x97f5b0,
+      0x97fe50, camera code) reading linear channels through Object::vfunc825, once per
+      tick with the camera on that ship.
+    46:74c3ce, 74bf24 (17257/21929, 8625/10377): GetNodeTransform, GetConnectionTransform.
+      Slot 46 returns the constant scale 1, so these cannot carry slot state either way.
+  Verdict: all the camera-dependent callers named are audio, effect or camera presentation
+  that runs outside slot 10; none is simulation reading slot 2 differently because of the
+  camera. That is a claim about the code paths above; for slot 46 the callers are many and I
+  did not classify them, the constant answer is what makes them harmless. The evidence
+  agrees: relay pass, census 0. One note: these visual callers run on the render split's
+  wrong side (outside slot 10), so any RNG draw they made would be simulation-visible; none
+  has shown up. Docs now describe getters_out as "outside scope and slot 10".
+  Live test K again (2 clients): as 16.10, new pass fields: asks=176ad5/176ad5/<zone>
+  camera_mode=0 faults=0 refused=.../... and at the end present=stopped present_restored=1.
+  Status no longer has on_slot= and eye=. If it fails, send present_fault=.
+16.13 stock-K3: slot k's HUD works, the cockpit does not; what is known and how to find it
+  K3 (build104): relay pass, census 0, HUD on client 2 shows slot 2 (speed, radar contacts,
+  weapons); that corrects my expectation in 16.12 that the radar would show slot 1. p4-K2:
+  the same with clients 2..4, census 0. The view: black, with one flat rock-textured panel.
+  What the camera does [F]: it is not touched, as designed. Its anchor stays the canonical
+  player; inside the scope the walks from there lead to ship k, which is why the view moved.
+  After the stop nothing is left to restore, which is why it came back.
+  What I could not determine: which geometry the panel is. Facts narrowing it down:
+  - Not a fixture without a cockpit [F, snapshot]: scout 0ae79c and fighter 176ad5 both carry
+    cockpit_gen_virtual_01_macro, both as children of the ship. The mesh is not a component
+    of its own; the macros of the ships differ (scout_01_a, fighter_01_a), so a difference
+    in the fighter's model is still possible.
+  - Exterior: Ship::vfunc686 0x7d4900 hides the ship the player sits in while he has a
+    control position, Ship::vfunc695 0x7d4ab0 then walks the player instead. Both walk the
+    live parent, so both see ship k in the scope [F].
+  - Ship::OnCameraEntered 0x7cddc0 only sets attention and starts the ship's sounds [F]: not it.
+    The seat path 0x716670 adds input contexts, Gravidar, menus, the pilot post [F]: nothing
+    for rendering that I found. Cockpit animation (0x7ddbb0, ship+0xbd4) follows the pilot
+    post, simulation, not the camera [F].
+  - Attention: the player's room has 11 (Room::vfunc703 0x76e520), ship k's cockpit its ship's
+    9 [F]. Cockpit::vfunc904 needs > 8, so that alone does not hide it, but stock never renders
+    a player's cockpit at 9, so the scope now gives room k attention 11, live and published,
+    back at the exit. Untested whether it changes anything.
+  Built in this commit: that attention; the camera pick 0x717ed0 at 0x9fe5d0 in the scope
+  (crosshair and cursor ray must not hit ship k itself; picks=); no HUD anchor connection when
+  the anchor already hangs under the player, as in a save (K3's hud=1/571 was a reconnect
+  every tick, it should say 1/0 now); PILOT_PRESENT_DIFF once at the start: words of ship and
+  room, slot 1's/slot k's, where one is zero or both small and they differ, which is what a
+  player's presence set on them; the focus guard for real input (below).
+  Experiments, in order; each is one short run:
+    C1 --present on this build: did attention 11 change the view? Send PILOT_PRESENT_DIFF.
+    C2 a slot 2 ship with slot 1's macro: native_gate_players.py overlay ... --players 2
+       --source stock --stock-script demo --present --ships
+       00000000000ae79c,000000000007a8fe --start 2=0000000000000729@-395,100000,700
+       (an Argon scout from the save). A real cockpit there means the fighter's model;
+       the same panel means state I have not found.
+    C3 --window 30 3000: captures at the end. If the panel turns into a cockpit it was
+       model or texture streaming, K3 only looked for 10 s.
+  HUD on client k, item by item:
+    speed, radar, weapons: slot k [live K3]. Crosshair, cursor pick: built, unverified.
+    Soft target: refused and counted, not per slot yet. Tutorial popup: client-local, fine.
+    Messages (Engines stopped, Travel Mode aborted): slot 1's on every client. They are
+      raised for the canonical player by simulation; a filter needs their source and I have
+      not traced that (entry points to read: GetTickerCache 0x1a7c70, NotificationTypeDB).
+      Not built. They only mislead, they change nothing.
+    Alerts 0x8a6b8..: the canonical player's, untested.
+  Human test: capture is the same path the scripts bypass only at the input end: scripts
+  inject at the record, a human comes through X4's dispatcher (pstk_dispatch), then the
+  same record. That dispatcher path ran in earlier stock rounds with no input (dropped=0),
+  and I have no record of a person flying it on client 2, so treat it as new. One gap closed: both windows on one PC
+  may read the same pad, so a control that engages is recorded only with the window focus
+  (releases always; unfocused= counts). Unverified whether X4 reads the pad unfocused at
+  all. Limits for the person: no firing (refused), no travel, scan, SETA on client 2, no
+  orders, no target selection, slot 1's messages on screen, and the cockpit above. Slot 1 can
+  sit idle. Exact commands: docs/LOCKSTEP-SANDBOX.txt, "Human session on client 2".
+16.14 st-C2: a real cockpit; slot ships, firing, target, the session
+  Live (coordinator, build107): st-C2 with Argon scout 7a8fe as slot 2: relay pass, census 0,
+  PILOT_SHIPS identical, client 2 in the scout's own cockpit with the stock HUD. st-C1 with
+  room attention 11 on the fighter: still the panel. So the panel belongs to the fixture
+  fighter's model, ship_arg_s_fighter_01_a_macro. Attention 11 did not decide it; it stays
+  because it is what the player's room has in stock play. PILOT_PRESENT_DIFF does not name a
+  lack in the fighter: the zero words of slot k (ship+b68..b88, room+20) are the same for the scout.
+  Slot ships (--source stock): Argon scouts, the macro of the player's own ship, checked in
+  the snapshot: no scout is near slot 1, so MD moves them at the setup tick (identity.STOCK_*):
+    slot 2 000000000007a8fe plasma mk2 x2, Argon, (0, 100000, 2000) yaw 180 (live: st-C2's ship)
+    slot 3 000000000007a8dc plasma mk2 x2, Argon, (-1500, 100000, 1000) yaw 90
+    slot 4 000000000007a931 shotgun mk2 x2, Argon, (1500, 100000, 1000) yaw -90
+  All in Argon Prime, slot 1 at (0, 100000, 0) facing +z, each in its own zone in the save with
+  an AI order (Recon) a PlayerController overrides. Only slot 2 was flown live; the yaw sign is
+  from the fixtures (1.57 at x=-394 faces +x), unverified for scouts. --ships or --start replace
+  them. Other sources keep the fixtures, they need the Attack order's Steering solver.
+  The sandbox builder cannot move ships (no identity plan): it keeps the fighter and says so
+  in its block; use native_gate_players.py for --present.
+  Firing (--fire record, default off; lockstep_pilot_fire.h): the same native mechanism that
+  worked for device controls: a MindlessShootController on each gun of the ship's active
+  primary group, its trigger written at path_release on every client. New: X4's fire input,
+  which stays refused in its own path, sets a flag in the stock record (PSTK_FLAG_FIRE, primary
+  only, with the window focus); every client reads the applied record's flag. A
+  PlayerShootController coming back on a stock slot's gun (seat, handoff, weapon mode) is
+  taken back at the next path_release instead of stopping: those run from replayed records
+  on every client. A gun taken back while firing waits a tick. Offline tests: capture, record,
+  applied flag per slot, the take back rule. Not live yet, so the first run is the test:
+  --source stock --stock-script demo --fire script needs no people, then PFIRE_1 equal,
+  census 0, shots visible. Limits: straight ahead (gimbals at rest), no missiles, no secondary
+  group, the group active at the window start.
+  Hit claims: not needed for this: both clients compute the same hits from the same state
+  (bullet cadence 'every'), and without prediction nobody sees ahead. --hit-claims is there
+  in both builders if you want the policy; I did not test it with stock fire.
+  Target selection: what client k selects now stays in its presentation scope (targets=count/id)
+  and rides the record's target field, the HUD shows it. It does not reach P_k or the other
+  clients, like slot 1's on client 1 today, and nothing per slot reads it in simulation yet (match
+  speed and missiles are refused). A true recorded event is the next step: it needs the portable to
+  runtime map on the applying side, or runtime IDs as a precondition. I have not traced the
+  setter; if it posts an event MD listens to, that fires on one client, as for slot 1, and the
+  census will say.
+  Window: 72000 ticks now (was 18000). Only 18000 has soaked.
+  Slot 1's messages and activities on client k, what is small:
+    Travel for slots 2+: small to medium. md/modes.xml only wraps X4's setter: 0x710ed0(player,
+      1) starts travel on the player's ship (0x6d8bf0), (player, 0) stops it through the
+      player's +0x6a30, which P_k does not have yet. Plan: the record's action, replayed in
+      slot k's scope as that setter, on every client. No charge cue, tint or sound from MD. One
+      live check needed for +0x6a30. Not built.
+    Long range scan for slots 2+: same setter, activity 2, little value. Not built.
+    SETA: not per slot: it changes everyone's time. Stays refused, should be a vote.
+    Travel panel on client k: slot 1's activity reaches the UI through
+      UI::XAnark::AnarkChangedPlayerActivityEventInterface 0xaf57a0 and
+      Lua::NotifyOnPlayerActivityChanged 0xb1f840. Small if those are UI only: drop them on client
+      k for slot 1's player. The scope already answers GetPlayerActivity with slot k's. Not built.
+    Messages (Engines stopped, Travel Mode aborted): source not traced (GetTickerCache 0x1a7c70).
+      Not built.
+16.15 fire-S: the digest difference while firing is the HUD's lazy magazine
+  fire-S (--fire script, --present, 2 clients, 30 Hz): 343 digest mismatch ticks in spans (73-152,
+  186-272, 391-392, 426-512, 546-632), each ending at tick 153, 273, 393, 513, 633 = the first tick of a
+  slot 1 burst; census 0 at its one capture; PILOT_SHIPS and STATE_ROW equal.
+  Not logged per tick, so the part is reasoned, not measured: the receipt's PFIRE_1 fold is the only
+  part that changes with guns, and it reads active (+0x30d), last shot (+0x310), magazine (+0x350).
+  Cause [F for the code, I that it is this mismatch]: 0x81db10(gun, now) is X4's lazy refill: once the
+  reload time has passed since the last shot it writes last shot = now - cooldown and magazine
+  = full. Its callers include the HUD's FFI readers through 0x81dd70: GetPrimaryWeapon, GetSecondaryWeapon,
+  GetWeaponDetails, GetWeaponDetails2 and 3. Client 1's HUD asks about slot 1's guns; with --present client 2's
+  asks about slot 2's. So after a burst the same gun has refilled on one client and not on the
+  other until the next shot. That fits the pattern: differences start a varying time after a burst
+  and end when slot 1's guns fire again. Without --present both HUDs read slot 1's, which is why
+  device fire never showed it. It was one client's UI writing simulation-visible gun fields.
+  Reaches the simulation? Before this fix the fields differed for a while, and I did not prove X4's
+  shot path gives the same result from both states; the digests equal again at each burst say it
+  did in fire-S. Health was not exercised (below). After the fix it cannot differ this way.
+  Fix: the receipt step calls X4's own 0x81db10 for every leased gun, on every client, at the
+  frame's game time (TLS +0x300, what the FFI readers pass), before reading them. A HUD read in the
+  same frame then finds nothing to do. Guns outside the active primary group are not covered: not in
+  the receipt, and they do not fire here.
+  New rows: PILOT_RECEIPT (the declared receipt) and PILOT_FIRE_GUNS every 60 ticks with firing on, so a
+  remaining difference names its field without a rerun.
+  Did hits land? No. Hull and shield stay 100/100 on both ships at ticks 60, 180, 300 and 600. The demo
+  flies them apart; at the slot 2 burst around tick 160 they are about 600 m apart and off axis. So
+  damage is still untested with stock fire, and that is what the morning needs. Also: the base's
+  native_gate_hit_claims='victim' was armed in fire-S (casts=1818 keyed=38, no claims). eval_in and eval_out
+  differ per client by design; they are counters, not in the digest.
+  Reruns:
+    R1 fire-S as before: pass = relay pass, 0 digest mismatches, PILOT_RECEIPT and PILOT_FIRE_GUNS equal.
+    R2 hit test, no input, ships at rest and aligned, 800 m apart: native_gate_players.py overlay ...
+       --players 2 --source stock --present --fire script --battle calm --relations hostile
+       --window 40 640 --start 2=0000000000000729@0,100000,800/180
+       Pass: relay pass, census 0, hull or shield below 100 in PILOT_SHIPS, equal on both clients,
+       HIT_CLAIMS_STATUS claims and applied counts sensible. If nothing drops, the guns miss or the
+       claims suppress hits: then send HIT_CLAIMS_STATUS.
+    R3 human-T again (no input): still passes.
+16.16 fire-R1 passes; a hit test that connects, with and without hit claims
+  fire-R1: relay pass, 0 mismatches, so the lazy refill was the cause. fire-R2: no hits, as slot 2 keeps the
+  velocity it had at the move (AI flight until the seat at start-4) and passes 260 m off axis, y +490.
+  --stock-script aim (default off, native_gate_players.py, the probe): each slot stops once (action 0x7b)
+  and steers at the next slot's ship through its own recorded stock input, axes 1 and 2, from sector
+  poses. Axis signs and forward vector from the demo's measured path in fire-S (positions fit
+  forward = sin yaw cos pitch, sin pitch, cos yaw cos pitch; negative axis 2 is nose up). It is a test
+  input: no aim assist exists for people. Offline: the steering math only; not flown yet.
+  --hit-claims in native_gate_players.py: not given keeps the base overlay's value, off writes false.
+  What to expect [F from lockstep_hit_native.h, not run with stock fire]:
+    off: X4's own hit runs on every client; hull or shield drop in PILOT_SHIPS, no HIT_CLAIMS_STATUS.
+    victim: a keyed projectile's native hit on a slot ship is blanked on every client (suppressed_in
+      equal on both), the ship's own client casts it again and claims (claims_in, proposals on the
+      victim's client, admitted on all), OnHit runs on every client at the resolved tick (resolved,
+      applied equal; HITS_1 in the digest). So the victim's client decides, as the user's rule says.
+  One thing to watch with claims: the claim tolerance and the outgoing shift use PREDICT_DT (1/60 s)
+  while the new config runs 30 ticks a second. It should only matter for fast targets, and only
+  'victim' incoming is used here; if claims are refused, see distance= and far= in the status.
+16.17 A ship's death: what X4 does, and the session going on (default off, --death, --respawn, stop 163)
+  Hit runs: hit-off and hit-victim stop with 155 stock_controller_changed in the pass after slot 1's hull reached 0.
+  X4 was not at game over there: the eject had taken its player and its controller.
+  X4's path, build 9.00 [F; RVAs, function names from the labels, nothing of the decompiled text kept]:
+    518210 U::Destructible::vfunc150: the hull at zero. For the object the singleton player occupies:
+      38f5267 set (a debug invulnerability): heal, move away, return.
+      not a spacesuit (class 0x60) and 710a90 (Player+0x6a90, on from the constructor and the save, and the user
+      option emergencyeject, default on): 70efd0(player,1,1,1,1), the emergency eject. A spacesuit of the
+      player's spacesuit macro next to the ship, minimum hull 100% (352310), EjectingEvent, 7154b0
+      Player::TeleportTo at once, EjectedEvent 4 s later (md/notifications.xml: Betty; md/tutorial_global.xml:
+      the help line "Your ship has been destroyed, Emergency Eject been activated").
+      then, for every ship: 3e51b0 Kill, a deferred KillEvent; 516ae0 vfunc8; 3e5240 KillRecursive over the children.
+    A player still aboard gets 7046e0 U::Player::vfunc9 with itself ("Game Over - Player has been killed by"), the
+    call at 70498a to 5c3660: flag 0x400 of 6adf9fc (IsGameOver), CancelSeta, GameOverEvents, 5c3d20 U::Galaxy::vfunc6
+    by phase, b3d3e0 CUIController::vfunc89 showGameOver, the menu. MD quit_gameover reaches 5c3660 too (scenarios only).
+    Teleporting away from a spacesuit kills the suit (7052f0 vfunc76, the event of 7154b0). 9fe2b4 skips the
+    frame's d95180 when the player has no PlayerController.
+  So for slot 1 the stock answer to a ship's death is the eject, and game over needs the suit killed or the eject off.
+  Slots 2..N: 518210 compares with the singleton's ship, so no eject; Kill takes ship and room. P_k is in no child
+  list and is not killed; its +0x70 and +0x308 would dangle, C_k stays in the ship's +0x200 chain.
+  Built (src/native/engine/lockstep_pilot_death.h, default off):
+    Dead: first pass (top of pnat_pass) where a slot ship that resolved once is gone from the registry or has hull
+    below 1e-7 (518210's own test; +0x280 is simulation state, so the same tick everywhere). The dead mask goes into PSTOCK_1.
+    Records: slot 1 and slot k are consumed, hashed, not applied; cursor, aim and view neutral, fire off.
+    Slot 1: the stock callback's flight-off half once on every client (its local half only records), controller
+    and ship forgotten, the flight and controller checks off while dead, the capture without aim and view. A
+    scope no longer reads the canonical controller if X4's getter disagrees (it is freed in the eject's frame).
+    Slot k: whole ship, C_k still attached: released in its scope (the stock eject's order: release, then the kill
+    arrives). Kill already through: C_k stays under its vtable copy, scoped entries do nothing, getters give
+    the last answers (pslot_retire), P_k unseated. The frame's slot update skips a ship dead in that frame.
+    Client k without the overlay: X4's player, so slot 1's view, or its suit. Local ids dropped: P1 is not its to change.
+    Guard: the call at 70498a re-pointed for the session: player_killed, stop 163, no flag, no event, no menu.
+    With the eject on, a ship's death never gets there. Off on a client: refused at arming, death_eject_off.
+    Guns: triggers cleared, lease dropped; pfire leases the new ship's guns at the seat tick.
+    Respawn: dead+delay the probe raises the MD event on every client (as the identity steps). MD builds a ship
+    of the macro, sector, owner noted at the window start, at the pose the probe kept, a fixed seed per slot and
+    ship, no pilot, no safe-position search, slot 1: teleport_player control instant force. create+15 (the MD answer
+    lags, FOLD_LAG is 10) every client takes the slot back: runtime ID set (no saved identity: pilot_resolve only
+    asks the registry), slot 1's controller and ship latched, what its last records held released through the
+    stock handlers; slot k seated with its first store. The capturing client records the SPACE edge the local
+    controls will not send again. Hit claims map the slot's saved ID to the new ship. Guns of a new ship have no
+    portable ID without created identities: unkeyed, X4's own hit on every client.
+  Offline only: test_lockstep_pilot_slots.h (fixture: dying with the ship whole and with the kill through, slot 1
+  with another controller, seat, refusals, guard), image pins for 518210 710a90 70efd0 7046e0 5c3660 7052f0 7154b0 and
+  the call, no other module patches them; probe and builder tests. Not flown: the eject under the gate, the
+  suit's controller with flight off, create_ship without a pilot for a stock slot, teleport_player from the suit.
+  Open: slot k's dead view is slot 1's; a suit for P_k needs TeleportTo's event on a player outside the
+  singleton (P_k has X4's vtable), so not yet. Betty and the help text reach every client.
+  Runs (2 clients, base overlay-Play24L, world stride 300; slot 1 dies near tick 1130):
+    death-off / death-victim: native_gate_players.py overlay --base <base> --gate-dll <dll> --probe tools/dev/native_gate_probe.lua
+      --out .local/census/overlay-<name> --players 2 --source stock --stock-script aim --present --fire script --battle calm
+      --relations hostile --window 40 2400 --world-stride 300 --start 2=0000000000000729@0,100000,800/180
+      --hit-claims off|victim --death
+    respawn-off / respawn-victim: the same with --respawn 300.
+    Pass: relay pass, both clients tick to the end, 0 digest mismatches, PILOT_SHIPS equal, |D equal at every tick, census 0.
+    Dead client's capture: client 1 in X4's suit next to the wreck, X4's HUD; no game over screen, no menu, no load prompt.
+    Respawn: client 1 in the new ship's cockpit at the old start, PILOT_DEATH live:1 on both at the same tick.
+    If 155 or 161 comes back with a stage: send PILOT_DEATH rows, PILOT_INPUTS at the stop, the stage.
+16.18 Respawn2 passes; slot 2's death and a suit for client k (default off, --fire-slots, --death-suit)
+  Live, build115, Play29L, overlay Respawn2 (victim, --death --respawn 300): relay pass, 0 mismatches over 2402 ticks, census 0
+  at 9 captures, d1=0/2/2/1732 (died at 1132 and 1732, game_overs=0); death-off, death-victim pass too.
+  Captures shots-Respawn2, client 1: 085109 and 085124 X4's suit, first person next to the wreck, X4's HUD ("Active tool: Repair
+  Laser", the kill message); 085114 and 085134 the new cockpit with burning wreck parts through it, gone by 085119. The start pose is
+  where the ship died in this test, as neither moves; X4's debris, a few seconds, not ours to remove. Client 2 stays in its cockpit.
+  Log: PILOT_RESPAWN_CREATED and PILOT_RESPAWN_SHIP carry the same time, so the MD answer arrives in MD's own frame, one tick
+  after the event; FOLD_LAG's "can lag" was not seen. PILOT_DEATH rows went through the status stride and were lost: written at once now.
+  Slot 2's death: the path the Respawn2 runs never took (seat ended, overlay off, seat on a ship without a pilot, new guns).
+    --fire-slots 1 limits --fire script to slot 1 (native_gate_pilot_fire_slots, a mask to gate.pilot_fire); both still aim.
+    Hardened: a presentation scope no longer opens if the seat's ship left the registry earlier in the frame: the room may be freed
+    before the next pass ends the seat. PILOT_DEATH_STATUS seats=released/retired says which ending ran.
+  Can client k stop watching slot 1, with stock systems? Yes, and without the event routing 16.17 thought it needed. X4's own way,
+  70efd0, ends in Player::TeleportTo, whose event runs outside a scope. But the suit and the player's place in it are separate:
+    The suit: MD create_ship macro=player.entity.spacesuitmacro, the same call stock makes for an entity (ego_dlc_timelines
+    scenario_transport_refugees), which reaches the macro 70efd0 uses; minimum hull 100 as 70efd0 does; oxygen paused, a stock action.
+    The place: the slot's seat, which is 716670's player side. U::SpaceSuit keeps Ship's 1074 and 1075 [F: vtable, 47 overrides,
+    neither of these], so the seat's checks pass; 716670 uses +0x410 if it is a room, else the object, which is what the seat does.
+    The view: the overlay on that seat, X4's camera and HUD. Nothing hardcoded.
+  Built as --death-suit (default off): 100 m above the last pose (fixed, no search), seated at dead+5 on every client, records still
+  ignored, and the seat on the new ship releases it and kills it with reason 13, as 7052f0 does with the player's old suit. Stops
+  suit_no_ship, suit_gone (163). Slot 1 still uses X4's own eject, so the two differ in where the suit is and in a 5-tick gap on slot 1's view.
+  Offline only [F for the vtable and 716670, the rest untested live]. Unknown until flown: the suit's HUD in the overlay, whether the
+  seat's take behaves on a suit, whether the overlay needs +0x410 there (roomless path, never flown), the 100 m offset as a view.
+  Open: a suit is no view point (native_gate_view_points), so a slot dying far from every other slot has its suit out of attention,
+  slot 1's and slot k's alike. Suit and new ship use the sector noted at the window start.
+  Runs (2 clients, Play29L, --players 2 --source stock --stock-script aim --present --fire script --fire-slots 1 --battle calm --relations
+  hostile --start 2=0000000000000729@0,100000,800/180 --window 40 3000 --world-stride 300 --death --respawn 300; relay ticks 3002):
+    S2off: --hit-claims off. S2victim: --hit-claims victim. S2suit: --hit-claims victim --death-suit.
+    Pass: relay pass, 0 mismatches, both ticking to the end, PILOT_SHIPS equal, census 0, PILOT_DEATH die:2 then live:2 at +315 on both, game_overs=0.
+    Capture of client 2 while dead: S2off, S2victim slot 1's cockpit; S2suit its own suit above the wreck with X4's HUD. After live:2: its own new cockpit.
+16.19 s2 runs (build118): 1693 named, the crash unrecorded, the respawned cockpit explained
+  s2-victim mismatch from 1693 on: every logged digest part equal at 1680 and 1740 (receipt, state rows, PILOT_SHIPS, fire,
+  hits, inputs, identity rows); RUNTIME_IDS at 1740 next=...a410 allocs=1418256 on client 1, ...a411/1418257 on client 2 (equal at
+  1680). The barrier word is in the digest (native_gate_runtime_ids_barrier), so one shared runtime ID more on client 2 keeps it
+  different; census does not see runtime IDs. RUNTIME_IDS_CALLER at 1800: one shared-route stack 3 vs 4,
+  caab18 ScriptEventHandler ctor < 1111aaa MD::Cue_CreateInstance < 111c477 Cue_CheckConditions < 111e50a Cue_RaiseCueEvent <
+  112383d MD::SignalCueAction::Execute < b58ca9 ExecState_Run < 111f09d < 112fed3 MD::RunActionsAction::Execute: one MD cue instance
+  created on client 2 only. Which cue: open (the coordinator's stride-1 caller run). Client 2's presentation refused nothing then.
+  s2-off crash: exit 0xC0000005 on client 1 after tick 1599, no gate line, no dump in the lane profile, CrashDumps, Steam dumps or
+  WER; the profile was reused. Built --crash-note (src/native/engine/lockstep_crash_note.h): X4's last-chance filter writes one
+  CRASH line, then hands on to the filter that was there. Tested offline on a real access violation.
+  S2suit view: the suit works (shots 145218, 145224: visor, X4's suit HUD, X4's "Reputation lost" line). From 145229 the new ship:
+  window, guns and consoles where they were in 145208 (the eye is the same), plus an empty pilot seat in front of it. The saved
+  slot 2 ship 7a8fe has an NPC on post aipilot in the save, slot 1's ae79c the player on playerpilot; the respawned one was built
+  without a pilot, so its seat is empty and drawn. The "magenta" panels are LAN Player 2's faction colour (230,60,200, libraries/
+  factions.xml): X4 paints a ship built for that owner; 7a8fe was built Argon and kept its paint. Cosmetic, stock.
+  716670's parts, for the record: 3d8420 connects the player (simulation), 7aa710 posts event 0x57 to the ship, 10b2e80 moves the
+  Gravidar's player unit (0x6cf1650 is the Gravidar), 7173f0 posts two events and sets the camera anchor controller, then HUD, menus,
+  70e630 (take control, view mode setters that create components). None is presentation-only; the seat needs none of them here.
+  Changed: the respawn MD gives slots 2..N an Argon AI pilot (the identity's create step) and a default Wait order; slot 1 keeps a
+  free seat (teleport_player refuses a ship with a pilot). Offline only. Rerun S2suit: client 2 after live:2 in its new cockpit
+  without a seat in front (trim pink).
+16.20 s2-suit4/5, the crash note fixed, cue names in the caller rows
+  s2-suit4 (build120): the respawned cockpit is right (shots-S2suit4 b2 153714), rows equal on both, census 0; relay 1883-1884 only.
+  s2-suit5 (+ speak_timer, routed=0): relay mismatch from 1284 to the end, a runtime ID difference. So voice timing is not the
+  source; it moves the split.
+  --crash-note refused at boot on build120: the probe arms it right after loading the gate, gate.crash_note asked accept_ui, which
+  refuses until gate.start names the UI thread. It binds to no thread and no longer asks (0c091406).
+  The 1693/1882/1284 class: an MD cue instance's runtime ID on one client earlier, or only on one. RUNTIME_IDS_CALLER rows now end in
+  cue=<static cue name> when the stack is caab18 (AssignNewID's return in the ScriptEventHandler constructor) < 1111aaa (its return in
+  MD::Cue_CreateInstance): Cue_CreateInstance holds the static cue in rdi up to that call [F: 1111a5c mov rdi,rdx, pinned
+  1111a40..1111aaa], the gate unwinds from the allocation to that frame and reads the name (std::string at +0xc8, as 1118b30 prints
+  it). Rows of different cues on one stack are counted apart; census_runtime_callers.py keys on the name. No game write, rows only.
+  Run: S2victim's overlay with native_gate_runtime_ids_caller_stride = 1 (as s2-victim2), and s2-suit5's with it; then
+  census_runtime_callers.py --first names the cue.
+16.21 The use-case split is the cutscene's readiness; native_gate_cutscene_ready (default off, stop 178)
+  s2-victim7 (NPC_ACTION rows, probe 1f850dfa): identical through ordinal 1530; ordinal 1531 NPC_UseCases.OnCutsceneReady at tick 1623
+  on client 1, 1610 on client 2 (event_cutscene_ready of the speaker's comm monitor cutscene), then the use case apart.
+  X4 posts U::CutsceneReadyEvent (vftable 2c6d7e0) once per cutscene (+0x4ee) in 10d7a40, from the cutscene camera's update
+  (Cutscenes::ShotCamera::vfunc2 10d7f60, CameraAnimated::vfunc2 10e22f0; not the manager's frame update 10f1930 at 9fe413, which
+  starts, stops and lists cutscenes), when the render target byte (+0x880 of its entry, fa07c0) is set and the shown object is
+  loaded at level 6 (vfunc +0x1360, children 380d20), or when the shot's time (+0xc8, vfunc2's time argument) is past 2.0 s. The
+  stock event_cutscene_ready says as much: started, and its assets (an NPC body) loaded. Each client's streaming, so each its own
+  tick. Built B, since the shot update is the camera path and its clock unproven: the native post never runs (jne at 10d7a82 to
+  nop + jmp, the same rel32), and in path_release the gate posts the same event for every cutscene in the manager's active list
+  (+0x30) 2.0 s of game time after first sight, with X4's SMem::Allocate, string copy d2310 and PostEventDeferred 99a720, then sets
+  +0x4ee. +0x4ee has no other reader in the cutscene and UI code I scanned (10c0000..1110000, b00000..b40000: the post, the constructor, 10e71b0). Cost: the talking head can show before its body streams
+  in; a cutscene that had no camera update gets a ready event too. Pins: 10d7a40 (site as X4 has it), 10f1930, 99a720, d2310, the event
+  vtable's GetType. Offline only. Run: s2-victim7's overlay + native_gate_cutscene_ready = true. Pass: no 1678/1882-type split, the
+  same CUTSCENE_READY_ROW ticks on both clients.

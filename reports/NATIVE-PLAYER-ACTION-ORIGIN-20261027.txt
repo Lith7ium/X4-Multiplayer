@@ -1,0 +1,164 @@
+GETUP ORIGIN LEDGER AND SAME-SHIP WATCH
+27 October 2026 | Source and synthetic evidence only
+
+Outcome and limits
+
+The actual saved controlled ship can use the existing separate schema2 watch.
+The inert private manifest selects only ae79c, macro ship_arg_s_scout_01_a_macro,
+true owner player and initial PlayerController. Snapshot SHA256:
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+Streaming XML proof found one ship, its player movement and playerpilot post to
+11e12; player11e12 has lastcontrolled ae79c/controlgroup pilotcontrol, with cockpit
+ae79f inside that ship. No second ship is justified by this same-ship experiment.
+The manifest does not enable a probe. Existing raw world watches are unchanged.
+
+The new lockstep_player_origin.h is a bounded, read-only provenance core, tested
+through synthetic ordinary-return forwarders. It is deliberately not included in
+the gate, exported to Lua, installed, staged or exercised in a native game. Its
+capture callback is an unimplemented native integration boundary: success must
+come from pinned guarded reads, never a native getter or an asserted fake receipt.
+This work does not establish independent player control, action authority, model
+completion or an atomic lifetime/owner exclusion. Earlier strict world failures
+remain unchanged and still prevent a later admitted action.
+
+Exact stock route
+
+The stock docked menu's buttonGetUp calls GetUp (export1aba30). Native code resolves
+the singleton Player, checks716d80, sends immediate eligibility event0xcf through
+99a210, allocates0x18 bytes, initializes GetUpEvent vtable2a85278 and zeroes+8/+10.
+It reads native TLS time+300 and adds0.01. Call1abb07 invokes99a3f0 PostEvent with
+RCX=Player, RDX=event, XMM2.low64=double due time, R9B=1. Resume is1abb0c. Normal
+return then sets AL=1; this is request acceptance, not handoff completion. An
+allocation failure can pass a null event to PostEvent and still return true, so
+an observer must reject a missing event independently of the public bool.
+
+PostEvent may discard an event, queue it, or dispatch immediately. With R9B=1 it
+compares due time with current native TLS time+0.0001. Usually GetUp's+0.01 takes
+the deferred path, but an observer cannot rely on that timing assumption. Deferred
+storage contains due time at node+20 and event pointer+28. PostEvent also installs
+a native recipient lifetime reference in event+10 and adjusts that reference's
+count. This is native implementation behavior, not an observer-acquired lease.
+The event destructor f04b0 releases that reference and frees/recycles storage.
+No observer read of the event is permitted after the PostEvent original returns.
+
+Due processing99bb50 ultimately reaches recipient dispatch99c470. It calls the
+receiver's virtual+20 at99c5ad or99c611, with receiver in RCX, source in RDX,
+double time in XMM2, event ID in R9D and event pointer as the fifth stack argument.
+Player's virtual+20 is998700: it moves receiver to R9, source to R8, stack event
+to RCX, XMM2 to XMM3 and receiver to RDX, then tail-jumps event virtual+10.
+GetUpEvent slot2a85288 points to152870. Its ABI is therefore event RCX, receiver
+RDX, source R8, scalar double time in XMM3.low64. Its tail forwarder moves receiver
+to RCX, source to RDX and XMM3 to XMM2, then jumps receiver+10c8. Player's slot is
+706cc0, which requires source==receiver, rechecks716d80 and game state, then calls
+716e20. This handler does not consume the time register. The scalar time is64-bit;
+MOVAPS register copies do not establish a128-bit semantic argument.
+
+PostEvent and event dispatch have no public bool completion result. Proposed
+wrappers preserve the complete RAX value unchanged; the synthetic core retains
+it only as an opaque local diagnostic. It must never enter portable equality or
+be interpreted as acceptance. The public GetUp AL result remains separate.
+
+Minimal hook proposal, awaiting exact-pin review
+
+1. Intercept only the E8 call at1abb07, not the generic PostEvent entry. The five
+   original bytes are e8e4e87e00. An aligned16-byte CAS at1abb00 changes offsets7..11
+   and preserves all eleven other bytes, including adjacent instruction suffixes.
+   Resume remains1abb0c. A private pre-emitted near stub can tail-jump a C observer
+   which calls exact99a3f0 once. It needs no relocated original instruction or new
+   stack-changing trampoline. Installation/restoration must compare the complete
+   expected16 bytes and preserve a foreign mutation; no live thunk-page writes.
+2. Replace only GetUpEvent slot2a85288 with an original-once wrapper around152870.
+   Actual callers should remain99c5b0/99c614 through the two native tail adapters.
+   Event dispatch may be reentrant before PostEvent returns. A pointer slot CAS
+   must refuse any foreign target and retain wrapper/storage lifetime after STOP.
+
+The19 complete audited ranges and seven slots are listed in the companion JSON.
+GetCompSlotPlayerActions and GetNumCompSlotPlayerActions span six and three PE
+unwind fragments respectively; their full1037/586-byte bodies are pinned, not
+only their first192/99-byte fragments. The JSON is not a claim that every native
+transitive callee is covered. Actual-image executable callsite/dispatch ABI tests,
+immutable emission, owned restoration, configure/STOP serialization and a fresh
+native capture implementation remain required before installing either hook.
+No new site has been patched or numeric option bit allocated.
+
+Core ledger contract and synthetic evidence
+
+The core admits every observed call under its SRW lock before reading inputs or
+reserving a ticket. Each admitted call owns an open count; originals run without
+that lock. Closing disables further admission/configuration. STOP retains the
+maximum open count even if the original later returns. Admitted callbacks may
+complete into resident diagnostic storage after STOP; that capture cannot pass.
+
+At post, the supplied read guard must prove the configured saved/full runtime
+Player and ship, exact objects, Agent and true owner, current controller, event
+type and current tick. The core requires exact post caller/flags, finite due time,
+and one unique event address for the whole bounded window. It records before
+native ownership transfer. Even an already delivered address may not be reused
+within this experiment; refusing bounded ambiguity avoids pretending a native
+event allocation generation has been proved. The maximum is32 tickets.
+
+At delivery, event address must identify a ticket, source and primary receiver
+must equal the bound Player, the independent capture must revalidate full runtime
+generation/object/ship/Agent/owner identity, and due bits must match. A primary
+delivery claims its ticket once, including while post is still open. Unknown
+primary events, duplicate/reentrant primary delivery, changed controller before
+delivery, stale timing and failed reads retain failure. Other receivers are
+explicitly excluded and cannot inherit a parent ticket. After original, capture
+reads the currently published controller; old destroyed controller memory is not
+part of this interface. Identity rereads remain sequential, not atomic.
+
+An independent TLS edge ledger can associate at most128 existing transition event
+numbers with the current valid primary delivery. It does not change the existing
+event, raw-watch binding, model ticket or parser. Excluded/nested post or delivery
+scopes shadow their parent. A captured delivery plus links is not a successful
+release predicate; existing transfer/publication/model results must separately
+prove that, including a new audited release-mode predicate.
+
+Standalone Windows C verification (Zig0.15.2, x86_64-windows-gnu, C11, O2,
+Wall/Wextra/Werror) passes. Tests exercise immediate and deferred delivery,
+full64-bit return/double argument forwarding, original once on rejected paths,
+generation/object/Agent/owner mutation, duplicate/open/reused addresses, wrong
+caller/source/time, unknown primary events, outstanding tickets, ticket/link
+bounds, nested excluded scopes, and config retry/refusal after STOP. A real worker
+pauses after admission before record reservation, then STOP runs concurrently;
+another pauses inside delivery original. Both retain stop_open after return and
+cannot pass. A post original makes the event page PAGE_NOACCESS before returning,
+proving no post-transfer read on that path. Direct originals versus observed
+originals leave identical owned engine bytes and natural mock RNG progression.
+No real native RNG state was read or changed. Exception-unwind cleanup and actual
+detour ABI are not established by these ordinary-return C tests.
+
+Re-entry discovery and remaining action fixture
+
+Stock interaction menu onShowMenu receives a serialized component ID/connection,
+normalizes a surface element to its container and retains the connection string.
+Only the explicit shipconsole branch synthesizes connectionui. The saved cockpit
+ID or saved con_control01 alone does not establish that live interactive slot.
+The menu queries GetNumCompSlotPlayerActions then GetCompSlotPlayerActions and
+copies the returned id/type/text/eligibility/display fields. UIAction has stride32:
+id+0, text+8, type+16, possible+24 and displayed+25. These offsets are verified by
+the native writer. Both APIs create/destroy a temporary action container; the
+second also writes global reusable string buffers. Calling them from an observer
+would not be a passive memory read. Do not retain their action/container/string
+pointers, infer action0, or issue these getters inside a native observer.
+
+The next discovery step should copy the actual stock menu's already supplied
+slot and returned action metadata at its ordinary call boundary, with bounded
+string lengths, exact saved/runtime mapping and fresh ship/cockpit ancestry.
+That seam still needs review; it has not been installed. A future authorized
+re-entry must freshly find one same-ship ControlPositionAction that is possible
+and displayed and invoke the returned ID through PerformCompSlotPlayerAction.
+The stock button does exactly that. Its container+90 dispatch reaches3508e0,
+which resolves the target and calls action+10 ->35b8a0. That action can post an
+NPC leave-chair signal instead of immediately entering716670. Initial experiment
+must refuse occupied/ambiguous/unresolved chairs, not reinterpret an accepted bool
+as takeover completion or substitute an AI order.
+
+Later fixture sequence remains proposed only: one canonical p1 request at shared
+tickN (p2 zero); exact request/event ticket; actual release transfer/publication;
+deferred native model completion; matching acknowledgment on both replicas;
+separately admitted fresh same-ship chair re-entry and its own completion receipt.
+No retries, controller/global pointer swaps, transform writes or automatic raw
+watch rebinding. Native user action, live discovery and independent pilots remain
+unproved. No game, UI control, action writer or queued native run accompanied this
+source milestone.

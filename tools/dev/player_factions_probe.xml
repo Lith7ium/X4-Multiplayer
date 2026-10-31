@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Unshipped single-game probe for player factions (install as md/x4lan_pf_probe.xml together with
+     tools/dev/player_factions_probe.lua as ui/x4lan_pf_probe.lua; lane run in a NEW disposable world only).
+     Checks the engine behaviour the player_factions feature relies on: pool load through
+     lookup.faction, runtime identity, absolute set_faction_relation, the NPC relation mirror, and
+     set_owner of a ship and of a sector to a pool faction and back. Logs [X4LAN] PFPROBE ... -->
+<mdscript name="X4LAN_PFProbe" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="Start" checkinterval="2s" namespace="this">
+   <conditions><check_value value="player.sector and player.age gt 15s"/></conditions>
+   <actions>
+    <set_value name="$byId" exact="table[]"/><set_value name="$isPool" exact="table[]"/><set_value name="$pool" exact="0"/>
+    <do_all exact="lookup.faction.count" counter="$i">
+     <set_value name="$x" exact="lookup.faction.{$i}"/><set_value name="$byId.{'$' + $x.id}" exact="$x"/>
+    </do_all>
+    <do_all exact="16" counter="$i">
+     <do_if value="typeof @$byId.{'$x4lan_player' + $i} == datatype.faction"><set_value name="$pool" operation="add"/><set_value name="$isPool.{'$x4lan_player' + $i}" exact="true"/></do_if>
+    </do_all>
+    <set_value name="$f" exact="@$byId.{'$x4lan_player2'}"/>
+    <debug_text text="'[X4LAN] PFPROBE POOL count=%s factions=%s module=%s'.[$pool,lookup.faction.count,player.module]"/>
+    <do_if value="typeof $f == datatype.faction">
+     <debug_text text="'[X4LAN] PFPROBE BEFORE id=%s name=%s known=%s active=%s locked=%s diplomacy=%s rel_player=%s player_rel=%s rel_xenon=%s player_xenon=%s money=%s ownaccount=%s'.[$f.id,$f.name,$f.knowntoplayer,$f.isactive,$f.isrelationlocked,$f.isdiplomacyactive,$f.relationto.{faction.player},faction.player.relationto.{$f},$f.relationto.{faction.xenon},faction.player.relationto.{faction.xenon},$f.money,$f.hasownaccount]"/>
+     <set_faction_identity faction="$f" name="'Probe Bob'" shortname="'PBob'" prefixname="'Probe Bob'" description="'Human player (X4 LAN Lab): Probe Bob'" icon="'faction_argon'"/>
+     <set_faction_known faction="$f" known="true"/>
+     <set_faction_active faction="$f" active="true"/>
+     <debug_text text="'[X4LAN] PFPROBE IDENTITY name=%s short=%s prefix=%s known=%s active=%s'.[$f.name,$f.shortname,$f.prefixname,$f.knowntoplayer,$f.isactive]"/>
+     <do_all exact="3" counter="$k">
+      <set_value name="$v" exact="[0.75,-0.5,0.75].{$k}"/>
+      <set_faction_relation faction="$f" otherfaction="faction.player" value="$v"/>
+      <set_faction_relation faction="faction.player" otherfaction="$f" value="$v"/>
+      <debug_text text="'[X4LAN] PFPROBE RELATION set=%s f_to_player=%s player_to_f=%s hostile=%s'.[$v,$f.relationto.{faction.player},faction.player.relationto.{$f},faction.player.ishostileto.{$f}]"/>
+     </do_all>
+     <!-- Same loop as md/x4lan_player_factions.xml RelationMirror. -->
+     <set_value name="$changed" exact="0"/><set_value name="$locked" exact="0"/>
+     <do_all exact="lookup.faction.count" counter="$i">
+      <set_value name="$o" exact="lookup.faction.{$i}"/>
+      <do_if value="$o.isrelationlocked"><set_value name="$locked" operation="add"/></do_if>
+      <do_if value="$o != faction.player and $o != $f and not @$isPool.{'$' + $o.id} and not $o.isrelationlocked">
+       <set_value name="$want" exact="faction.player.relationto.{$o}"/><set_value name="$d" exact="$f.relationto.{$o} - $want"/>
+       <do_if value="$d gt 0.001 or $d lt -0.001">
+        <set_faction_relation faction="$f" otherfaction="$o" value="$want"/>
+        <set_faction_relation faction="$o" otherfaction="$f" value="$o.relationto.{faction.player}"/>
+        <set_value name="$changed" operation="add"/>
+       </do_if>
+      </do_if>
+     </do_all>
+     <debug_text text="'[X4LAN] PFPROBE MIRROR changed=%s locked=%s f_xenon=%s xenon_f=%s player_xenon=%s f_argon=%s player_argon=%s xenon_hostile_f=%s'.[$changed,$locked,$f.relationto.{faction.xenon},faction.xenon.relationto.{$f},faction.player.relationto.{faction.xenon},$f.relationto.{faction.argon},faction.player.relationto.{faction.argon},faction.xenon.ishostileto.{$f}]"/>
+     <create_ship name="$ship" macro="macro.ship_arg_s_scout_01_a_macro" sector="player.sector">
+      <owner exact="faction.player"/><pilot><select race="race.argon"/></pilot><position x="0m" y="9km" z="0m"/>
+     </create_ship>
+     <set_value name="$sector" exact="player.sector"/><set_value name="$sectorOwner" exact="player.sector.owner"/>
+     <debug_text text="'[X4LAN] PFPROBE SHIP created=%s owner=%s playerowned=%s sector=%s sector_owner=%s'.[$ship,@$ship.owner.id,@$ship.isplayerowned,$sector.macro.id,@$sectorOwner.id]"/>
+     <set_owner object="$ship" faction="$f"/>
+     <set_owner object="$sector" faction="$f"/>
+     <debug_text text="'[X4LAN] PFPROBE OWNED ship_owner=%s ship_ownername=%s playerowned=%s pilot_owner=%s sector_owner=%s'.[@$ship.owner.id,@$ship.owner.name,@$ship.isplayerowned,@$ship.pilot.owner.id,@$sector.owner.id]"/>
+     <raise_lua_event name="'X4LAN_PFProbe.Ship'" param="$ship"/>
+     <raise_lua_event name="'X4LAN_PFProbe.Check'" param="'owned'"/>
+     <!-- xenon (and other locked factions) are skipped by the mirror: can a pool faction still be set? -->
+     <set_faction_relation faction="$f" otherfaction="faction.xenon" value="-1"/>
+     <set_faction_relation faction="faction.xenon" otherfaction="$f" value="-1"/>
+     <debug_text text="'[X4LAN] PFPROBE LOCKED xenon_locked=%s f_xenon=%s xenon_f=%s xenon_hostile_f=%s f_hostile_xenon=%s'.[faction.xenon.isrelationlocked,$f.relationto.{faction.xenon},faction.xenon.relationto.{$f},faction.xenon.ishostileto.{$f},$f.ishostileto.{faction.xenon}]"/>
+     <set_value name="$at" exact="player.age"/>
+    </do_if>
+    <do_else><debug_text text="'[X4LAN] PFPROBE FAIL pool_missing'"/></do_else>
+   </actions>
+  </cue>
+  <cue name="Later" checkinterval="1s">
+   <conditions><check_value value="md.X4LAN_PFProbe.Start.$at? and player.age gt md.X4LAN_PFProbe.Start.$at + 8s"/></conditions>
+   <actions>
+    <set_value name="$f" exact="md.X4LAN_PFProbe.Start.$f"/><set_value name="$ship" exact="md.X4LAN_PFProbe.Start.$ship"/><set_value name="$sector" exact="md.X4LAN_PFProbe.Start.$sector"/>
+    <debug_text text="'[X4LAN] PFPROBE LATER ship_owner=%s pilot_owner=%s sector_owner=%s name=%s rel_player=%s'.[@$ship.owner.id,@$ship.pilot.owner.id,@$sector.owner.id,$f.name,$f.relationto.{faction.player}]"/>
+    <raise_lua_event name="'X4LAN_PFProbe.Check'" param="'later'"/>
+    <set_owner object="$ship" faction="faction.player"/>
+    <debug_text text="'[X4LAN] PFPROBE RESTORED_SHIP ship_owner=%s playerowned=%s pilot_owner=%s'.[@$ship.owner.id,@$ship.isplayerowned,@$ship.pilot.owner.id]"/>
+    <set_owner object="$ship" faction="faction.player" overridenpc="true"/>
+    <debug_text text="'[X4LAN] PFPROBE RESTORED_SHIP_NPC ship_owner=%s playerowned=%s pilot_owner=%s'.[@$ship.owner.id,@$ship.isplayerowned,@$ship.pilot.owner.id]"/>
+    <set_owner object="$sector" faction="md.X4LAN_PFProbe.Start.$sectorOwner"/>
+    <debug_text text="'[X4LAN] PFPROBE RESTORED_SECTOR sector_owner=%s'.[@$sector.owner.id]"/>
+    <raise_lua_event name="'X4LAN_PFProbe.Check'" param="'restored'"/>
+    <set_value name="$at" exact="player.age"/>
+   </actions>
+  </cue>
+  <cue name="Done" checkinterval="1s">
+   <conditions><check_value value="md.X4LAN_PFProbe.Later.$at? and player.age gt md.X4LAN_PFProbe.Later.$at + 4s"/></conditions>
+   <actions>
+    <debug_text text="'[X4LAN] PFPROBE DONE ship_owner=%s pilot_owner=%s sector_owner=%s'.[@md.X4LAN_PFProbe.Start.$ship.owner.id,@md.X4LAN_PFProbe.Start.$ship.pilot.owner.id,@md.X4LAN_PFProbe.Start.$sector.owner.id]"/>
+   </actions>
+  </cue>
+ </cues>
+</mdscript>

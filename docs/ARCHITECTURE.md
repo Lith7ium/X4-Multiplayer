@@ -38,15 +38,22 @@ is limited to 4096 objects. An overflowing enumeration never publishes a prefix.
 `UMOVE` carries host epoch, object ID, sequence, sector, source time, pose and
 linear/angular velocity for known committed IDs. Units are seconds, metres and
 radians. Legacy `UPOS` remains readable. Host and relay each budget 32 motion
-records per tick. The guest visits at most 128 replicas per frame and applies
-changed transforms no faster than every 15 ms. Rates are shared across a sector;
-there is no promise of 20 updates/s per ship in a dense scene.
+records per tick. The host republishes still (<1 m/s) NPCs every 2 s and slow
+(<20 m/s) ones every 0.5 s, so movers share the budget; the relay forwards
+not-yet-forwarded samples first. The guest writes replicas rendered at 150 m/s or
+more every frame (up to 256), and visits at most 128 others per frame no faster
+than every 15 ms. Rates are shared across a sector; there is no promise of
+20 updates/s per ship in a dense scene.
 
 The common `motion.lua` buffer estimates clock offset from the minimum observed
 arrival minus source time, interpolates with a 150 ms delay, predicts for at most
 350 ms and then freezes. Long gaps, discontinuities and ownership changes reset
-tracks. Velocity and time are finite/bounded; orientation follows the shortest
-angular arc. Baselines recover lost motion. Engine changes wait for an unpaused
+tracks. NPC replica tracks tolerate 2.5 s gaps, keep their clock offset, and
+raise the delay to 1.1 x the observed sample gap (max 0.6 s, horizon up to 1 s)
+through a bounded-rate render clock. Velocity and time are finite/bounded;
+orientation follows the shortest angular arc. Baselines recover lost motion; for
+NPC replicas only after 3 s without motion, as a baseline pose is older than live
+motion. See reports/NPC-FLICKER-20261025.txt. Engine changes wait for an unpaused
 frame; transport acknowledgement alone is not engine success.
 
 Guest replica mode removes independent NPCs only in its current sector and only
@@ -96,6 +103,15 @@ Controlled native host and guest checks cover drop/magnet, duplicate intentions,
 lost completion, capacity and partial quantity. Two-native acceptance remains
 separate. Arbitrary NPC loot, multi-ware crates and all cargo categories are open.
 
+## Player factions
+
+`player_factions` (internal packages; inert in source) gives every human an own faction from the
+pool `x4lan_player1..16` (`libraries/factions.xml`). Each machine maps its own human to `player`
+and every other human K to `x4lan_playerK`. `PFID`/`PFROSTER` carry names, the host authors
+relations (`PFREL`, guest intents `PFREQ`) and sector owners (`PFSEC`); the relay
+(`src/x4lan/players.py`) only routes and caches. Shared co-op fixtures stay `player`-owned. Details,
+limits and native test steps: [PLAYER-FACTIONS.txt](PLAYER-FACTIONS.txt).
+
 ## Display identity and shared ship observations
 
 `IDENT|1|lease|hostEpoch|sequence|scope|id|code|UTF8nameHex|known|contact` is
@@ -124,6 +140,9 @@ replicas of the explicitly shared objects.
 ## Session and stable objects
 
 Two player slots authenticate with a matched package key and build/session IDs.
+Dedicated sessions admit `p1..pN` and one shared ship per client; see
+[DEDICATED-SERVER.md](DEDICATED-SERVER.md) for N-player routing, `XSHIP` and the
+subsystems that stay on ships 1/2.
 The handshake's start sector is Argon Prime; later navigation contains the actual
 sector macro. Packets use the bounded ASCII version-1 envelope (768 bytes max).
 Version 6 adds channels incompatible with a version-5 game adapter. Pair keys and
@@ -175,10 +194,12 @@ and overlapping trigger membership are not replicated. Gimbal aim, projectile
 inheritance and general NPC combat authority remain separate work.
 
 The same native player faction owns both ships. Remote player figures on foot are
-disabled. Spacesuit replicas use `BODY2`, with independent generation and sector.
+opt-in `WALK2` avatars, one per remote client, relative to a shared ship index or a
+station identity; see [WALKING.md](WALKING.md). Spacesuit replicas use `BODY2`, with independent generation and sector.
 Life handling guards lethal hull thresholds, ejects actual occupants, and keeps
 native one-point suits protected until station teleportation finishes. Friendly
-fire remains active. Suit weapons and walking animations are not replicated.
+fire remains active. Suit weapons are not replicated; on-foot animation is the local
+engine walk of the avatar, not the remote player's animation.
 In co-op mode, only host snapshots confirm shared ship and target destruction.
 Guest targets retain a minimum hull guard until that confirmation, so temporary
 local damage can be reconciled without losing an otherwise living shared object.
@@ -240,3 +261,56 @@ saves, back up config changes, disable autosave and apply Full HD exclusive Low
 with a 60 FPS cap. Development harnesses run only in a backed-up test installation
 and must not enter either release archive. Local synthetic-peer tests verify
 engine behaviour on Linux; real Windows/Linux latency and endurance need playtests.
+
+## Opt-in measurement (FRAMECOST, NETRTT)
+
+Two diagnostic flags, false in the source config and in generated session configs,
+supply numbers for the target-architecture "measure before porting" step. With both
+false, `measure_clock.lua`, `net_rtt.lua`, `frame_profile.lua` and
+`frame_profile_install.lua` return immediately and wrap nothing. Enable them by editing
+the package's generated `extension/x4_lan_lab/ui/config.lua` on both players after
+01-INSTALL (05-START-X4 copies it into the game); session recovery rewrites it to false.
+
+The clock is QueryPerformanceCounter (Windows) or `clock_gettime(CLOCK_MONOTONIC)`
+(Linux) through LuaJIT FFI, falling back to `GetCurRealTime`. `MEASURE_CLOCK` logs the
+source, observed resolution and read cost; a clock that never advances is reported as
+untimed rather than as zero cost.
+
+`frame_profile=true` wraps the bubble frame root, network client update, each adapter's
+`frame`/`receive` entry point, the seed gate, the shared motion buffer and the mod's
+MD event callbacks. Times are exclusive (self) wall time, so chained adapters are not
+counted twice; inline chain members (cargo and identity in universe, co-op docks in
+coop) belong to their chain. Once per second:
+
+`FRAMECOST v=1 window_s frames mod_ms_mean mod_ms_p95 mod_ms_max frame_interval_ms_mean
+frame_interval_ms_p95 frame_interval_ms_max profiled_calls overhead_ms_est clock
+sections=name:calls:total_ms:max_ms,...` (sorted by total) and
+`FRAMECOST_MD v=1 window_s lua_to_md md_to_lua lua_to_md_per_s md_to_lua_per_s
+sent=Screen.Control:n,... received=Event.Name:n,...`. MD execution itself cannot be
+timed from Lua; its cost appears only in the game's frame interval.
+
+`net_probe=true` sends `RTTPING|1|lease|seq|client_ms|echo_relay_ms|hold_ms` every 0.25 s
+(`net_probe_interval`, 0.05-5 s). The relay answers `RTTPONG|1|lease|seq|client_ms|relay_ms`
+at transport level; a ping never reaches the session, refreshes a lease or is forwarded.
+Older relays drop RTTPING; older clients never send it. The client logs
+`NETRTT v=1 side=client` every 5 s (pings, pongs, lost after 2 s, late, loss, RTT
+min/median/p95/max, relay-to-client jitter p95, transport packet/byte rates, and
+`rx_msgs`/`rx_types=KIND:per_s,...`, received messages by kind with bundles unpacked). The relay
+writes `NETRTT v=1 side=relay` per peer to `logs/netprobe-*.log` (created at the first
+ping) with RTT from the echoed relay time minus client hold, upstream jitter, sequence-gap
+loss and per-peer rates; the status JSON and dashboard show the latest summary. Samples are
+read once per UI frame and once per relay poll, so RTT includes up to one frame interval
+plus the relay's 5 ms poll sleep. Jitter is p95 of |inter-arrival - source spacing|.
+
+### Datagram bundles and NPC send cadence
+
+A client sends `XBCAP|1|lease|1` with each 1 s HELLO (`net_bundle=false` opts out).
+For such a peer, both relays pack each 20 Hz tick's snapshot packets into
+`XB|1|lease|<len>:<item>...` datagrams of at most 768 bytes (the native transport
+limit). An item is a packet `KIND|1|lease|rest` carried as `KIND|rest`; `client.lua`
+restores the envelope and passes every message through the unchanged receive path.
+Other packets, and every packet for a peer without `XBCAP`, are sent as before; older
+relays ignore `XBCAP`, so old/new peers mix safely. The host sends `NHP` and `IDENT` only
+when a value changes, otherwise with a new sequence every 1.5 s (`NHP`) or 1.2 s
+(`IDENT`); the relays forward only sequences a client has not yet received, and repeat
+at most two unchanged universe motion samples per tick for loss.

@@ -155,9 +155,19 @@ function x.captureFrame(now)
 end
 function x.receive(f,now)
  if f[1]~='BOLT' and f[1]~='BEND' then return false end
- local m=W.parse(table.concat(f,'|'),'forwarded');if not m or not fresh(now) or m.lease~=s.client.lease then return true end
+ local m=W.parse(table.concat(f,'|'),'forwarded')
+ local function drop(reason) if c.dropped then c.dropped(f[1],m and m.entity or '?',reason,now) end;return true end
+ if not m then return drop('malformed') end
+ if m.lease~=s.client.lease then return drop('lease') end
+ if not fresh(now) then return drop('not-fresh(md/health/paused)') end
  local q=x.contexts[m.entity];local cur=wanted(m.entity,now)
- if not ready(q,now) or not cur or cur.key~=q.key or q.mode~=2 or m.source_lease~=q.sourceLease or m.epoch~=q.epoch or m.gen~=q.gen then return true end
+ if not cur then return drop('no-replay-context(gen/support/track/sector)') end
+ if not ready(q,now) then return drop('md-context-not-acknowledged') end
+ if cur.key~=q.key then return drop('context-changed') end
+ if q.mode~=2 then return drop('own-ship') end
+ if m.source_lease~=q.sourceLease then return drop('source-lease') end
+ if m.epoch~=q.epoch then return drop('epoch') end
+ if m.gen~=q.gen then return drop('health-generation '..tostring(q.gen)..'~='..tostring(m.gen)) end
  if m.type=='BOLT' then
   if m.sector==q.sectorName and m.kind==q.kind then
    P.birth(q.buffer,q.key,{id=m.id,time=m.time,ttl=m.ttl,kind=m.kind,pose={m.x,m.y,m.z,m.yaw,m.pitch,m.roll},velocity={m.vx,m.vy,m.vz}},cur.sourceNow,cur.sourceNow-DELAY)

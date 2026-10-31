@@ -1,0 +1,33 @@
+Unknown identity diagnostic review corrections
+28 October 2026 - follow-up to frozen45460a2
+
+The independent review identified two ancestry parser gaps. A saved ancestor
+with a null parent could be relabeled NULL, even though native stops on SAVED
+first. An unsupported ancestor could be followed by another linked row, even
+though native stops immediately. Both forged diagnostic captures were accepted
+without parser errors; only saved-as-NULL reported complete. Neither case
+cleared reason6 or created a canonical ID.
+
+The parser now derives the first terminal condition in the native order:
+unsupported read/type, saved ancestor, null parent, depth bound, then a cycle
+that would be seen on the next iteration. Once terminal, no further hop is
+accepted. The copied terminal field must equal the independently derived one.
+This also retains native depth-before-next-iteration-cycle precedence.
+
+Readonly Values reattachment now refuses explicit Values capture failure or
+drop counts, a failed/dropped Action dependency, a missing/disabled/closing
+Action dependency, or replacement of the owned unknown callback. It preserves
+all sticky evidence and cursors. Aggregate Action unknown and Values reason6
+counts remain distinct: they continue to fail global coverage but are not
+silently reset or treated as explicit capture faults by reattachment.
+
+The additive parser pass now retains iterable input so a generator is not
+consumed before the independent identity decoder sees its records.
+
+Validation: the reviewer's exact private C-export reproducer accepts the
+original and rejects saved-misreported-null and continued-after-unsupported.
+Eight focused identity tests and13 Values Python/actual-LuaJIT tests pass.
+The exact-image owned-memory native gate test passes, including21 reattachment
+refusal mutations with zero setup calls and unchanged buffers/cursors/counts.
+The earlier454 source and private evidence remain intact. No game, installation,
+staging, hook, shared fixture or native artifact activation was performed.

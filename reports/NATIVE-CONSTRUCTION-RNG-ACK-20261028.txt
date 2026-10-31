@@ -1,0 +1,100 @@
+CONSTRUCTION RNG: EXPLICIT PRE-ACTIVITY UI REATTACHMENT
+28 October 2026
+
+Source-only correction
+----------------------
+Construction017 emitted two identical configuration acknowledgements before the
+save load and constructor activity. C retained the immutable configuration while
+the UI recreated its Lua module. The old independent parser required exactly one
+CONFIG line. This change adds explicit evidence for that bounded reattachment;
+it does not deduplicate arbitrary logs or change any retained017 result.
+
+The original manifest, A/B keys, RNG scope records, RNG STOP grammar, actor mask,
+native constructor calls and late-bind refusal are unchanged. No new game,
+overlay, staging, enrollment, timer write or player action occurred for this
+correction. Raw physical banks remain part of the strict peer comparison.
+
+Agreed mode and native admission
+-------------------------------
+Fresh composer output requires native_gate_creation_rng_ack_schema=1 and appends
+the exact ASCII suffix |CREATION_RNG_ACK_1 to the existing bootstrap preimage.
+The resulting epoch1 preimage is643 bytes, SHA256:
+1ce03def6a724e38f50bb9f32096f7829a91f0f47b32147153b1d2eeca1a79ba
+Lua, C and the independent validator reconstruct this suffix. C still checks
+the complete preimage against the actual initial_state_digest. A mode mismatch
+therefore cannot share the initial agreement. Constructor seed keys do not use
+this additional diagnostic suffix and retain their prior values.
+
+Native configuration requires the active owned boot, UI thread, exact supported
+mask and owned pins, with no creation/registry failure or STOP. First admission
+and every reattachment also require boot_phase0, issued0, selected state0,
+creation records/open0, and RNG scopes/active/attempted0. Reattachment verifies
+the retained manifest/epoch, original bootstrap digest, slot, relay port, boot
+start identity and private session token. It never clears or reinitializes any
+scope record. The public Lua binding stops with the existing reason75 on refusal.
+
+There are at most8 successful acknowledgements, with ordinals1..8. The first
+configuration obtains a128-bit local identity from Windows CNG; that API does not
+consume the game's RNG. The identity is immutable for this configuration, is
+not a credential or player capability, and is excluded from peer-canonical RNG
+state. Native boot is single-use; subsequent configuration cannot start a new
+epoch or replace the boot identity. CNG failure refuses initial configuration.
+
+Evidence contract
+-----------------
+creation_rng_config keeps its existing first return and adds a second string:
+schema=1 ordinal=N boot=<32hex> digest=<64hex> slot=P phase=0 issued=0 state=0 records=0 scopes=0 attempted=0
+The zero fields attest the successful admission boundary; they are not delayed
+samples of the world. Lua emits that string as CREATION_RNG_ACK immediately
+after its matching unchanged CREATION_RNG_CONFIG line. Logging resumes per
+successful part after a logging exception. A new Lua module can attach again;
+calling the same module's activate closure twice is refused.
+
+A separate creation_rng_ack_status API/poll capability supplies the final
+CREATION_RNG_ACK_STOP row:
+schema=1 acks=N boot=<32hex> digest=<64hex> slot=P
+It follows the existing unchanged RNG STOP row. A footer logging failure does
+not cause successful scope parts or the RNG STOP row to be emitted again.
+
+For the explicit new mode, the independent parser requires1..8 ordered pairs,
+identical manifests and keys, consecutive ordinals, matching local boot/digest/
+slot, zero activity, and one matching ACK footer. It also rejects acknowledgements
+after any already printed native activity, apart from ARMED/LOAD_REQUEST. Native
+zero-activity admission is the primary proof; delayed trace output alone cannot
+establish an early reattachment. Exact A/B part cardinality and every existing
+native/MD/identity/draw/timer/bank comparison remain required.
+
+Historical configs without the ACK marker retain the old single-CONFIG grammar.
+ACK rows in that legacy mode are refused. This versioned path preserves the
+ordered012/014/015/016/017 error arrays exactly:41/43/43/41/44. All five remain
+evidence_valid=false, and their stored validation files were not changed.
+
+Validation
+----------
+The full native actual-image/ABI/unwind/restoration suite passed. The final
+loaded-DLL constructor harness passes1820 always-on checks, including production
+Lua-binding returns, immutable repeated admission, all activity/boot/session
+refusals, bounded acknowledgement count and exact suffix bytes. The earlier
+native constructor original-once, real SEH and STOP tests remain in that run.
+
+The harness prints the actual two native return strings. Passing those strings
+through two real LuaJIT module instances, including header/footer logging
+failures, then through the independent parser passes. This is an offline modeled
+UI reload over production C returns and owned memory, not another X4 playtest.
+Run after the native suite:
+python -B tests/test_native_creation_rng_ack.py --native-output <captured-native-test-output>
+
+The Python/Lua native suite discovered660 tests:655 pass and5 existing
+platform-specific skips. New mutations reject missing/reordered/conflicting
+headers, all ACK fields, boot restarts, over-limit counts, missing/changed
+footers, post-activity headers and duplicated A/B rows. Seven independently
+compiled C omission mutants fail active CHECKs with exit97: phase, selected
+record, attempted scope, boot identity, session identity, count bound and suffix
+grammar. Private exact outputs and history comparisons remain under the own
+worktree .local/creation-ack directory. No original frozen artifact was edited.
+
+Limits
+------
+This repairs diagnostic admission evidence only. It does not resolve physical
+bank attribution, early registry readiness, native TLS lifetime exclusion,
+successful station construction or independent player/faction authority.

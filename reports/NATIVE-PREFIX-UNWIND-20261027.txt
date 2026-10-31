@@ -1,0 +1,77 @@
+FOUR RELOCATED PROLOGUES: PREFIX-ONLY UNWIND
+27 October 2026 | opt-in Windows instrumentation
+
+The parameter, attention, damage and solver trampolines copied stack-changing
+native prologue instructions without registering unwind metadata. A stack walk
+inside those stubs could treat the saved register or local stack space as the
+caller's return address. Supplying the native function's complete unwind record
+was not a fix: later native operations have not executed in the trampoline, and
+the old indirect FF25 continuation can be recognized as a tail epilogue while
+the copied stack changes are still active.
+
+This change registers a dedicated record for each copied prefix and uses
+MOV R11, continuation / JMP R11. Native entry sites, dispatch offsets, arguments,
+feature dependencies and default enablement remain unchanged. No simulation,
+RNG, speech, scheduling or fixture behavior is added.
+
+BOUNDED NATIVE CONTRACT
+
+Parameter entry ea1e80 copies 15 bytes: entry RSP to RAX and eight nonvolatile
+pushes. Attention entry 6d1ff0 copies 6 bytes: push RDI, allocate 32 bytes.
+Damage entry 791760 copies 5 bytes: entry RSP to RAX, push RBX and RSI. Solver
+entry 1197fe0 copies 6 bytes: push RBX, allocate 96 bytes. The new records describe
+only these operations. They contain no later saves, frame register or handler.
+Their function ranges end immediately after the 13-byte continuation; dispatch
+stubs and padding are outside each range.
+
+R11 is a volatile Windows x64 register, not an argument to these functions.
+Inspection of each pinned function's direct control flow finds no incoming R11
+read. The parameter and damage functions first define R11 in their epilogues,
+at ea29ee and 791bab respectively. The complete attention and solver functions
+contain no R11 use. Standard native Windows x64 call contracts apply; arbitrary
+virtual-target implementations are not a new coverage claim. RAX, including the
+parameter/damage entry-stack copy, all argument registers and flags are preserved
+by the continuation. The existing full parameter, damage and solver pins remain.
+Attention now pins its complete 188-byte contiguous chained-unwind span:
+b89efdd1ce0a8d0901c88c63c0d7ac54f14cc90138459ccf7bf8e7835b19401f.
+
+IMMUTABLE STORAGE AND LIFETIME
+
+Metadata uses existing reserved padding: parameter slot320+32, attention576+48,
+damage736+48 and solver2304+32. Code, continuation addresses, metadata and padding
+are emitted privately and sealed by the existing checked RX/cache-flush boundary.
+Private emission performs no registration and adds no native pin prerequisite to
+disabled features.
+
+Each installer checks its existing gates and pins, verifies its immutable region,
+then registers its static function record before the native entry CAS. A failed
+registration publishes no feature. Registration is serialized, a repeated request
+requires the same page and exact table/range, and Windows lookup verifies both
+ends. A successful registration is never revoked by a later CAS failure or STOP.
+The pinned DLL, table and published page remain resident for an open original.
+No production path deletes a table or frees that page.
+
+VALIDATION
+
+The Windows C harness uses an independent mapped copy of the pinned executable.
+It checks the actual prefixes and continuation addresses, the new attention pin
+and last-byte tamper refusal. RtlVirtualUnwind is exercised at every copied
+prologue byte offset using completed-instruction progress, and at both legal
+MOV/JMP instruction boundaries. Expected caller RIP/RSP, all nonvolatile GP
+registers, XMM state and flags are checked. Immediate-byte interiors are not
+claimed as architectural execution RIP values.
+
+Executable stand-ins compare direct native prefixes against the central emitted
+trampolines: GP registers other than the deliberately dead R11, every XMM register,
+flags, eight stack argument/home slots, alignment and a wide result agree.
+Registration failure/retry, duplicate calls, unknown slots, changed page base,
+code/metadata/table tamper, and immutable-region checks are covered. All four
+production installers and restorers execute against the private image. For each,
+a worker remains inside its original across restoration, then returns exactly
+once with its function table and sealed page still available. Test-only tables
+are removed only after the workers join; production retains them.
+
+These checks establish the bounded trampoline unwind and normal-forwarding
+contract. They do not establish C++ cleanup of observer scopes, engine exception
+handlers, generalized native patch concurrency, or native game/session equality.
+No game was launched for this change.

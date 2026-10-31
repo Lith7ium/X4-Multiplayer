@@ -375,7 +375,7 @@ class CanonicalFloorTests(unittest.TestCase):
             self.assertEqual(S['dead'], dead)
         health = (ROOT / 'src/extension/x4_lan_lab/md/x4lan_health.xml').read_text()
         self.assertTrue('set_object_min_hull object="$ship" exact="2"' not in health)
-        self.assertTrue('<set_value name="$arena.$healthProxyLost" exact="[false,false]"/>' in health)
+        self.assertTrue('<append_to_list name="$arena.$healthProxyLost" exact="false"/>' in health)
 
 
 if __name__ == '__main__':

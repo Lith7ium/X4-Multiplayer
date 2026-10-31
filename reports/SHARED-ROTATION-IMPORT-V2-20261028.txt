@@ -1,0 +1,95 @@
+SHARED SAVED ROTATION IMPORT V2 -- SOURCE CONTRACT
+28 October 2026
+
+The selected Agent importer is shared by NavigationController and the Player
+controller's base construction. V1's navigation-only offline census therefore
+did not describe the whole hook path. V2 qualifies selection by the retained
+movement XML, not a final class vtable during base construction. It changes the
+explicit import capability, not portable state or wire field meanings. Plain
+portable mode and historical v1 contract parsing remain separate and unchanged.
+
+Only movement class navigation or player, then position/read|write/offset is
+eligible. The callback node must be that exact offset (Linux) or its rotation
+child (Windows). All selected path structure, class string and Euler attributes
+are retained as bounded copies and replayed. Unrelated siblings are permitted;
+quaternions in unrelated targetpoints are not selected. Unsupported selected
+bank shapes, changed pointers/values, duplicate roles or changed Agent/movement
+bindings refuse the entire imported session. There is no native saved-ID census.
+
+Exact snapshot7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8:
+navigation10008 records, with10005 Euler and3 absent per read/write role;
+player1 record, with1 Euler and0 absent per role; no selected quaternion.
+Windows's rotation-child tail sees10006 Euler calls per role; Linux's offset
+reader sees10009 calls including3 absent. Both require one read and one write
+for every retained Agent/movement/class lifetime visible to their hook.
+
+The preparation digest covers sorted records {saved,movement_class,banks},
+where banks read/write are null (absent element) or pitch/yaw/roll arrays of
+exact XML attribute strings; missing attributes are null, empty strings remain
+empty. No platform float printing is involved. This is offline evidence only.
+Input digest8b8ab6d4697192f708c192c5e2c236e9e9eaf7a2faf35246456e592ea318fa70.
+Descriptor27c9bd768900673531c698e59b410fc38940b036ef9563e5e9483e9f3303537b.
+Contract77b19d6f210426c86c73bafdf3a3f2531747968819a5ef61e93344f902da2790.
+The three common fixture files and arithmetic source digests are unchanged.
+
+Windows exact image19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891:
+factoryd67970 navigationcase→ea4e90; playercase→d83de0→ea4e90;
+ea4e90→eac380→e86bb0. Agent import retains movement in R13 at e86bd2;
+the selected read/write calls return to e86d18/e87101. The existing tail thunk
+must forward that retained R13 in addition to Agent RDI, within its32-byte slot.
+The full4416-byte Agent importer and320-byte offset reader are already pinned.
+Exact class-enum/constructor closure is documented in the preceding input review;
+runtime selection still checks the exact class and XML node, never just counts.
+Linux has independent ELF/stack-source proof owned by its runtime implementation;
+the Windows register proof must not be reused as a Linux ABI assertion.
+
+Shared passive helper25a135e passes8839 owned-memory checks on both layouts,
+including every captured-byte mutation and STOP/read/shape/bounds refusals.
+V1/v2 capability/preflight tests pass24 cases; exact snapshot preflight confirms
+all above counts/digests. These are source/preparation checks, not native session
+acceptance. Mixed004 remains strictly failed.
+
+WINDOWS IMPLEMENTATION
+
+The existing32-byte tail slot3744 now forwards retained Agent RDI as R8 and
+movement R13 as R9; no new patch site, frame or optional flag is added. Only the
+two pinned Agent return addresses enter scoped selection. Every foreign call
+continues unchanged through the original. Selected refusals also call original
+exactly once, preserving its full opaque RAX; the existing finally blocks drain
+normal/exceptional scopes. No corrective plan is published on failure or STOP.
+All captured path/input bytes are replayed after original and under the existing
+write/STOP lock immediately before the bounded nine-word basis write.
+
+Two fixed32768-slot indices retain Agent and movement pointers, with at most
+10006 Windows-visible records. Every record keeps class, role mask and distinct
+read/write bank addresses; no reuse, reassignment, duplicate role or replaced
+Agent/movement pair is allowed. All storage is process-owned, default zero, and
+is never reset by UI reattachment. This is bounded pointer/role accounting under
+the native Load exclusion proof, not an independent allocation-generation or
+runtime saved-ID census. It does not claim all movement classes are normalized.
+Completion additionally requires exact nav10005/player1 calls, normal returns
+and Euler writes for both roles,10006 records, and10006 paired records.
+
+Windows status is x4-rotation-status-v2 with42 fields: the previous27 fields,
+configured offline inputs digest, twelve role/class calls/returns/euler fields,
+lifetimes and paired. The parser dispatches historical v1 receipts to the frozen
+v1 rules and refuses version/contract mixing. A new adapter enables only v2;
+plain portable mode remains unchanged. The complete fixed serializer is bounded
+at2048 bytes; the normal synthetic receipt is946 bytes. Terminal lines retain
+their2048-byte bound. All native counters remain integers, with parser overflow
+refusal. A receipt still does not prove the independently owned process/module.
+
+Verification: full native C suite with the pinned image passed. Final focused
+production wrapper tests passed83209 checks. They execute the real thunk into
+owned test originals, including full RAX/five-argument Load forwarding, real SEH,
+normal and concurrent STOP, partial-CAS/protection/cache restoration obligations,
+immutable reattachment, exact class/path mutations, paired identity reuse and
+changed input refusal. A private R13-to-R14 mutant, with its superficial opcode
+assertion removed, fails the production successful-import exercise. The actual
+PE importer instructions are checked independently of the thunk recipe.
+The production C receipt passes the strict Python parser.88 portable Python/Lua
+tests pass with5 existing platform-specific skips;24 v1/v2 capability/preflight
+tests also pass. Frozen mixed004's v1 receipt produces the identical failed
+result, including INPUT6 and10006calls/zero Euler writes. No game was run, no
+artifact staged/frozen and no prior failure was reclassified. Independent source
+review and matched Linux/closure integration remain required before a new run.

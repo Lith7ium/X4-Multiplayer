@@ -1,0 +1,114 @@
+IMMUTABLE SHARED THUNK PAGE
+27 October 2026 | opt-in native instrumentation
+
+PROBLEM AND CONCURRENCY BOUNDARY
+
+The main frame hook published a shared executable thunk page before optional
+hook installation. Twenty-six production functions later changed that entire
+page to PAGE_READWRITE to emit another stub or pointer. This revokes execution
+permission for every stub in the page, including the live main entry. Returning
+the previous protection also lacked a checked success result in these writers.
+
+The source provides no shared execution exclusion for these writes. Bootstrap
+phase zero forwards the original frame; it is not a stopped main thread. The
+UI-thread check limits installer callers, not concurrent native execution.
+Later queue configuration occurs in phase zero, while solver/request observers
+install at the first admitted tick. Their feature-specific admission/restore
+locks do not protect execution through other stubs. Serial path processing does
+not establish a global code-page quiescence boundary either.
+
+CHANGE
+
+All reserved code and pointer regions are now emitted into the private RW
+allocation before any native site can reach it. One checked transition makes
+the entire page PAGE_EXECUTE_READ, followed by a checked full-page instruction
+cache flush and protection verification. Allocation failure, failed RX, failed
+flush, or incorrect resulting protection returns no published page and frees
+only that private allocation. The main native-site CAS still occurs afterward.
+
+Emission uses fixed pinned prologue instructions, absolute continuation/handler
+addresses, and deterministic zero padding. It performs no native getter, hook
+installation, engine lock, state preparation or unwind registration. Compiled
+optional features therefore add no new native pin prerequisite to a disabled
+feature's startup. Their existing full pins, configuration dependencies, native
+site ownership checks and CAS remain authoritative at feature installation.
+
+Every former live writer now verifies its complete immutable reserved region,
+including padding, continuation and handler addresses. The common checker
+requires committed memory, the original allocation/base, exact RX protection,
+and a bounded successful read. It never changes page permissions. Unknown
+offsets, changed bytes, RW/RWX/read-only/no-access/guard protection, and truncated
+ranges refuse. This is not immunity against an unrelated process or DLL changing
+memory after the check; it removes every owned post-publication thunk writer.
+
+The DLL and returned page remain resident after failed main publication, partial
+feature installation, and STOP. Queue and transition unwind metadata is registered
+only during later feature configuration after frozen RX verification and before
+publishing that feature's native sites. No unwind table refers to an allocation
+freed by failed private emission/sealing. Existing conditional restoration and
+open-call evidence remain in place; no in-flight original is invalidated.
+
+RESERVED REGION MAP (offset, byte count)
+
+  main frame jump             0,32       path pointer                32,8
+  AI                        128,64       Agent                      256,64
+  parameters                320,64       shape                      384,64
+  mass                      512,64       attention                  576,64
+  flight constructor        640,64       Gravidar                   704,32
+  damage                    736,64       interrupt                  800,48
+  contact                   848,48       interrupt step             896,48
+  imported identity         944,48       nested action             1024,64
+  NPC interpreter          1088,64       speech                    1152,64
+  speech enqueue           1216,64       speech finish             1280,64
+  deadline                 1344,320      audio ready               1664,320
+  contact properties       2048,256      solver                    2304,128
+  evaluated MD event       2432,64       velocity request          2496,64
+  queue enqueue            2560,64       queue append              2624,64
+  queue forward/unwind     2688,64
+
+These are the 29 regions used by the existing main entry and 26 former writers.
+Separately owned additions plug into the same private phase: Wait at2752..2815,
+and controller transitions at2816..2943. Their integration must retain exactly
+one central emitter call, remove their old direct make_thunk calls, and retain
+their own pins, immutable comparison, ABI and unwind tests. No region overlaps.
+
+VALIDATION AND LIMITS
+
+The actual-image C harness checks all 29 regions and their native prologue
+instructions, exact continuation addresses, layout/non-overlap, instruction and
+padding tamper refusal, wrong protection, and range bounds. Injected RX failure,
+cache-flush failure, and a lying RWX transition each free the unpublished page
+before any native-site change, with no unwind table registered. A failed native
+CAS retains a readable executable page. Disabled features remain uninstalled.
+
+The real main stub executes concurrently with 100 production AI install/restore
+cycles against an independent mapped native image. The shared page remains RX
+and byte-identical throughout. Solver, mixed-register request and AL-return MD
+ABI tests execute the central production emitter. Independent existing emitters
+agree byte-for-byte with the new recipes against actual native instructions.
+Queue tests use the new sealed allocation and execute its registered-unwind
+forwarder, including restoration while an original is still open.
+
+The complete C/actual-image harness and 30 portable transport/bootstrap cases
+pass, as do 330 focused Python/Lua tests. A source regression guard covers all
+26 former writers and rejects direct live-thunk writes/protection changes.
+No native game was launched for this fix. This addresses shared thunk execution
+safety; it does not prove generalized native patch concurrency, deterministic
+gameplay, complete world coverage or safe construction enrollment. Native code
+entry-page CAS/protection logic is unchanged and remains a separate boundary.
+
+Independent review also identified an existing exception-unwind gap in the
+parameter, attention, damage and solver trampolines. Their relocated prologues
+change the stack, and the existing indirect continuation is not accompanied by
+correct trampoline unwind coverage. This predates the immutable-page change.
+The normal forwarding/ABI checks above do not establish exception-unwind safety
+for these four paths. Their correction is separate work; the existing registered
+queue and transition metadata does not cover them.
+
+MERGE NOTES
+
+Developed from the reviewed root source on a new isolated task branch, preserving
+the earlier initial-state work and frozen construction evidence. The Wait and
+transition additions are independently owned and were absent from that base.
+Their central conditional emitter seams are present; combined source and native
+ABI tests must pass after integration before any new frozen native experiment.

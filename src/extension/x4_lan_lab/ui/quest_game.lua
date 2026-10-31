@@ -18,7 +18,7 @@ function q.receive(f)
  if rev<=q.revision then return true end
  if q.progress then for i=2,5 do if v[i]<q.progress[i] then return true end end end
  q.owner,q.revision,q.progress=f[4],rev,v
- if cfg.slot=='p2' then q.pending={revision=rev,stage=stage,delivered=delivered,destroyed=destroyed,paid=paid} end
+ if cfg.slot~='p1' then q.pending={revision=rev,stage=stage,delivered=delivered,destroyed=destroyed,paid=paid} end
  return true
 end
 function q.frame(now)

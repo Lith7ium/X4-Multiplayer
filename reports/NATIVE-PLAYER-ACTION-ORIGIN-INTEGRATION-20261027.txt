@@ -1,0 +1,139 @@
+READ-ONLY GETUP ORIGIN: SOURCE INTEGRATION
+27 October 2026 | No staged artifact, native game, UI or control action
+
+Scope
+
+The039d9d3 pure origin ledger now has an optional native integration. It observes
+the actual GetUp PostEvent call and GetUpEvent delivery; it never invokes GetUp,
+PerformCompSlotPlayerAction, a controller setter or an AI order. Existing player
+authority refusals, raw world watches and their strict errors are unchanged.
+This source milestone is not a successful user action or independent pilot test.
+
+Explicit configuration
+
+After the existing schema2 saved watch and transition observer are configured,
+but before loading starts, player_origin_config accepts only a canonical token:
+1|0000000000011e12|00000000000ae79c|1|120
+The two16-digit fields are saved Player and ship IDs; the last two are inclusive
+admitted tick limits, 1..120. Exactly one separately configured saved watch must
+select that ship with initial PlayerController and true owner player. Window end
+cannot exceed that watch's limit. No numeric option bit or source default enable
+was added. Changed/repeated-late first configuration, malformed/overflowing
+numbers, signed/zero-prefixed ticks and configuration after STOP refuse.
+
+The existing import-success callback captures the Player's full runtime/object
+identity once during loading. At the joined postload boundary, after unchanged
+world and transition binding, the observer verifies the exact imported Player,
+the real singleton pointer, a bounded cycle-free native parent chain reaching
+the selected ship, and each component's full runtime registry generation/object.
+It reuses the separately bound ship's macro/true-owner/controller/Agent guards.
+No lazy native getter or native reference-retention operation is called.
+
+Every capture repeats guarded registry/object/ancestry reads and reads the
+currently published controller. Post and delivery entry require PlayerController
+and Agent.player=1. Return capture permits the native NavigationController after
+release; it does not reread the old controller. These are sequential diagnostic
+guards. Owner mutation, destruction, generation wrap and allocation lifetime are
+not atomically excluded. No native lease or second player context is claimed.
+
+Event time and lifetime
+
+The due argument is stored as exact double bits. Current native TLS time is a
+separate field for post, delivery and return, read only when TLS+10 is already
+initialized. No initialization helper is invoked. The current time is never
+substituted for the event's due time or required to equal it.
+
+The dispatch path was reread before integration:99bb50 loads the queue node's
+due time into XMM6;99be05 stores it in a38-byte dispatch record at+30. The consumer
+uses a pointer shifted+18 and99c3c8 loads that same field at+18 into XMM2 before
+99c470. Both recipient calls preserve it through998700 to XMM3.low64 and152870
+to the receiver. The positive executable fixture intentionally has TLS time31.5
+while event due time is30.01; the receipt preserves both distinct values.
+
+Post reads the fresh24-byte event construction preimage twice, requiring the
+exact GetUpEvent type and zero counter/reference fields. After native PostEvent
+returns there is no event access. Delivery checks the exact event type again;
+native reference counters are not assumed immutable after posting. The32-ticket
+ledger refuses event address reuse for the entire window, duplicate primary
+delivery and missing/changed source identity. Other receivers remain excluded
+coverage. A missing primary delivery remains outstanding and cannot complete.
+
+Patch publication and restoration
+
+Ownership was registered in the shared hook map before implementation. Nearstub
+2944..2975 is emitted while the shared thunk page is still private and writable,
+then sealed with the existing single RX/flush publication. Later configuration
+only verifies its frozen32 bytes and RX allocation. No live shared-page writer
+was added. Existing transition emission2816..2943 is unchanged.
+
+The call patch uses aligned CAS16 at1abb00, replacing only the rel32 operand of
+the existing E8 at1abb07. All neighboring bytes remain exact. The GetUpEvent slot
+uses CAS64 at2a85288. The original99a3f0 and152870 each run exactly once on every
+ordinary-return path, including rejected captures. Both full RAX results pass
+through unchanged. GetUp's later public AL=1 remains request acceptance only.
+The near stub has no stack adjustment or relocated instruction and needs no new
+non-leaf unwind registration; the C wrapper uses its normal module unwind data.
+
+A dedicated operation lock serializes prepare/publication/started state and
+STOP/restoration. Configuration rechecks active state before and after patching;
+partial publication rolls back owned sites. Admission increments outer open
+counts before selection, including prebind and out-of-window calls. No lock is
+held across a native original. STOP closes admission, retains outer and core
+open maxima, restores only owned bytes, and leaves code/ledgers resident. A
+callback may finish its diagnostic record afterward, but retained open-at-STOP
+or restoration failure prevents capture_complete. Foreign adjacent bytes or a
+foreign slot target are preserved and reported, never overwritten.
+
+Existing transition_end adds only a separate TLS-scoped event-number edge to
+the origin ledger. It does not change any transition receipt or raw watch. The
+edge is provenance, not a successful transfer/publication/model result. Delayed
+model completion still needs the existing command ticket joins and a separately
+reviewed release-mode result predicate. Activation or GetUp acceptance alone is
+never completion.
+
+Read-only exports
+
+player_origin_status exposes native/core call accounting, explicit coverage
+limits, binding IDs/pointers, restoration state and diagnostic capture_complete.
+player_origin_ticket and player_origin_edge consume bounded rows in exact order
+only after STOP with no open calls. Ticket rows are capped at1024 bytes, edge
+rows192, status1536. Raw event/controller/pointer/RAX fields are local diagnostics,
+not portable equality inputs. Wrong-order or duplicate row reads refuse. The
+standalone fixture exercises production Lua methods and export limits.
+
+No automatic probe/runner enabling or writer command was added. A future reviewed
+fixture still needs independent consumer validation of this new origin schema,
+source/builder configuration wiring and genuine stock chair-slot discovery. The
+inert saved watch prepared earlier remains unchanged. No frozen overlay was
+mutated or new overlay staged.
+
+Verification
+
+Exact-image tests reverify the19 reviewed full ranges, seven slots, complete
+aligned call word and time constants from EXE19750a65... . Tests execute the
+actual copied1abb07 call and GetUp return epilogue,998700 argument shuffle,
+152870 event dispatcher and actual recipient-call opcode on owned synthetic
+memory. Synthetic originals replace game behavior; a synthetic TEB supplies the
+guarded TLS input. The ordinary native ABI is exercised through the real machine
+instructions, including the fifth stack argument, XMM2/XMM3 scalar double,
+full64-bit RAX, stack alignment and nonvolatile registers. Both immediate delivery
+before PostEvent returns and later delivery pass, each with exactly one original.
+
+The synthetic receiver performs actual production transition observer calls over
+owned memory, then makes the old controller PAGE_NOACCESS. Origin return capture
+uses the published replacement and links the two immutable transition receipts.
+No raw world watch is rebound and no model-completion success is fabricated.
+
+Negative tests cover full-ID/generation/object replacement, self-parent cycles,
+changed singleton/owner/Agent, wrong controller/player flag, uninitialized TLS,
+NaN time, wrong event type/construction fields, phase/window exclusion, malformed
+tokens, partial two-site install and both foreign restoration cases. Deterministic
+worker schedules pause configuration before publication and after either CAS,
+and pause prebind/post/delivery originals while STOP restores sites. Closing
+cannot reopen; all open-at-STOP evidence persists after original returns.
+
+The full native C build and exact-image tests, standalone origin ledger tests,
+30 portable transport/boot cases, and369 native Python/Lua tests passed in this
+branch. Ordinary-return coverage does not establish native exception-unwind
+cleanup. No game, input writer, UI action, independent-player authority or full
+world convergence is claimed.

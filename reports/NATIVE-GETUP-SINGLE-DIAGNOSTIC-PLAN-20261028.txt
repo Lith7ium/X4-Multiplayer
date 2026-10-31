@@ -1,0 +1,66 @@
+PROPOSED ONE-NATIVE-COPY GETUP DIAGNOSTIC
+28 October 2026 | Plan only; runner and mode not implemented
+
+Purpose: exercise a real stock GetUp request and its local controller/event/queue
+receipts without waiting for the separate full-world parity investigation. It
+would use one new disposable native game, the same pristine snapshot, exact pins,
+saved identities, observers and bounded30/120 action window. It cannot answer
+whether two replicas converge or provide a second independent native pilot.
+
+This must be a distinct explicit diagnostic-getup contract, not agreed-getup plus
+compare=False, an invented second client, or a changed result on a failed pair.
+The source experiment above remains paired and strict. Existing failed raw world
+runs and their validation remain unchanged. There is no automatic fallback from
+a paired run into the diagnostic contract.
+
+Proposed boundary and protocol
+
+Add a separately reviewed local coordinator mode with exactly one expected owned
+endpoint, always physical slot1. Its manifest declares native_clients=1,
+parity_checked=false and action_scope=local_singleton. There is no second peer,
+second state arrival, mirrored clock, synthetic digest or fake player2 log. The
+second logical input word is an explicitly fixed zero, not an asserted peer
+proposal. Record every native state/clock/input/grant and check local chronology,
+held-state stability, retransmission identity and processed-command sequencing.
+Admit the tick30 UI action only after the native tick29 report proposes87010000.
+All other inputs are zero. Stop on local native guard/clock/receipt failure.
+
+Use an explicit contract identifier in the initial state digest, native request
+configuration and final native receipt. A changed contract/run/epoch after Load
+must refuse. The native command decoder and at-most-once public call can share
+the reviewed claim core; source must not silently infer the contract from missing
+peers or a timeout. Whether to retain the existing two-word wire encoding under
+that explicit contract or add a distinct protocol tag requires parent review;
+the paired coordinator must reject either diagnostic declaration.
+
+The runner should use one released x4lane run with one owned process, ordinary
+lane admission and existing cleanup/restore checks. It needs a separate CLI flag,
+collection schema and validator path. It must never invoke the two-client
+validate_native_gate success path or create a second client directory. No normal
+save, settings, profile or other agent's window is involved. Parent must review
+the source and immutable artifact before any run, as for the paired fixture.
+
+Evidence and outcome
+
+Keep all full-world captures enabled and log their actual roots, page/detail
+evidence and raw trace failures. With one native copy there is no cross-replica
+comparison: report that absence explicitly, never label its roots equal. Local
+world/queue integrity failures still fail the diagnostic. The known earlier
+paired mismatch is linked as unresolved context rather than erased or waived.
+
+Use a separate validator with exactly one owned client and loopback coordinator
+transcript. Independently parse request, origin, direct transition and model
+receipts; require raw restoration, return/unwind/open accounting and lane cleanup.
+Report request_accepted, delivery_observed, selected_publication_observed and
+model_dispatch_observed separately. Unknown lifetime/queue results or a missing
+stage by120 remain partial/failed observations. Completed release remains false
+until its separate predicate is audited, even if every local receipt is valid.
+
+The result category is local_action_diagnostic, always session_pass=false,
+parity_checked=false and independent_native_players=false. A local observation
+must never satisfy the working two-player lockstep acceptance checks. Tests must
+reject an extra endpoint, fabricated second state, changed contract, inherited
+paired-success flags, omitted raw failures, missing cleanup and action retry.
+
+No source for this runner/contract has been implemented, no overlay prepared and
+no native launch requested by this document.

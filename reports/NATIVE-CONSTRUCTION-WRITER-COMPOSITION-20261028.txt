@@ -1,0 +1,335 @@
+CONSTRUCTION RNG: ENABLED ACTOR WRITERS AND UNWIND COMPOSITION AUDIT
+28 October 2026 | Source audit and owned-memory tests only
+
+Evidence correction after 66f6f11
+-------------------------------
+The first private witness used assert.h without clearing NDEBUG under Zig -O2.
+Those executions and their constant PASS diagnostics are INVALIDATED as test proof.
+Their source/executable/output hashes remain in the PINS file, explicitly marked
+invalid. They must not be cited as assertion-backed evidence. This was a harness
+error; the source/config/image/trace checks were independent of those assertions.
+
+The corrected private witness uses always-on CHECK, explicit per-writer reach
+counts and nonzero process failure. Both exact source versions were rebuilt and
+rerun: 137 checks each, all twelve writers reached, exit 0. A forced false check
+and a semantic probe requiring the inner continuation to contain the restored
+parent word both exit 97 on both executables. The latter fails at Flight, before
+any successful result can be printed. These fresh runs establish the counterexample
+below; they do not rehabilitate the invalidated executions.
+
+Decision
+--------
+Proposal 1881319 must not enable constructor RNG on the strength of the accepted
+observer cleanup alone. Ordinary construction 016 enables twelve actor-local TLS
+RNG writers. Every one restores its borrowed RNG word only on normal completion,
+including the range writer after observer fixes 834f2d5 + 74ced4a. An exception
+caught inside Generate can therefore resume Generate with an inner actor stream.
+An outer Generate finally runs too late to repair that continuation.
+
+Keep the ordinary 016 option mask and native calls. The smallest defensible support
+policy is narrow abnormal cleanup of all twelve enabled writer bodies, with their
+transient context restoration, before allowing the new A/B writer. There is no
+complete reachability proof that would justify excluding an enabled writer from
+that policy. This audit does not assert that an exception occurred in 016, or that
+all twelve writers actually nested inside its constructors.
+
+Source and artifact binding
+---------------------------
+Audit branch base: 300b817ff73de0e73749ad84072ec38ab7db9396.
+Frozen 016 source: 95791d7e4015708fa0a263c2872d0c1e9f12640e.
+Proposal: 188131994263a5e4b62f25c097fd26fe5630645d.
+Observer prerequisite: 834f2d566a284569c5fafa21bbe399dfc866cf2b,
+then 74ced4a03126b214df8757dfd89edc1d14764c69.
+
+The twelve writer headers are byte-identical Git blobs between frozen 957 and
+audit 300. The C boot option validation/dispatch is also identical. The frozen
+Lua probe, rather than the later probe with additional features, was used to
+reconstruct 016 options. Nineteen relevant Git/build copies were checked, including
+the writer headers, seed/registry/C dispatch, probe and creation parsers. Frozen
+source copy differences are line endings only. The separate 74 archive used for
+the exception witness was checked against 74 Git blobs after line-ending handling.
+
+All fifteen overlay 017 payload hashes match its retained manifest:
+438722082b6ebf7782a5ced751d2031ddd837902c66ed0188356278bcb1e5b6c.
+The retained DLL hash is:
+8d3c2db89c439d2a1658b77a3e167d535b26242a34166cc545c7d91d74ff13fe.
+This binds the reviewed source/options to the historical artifact; it is not a
+new build or a claim to have rerun that game. No original capture was modified.
+
+Only native_gate configuration assignments were evaluated in LuaJIT. All 75 native
+fields, including table contents, match in overlay 017 and both installed configs.
+The exact frozen option expression produces decimal 2339760743907327,
+hex 0x84fffffffffff: bits 0..43 inclusive, 46 and 51. C dispatch actually passes each
+seed bit below to its corresponding installer. This is not inference from names.
+
+Enabled TLS writers
+-------------------
+All addresses below are RVAs in the pinned Windows image. The normal native call
+signatures and selection conditions matter; similarly named constructors are not
+interchangeable with these update hooks. Counts are identical on both 016 clients.
+
+Writer       Bit  Native hook/target                       STOP calls
+flight         3  vslot 2c4ea38 -> ec7200                           0
+AI             6  call 106e3f6 -> b58bb0                            0
+Agent          8  call eaed6f -> e8f250                           60
+ship          11  vslots 2b813c8/2b9af98 -> 7cc810                 72
+weapon        14  vslots 2b69788/2b03e98 -> 8132d0                120
+Nav           17  vslot 2c51260 -> ea77f0                         72
+shape         21  entry bff80                                  144
+bullet        24  Move vslot 2c43fd8 -> d4f090                      0
+death         26  vslots 2b7fef8/2b99ac8 -> 7cd610                  0
+attention     29  entry 6d1ff0                                    72
+Gravidar unit 38  vslot 2c67648 -> 10acd70                         12
+range         42  entry b58ce0                                    0
+
+The fields are native_gate_{flight,ai,agent,ship,weapon,nav,shape,bullet,
+death,attention,interrupt}_rng and native_gate_radar_rng. The last name selects
+the Gravidar unit writer, not a general radar-event RNG bracket.
+
+Selection and reachability of each writer:
+
+* Flight: flight_execute brackets the complete six-argument model Update. Its
+  selector requires the registered model/Agent pair and active boot phase 3, with no UI
+  thread test. The selected Pilot initially has no Nav/Agent. Its later model
+  construction is a different ec40c0 hook. Registered other-model callback
+  reachability inside A/B remains unknown. Zero completed selected calls in 016
+  is historical evidence, not a static impossibility proof.
+* AI: ai_execute brackets one-argument execution only at the patched Director
+  call 106e3f6. It is not an entry hook on every b58bb0 invocation. ai_actor follows
+  context +120 and up to 16 parent +70 links, requiring a registered pointer plus ID.
+  The three observed A startup ranges use b58ce0 instead. The first selected
+  Director receipt is129/131, after A; B begins130/132. This adjacency does not
+  establish that Director AI caused B or that B is nested in ai_execute. No
+  registered AI execution was counted in 016; other actors/callbacks remain unknown.
+* Agent: agent_execute has five arguments and brackets e8f250 through its specific
+  update callsite. It requires the registered Agent and matching live owner/Nav
+  slots, with no UI thread test. The observed B Agent initializer e85360 is a
+  different function and does not establish entry to this writer. The 60 updates
+  have no constructor-parent receipts; nesting is unknown.
+* Ship: ship_execute brackets the one-argument Move of a registered component/ID
+  on the UI thread. No selected registered builder exists before the refused bind.
+  The 72 existing-actor calls cannot be placed inside A/B from their total alone.
+* Weapon: weapon_execute requires an already registered physical gun slot and ID,
+  under a registered ship ancestry, on the UI thread. It publishes a temporary
+  weapon_context plus actor and slot for child bullet creation. The 120 calls do
+  not establish nesting in A/B. Other registered-weapon callbacks remain unknown.
+* Nav: nav_execute brackets two-argument upkeep ea77f0 after checking the registered
+  object's published controller. The observed initializer ea8cf0 is different.
+  Its 72 calls do not prove A/B nesting. The selected builder is still unregistered.
+* Shape: shape_execute selects registered main/secondary shape records on the UI
+  thread. It forwards record and byte flag. Docking shape options 44/45 are off.
+  Its 144 calls do not locate it inside A/B; other-actor paths remain unknown.
+* Bullet: bullet_execute brackets one-argument Move for a bullet previously recorded
+  by a registered weapon scope. The create vslot 2b67d90 targets83b500 and records
+  identity; it is not another TLS reseeding entry. No bullets were created/moved
+  by this instrumentation in 016. A future callback can only be excluded with
+  object/weapon provenance, not merely with the selected builder's registration.
+* Death: death_execute forwards all five arguments, requires source==self and a
+  registered component/ID on the UI thread. No such call was counted. There is no
+  static exclusion of unrelated registered-object events under constructor calls.
+* Attention: attention_execute brackets one-argument registered-object upkeep on
+  the UI thread. Its 72 calls have no A/B parent join. Selected unregistered-object
+  exclusion does not exclude another registered object's callback.
+* Gravidar: gravidar_execute forwards unit/queue/result when gravidar_in_frame is
+  set and the unit ID resolves to a live registered actor; initial-unit and read
+  guards also apply. It lacks a UI equality guard and can use worker TLS. The
+  ordinary publication/join path is distinct from A/B's UI scope. Twelve unit
+  calls, six publication frames and successful joins do not prove same-thread
+  nesting or global exclusion. No such nesting is claimed; unsupported reentry
+  and stale publication-context paths remain part of closure policy.
+* Range: interrupt_observe forwards the full five arguments and uintptr_t result.
+  It seeds only after interrupt_begin returns a registered-actor sample. A reaches
+  this hook in the exact observed startup forest, but all three selected ranges
+  are unregistered. INTERRUPT_SEEDS=0 and INTERRUPT_STOP calls=0 on both clients.
+  The hook is installed and the writer remains available for registered ancestry
+  reached by another callback. B callback/range reachability is not fully proved.
+
+The actor table has fixture slots 1..12, dock anchors 13/14 and dynamic slots 15..30.
+Dynamic seed identity is the complete creation handle in a disjoint namespace.
+The selected pending handle 5:3 is a reservation, not a bound actor-table entry.
+Parent ancestry must be checked: testing only the new object's own ID is weaker
+than the actual AI/weapon selector. The successful unregistered range receipts
+and zero range seeds establish the narrower016 exclusion directly.
+
+Other RNG and composition inputs
+-------------------------------
+native_gate_seed_rng (bit 1) is enabled. path_release seeds the UI TLS word with
+the admitted-frame seed after its Gravidar publication/join and ReleaseSemaphore.
+That is a persistent frame baseline, not an actor save/restore scope. Do not add
+an indiscriminate finally that restores it as though it were an inner actor stream.
+Constructor reentry spanning such a frame boundary is unsupported unless separately
+proved; the proposal's immutable execution tick/owner checks must remain strict.
+
+native_gate_steering_init (bit 32) is enabled. flight_init_model uses a local uint64
+state for two native FloatState calls and writes the existing model initialization
+fields. It does not borrow TLS+318 and is not a thirteenth TLS writer. Parameters,
+deadline refreshes, avoidance refresh, spline joining and other ordinary 016 options
+retain their current native effects. Cleanup must not roll back those engine writes
+or change native arguments to manufacture deterministic output.
+
+NPC 47/48/49, solver 50, request 52 and docking 44/45 are off. Player, Wait and Find RNG
+are not configured in 016. The observer prerequisite explicitly refuses NPC 47/48/49
+for creation capture. Nevertheless interrupt_install always installs step, nested
+action and NPC action observer pointers; they cannot be assumed absent because
+those optional bits are clear. Their observer cleanup belongs to 834+74 and was
+coordinated with the NPC/faction reviewers. That work did not add writer cleanup.
+
+The frozen registry_enabled predicate requires nav_seeded, ship_seeded,
+agent_seeded and flight_seeded, plus Nav initial refresh, Gravidar initial state,
+params and the broad installed observer set. Clearing actor seed flags would change
+ordinary 016 and can prevent reservation/enrollment infrastructure itself. It would
+not be a clean constructor-only comparison against 016.
+
+Exact A/B native evidence
+------------------------
+Read-only PE checks passed 51 declared code ranges, twelve slots and eighteen direct
+call edges; the companion PINS file lists them. Three checked shape ranges belong
+to the disabled docking conditional and are supplementary, not enabled coverage.
+
+A: ba1b86 calls c841b0, return ba1b8b. Generate calls Initialize at c8452c -> c82060,
+return c84531. Initialize calls Pilot at c8224a -> c7d4c0, return c8224f. Its later
+virtual +2188 startup dispatch has exact selected XL target 7cefb0. An actual-image
+direct path is 7cefb0 -> 10bcd70 -> 106eac0 -> 106ebb0 -> 106f3b0 -> 1066ba0 ->
+b58ce0 at 1066dc1, return 1066dc6. The observed ranges are orders.base,
+fight.attack.object.capital and engineer.ai. Earlier 44e760 attachment calls and
+the later virtual startup are separate; the former do not prove seeded AI Update.
+
+B: ea4b59 calls ea8cf0, return ea4b5e. Its eac530 child calls Agent initializer
+e85360 at eac5fa. Agent FloatState returns at e85531. B query 99a210 returns at
+ea906e; its FloatState returns at ea90e1; actual PostEvent 99a3f0 returns at ea910a.
+Neither Agent initializer nor Nav initializer is the actor Update RNG wrapper.
+eac530 publishes the Agent to its manager before the outer Nav initializer returns.
+That publication is not global worker quiescence or owner-mutation exclusion.
+
+Generate/Initialize/Pilot and B contain indirect virtual calls. The inspected
+startup helpers call script setup; query/PostEvent also dispatch through native
+virtual paths. The PostEvent implementation contains a synchronous path guarded
+by its flag and due-time comparison. Its captured B argument is flag 1 and a future
+due time, so the ordinary path is consistent with deferred delivery; the capture
+does not include an exhaustive internal branch trace. Do not turn that observation
+into proof that all callbacks or registered-actor reentry are impossible. The
+source-only direct-call inventory is a positive-edge check, not a closed call graph.
+
+The raw016 logs were independently parsed through mandatory creation, MD, origin
+and identity joins: zero join errors, 59 complete records/client, peak 4, closed A/B,
+zero capture failures/open records. Client 1 A=10..110, Initialize=47..109,
+Pilot=48..59, ranges=102..104/105..106/107..108, B=130..141, Agent=131..134.
+Client 2 is +2 for these selected intervals. The first selected origin is 103/105,
+caller 1066dc6, orders.base, ancestry depth 2. Reserved tick 5 executes at tick 6 on both.
+
+The historical STOP stays 75, completed 5, restored 1; retained full validation has 41
+errors. Seven writers have positive totals, five have zero totals. These summaries
+are not shared call-stack ordinals for the actor writers and cannot prove absence
+or presence of nesting within A/B. Nineteen captured TLS FloatState calls and two
+non-TLS calls remain partial RNG coverage; no whole-constructor RNG conservation
+or complete exception/callback coverage is asserted.
+
+Concrete caught-exception witness
+---------------------------------
+Private writer_exception.c includes the production gate and directly invokes each
+actual writer helper with owned buffers and correctly typed fake originals. It
+does not install hooks or execute an engine instruction. A normal case verifies
+one original call and restoration. Each foreign-SEH case has this structure:
+
+  outer constructor saves caller and selects its scoped word
+    simulated native Generate calls the actual actor writer
+      writer selects actor seed; original mutates it and raises 0xe0427777
+    native-style inner __except catches that code and continues Generate
+    continuation reads the still-active actor stream
+  outer constructor finally restores caller
+
+Both exact source versions reproduce all twelve cases: normal restoration succeeds,
+the original runs once, the real exception reaches the inner catch, the continued
+Generate word differs from its parent scoped word, and the outer caller word is
+eventually restored. Weapon context/actor/slot also remain the child context after
+the caught exception. In 74 the interrupt_current pointer is repaired by its new
+observer finally, but TLS restoration remains inside its normal-return body.
+
+Compiled with Zig 0.15.2 for x86_64-windows-gnu, -mcx16 -std=c11 -O2 -Wall -Wextra
+-Werror -fms-extensions, linked with production portable_rotation.c, bcrypt and
+ws2_32. The corrected CHECK macro is independent of assert/NDEBUG and calls
+ExitProcess(97) on failure. Each of eleven writers reaches ten individual checks;
+Weapon reaches thirteen including its three context fields. An additional fourteen
+checks validate arguments, per-writer reach counts and the 137-check total. Both
+executables exit 0 after all 137. --force-fail and --expect-restored both exit 97 in
+both versions; their logs and hashes are retained separately from passing output.
+The exact foreign exception call is RaiseException(0xe0427777,0,0,NULL). Each caught
+record is checked for that code, flags 0x80 and zero parameters on this Windows
+build. The RaiseException flags argument remains zero. The original flags==0
+test assumption was rejected during revalidation and corrected to the actual
+record; this does not change the TLS restoration predicate.
+This is a production-helper/real-SEH counterexample,
+not a synthetic replacement for the RNG writer and not evidence of an actual X4
+exception. It does not certify a future implementation's ABI or TLS lifetime.
+
+Required cleanup and support boundary
+-------------------------------------
+1. Add a narrow __try/__finally to the twelve writer bodies. Capture the exact
+   selected RNG address, caller word and whether a seed was actually written.
+   Establish the restoration obligation before the first write. Restore on normal
+   and abnormal paths before an inner native handler can continue, even after STOP.
+   Do not decide restoration from later stats.active or mutable option state.
+   Retain same-thread/TLS lifetime checks; never write a replacement TLS block or
+   an unproven stale address. Unsupported ownership loss must remain failed.
+2. Preserve normal seed domains, schema 2 keys, actor identities, counters, selection
+   timing and arguments. In particular keep fresh AI TLS selection immediately
+   before ai_execute, as corrected by 74; do not hoist it across observers. Forward
+   the native original once, preserving stack arguments and full range return.
+   Normal after-samples require completed originals. Propagate exceptions unchanged;
+   retain abnormal failure without manufacturing a successful after record.
+3. Restore all three weapon context fields in the same finally. Keep74's range
+   context/origin cleanup and compose it with TLS cleanup without double closure.
+   The publication-level gravidar_in_frame guard also clears only on normal return;
+   close that transient guard on abnormal publication before claiming the enabled
+   Gravidar composition safe. Do not claim this fixes every engine critical section
+   or all arbitrary native exception recovery.
+4. The minimum support envelope remains the exact016 options and reviewed observer
+   prerequisite. Solver/request scopes are disabled there. If allowed later, their
+   own normal-only begin/end state in Flight/Agent, including excluded nested
+   markers, needs independent abnormal closure. Keep NPC/player/Wait/Find writers
+   outside this constructor composition until separately audited; a disabled flag
+   must be proved through the actual configuration path.
+5. Constructor admission must still linearize with STOP, use immutable A/B tokens
+   and retain open/abnormal/ownership failures after cleanup. An admitted native
+   call must finish once and restore on its owning thread. Neither STOP nor another
+   thread may clear live obligations, unload code or reseed the live owner's TLS.
+   Thread-local nesting must preserve the immediate parent's stream at each unwind;
+   an eventual outer restoration is insufficient. Existing worker eligibility is
+   not proof that worker activity is part of the selected UI scope.
+   A constructor receipt must not report successful composition merely because its
+   own original returned: bind the supported writer set to actual enabled flags
+   and retain any child abnormal/ownership/cleanup failure through A/B validation.
+
+Before acceptance, require actual production-helper tests for all twelve: normal
+and propagated foreign exceptions; inner exception caught before A/B continuation;
+two-level nesting, normal child/throwing child/throwing outer; exact original count,
+arguments and range return; no-write disabled paths; same-thread TLS changes;
+STOP before admission and during original; context/guard repair with sticky failure.
+Deletion mutants must fail when any restore or weapon context cleanup is omitted.
+Actual-image hook/ABI tests and retained016 parser failures must remain separate
+from these owned-memory semantic tests.
+
+If this closure cannot be supplied, refuse constructor RNG for the ordinary 016
+combination. A reduced-writer variant would need a separately reviewed configuration,
+registry dependency policy, fresh natural control and matching intervention using
+that identical reduced baseline. It cannot reuse016 as its unchanged control, and
+changing the registry guard merely to admit it would be an additional experiment.
+
+Reproduction and limits
+-----------------------
+The private audit is in .local/construction-writer-audit/ of this task worktree:
+audit.py, audit.json, writer_exception.c, writer_exception_{300,74}.exe/.log and
+the immutable observer-74ced4a source archive. Run python audit.py to repeat the
+read-only source/pin/config/raw-log checks and the two owned-memory executables.
+The invalidated-ndebug directory preserves the old manifest/hash list and old
+diagnostic outputs. Corrected failure-probe logs have --force-fail or
+--expect-restored in their filenames. The previous 300 executable was replaced
+during revalidation; retention of that old executable is not claimed.
+The audit validates all 15 payloads, 19 source copies, 51 image ranges, 12 slots and
+18 edges, preserving both 59-record joins and the full 41-error historical result.
+The PINS file retains public source/image hashes; private logs, local paths and
+build outputs are not committed.
+
+No production code, hook, option, seed, game process, installation, overlay, native
+capture or historical verdict was changed. The result is a prerequisite decision
+and concrete negative witness, not approval to stage or run construction RNG.

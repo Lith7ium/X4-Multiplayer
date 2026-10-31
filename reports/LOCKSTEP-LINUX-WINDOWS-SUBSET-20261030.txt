@@ -1,0 +1,79 @@
+WINDOWS KEYS MATCHING THE LINUX GATE
+30 October 2026 | For one run: Windows limited to what the Linux gate has, 60 Hz, compared with a Linux run.
+
+WHY
+Windows' full stack keys draws Linux does not key yet (script RNG, the actor keys), so the streams part at the
+first keyed draw and say nothing about the platforms. With only these keys, both sides run the same modules.
+The two clients of each side give that side's noise floor: Linux had 47 differing objects at tick 60 in run
+vps-linux-11, so a difference between the platforms before about tick 60 is the platforms.
+
+THE LINUX SIDE
+Bundle 15 (run vps-linux-12), or any later bundle with the same options:
+  linux_gate_live.py bundle --portable-math --seed-rng --path-determinism 3 --region-rng key --ai-wait-rng
+    --md-resume-rng --boot-hold --event-order --event-rows 120 --gravidar --gravidar-deadlines --travel-snapshot
+
+THE WINDOWS CONFIG
+native_gate_ai_diag and native_gate_radar_diag are not on the Linux side. They are read-only traces the Windows
+gate requires under native_gate_radar_serial, and they arm nothing else. Linux reaches the same floating point
+state with its portable math preload; the four FP keys are the Windows side of that.
+Windows needs the same snapshot, the same watch list and 60 Hz: no tick_hz, path_budget, pass stride or fast reads.
+
+X4LAN_CONFIG.native_gate_test = true
+X4LAN_CONFIG.native_gate_hash = "clock"
+X4LAN_CONFIG.native_gate_start_time = 5
+X4LAN_CONFIG.native_gate_rng_schema = 2
+X4LAN_CONFIG.native_gate_snapshot_sha = "7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8"
+X4LAN_CONFIG.native_gate_portable_math = true
+X4LAN_CONFIG.native_gate_exact_reciprocal = true
+X4LAN_CONFIG.native_gate_decimal = true
+X4LAN_CONFIG.native_gate_fp_env = 'default'
+X4LAN_CONFIG.native_gate_seed_rng = true
+X4LAN_CONFIG.native_gate_serial_pathing = true
+X4LAN_CONFIG.native_gate_path_determinism = 3
+X4LAN_CONFIG.native_gate_world_identities = true
+X4LAN_CONFIG.native_gate_world_hash_schema = 'WORLD_IMPORTED_2'
+X4LAN_CONFIG.native_gate_world_hash_stride = 60
+X4LAN_CONFIG.native_gate_world_timing_fields = true
+X4LAN_CONFIG.native_gate_world_hash_watch = {'000000000009fb5d','000000000009fb61','000000000009fb62','0000000000176bf8','0000000000176cef','000000000006d744','000000000006ee1f','000000000009a759','000000000007dbb2','000000000007361a','0000000000070705','000000000009cefb','000000000007dbee','0000000000073626','0000000000070c2f','000000000009cf3a','0000000000084533','0000000000073d2f','0000000000070c57','000000000009d082','00000000000849ac','0000000000073e86','0000000000070c81','000000000009d168','00000000000776c4','0000000000070e9b','000000000009d256','000000000007a90f','0000000000070ec3','000000000009d2ec','000000000007dc4e','0000000000070eed','000000000009d32b','000000000007dc68','0000000000070f17','000000000009d39b','000000000007dc76','0000000000070f3f','000000000009d3d9','000000000007dcb6','0000000000070f69','000000000007dcd0','0000000000070f93','000000000007dd04','0000000000070fbb','000000000007dd10','0000000000070fe5','000000000007dd1c','0000000000073202','000000000007dd58','00000000000735fa','000000000007dd7c','0000000000073806','000000000007ddb8','0000000000073b08','000000000007ddd4','000000000007461e','000000000007fa09','000000000007ce13','0000000000082538','000000000007dc2c','0000000000084603','000000000007dc82','0000000000084630'}
+X4LAN_CONFIG.native_gate_region_rng = 'key'
+X4LAN_CONFIG.native_gate_ai_wait_rng = true
+X4LAN_CONFIG.native_gate_md_resume_rng = true
+X4LAN_CONFIG.native_gate_boot_hold = true
+X4LAN_CONFIG.native_gate_event_order = true
+X4LAN_CONFIG.native_gate_event_rows = 120
+X4LAN_CONFIG.native_gate_ai_diag = true
+X4LAN_CONFIG.native_gate_radar_diag = true
+X4LAN_CONFIG.native_gate_radar_serial = true
+X4LAN_CONFIG.native_gate_gravidar_key_all = true
+X4LAN_CONFIG.native_gate_gravidar_time_sync = true
+X4LAN_CONFIG.native_gate_ai_schedule = true
+X4LAN_CONFIG.native_gate_gravidar_load_pass = true
+X4LAN_CONFIG.native_gate_gravidar_sector_order = true
+X4LAN_CONFIG.native_gate_gravidar_deadlines = true
+X4LAN_CONFIG.native_gate_travel_snapshot = true
+
+AS --set (the test, hash, start time, snapshot and watch keys come from the overlay)
+--set "native_gate_rng_schema=2" --set "native_gate_portable_math=true" --set "native_gate_exact_reciprocal=true" --set "native_gate_decimal=true" --set "native_gate_fp_env='default'" --set "native_gate_seed_rng=true" --set "native_gate_serial_pathing=true" --set "native_gate_path_determinism=3" --set "native_gate_world_identities=true" --set "native_gate_world_hash_schema='WORLD_IMPORTED_2'" --set "native_gate_world_hash_stride=60" --set "native_gate_world_timing_fields=true" --set "native_gate_region_rng='key'" --set "native_gate_ai_wait_rng=true" --set "native_gate_md_resume_rng=true" --set "native_gate_boot_hold=true" --set "native_gate_event_order=true" --set "native_gate_event_rows=120" --set "native_gate_ai_diag=true" --set "native_gate_radar_diag=true" --set "native_gate_radar_serial=true" --set "native_gate_gravidar_key_all=true" --set "native_gate_gravidar_time_sync=true" --set "native_gate_ai_schedule=true" --set "native_gate_gravidar_load_pass=true" --set "native_gate_gravidar_sector_order=true" --set "native_gate_gravidar_deadlines=true" --set "native_gate_travel_snapshot=true"
+
+WITH THE SCRIPT RNG (for comparing with bundle 20, run vps-linux-20)
+All of the above, plus these. Windows' scopes ride on two read-only traces, native_gate_interrupt_diag and
+native_gate_nested_actions, which Linux does not need. Rows for the first 60 ticks only.
+
+--set "native_gate_interrupt_diag=true" --set "native_gate_nested_actions=true" --set "native_gate_script_rng='key'" --set "native_gate_script_rng_mask=7" --set "native_gate_script_rng_rows=true" --set "native_gate_script_rng_rows_ticks=60" --set "native_gate_script_rng_natural=true" --set "native_gate_script_rng_unmapped='key'" --set "native_gate_md_timed_rng=true" --set "native_gate_find_order='sort'" --set "native_gate_runtime_ids=true"
+
+What to read from it:
+- Windows client against Windows client: does it fall as far as Linux did (2 objects at tick 600)?
+- Windows against Linux, census at ticks 1-600 and event rows, as below.
+- Windows against Linux, SCRIPT_RNG_ROW joined by key: an equal key means owner, script name, program length, PC and
+  rank all agree across the platforms, which a mixed session needs. Rows on one side only name what does not.
+
+COMPARE
+  python tools/dev/census_event_rows.py WINDOWS_RUN --right-run LINUX_RUN --any-type --passes 3
+  python tools/dev/census_compare.py WINDOWS_RUN LINUX_RUN --tick 1
+  python tools/dev/census_compare.py WINDOWS_RUN LINUX_RUN --tick 60
+
+WHAT IT CANNOT SHOW
+Not matched on both sides, so expected to differ between the platforms:
+- Physics: X4.exe's Jolt is not redirected (the W1-W5 plan), so anything physics decides can part for that reason.
+- Created identities: a local source ranks by runtime ID. Runtime IDs differ per client until set mode is on both.
+- Runs of the census at stride 60 only show when a difference is older than its capture.

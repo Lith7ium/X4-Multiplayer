@@ -1,0 +1,11 @@
+{
+    "file_format_version": "1.2.0",
+    "layer": {
+        "name": "VK_LAYER_X4MP_discard",
+        "type": "GLOBAL",
+        "library_path": "./libVkLayer_x4mp_discard.so",
+        "api_version": "1.4.0",
+        "implementation_version": "1",
+        "description": "x4mp dedicated server: submit queue batches without command buffers (X4MP_VK_DISCARD=1)"
+    }
+}

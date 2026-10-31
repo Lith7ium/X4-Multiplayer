@@ -1,0 +1,39 @@
+NATIVE TEST RAM ADMISSION REMOVED - 28 OCTOBER 2026 UTC
+
+The user requested removal of the RAM threshold. New native test launches no
+longer wait or refuse because of available-memory readings or a memory-pressure
+flag. This supersedes the historical 14GB/start and 28GB/pair policy recorded in
+earlier run reports. Those reports and their outcomes remain unchanged.
+
+Windows lane source commit5d5a680ec6efbc315a1a952f937e7771e2e7debd removes both
+admission gates. The six-X4 process cap, protected-client reservations, lane and
+launch locks, profile isolation and owned-process cleanup are unchanged. The
+legacy --min-free-gb argument remains accepted but is ignored, defaulting to0.
+Memory and pressure remain diagnostic; failed admission memory sampling is also
+nonblocking. Pressure hysteresis is telemetry only.
+
+The active local lane junction selects a new exact committed export. Earlier
+exports were preserved. Export uses explicit LF line endings; reviewed SHA256:
+dev/x4lane.py
+324dcf72cc7471b017e69b04c2dea41da61afbd93533f1944bad35f51014d3bb
+dev/lane/lanecore.py
+2a452ede53fcc51503e2dc0d49099dafdd3f7fb25ca954bbe46b36237c06d5ff
+The one-client portable wrapper pins these bytes. Its validation AST changes only
+the existing participant lower bound; the upstream validation AST is unchanged.
+
+Both Linux native launchers remove every memory floor, including the last check
+immediately before starting X4. They retain executable, artifact, Steam, process,
+namespace, snapshot and coordinator checks. Best-effort available-memory values
+are recorded in the run report, with unavailable readings represented by null.
+The portable Windows wrapper no longer imposes an additional memory minimum.
+Historical frozen mixed-test bundles remain immutable; a future bundle must use
+the updated launcher sources and their reviewed hashes.
+
+Verification:104 lane tests PASS with actual LuaJIT and no skips, including
+session preflight and launch-lock recheck with zero available memory, active or
+malformed pressure records, and a legacy arbitrarily high memory option. The
+unchanged cap and reservation refusals also pass at zero memory. Root separately
+reran the104 tests. Fourteen portable-wrapper/snapshot tests PASS against the
+activated export. Nine Linux launcher/ownership tests PASS under Linux, including
+real PIDFD cleanup and coordinator socket identity. These are launcher checks,
+not a new native game or a lockstep success claim.

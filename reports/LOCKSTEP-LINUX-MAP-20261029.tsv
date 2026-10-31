@@ -1,0 +1,625 @@
+family	modules	kinds	win_rva	length	pins	win_pin	section	win_function	offset	lin_function	function_source	function_confidence	lin_start_ok	lin_site	site_method	site_confidence	fp_win	fp_lin	fp_same	notes
+created_ids	lockstep_world_unknown_identity.h	ref	0x8		0	unpinned						none			not_a_site	none				image bound or header arithmetic, not an engine site
+script_rng	lockstep_world_find_rng_config.h	ref	0xb3d60		0	unpinned	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+bullets_physics,frame_gate	lockstep_contact.h,lockstep_gate.c	hash,ref	0xb75a0	1846	1	ok	.text	0xb75a0	0x0	0xee1060	xfer:callgraph	high	True	0xee1060	entry	high	div1	div1	True	score 29.9
+bullets_physics	lockstep_contact.h	ref	0xb75a5		0	unpinned	.text	0xb75a0	0x5	0xee1060	xfer:callgraph	high	True		manual	none	div1	div1	True	score 29.9
+bullets_physics	lockstep_contact_properties.h	hash	0xbf3b0	962	1	ok	.text	0xbf3b0	0x0	0xee95a0	xfer:callgraph	low	True	0xee95a0	entry	low	-	-	True	score 3.8
+bullets_physics,frame_gate	lockstep_gate.c,lockstep_shape.h	hash,ref	0xbff80	138	2	ok	.text	0xbff80	0x0		unmapped	none			manual	none				
+bullets_physics	lockstep_shape.h	ref	0xbff85		0	unpinned	.text	0xbff80	0x5		unmapped	none			manual	none				
+bullets_physics	lockstep_shape.h	hash	0xc0010	227	1	ok	.text	0xc0010	0x0	0xeedc60	xfer:callgraph	high	True	0xeedc60	entry	high	-	-	True	score 25.9
+bullets_physics	lockstep_shape.h	hash	0xc2810	996	1	ok	.text	0xc2810	0x0	0xee9760	xfer:callgraph	high	True	0xee9760	entry	high	div1,sqrt1,approx2	div1,sqrt1,approx2,widen1	False	score 24.5
+bullets_physics	lockstep_shape.h	hash	0xc2c00	904	1	ok	.text	0xc2c00	0x0		unmapped	none			manual	none				
+bullets_physics,created_ids,frame_gate	lockstep_gate.c,lockstep_shape.h,lockstep_world_created.h	hash,ref	0xcc220	268	1	ok	.text	0xcc220	0x0	0xeed870	xfer:callgraph	high	True	0xeed870	entry	high	-	-	True	score 114.1
+created_ids	lockstep_world_created.h	ref	0xcc225		0	unpinned	.text	0xcc220	0x5	0xeed870	xfer:callgraph	high	True		manual	none	-	-	True	score 114.1
+tls_rng	lockstep_render_rng.h	hash	0xcc64d	4	1	ok	.text	0xcc500	0x14d		unmapped	none			manual	none				
+created_ids,frame_gate,infrastructure,pilot_player,rotation_portable,world_queue	lockstep_gate.c,lockstep_pilot_inputs.h,lockstep_portable_windows.h,lockstep_registry_creation.h,lockstep_registry_native.h,lockstep_snapshot_fixture.h,lockstep_transition_identity.h,lockstep_world_created.h,lockstep_world_hash.h,lockstep_world_values_hooks.h	hash,ref,table	0xced70	184	2	ok	.text	0xced70	0x0	0xa68df0	xfer:callgraph	high	True	0xa68df0	entry	high	-	-	True	score 150.5
+created_ids,frame_gate,gravidar,pilot_player,rotation_portable	lockstep_ai_schedule.h,lockstep_gate.c,lockstep_portable_windows.h,lockstep_registry_native.h,lockstep_snapshot_fixture.h,lockstep_transition_watch.h,lockstep_world_created.h	hash,ref	0xefb10	5	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+pilot_player	lockstep_player_origin_pins.h	hash,ref	0xf04b0	166	1	ok	.text	0xf04b0	0x0		unmapped	none			manual	none				
+infrastructure	lockstep_world_hash.h	ref	0x10ba20		0	unpinned	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+rotation_portable	lockstep_rotation_win.h	hash	0x129150	143	1	ok	.text	0x129150	0x0	0x1df0550	known	verified	True	0x1df0550	entry	verified	-	-	True	XML rotation attribute reader
+world_queue	lockstep_world_wait_pins.h	table	0x12fd30	143	1	ok	.text	0x12fd30	0x0	0x1df4a70	known	verified	True	0x1df4a70	entry	verified	-	-	True	XML numeric attribute reader
+pilot_player	lockstep_player_origin_pins.h	hash,ref	0x152860	6	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+pilot_player	lockstep_player_origin_native.h,lockstep_player_origin_pins.h	hash,ref	0x152870	19	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+pilot_player	lockstep_pilot_inputs.h	hash,ref	0x175a00	66	1	ok	.text	0x175a00	0x0	0xbc6690	xfer:anchor	high	True	0xbc6690	entry	high	-	-	True	score 4
+pilot_player	lockstep_pilot_inputs.h	hash,ref	0x179760	54	1	ok	.text	0x179760	0x0	0xbc6dd0	xfer:anchor	high	True	0xbc6dd0	entry	high	-	-	True	score 4
+pilot_player	lockstep_player_origin_pins.h	hash	0x18a150	1037	1	ok	.text	0x18a150	0x0	0xbf6660	xfer:anchor	high	True	0xbf6660	entry	high	-	-	True	score 46.5
+pilot_player	lockstep_player_origin_pins.h	hash	0x199db0	586	1	ok	.text	0x199db0	0x0	0xbec7b0	xfer:anchor	high	True	0xbec7b0	entry	high	-	-	True	score 42.5
+pilot_player	lockstep_player_getup_lua.h,lockstep_player_origin_pins.h	hash,ref	0x1aba30	246	1	ok	.text	0x1aba30	0x0	0xbdfe30	xfer:anchor	high	True	0xbdfe30	entry	high	-	-	True	score 33.2
+pilot_player	lockstep_player_origin_native.h	ref	0x1abb00		0	unpinned	.text	0x1aba30	0xd0	0xbdfe30	xfer:anchor	high	True		manual	none	-	-	True	score 33.2
+pilot_player	lockstep_pilot_camera.h	hash,ref	0x1b3750	56	1	ok	.text	0x1b3750	0x0	0xc030e0	xfer:anchor	high	True	0xc030e0	entry	high	-	-	True	score -0
+pilot_player	lockstep_player_origin_pins.h	hash	0x1b5450	685	1	ok	.text	0x1b5450	0x0	0xc0a080	xfer:anchor	high	True	0xc0a080	entry	high	-	-	True	score 78.5
+pilot_player	lockstep_pilot_camera.h	hash,ref	0x1b9230	56	1	ok	.text	0x1b9230	0x0	0xc03b30	xfer:anchor	high	True	0xc03b30	entry	high	-	-	True	score -0
+tls_rng	lockstep_camera_perturb.h	hash	0x2a8515	151	1	ok	.text	0x2a8440	0xd5	0xac0c10	xfer:callgraph	high	True	0xac0ce8	call_ordinal	high	div1,widen1,narrow1	div1,widen1,narrow1	True	score 65.6; anchored at Windows call 0x2a8551
+nav,script_rng	lockstep_world_position_hooks.h,lockstep_world_position_rng_pins.h	table	0x325610	144	1	ok	.text	0x325610	0x0	0xb03420	xfer:callgraph	high	True	0xb03420	entry	high	widen1	widen1	True	score 33.4
+script_rng	lockstep_world_position_rng_pins.h	table	0x3256a0	144	1	ok	.text	0x3256a0	0x0		unmapped	none			manual	none				
+script_rng	lockstep_world_find_rng_config.h	table	0x33d420	184	1	ok	.text	0x33d420	0x0	0xb00590	xfer:callgraph	high	True	0xb00590	entry	high	-	-	True	score 145
+script_rng	lockstep_world_find_rng_config.h	table	0x34dde0	296	1	ok	.text	0x34dde0	0x0	0x10d4860	xfer:callgraph	low	True	0x10d4860	entry	low	-	-	True	score 39.9
+pilot_player	lockstep_player_origin_pins.h	hash,ref	0x3508e0	93	1	ok	.text	0x3508e0	0x0		unmapped	none			manual	none				
+created_ids,pilot_player,rotation_portable	lockstep_portable_windows.h,lockstep_registry_native.h,lockstep_registry_origin_identity.h,lockstep_transition.h,lockstep_transition_hooks.h,lockstep_transition_watch.h	hash,ref	0x352b10	8	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+pilot_player	lockstep_player_origin_pins.h	hash,ref	0x35b8a0	1332	1	ok	.text	0x35b8a0	0x0	0x1a340a0	xfer:str1	high	True	0x1a340a0	entry	high	-	-	True	score 58.4
+attention	lockstep_view_points.h	table	0x3bb7f0	149	1	ok	.text	0x3bb7f0	0x0		unmapped	none			manual	none				
+attention	lockstep_view_points.h	ref,table	0x3d5660	100	1	ok	.text	0x3d5660	0x0	0x189efa0	known	inferred	True	0x189efa0	entry	inferred	-	-	True	U::Component::SetAttention
+attention	lockstep_view_points.h	ref	0x3d567d		0	unpinned	.text	0x3d5660	0x1d	0x189efa0	known	inferred	True		manual	none	-	-	True	U::Component::SetAttention
+nav	lockstep_world_position.h,lockstep_world_position_hooks.h	ref,table	0x3db8a0	1125	1	ok	.text	0x3db8a0	0x0	0x18a0090	xfer:callgraph	high	True	0x18a0090	entry	high	-	-	True	score 406
+attention	lockstep_view_points.h	table	0x3e50e0	206	1	ok	.text	0x3e50e0	0x0	0x18c72d0	xfer:callgraph2	low	True	0x18c72d0	entry	low	-	-	True	score 4.2
+pathing,pilot_player	lockstep_solver.h,lockstep_transition_hooks.h	hash	0x4500a0	730	1	ok	.text	0x4500a0	0x0		unmapped	none			manual	none				
+pilot_player	lockstep_transition_hooks.h	hash	0x450380	1110	1	ok	.text	0x450380	0x0		unmapped	none			manual	none				
+attention	lockstep_view_points.h	table	0x4640e0	118	1	ok	.text	0x4640e0	0x0	0x1863570	xfer:vtable	medium	True	0x1863570	entry	medium	-	-	True	score 4
+infrastructure	lockstep_world_hash.h	ref	0x46ff70		0	unpinned	.text	0x46ff70	0x0		unmapped	none			manual	none				
+script_rng	lockstep_world_find_rng_config.h	table	0x473600	107	1	ok	.text	0x473600	0x0	0xce51f0	xfer:callgraph	medium	True	0xce51f0	entry	medium	-	-	True	score 17.4
+script_rng	lockstep_world_find_rng_config.h	table	0x473670	160	1	ok	.text	0x473670	0x0	0x11ca2a0	xfer:callgraph	high	True	0x11ca2a0	entry	high	-	-	True	score 27
+rotation_portable	lockstep_rotation_win.h	hash	0x47f730	320	1	ok	.text	0x47f730	0x0	0xd4d870	known	verified	True	0xd4d870	entry	verified	-	-	True	XML offset reader
+rotation_portable	lockstep_rotation_win.h	hash	0x47f820	16	1	ok	.text	0x47f730	0xf0	0xd4d870	known	verified	True	0xd4dacf	call_ordinal	high	-	-	True	XML offset reader; anchored at Windows call 0x47f828
+rotation_portable	lockstep_rotation_win.h	hash	0x47f870	135	1	ok	.text	0x47f730	0x140	0xd4d870	known	verified	True	0xd4db1c	call_ordinal	medium	-	-	True	XML offset reader; anchored at Windows call 0x47f88b
+rotation_portable	lockstep_rotation_win.h	hash	0x47f8f7	16	1	ok	.text	0x47f730	0x1c7	0xd4d870	known	verified	True		manual	none	-	-	True	XML offset reader
+rotation_portable	lockstep_rotation_win.h	hash,ref	0x49cbb0	555	1	ok	.text	0x49cbb0	0x0	0x1e02200	known	verified	True	0x1e02200	entry	verified	-	libm3	True	XML Euler rotation import (Windows inlines the matrix and calls packed sine; Linux calls sincosf)
+rotation_portable	lockstep_portable_windows.h	hash	0x4b5e50	57	1	ok	.text	0x4b5e50	0x0		unmapped	none			manual	none				
+attention	lockstep_view_points.h	table	0x4b9cc0	131	1	ok	.text	0x4b9cc0	0x0		unmapped	none			manual	none				
+created_ids	lockstep_creation_trace_contract.h	table	0x4fdfe0	5668	1	ok	.text	0x4fdfe0	0x0	0x17c2780	xfer:callgraph	high	True	0x17c2780	entry	high	-	-	True	score 75.7
+created_ids	lockstep_creation_trace_contract.h	table	0x5012f0	589	1	ok	.text	0x5012f0	0x0	0x17b5f20	xfer:callgraph	low	True	0x17b5f20	entry	low	sqrt1	sqrt1	True	score 7.7
+created_ids	lockstep_creation_trace_contract.h	table	0x505fb0	13427	1	ok	.text	0x505fb0	0x0	0x17e9780	xfer:str1	high	True	0x17e9780	entry	high	-	-	True	score 112.9
+created_ids	lockstep_creation_trace_contract.h	table	0x50e4a0	4119	1	ok	.text	0x50e4a0	0x0	0x1e91bd0	xfer:callgraph	high	True	0x1e91bd0	entry	high	-	-	True	score 67.4
+created_ids	lockstep_creation_trace_contract.h	table	0x51b710	32	1	ok	.text	0x51b710	0x0		unmapped	none			manual	none				
+bullets_physics,frame_gate	lockstep_contact_properties.h,lockstep_gate.c	hash,ref	0x51bd40	213	1	ok	.text	0x51bd40	0x0	0x17d5e20	xfer:callgraph	medium	True	0x17d5e20	entry	medium	-	-	True	score 6
+bullets_physics	lockstep_contact_properties.h	ref	0x51bd45		0	unpinned	.text	0x51bd40	0x5	0x17d5e20	xfer:callgraph	medium	True		manual	none	-	-	True	score 6
+infrastructure	lockstep_state.h	hash,ref	0x51f5b0	210	1	ok	.text	0x51f5b0	0x0	0x17d7b70	xfer:callgraph	high	True	0x17d7b70	entry	high	div1,widen2,narrow1	div1,widen2,narrow1	True	score 19.4
+frame_gate,npc	lockstep_gate.c,lockstep_npc_speak.h	hash,ref	0x561330	1755	1	ok	.text	0x561330	0x0	0x16aced0	xfer:str1	high	True	0x16aced0	entry	high	-	div1	False	score 100.3
+npc	lockstep_npc_speak.h	ref	0x561335		0	unpinned	.text	0x561330	0x5	0x16aced0	xfer:str1	high	True		manual	none	-	div1	False	score 100.3
+frame_gate,npc	lockstep_gate.c,lockstep_npc_enqueue.h	hash,ref	0x561a10	2929	1	ok	.text	0x561a10	0x0	0x16adc20	xfer:str1	high	True	0x16adc20	entry	high	div1	-	False	score 186.2
+npc	lockstep_npc_enqueue.h	ref	0x561a15		0	unpinned	.text	0x561a10	0x5	0x16adc20	xfer:str1	high	True		manual	none	div1	-	False	score 186.2
+frame_gate,npc	lockstep_gate.c,lockstep_npc_finish.h	hash,ref	0x562590	1331	1	ok	.text	0x562590	0x0	0x16ad6e0	xfer:str1	high	True	0x16ad6e0	entry	high	-	-	True	score 78.3
+npc	lockstep_npc_finish.h	ref	0x562595		0	unpinned	.text	0x562590	0x5	0x16ad6e0	xfer:str1	high	True		manual	none	-	-	True	score 78.3
+npc	lockstep_npc_deadline.h,lockstep_npc_ready.h,lockstep_npc_speak.h	hash,ref	0x563d30	1555	1	ok	.text	0x563d30	0x0	0x16aecb0	xfer:callgraph	high	True	0x16aecb0	entry	high	widen1	-	False	score 35.2
+frame_gate,npc	lockstep_gate.c,lockstep_npc_deadline.h	ref	0x563e80		0	unpinned	.text	0x563d30	0x150	0x16aecb0	xfer:callgraph	high	True		manual	none	widen1	-	False	score 35.2
+npc	lockstep_npc_deadline.h	ref	0x563e8a		0	unpinned	.text	0x563d30	0x15a	0x16aecb0	xfer:callgraph	high	True		manual	none	widen1	-	False	score 35.2
+infrastructure	lockstep_thunk_emit.h	ref	0x563e93		0	unpinned	.text	0x563d30	0x163	0x16aecb0	xfer:callgraph	high	True		manual	none	widen1	-	False	score 35.2
+infrastructure	lockstep_thunk_emit.h	ref	0x563f58		0	unpinned	.text	0x563d30	0x228	0x16aecb0	xfer:callgraph	high	True		call_target_unmapped	none	widen1	-	False	score 35.2
+infrastructure	lockstep_thunk_emit.h	ref	0x563f71		0	unpinned	.text	0x563d30	0x241	0x16aecb0	xfer:callgraph	high	True		manual	none	widen1	-	False	score 35.2
+frame_gate,npc	lockstep_gate.c,lockstep_npc_deadline.h,lockstep_npc_ready.h	ref	0x563fb0		0	unpinned	.text	0x563d30	0x280	0x16aecb0	xfer:callgraph	high	True		manual	none	widen1	-	False	score 35.2
+infrastructure,npc	lockstep_npc_ready.h,lockstep_thunk_emit.h	ref	0x563fbc		0	unpinned	.text	0x563d30	0x28c	0x16aecb0	xfer:callgraph	high	True		manual	none	widen1	-	False	score 35.2
+pilot_player	lockstep_player_origin_pins.h	hash	0x6a1a60	8	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+created_ids	lockstep_creation_trace_contract.h	table	0x6bd830	256	1	ok	.text	0x6bd830	0x0	0x1457a00	xfer:callgraph	medium	True	0x1457a00	entry	medium	widen1	widen1	True	score 35.8
+created_ids	lockstep_creation_trace_contract.h	table	0x6c65c0	2880	1	ok	.text	0x6c65c0	0x0	0x1475d30	xfer:callgraph	high	True	0x1475d30	entry	high	-	-	True	score 53.8
+created_ids,pilot_player	lockstep_creation_trace_contract.h,lockstep_transition.h,lockstep_transition_hooks.h	hash,ref,table	0x6cd8b0	39	1	ok	.text	0x6cd8b0	0x0	0x14652a0	xfer:callgraph	low	True	0x14652a0	entry	low	-	-	True	score 4
+attention,frame_gate	lockstep_attention.h,lockstep_gate.c	hash,ref	0x6d1ff0	188	1	ok	.text	0x6d1ff0	0x0	0x1465030	xfer:callgraph	high	True	0x1465030	entry	high	widen1	widen1	True	score 18.2
+attention	lockstep_attention.h	ref	0x6d1ff5		0	unpinned	.text	0x6d1ff0	0x5	0x1465030	xfer:callgraph	high	True		manual	none	widen1	widen1	True	score 18.2
+attention	lockstep_view_points.h	table	0x6d20b0	1134	1	ok	.text	0x6d20b0	0x0	0x145f0c0	xfer:callgraph	low	True	0x145f0c0	entry	low	-	-	True	score 10.7
+world_queue	lockstep_world_queue.h	hash	0x6e1940	117	1	ok	.text	0x6e1940	0x0	0x1489f80	xfer:callgraph	high	True	0x1489f80	entry	high	-	-	True	score 21.7
+world_queue	lockstep_world_queue.h	hash	0x6e19c0	117	1	ok	.text	0x6e19c0	0x0	0x1489fe0	xfer:callgraph	high	True	0x1489fe0	entry	high	-	-	True	score 23.2
+world_queue	lockstep_world_queue.h	hash	0x6e1a40	117	1	ok	.text	0x6e1a40	0x0	0x148a040	xfer:callgraph	high	True	0x148a040	entry	high	-	-	True	score 23.2
+pilot_player	lockstep_player_origin_pins.h	hash,ref	0x706cc0	57	1	ok	.text	0x706cc0	0x0	0x13986d0	xfer:vtable	medium	True	0x13986d0	entry	medium	-	-	True	score 4
+pilot_player	lockstep_player_origin_pins.h	hash	0x716d80	160	1	ok	.text	0x716d80	0x0	0x1371800	xfer:callgraph	high	True	0x1371800	entry	high	-	-	True	score 12.3
+pilot_player	lockstep_player_origin_pins.h	hash	0x716e20	1481	1	ok	.text	0x716e20	0x0	0x1396a60	xfer:callgraph	high	True	0x1396a60	entry	high	-	-	True	score 109.7
+created_ids	lockstep_creation_trace_contract.h	table	0x745700	533	1	ok	.text	0x745700	0x0	0x1319a80	xfer:callgraph	high	True	0x1319a80	entry	high	-	-	True	score 17.9
+created_ids,pilot_player	lockstep_creation_trace_contract.h,lockstep_registry_origin_identity.h,lockstep_transition_hooks.h	hash,table	0x745e00	711	1	ok	.text	0x745e00	0x0	0x1316f40	xfer:callgraph	high	True	0x1316f40	entry	high	-	-	True	score 21.9
+created_ids	lockstep_creation_trace_contract.h	table	0x746980	766	1	ok	.text	0x746980	0x0	0x13171e0	xfer:callgraph	high	True	0x13171e0	entry	high	-	-	True	score 32.8
+attention	lockstep_view_points.h	table	0x753350	295	1	ok	.text	0x753350	0x0	0x131e220	xfer:callgraph	medium	True	0x131e220	entry	medium	-	-	True	score 8.5
+script_rng	lockstep_region_rng.h	hash,ref	0x767410	477	1	ok	.text	0x767410	0x0		unmapped	none			manual	none				
+attention	lockstep_view_points.h	table	0x76e520	384	1	ok	.text	0x76e520	0x0	0x12f0a70	xfer:callgraph	low	True	0x12f0a70	entry	low	-	-	True	score 6
+attention	lockstep_view_points.h	table	0x78d6a0	146	1	ok	.text	0x78d6a0	0x0		unmapped	none			manual	none				
+bullets_physics,frame_gate	lockstep_damage.h,lockstep_gate.c	hash,ref	0x791760	1133	1	ok	.text	0x791760	0x0		unmapped	none			manual	none				
+bullets_physics	lockstep_damage.h	ref	0x791765		0	unpinned	.text	0x791760	0x5		unmapped	none			manual	none				
+infrastructure	lockstep_state.h	hash	0x79ddb0	376	1	ok	.text	0x79ddb0	0x0		unmapped	none			manual	none				
+infrastructure	lockstep_state.h	hash	0x79ef60	13	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+world_queue	lockstep_world_values_hooks.h	table	0x79f020	158	1	ok	.text	0x79f020	0x0	0xd60e80	xfer:callgraph	low	True	0xd60e80	entry	low	-	-	True	score 18
+created_ids,frame_gate,rotation_portable	lockstep_gate.c,lockstep_portable_windows.h,lockstep_portable_windows_lua.h,lockstep_world_identity.h	hash,ref	0x79f720	160	1	ok	.text	0x79f720	0x0	0x1288090	xfer:callgraph	low	True	0x1288090	entry	low	-	approx2	False	score 31.8
+created_ids	lockstep_world_identity.h	ref	0x79f725		0	unpinned	.text	0x79f720	0x5	0x1288090	xfer:callgraph	low	True		manual	none	-	approx2	False	score 31.8
+bullets_physics	lockstep_ship.h	hash,ref	0x7cc810	1503	1	ok	.text	0x7cc810	0x0		unmapped	none			manual	none				
+bullets_physics	lockstep_death.h	hash,ref	0x7cd610	180	1	ok	.text	0x7cd610	0x0		unmapped	none			manual	none				
+attention	lockstep_view_points.h	table	0x7d5110	350	1	ok	.text	0x7d5110	0x0	0x1296640	xfer:vtable	medium	True	0x1296640	entry	medium	-	-	True	score 2.6
+pathing,pilot_player	lockstep_player_observer.h,lockstep_solver.h	hash,ref	0x7e8bc0	667	1	ok	.text	0x7e8bc0	0x0	0x124f720	xfer:str1	high	True	0x124f720	entry	high	-	-	True	score 25.4
+pilot_player	lockstep_player.h,lockstep_player_fire.h	hash,ref	0x7e8ef0	448	1	ok	.text	0x7e8ef0	0x0		unmapped	none			manual	none				
+attention	lockstep_view_points.h	table	0x80e590	521	1	ok	.text	0x80e590	0x0	0x10ed640	xfer:callgraph	high	True	0x10ed640	entry	high	-	-	True	score 13.2
+bullets_physics,pilot_player	lockstep_player_fire.h,lockstep_weapon.h	hash,ref	0x8132d0	5713	2	ok	.text	0x8132d0	0x0		unmapped	none			manual	none				
+tls_rng	lockstep_player_rng.h	hash	0x817d20	2189	1	ok	.text	0x817d20	0x0	0x1d698b0	xfer:callgraph	high	True	0x1d698b0	entry	high	div2,approx2	div2,approx2	True	score 71
+tls_rng	lockstep_player_rng.h	hash,ref	0x8185b0	2968	1	ok	.text	0x8185b0	0x0	0x1138c70	xfer:callgraph	high	True	0x1138c70	entry	high	div1,sqrt1,widen3,narrow2	div3,sqrt3,widen6,narrow3,libm1	False	score 73.5
+bullets_physics,pilot_player	lockstep_bullet.h,lockstep_player_fire.h	hash,ref	0x83b500	159	2	ok	.text	0x83b500	0x0	0x114e260	xfer:vtable	high	True	0x114e260	entry	high	-	-	True	score 6
+attention	lockstep_view_points.h	table	0x843b20	1192	1	ok	.text	0x843b20	0x0		unmapped	none			manual	none				
+tls_rng	lockstep_render_rng.h	hash,ref	0x983160	32	1	ok	.text	0x983160	0x0	0x2022080	xfer:str1	high	True	0x2022080	entry	high	-	-	True	score 87.7
+pilot_player	lockstep_player_origin_pins.h	hash,ref	0x998700	24	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+events	lockstep_event_order.h	hash	0x998f83	55	1	ok	.text	0x998da0	0x1e3	0x16bb1c0	xfer:callgraph	high	True		manual	none	-	-	True	score 35.2
+created_ids,pilot_player	lockstep_creation_trace_contract.h,lockstep_creation_trace_forward.h,lockstep_player_origin_pins.h	hash,ref,table	0x99a210	468	1	ok	.text	0x99a210	0x0	0x16c56b0	xfer:callgraph	high	True	0x16c56b0	entry	high	-	-	True	score 90.2
+created_ids,pilot_player	lockstep_creation_trace_contract.h,lockstep_creation_trace_forward.h,lockstep_player_origin_native.h,lockstep_player_origin_pins.h	hash,ref,table	0x99a3f0	807	1	ok	.text	0x99a3f0	0x0	0x16c5fe0	xfer:callgraph	high	True	0x16c5fe0	entry	high	-	-	True	score 807.2
+events	lockstep_event_order.h	hash	0x99ba70	171	1	ok	.text	0x99ba70	0x0		unmapped	none			manual	none				
+events,pilot_player	lockstep_event_order.h,lockstep_player_origin_pins.h	hash	0x99bb50	2331	2	ok	.text	0x99bb50	0x0	0x16c6320	xfer:callgraph	high	True	0x16c6320	entry	high	-	-	True	score 22
+events,frame_gate	lockstep_event_order.h,lockstep_gate.c	ref	0x99c3d0		0	unpinned	.text	0x99bb50	0x880	0x16c6320	xfer:callgraph	high	True		manual	none	-	-	True	score 22
+events	lockstep_event_order.h	hash,ref	0x99c3d6	149	1	ok	.text	0x99bb50	0x886	0x16c6320	xfer:callgraph	high	True		call_target_unmapped	none	-	-	True	score 22
+events,pilot_player	lockstep_event_order.h,lockstep_player_origin_pins.h	hash,ref	0x99c470	467	1	ok	.text	0x99c470	0x0	0x16c5db0	xfer:callgraph	medium	True	0x16c5db0	entry	medium	-	-	True	score 5
+pilot_player	lockstep_player_origin_pins.h	hash	0x99c740	875	1	ok	.text	0x99c740	0x0	0x16b85c0	xfer:callgraph	medium	True	0x16b85c0	entry	medium	-	-	True	score 8
+npc	lockstep_npc_provenance.h	hash	0x9cb6f0	355	1	ok	.text	0x9cb6f0	0x0	0xcbbd50	xfer:callgraph	medium	True	0xcbbd50	entry	medium	-	-	True	score 62.3
+npc	lockstep_npc_provenance.h	hash,ref	0x9cb930	56	1	ok	.text	0x9cb930	0x0		unmapped	none			manual	none				
+rotation_portable	lockstep_rotation_win.h	hash	0x9ec1d0	4114	1	ok	.text	0x9ec1d0	0x0	0x1dba740	xfer:callgraph	high	True	0x1dba740	entry	high	-	-	True	score 64.5
+pilot_player	lockstep_player_fire.h	hash	0x9ed1f0	957	1	ok	.text	0x9ed1f0	0x0		unmapped	none			manual	none				
+rotation_portable,world_queue	lockstep_rotation_win.h,lockstep_world_queue_phase.h	hash,ref	0x9ee7a0	9772	1	ok	.text	0x9ee7a0	0x0	0x1cdd4a0	xfer:str1	high	True	0x1cdd4a0	entry	high	-	-	True	score 961.1
+pilot_player	lockstep_pilot_camera.h	hash	0x9faad0	1605	1	ok	.text	0x9faad0	0x0	0x1d7dc10	xfer:callgraph	high	True	0x1d7dc10	entry	high	-	-	True	score 55.3
+pilot_player	lockstep_pilot_inputs.h,lockstep_player.h	hash,ref	0x9fc550	277	1	ok	.text	0x9fc550	0x0	0x1dd19d0	xfer:callgraph	high	True	0x1dd19d0	entry	high	-	-	True	score 62.1
+frame_gate	lockstep_boot_hold.h	hash	0x9fe074	36	1	ok	.text	0x9fdef0	0x184		unmapped	none			manual	none				
+frame_gate	lockstep_boot_hold.h	ref	0x9fe090		0	unpinned	.text	0x9fdef0	0x1a0		unmapped	none			manual	none				
+frame_gate	lockstep_boot_hold.h	ref	0x9fe093		0	unpinned	.text	0x9fdef0	0x1a3		unmapped	none			manual	none				
+frame_gate	lockstep_boot_hold.h	ref	0x9fe098		0	unpinned	.text	0x9fdef0	0x1a8		unmapped	none			manual	none				
+pilot_player	lockstep_player_fire.h	hash	0x9fedf0	201	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+rotation_portable	lockstep_rotation_win.h	hash	0xab1100	2703	1	ok	.text	0xab1100	0x0	0xf99a20	xfer:str1	high	True	0xf99a20	entry	high	-	-	True	score 166.2
+rotation_portable	lockstep_rotation_win.h	hash	0xab1a80	16	1	ok	.text	0xab1100	0x980	0xf99a20	xfer:str1	high	True	0xf9a2e6	call_ordinal	high	-	-	True	score 166.2; anchored at Windows call 0xab1a82
+rotation_portable	lockstep_rotation_win.h	ref	0xab1a87		0	unpinned	.text	0xab1100	0x987	0xf99a20	xfer:str1	high	True		manual	none	-	-	True	score 166.2
+world_queue	lockstep_world_queue_phase.h	hash	0xac2a50	522	1	ok	.text	0xac2a50	0x0		unmapped	none			manual	none				
+world_queue	lockstep_world_queue_phase.h	hash	0xac2c70	446	1	ok	.text	0xac2c70	0x0	0xf4a940	xfer:callgraph	high	True	0xf4a940	entry	high	-	-	True	score 11.5
+pilot_player	lockstep_pilot_camera.h	hash,ref	0xafd280	41	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+created_ids,pilot_player	lockstep_registry_native.h,lockstep_transition_hooks.h	hash	0xafdfd0	269	1	ok	.text	0xafdfd0	0x0	0xa4af50	xfer:anchor	high	True	0xa4af50	entry	high	-	-	True	score 19.3
+pilot_player	lockstep_player.h,lockstep_player_fire.h	hash,ref	0xb01790	600	1	ok	.text	0xb01790	0x0	0xa4df40	xfer:anchor	high	True	0xa4df40	entry	high	-	-	True	score 60.5
+pilot_player	lockstep_pilot_inputs.h	hash,ref	0xb09880	91	1	ok	.text	0xb09880	0x0	0xa45680	xfer:anchor	high	True	0xa45680	entry	high	-	-	True	score 0
+md	lockstep_registry_md.h	hash,ref	0xb3b090	162	1	ok	.text	0xb3b090	0x0	0xc846d0	xfer:callgraph	high	True	0xc846d0	entry	high	-	-	True	score 19.5
+md	lockstep_registry_md.h	ref	0xb3b095		0	unpinned	.text	0xb3b090	0x5	0xc846d0	xfer:callgraph	high	True		manual	none	-	-	True	score 19.5
+events,frame_gate	lockstep_gate.c,lockstep_interrupt_step.h	hash,ref	0xb58b00	164	1	ok	.text	0xb58b00	0x0		unmapped	none			manual	none				
+events	lockstep_interrupt_step.h	ref	0xb58b05		0	unpinned	.text	0xb58b00	0x5		unmapped	none			manual	none				
+frame_gate,npc,script_rng,tls_rng,world_queue	lockstep_ai.h,lockstep_gate.c,lockstep_nested_action.h,lockstep_npc_rng.h,lockstep_world_action_pins.h	hash,ref	0xb58bb0	303	1	ok	.text	0xb58bb0	0x0	0xd5fbb0	xfer:callgraph	low	True	0xd5fbb0	entry	low	-	-	True	score 6.8
+tls_rng	lockstep_npc_rng.h	ref	0xb58bb5		0	unpinned	.text	0xb58bb0	0x5	0xd5fbb0	xfer:callgraph	low	True		manual	none	-	-	True	score 6.8
+frame_gate,npc,tls_rng,world_queue	lockstep_gate.c,lockstep_nested_action.h,lockstep_npc_rng.h,lockstep_world_action_pins.h	ref	0xb58ca0		0	unpinned	.text	0xb58bb0	0xf0	0xd5fbb0	xfer:callgraph	low	True		manual	none	-	-	True	score 6.8
+npc	lockstep_nested_action.h	ref	0xb58ca9		0	unpinned	.text	0xb58bb0	0xf9	0xd5fbb0	xfer:callgraph	low	True		manual	none	-	-	True	score 6.8
+events,frame_gate	lockstep_gate.c,lockstep_interrupt.h,lockstep_interrupt_origin.h	hash,ref	0xb58ce0	741	1	ok	.text	0xb58ce0	0x0	0xd5fc30	xfer:callgraph	low	True	0xd5fc30	entry	low	-	-	True	score 15.5
+events	lockstep_interrupt.h	ref	0xb58ce5		0	unpinned	.text	0xb58ce0	0x5	0xd5fc30	xfer:callgraph	low	True		manual	none	-	-	True	score 15.5
+world_queue	lockstep_world_wait_pins.h	table	0xb59ed0	87	1	ok	.text	0xb59ed0	0x0		unmapped	none			manual	none				
+world_queue	lockstep_world_wait_pins.h	table	0xb5a060	1833	1	ok	.text	0xb5a060	0x0		unmapped	none			manual	none				
+world_queue	lockstep_world_action_pins.h	table	0xb77830	12	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+events,script_rng,world_queue	lockstep_find_order.h,lockstep_world_find_rng.h,lockstep_world_values.h,lockstep_world_values_hooks.h	hash,ref,table	0xb87a30	275	1	ok	.text	0xb87a30	0x0	0xd87ad0	xfer:callgraph	high	True	0xd87ad0	entry	high	-	-	True	score 11.3
+events	lockstep_find_order.h	ref	0xb87ae3		0	unpinned	.text	0xb87a30	0xb3	0xd87ad0	xfer:callgraph	high	True		call_target_unmapped	none	-	-	True	score 11.3
+events	lockstep_find_order.h	ref	0xb87ae4		0	unpinned	.text	0xb87a30	0xb4	0xd87ad0	xfer:callgraph	high	True		manual	none	-	-	True	score 11.3
+events	lockstep_find_order.h	ref	0xb87ae8		0	unpinned	.text	0xb87a30	0xb8	0xd87ad0	xfer:callgraph	high	True		manual	none	-	-	True	score 11.3
+created_ids	lockstep_creation_trace_contract.h	table	0xba1890	3012	1	ok	.text	0xba1890	0x0	0xdc7d40	xfer:str1	high	True	0xdc7d40	entry	high	-	-	True	score 143.5
+nav,script_rng,world_queue	lockstep_world_action_pins.h,lockstep_world_position.h,lockstep_world_position_hooks.h,lockstep_world_position_rng.h	ref,table	0xbe0ba0	280	1	ok	.text	0xbe0ba0	0x0	0xde10c0	xfer:vtable	medium	True	0xde10c0	entry	medium	-	-	True	score 2.6
+nav	lockstep_world_position.h	ref	0xbe0bd1		0	unpinned	.text	0xbe0ba0	0x31	0xde10c0	xfer:vtable	medium	True		manual	none	-	-	True	score 2.6
+nav,world_queue	lockstep_world_action_pins.h,lockstep_world_safe_position.h	ref,table	0xbe2320	226	1	ok	.text	0xbe2320	0x0	0xde5640	xfer:callgraph	medium	True	0xde5640	entry	medium	-	-	True	score 7.3
+nav	lockstep_world_safe_position.h	ref	0xbe2382		0	unpinned	.text	0xbe2320	0x62	0xde5640	xfer:callgraph	medium	True		manual	none	-	-	True	score 7.3
+npc	lockstep_npc_enqueue.h	hash	0xbf1e80	686	1	ok	.text	0xbf1e80	0x0	0xe27b30	xfer:callgraph	medium	True	0xe27b30	entry	medium	-	-	True	score 9.9
+md	lockstep_registry_md.h	hash	0xc20810	884	1	ok	.text	0xc20810	0x0	0xe49aa0	xfer:vtable	high	True	0xe49aa0	entry	high	-	-	True	score 14.1
+npc	lockstep_npc_provenance.h	hash	0xc58820	142	1	ok	.text	0xc58820	0x0		unmapped	none			manual	none				
+world_queue	lockstep_world_wait_pins.h	table	0xc588b0	1264	1	ok	.text	0xc588b0	0x0	0x1d9bd80	xfer:str1	high	True	0x1d9bd80	entry	high	-	-	True	score 111.9
+nav,script_rng,world_queue	lockstep_world_position_hooks.h,lockstep_world_position_rng_pins.h,lockstep_world_wait_pins.h	table	0xc58da0	3224	1	ok	.text	0xc58da0	0x0	0xcf4f30	known	verified	True	0xcf4f30	entry	verified	widen1,narrow1	widen1,narrow2	False	random range evaluation
+script_rng	lockstep_world_position_rng_pins.h	table	0xc5994c	5	1	ok	.text	0xc58da0	0xbac	0xcf4f30	known	verified	True		call_count_mismatch	none	widen1,narrow1	widen1,narrow2	False	random range evaluation
+nav	lockstep_world_position.h,lockstep_world_safe_position.h	ref	0xc59951		0	unpinned	.text	0xc58da0	0xbb1	0xcf4f30	known	verified	True		manual	none	widen1,narrow1	widen1,narrow2	False	random range evaluation
+nav,script_rng	lockstep_world_position.h,lockstep_world_position_hooks.h,lockstep_world_position_rng_pins.h	ref,table	0xc59b00	216	1	ok	.text	0xc59b00	0x0	0xcf5630	xfer:callgraph	high	True	0xcf5630	entry	high	narrow1	narrow1	True	score 34.4
+nav	lockstep_world_position.h	ref	0xc59b2f		0	unpinned	.text	0xc59b00	0x2f	0xcf5630	xfer:callgraph	high	True		manual	none	narrow1	narrow1	True	score 34.4
+world_queue	lockstep_world_wait_pins.h	table	0xc59be0	220	1	ok	.text	0xc59be0	0x0	0x1d9b750	xfer:callgraph	medium	True	0x1d9b750	entry	medium	widen1	widen1	True	score 23.9
+world_queue	lockstep_world_action_pins.h	table	0xc5af30	3800	1	ok	.text	0xc5af30	0x0	0xcf5ad0	xfer:str1	high	True	0xcf5ad0	entry	high	widen2,narrow2	-	False	score 54.6
+world_queue	lockstep_world_values_hooks.h	table	0xc5f680	1393	1	ok	.text	0xc5f680	0x0	0xcf61f0	xfer:callgraph	high	True	0xcf61f0	entry	high	-	-	True	score 56.6
+nav,script_rng,world_queue	lockstep_world_action_pins.h,lockstep_world_position_hooks.h,lockstep_world_position_rng_pins.h	table	0xc6f7b0	1181	1	ok	.text	0xc6f7b0	0x0	0xd04a50	xfer:str1	high	True	0xd04a50	entry	high	-	libm3	True	score 129.3
+nav	lockstep_world_position.h,lockstep_world_safe_position.h	ref	0xc6fb6f		0	unpinned	.text	0xc6f7b0	0x3bf	0xd04a50	xfer:str1	high	True		manual	none	-	libm3	True	score 129.3
+script_rng	lockstep_world_position_rng_pins.h	table	0xc6fb99	5	1	ok	.text	0xc6f7b0	0x3e9	0xd04a50	xfer:str1	high	True	0xd04c4e	call_ordinal	medium	-	libm3	True	score 129.3
+script_rng	lockstep_world_position_rng_pins.h	table	0xc6fbac	5	1	ok	.text	0xc6f7b0	0x3fc	0xd04a50	xfer:str1	high	True	0xd04c7a	call_ordinal	medium	-	libm3	True	score 129.3
+script_rng	lockstep_world_position_rng_pins.h	table	0xc6fbc2	5	1	ok	.text	0xc6f7b0	0x412	0xd04a50	xfer:str1	high	True		call_target_unmapped	none	-	libm3	True	score 129.3
+script_rng	lockstep_world_position_rng_pins.h	table	0xc6fbc7	5	1	ok	.text	0xc6f7b0	0x417	0xd04a50	xfer:str1	high	True		call_target_unmapped	none	-	libm3	True	score 129.3
+script_rng	lockstep_world_position_rng_pins.h	table	0xc6fbd6	5	1	ok	.text	0xc6f7b0	0x426	0xd04a50	xfer:str1	high	True		call_target_unmapped	none	-	libm3	True	score 129.3
+nav	lockstep_world_position_hooks.h	table	0xc6fc50	626	1	ok	.text	0xc6fc50	0x0	0xd04630	xfer:callgraph	high	True	0xd04630	entry	high	-	libm4	True	score 33.9
+nav,world_queue	lockstep_world_action_pins.h,lockstep_world_safe_position.h	table	0xc72380	3552	1	ok	.text	0xc72380	0x0	0xd05ae0	xfer:str1	high	True	0xd05ae0	entry	high	-	-	True	score 141.7
+nav	lockstep_world_safe_position.h	ref	0xc72905		0	unpinned	.text	0xc72380	0x585	0xd05ae0	xfer:str1	high	True		manual	none	-	-	True	score 141.7
+created_ids	lockstep_creation_trace_contract.h	table	0xc7d4c0	674	1	ok	.text	0xc7d4c0	0x0	0xd0c150	xfer:str1	high	True	0xd0c150	entry	high	-	-	True	score 32
+created_ids	lockstep_creation_trace_contract.h	table	0xc82060	3073	1	ok	.text	0xc82060	0x0		unmapped	none			manual	none				
+created_ids	lockstep_creation_trace_contract.h	table	0xc841b0	1090	1	ok	.text	0xc841b0	0x0	0xd2a470	xfer:str1	high	True	0xd2a470	entry	high	-	-	True	score 55.1
+npc	lockstep_npc_provenance.h	hash	0xcaab00	113	1	ok	.text	0xcaab00	0x0		unmapped	none			manual	none				
+gravidar	lockstep_radar.h	hash,ref	0xcb3da0	115	1	ok	.text	0xcb3da0	0x0		unmapped	none			manual	none				
+npc	lockstep_npc_provenance.h	hash	0xcb7590	201	1	ok	.text	0xcb7590	0x0		unmapped	none			manual	none				
+world_queue	lockstep_world_action_pins.h,lockstep_world_values_hooks.h	table	0xcc6710	1403	1	ok	.text	0xcc6710	0x0	0xcbb9b0	xfer:callgraph	medium	True	0xcbb9b0	entry	medium	-	-	True	score 154.7
+nav	lockstep_world_position_hooks.h	table	0xcc8550	456	1	ok	.text	0xcc8550	0x0	0xc937d0	xfer:callgraph	high	True	0xc937d0	entry	high	-	-	True	score 172.2
+npc	lockstep_npc_action.h	hash	0xccc890	523	1	ok	.text	0xccc890	0x0	0xc9e2a0	xfer:callgraph	low	True	0xc9e2a0	entry	low	-	-	True	score 5
+world_queue	lockstep_world_values_hooks.h	table	0xcccaa0	764	1	ok	.text	0xcccaa0	0x0	0xc9c3a0	xfer:callgraph	medium	True	0xc9c3a0	entry	medium	-	-	True	score 676.6
+script_rng	lockstep_world_position_rng_pins.h	table	0xccd920	76	1	ok	.text	0xccd920	0x0		unmapped	none			manual	none				
+world_queue	lockstep_world_values_hooks.h	table	0xcd3d60	201	1	ok	.text	0xcd3d60	0x0	0xc9c9e0	xfer:callgraph	medium	True	0xc9c9e0	entry	medium	-	-	True	score 19.6
+script_rng	lockstep_world_position_rng_pins.h	table	0xcd4760	800	1	ok	.text	0xcd4760	0x0	0xca2930	xfer:str1	high	True	0xca2930	entry	high	-	-	True	score 82.6
+world_queue	lockstep_world_values_hooks.h	table	0xd16b10	167	1	ok	.text	0xd16b10	0x0		unmapped	none			manual	none				
+nav	lockstep_world_position_hooks.h	table	0xd1c8a0	1010	1	ok	.text	0xd1c8a0	0x0	0x1d23eb0	xfer:callgraph	high	True	0x1d23eb0	entry	high	-	-	True	score 42.5
+world_queue	lockstep_world_wait_pins.h	table	0xd1e810	1662	1	ok	.text	0xd1e810	0x0	0xd44c40	xfer:callgraph	high	True	0xd44c40	entry	high	-	-	True	score 119.8
+world_queue	lockstep_world_wait_pins.h	table	0xd2a1b0	983	1	ok	.text	0xd2a1b0	0x0	0x1d818b0	xfer:callgraph	high	True	0x1d818b0	entry	high	-	-	True	score 24.5
+events,world_queue	lockstep_find_order.h,lockstep_world_values_hooks.h	ref,table	0xd2ab50	580	1	ok	.text	0xd2ab50	0x0	0x1d2b330	xfer:callgraph	low	True	0x1d2b330	entry	low	-	-	True	score 21.2
+world_queue	lockstep_world_values_hooks.h	table	0xd34980	460	1	ok	.text	0xd34980	0x0	0xb034a0	xfer:callgraph	medium	True	0xb034a0	entry	medium	narrow1	narrow1	True	score 69
+pathing	lockstep_solver.h	hash	0xd47ac0	1676	1	ok	.text	0xd47ac0	0x0	0x14160c0	xfer:callgraph	high	True	0x14160c0	entry	high	-	-	True	score 21.9
+bullets_physics,pilot_player	lockstep_bullet.h,lockstep_player_fire.h	hash,ref	0xd4f090	428	2	ok	.text	0xd4f090	0x0	0x1949d10	xfer:callgraph	high	True	0x1949d10	entry	high	-	-	True	score 13.7
+bullets_physics,tls_rng	lockstep_bullet_cadence.h,lockstep_player_rng.h	hash	0xd4f240	4769	2	ok	.text	0xd4f240	0x0	0x1948840	xfer:callgraph	high	True	0x1948840	entry	high	div9,sqrt4,approx4,widen3	div9,sqrt4,widen3	False	score 59.2
+bullets_physics	lockstep_bullet_cadence.h	ref	0xd503ea		0	unpinned	.text	0xd4f240	0x11aa	0x1948840	xfer:callgraph	high	True		manual	none	div9,sqrt4,approx4,widen3	div9,sqrt4,widen3	False	score 59.2
+bullets_physics	lockstep_bullet_cadence.h	ref	0xd50414		0	unpinned	.text	0xd4f240	0x11d4	0x1948840	xfer:callgraph	high	True		manual	none	div9,sqrt4,approx4,widen3	div9,sqrt4,widen3	False	score 59.2
+tls_rng	lockstep_player_rng.h	hash	0xd50f30	2726	1	ok	.text	0xd50f30	0x0		unmapped	none			manual	none				
+bullets_physics	lockstep_dock.h	hash	0xd6e150	660	1	ok	.text	0xd6e150	0x0		unmapped	none			manual	none				
+bullets_physics	lockstep_dock.h	hash	0xd6e810	3856	1	ok	.text	0xd6e810	0x0	0x1758130	known	verified	True	0x1758130	entry	verified	div6,narrow8	div6,narrow9,x8718,libm9	False	DockMovementController noise branch
+bullets_physics	lockstep_dock.h	hash	0xd6fdf0	2275	1	ok	.text	0xd6fdf0	0x0	0x191f510	xfer:callgraph	medium	True	0x191f510	entry	medium	div5,narrow5	div4,sqrt2	False	score 26.7
+pathing	lockstep_solver.h	hash	0xd83550	787	1	ok	.text	0xd83550	0x0		unmapped	none			manual	none				
+pilot_player	lockstep_transition_hooks.h	hash	0xd83ae0	761	1	ok	.text	0xd83ae0	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0xd84c20	1244	1	ok	.text	0xd84c20	0x0	0x165b070	xfer:callgraph	low	True	0x165b070	entry	low	-	-	True	score 25.1
+pilot_player	lockstep_transition_hooks.h	hash,ref	0xd88710	759	1	ok	.text	0xd88710	0x0	0x165d950	xfer:callgraph	high	True	0x165d950	entry	high	-	-	True	score 36.9
+pathing	lockstep_solver.h	hash	0xd895a0	666	1	ok	.text	0xd895a0	0x0	0x1660f30	xfer:callgraph	high	True	0x1660f30	entry	high	-	-	True	score 28.8
+pilot_player	lockstep_player.h	hash	0xd8a680	3416	1	ok	.text	0xd8a680	0x0	0x1358410	xfer:callgraph	medium	True	0x1358410	entry	medium	div6,sqrt4,approx4,narrow3	div6,sqrt6,libm6	False	score 34.5
+pilot_player	lockstep_pilot_inputs.h	hash	0xd8d9d0	493	1	ok	.text	0xd8d9d0	0x0		unmapped	none			manual	none				
+pilot_player	lockstep_transition_hooks.h,lockstep_transition_prebind.h	hash,ref	0xd8dd00	75	1	ok	.text	0xd8dd00	0x0		unmapped	none			manual	none				
+pilot_player	lockstep_transition_prebind.h	ref	0xd8dd26		0	unpinned	.text	0xd8dd00	0x26		unmapped	none			manual	none				
+pilot_player	lockstep_pilot_inputs.h	hash,ref	0xd8e5b0	4712	1	ok	.text	0xd8e5b0	0x0	0x1663740	xfer:callgraph	high	True	0x1663740	entry	high	div14,sqrt2,approx4,narrow1,x871	div14,sqrt2,approx4,narrow1,libm13	True	score 58.6
+pathing,pilot_player	lockstep_player.h,lockstep_solver.h	hash,ref	0xd8fb60	3271	1	ok	.text	0xd8fb60	0x0	0x16648b0	xfer:str1	high	True	0x16648b0	entry	high	div1,approx2,x874	div15,sqrt2,approx2,widen11,libm3	False	score 51.7
+pathing	lockstep_solver.h	hash	0xd90ed0	348	1	ok	.text	0xd90ed0	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0xd91030	345	1	ok	.text	0xd91030	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0xd91190	348	1	ok	.text	0xd91190	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0xd91da0	416	1	ok	.text	0xd91da0	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0xd91f40	456	1	ok	.text	0xd91f40	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0xd92110	459	1	ok	.text	0xd92110	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0xd924d0	3221	1	ok	.text	0xd924d0	0x0	0x16666b0	xfer:callgraph	high	True	0x16666b0	entry	high	div15,sqrt1,narrow1	div5,sqrt1,narrow1	False	score 41.3
+pathing	lockstep_solver.h	hash	0xd93440	4657	1	ok	.text	0xd93440	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0xd94700	2686	1	ok	.text	0xd94700	0x0	0x165c670	xfer:callgraph	high	True	0x165c670	entry	high	div5,widen15,narrow1	div4,widen14,narrow1	False	score 27.9
+pathing,pilot_player	lockstep_player.h,lockstep_solver.h	hash	0xd95180	7221	1	ok	.text	0xd95180	0x0	0x166d020	xfer:callgraph	high	True	0x166d020	entry	high	div7,sqrt2,widen3,narrow4	div17,sqrt6,widen7,narrow14,libm21	False	score 186.1
+pathing	lockstep_solver.h	hash	0xd96dc0	2922	1	ok	.text	0xd96dc0	0x0	0x1651e80	xfer:callgraph	high	True	0x1651e80	entry	high	div2	div3	False	score 29.6
+pilot_player	lockstep_player_observer.h	hash,ref	0xd97e80	3926	1	ok	.text	0xd97e80	0x0	0x1672370	xfer:str1	high	True	0x1672370	entry	high	div1,widen2,narrow2	div1,widen2,narrow2	True	score 87.5
+pilot_player	lockstep_transition_hooks.h	hash	0xd9c250	831	1	ok	.text	0xd9c250	0x0	0x165ab80	xfer:callgraph	low	True	0x165ab80	entry	low	-	-	True	score 16
+pilot_player	lockstep_transition_hooks.h	hash	0xd9c590	902	1	ok	.text	0xd9c590	0x0	0x165d1f0	xfer:callgraph	high	True	0x165d1f0	entry	high	-	-	True	score 17.6
+pilot_player	lockstep_pilot_inputs.h	hash	0xd9cc30	53	1	ok	.text	0xd9cc30	0x0	0x165d860	xfer:callgraph	high	True	0x165d860	entry	high	-	-	True	score 14.9
+pathing,pilot_player	lockstep_pilot_inputs.h,lockstep_request.h,lockstep_solver.h	hash,ref	0xe5d380	214	1	ok	.text	0xe5d380	0x0	0x13dffe0	xfer:callgraph	medium	True	0x13dffe0	entry	medium	div1	div1	True	score 8
+pilot_player	lockstep_pilot_inputs.h,lockstep_request.h	ref	0xe5d385		0	unpinned	.text	0xe5d380	0x5	0x13dffe0	xfer:callgraph	medium	True		manual	none	div1	div1	True	score 8
+created_ids	lockstep_creation_trace_contract.h,lockstep_registry_origin_identity.h	hash,table	0xe85360	1368	1	ok	.text	0xe85360	0x0		unmapped	none			manual	none				
+infrastructure	lockstep_world_hash.h	table	0xe85368	1360	1	ok	.text	0xe85360	0x8		unmapped	none			manual	none				
+pathing	lockstep_travel_snapshot.h	hash	0xe85772	34	1	ok	.text	0xe85360	0x412		unmapped	none			manual	none				
+rotation_portable	lockstep_rotation_win.h	hash	0xe86bb0	4416	1	ok	.text	0xe86bb0	0x0	0x13e5d30	known	verified	True	0x13e5d30	entry	verified	-	widen1	False	pathing Agent import
+rotation_portable	lockstep_rotation_win.h	ref	0xe86d18		0	unpinned	.text	0xe86bb0	0x168	0x13e5d30	known	verified	True		manual	none	-	widen1	False	pathing Agent import
+rotation_portable	lockstep_rotation_win.h	ref	0xe87101		0	unpinned	.text	0xe86bb0	0x551	0x13e5d30	known	verified	True		manual	none	-	widen1	False	pathing Agent import
+infrastructure,world_queue	lockstep_world_queue.h,lockstep_world_trace.h	hash	0xe87cf0	1124	1	ok	.text	0xe87cf0	0x0	0x1432b80	xfer:callgraph	medium	True	0x1432b80	entry	medium	-	div2	False	score 63.9
+pilot_player	lockstep_request.h	hash	0xe88160	4760	1	ok	.text	0xe88160	0x0	0x142efa0	xfer:callgraph	high	True	0x142efa0	entry	high	-	-	True	score 51.4
+world_queue	lockstep_world_queue.h	hash	0xe89e40	141	1	ok	.text	0xe89e40	0x0		unmapped	none			manual	none				
+world_queue	lockstep_world_queue.h	hash	0xe89f10	382	1	ok	.text	0xe89f10	0x0	0x1427730	xfer:callgraph	high	True	0x1427730	entry	high	-	-	True	score 35.6
+infrastructure,pilot_player	lockstep_request.h,lockstep_world_trace.h	hash	0xe8d850	1892	1	ok	.text	0xe8d850	0x0	0x1427b40	xfer:callgraph	high	True	0x1427b40	entry	high	-	-	True	score 38.5
+infrastructure,pilot_player	lockstep_request.h,lockstep_world_trace.h	hash	0xe8dfc0	4180	1	ok	.text	0xe8dfc0	0x0		unmapped	none			manual	none				
+infrastructure,pathing	lockstep_agent.h,lockstep_world_hash.h	hash,ref,table	0xe8f250	10613	2	ok	.text	0xe8f250	0x0	0x1444c70	known	verified	True	0x1444c70	entry	verified	div11	div16,sqrt4,libm1	False	pathing Agent update
+pathing	lockstep_travel_snapshot.h	hash	0xe9189d	89	1	ok	.text	0xe8f250	0x264d	0x1444c70	known	verified	True		manual	none	div11	div16,sqrt4,libm1	False	pathing Agent update
+pathing	lockstep_travel_snapshot.h	ref	0xe918d0		0	unpinned	.text	0xe8f250	0x2680	0x1444c70	known	verified	True		manual	none	div11	div16,sqrt4,libm1	False	pathing Agent update
+pathing,pilot_player	lockstep_request.h,lockstep_solver.h	hash	0xe95fb0	2048	1	ok	.text	0xe95fb0	0x0	0x1cad0c0	xfer:callgraph	high	True	0x1cad0c0	entry	high	div5,widen15	div4,widen14	False	score 21.7
+world_queue	lockstep_world_queue.h	hash,ref	0xe979d0	14	1	ok	.text	0xe979d0	0x0	0x13c7770	xfer:vtable	medium	True	0x13c7770	entry	medium	-	-	True	score 2
+world_queue	lockstep_world_queue.h	hash	0xe98000	60	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+world_queue	lockstep_world_queue.h	hash	0xe98040	55	1	ok	.text	0xe98040	0x0	0x13cc920	xfer:vtable	medium	True	0x13cc920	entry	medium	-	-	True	score 2
+world_queue	lockstep_world_queue.h	hash	0xe980b0	11	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+world_queue	lockstep_world_queue.h	hash	0xe980c0	11	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+world_queue	lockstep_world_queue.h	hash	0xe980d0	11	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+world_queue	lockstep_world_queue.h	hash	0xea17a0	201	1	ok	.text	0xea17a0	0x0	0x1429990	xfer:callgraph	high	True	0x1429990	entry	high	-	-	True	score 26.1
+created_ids,frame_gate,infrastructure,rotation_portable	lockstep_gate.c,lockstep_params.h,lockstep_registry_native.h,lockstep_snapshot_fixture.h	hash,ref	0xea1e80	2975	1	ok	.text	0xea1e80	0x0	0x14378c0	xfer:callgraph	high	True	0x14378c0	entry	high	div10	div8	False	score 61
+infrastructure,pathing	lockstep_path_determinism.h,lockstep_world_hash.h	hash,ref,table	0xea2a20	537	1	ok	.text	0xea2a20	0x0	0x14498d0	xfer:callgraph	high	True	0x14498d0	entry	high	-	-	True	score 36.7
+infrastructure	lockstep_world_hash.h	table	0xea35e0	1319	1	ok	.text	0xea35e0	0x0		unmapped	none			manual	none				
+created_ids,infrastructure	lockstep_creation_trace_contract.h,lockstep_registry_origin_identity.h,lockstep_world_hash.h	hash,table	0xea4a00	375	1	ok	.text	0xea4a00	0x0		unmapped	none			manual	none				
+pilot_player	lockstep_transition_hooks.h	hash,ref	0xea4c00	654	1	ok	.text	0xea4c00	0x0		unmapped	none			manual	none				
+infrastructure	lockstep_world_hash.h	table	0xea4c08	646	1	ok	.text	0xea4c00	0x8		unmapped	none			manual	none				
+infrastructure	lockstep_world_hash.h	table	0xea4e90	925	1	ok	.text	0xea4e90	0x0		unmapped	none			manual	none				
+nav	lockstep_velocity.h	hash,ref	0xea5790	32	1	ok	.text	0xea5790	0x0	0x141fe50	xfer:callgraph	high	True	0x141fe50	entry	high	-	-	True	score 21
+rotation_portable	lockstep_portable_windows.h	hash,ref	0xea5a70	25	1	ok	.text	0xea5a70	0x0		unmapped	none			manual	none				
+rotation_portable	lockstep_portable_windows.h	hash	0xea5a90	2025	1	ok	.text	0xea5a90	0x0	0x1449e30	xfer:callgraph	medium	True	0x1449e30	entry	medium	-	-	True	score 11.5
+pilot_player	lockstep_pilot_inputs.h	hash,ref	0xea7600	77	1	ok	.text	0xea7600	0x0		unmapped	none			manual	none				
+pilot_player	lockstep_pilot_inputs.h	hash,ref	0xea7650	56	1	ok	.text	0xea7650	0x0		unmapped	none			manual	none				
+nav	lockstep_nav.h,lockstep_nav_cadence.h	hash,ref	0xea77f0	32	1	ok	.text	0xea77f0	0x0	0x144a9e0	xfer:callgraph	high	True	0x144a9e0	entry	high	approx1,widen4	approx1,widen4	True	score 67.8
+created_ids	lockstep_creation_trace_contract.h,lockstep_registry_origin_identity.h	hash,table	0xea8cf0	1332	1	ok	.text	0xea8cf0	0x0	0x1438430	xfer:callgraph	high	True	0x1438430	entry	high	widen1	widen1	True	score 62.9
+pilot_player	lockstep_transition_hooks.h	hash	0xea9230	364	1	ok	.text	0xea9230	0x0	0x1434340	xfer:str1	high	True	0x1434340	entry	high	-	-	True	score 25.9
+world_queue	lockstep_world_queue.h	hash	0xeaa6f0	109	1	ok	.text	0xeaa6f0	0x0	0x142dd00	xfer:callgraph	high	True	0x142dd00	entry	high	-	-	True	score 19.1
+pathing	lockstep_travel_determinism.h	hash	0xeabb3b	17	1	ok	.text	0xeab9a0	0x19b		unmapped	none			manual	none				
+pathing	lockstep_path_determinism.h	hash	0xeabb8d	17	1	ok	.text	0xeab9a0	0x1ed		unmapped	none			manual	none				
+frame_gate	lockstep_gate.c	hash	0xeabf00	610	1	ok	.text	0xeabf00	0x0	0x13e35e0	xfer:str1	high	True	0x13e35e0	entry	high	narrow1	narrow1	True	score 18.8
+frame_gate,infrastructure	lockstep_gate.c,lockstep_world_hash.h	hash,table	0xeac170	123	1	ok	.text	0xeac170	0x0	0x13e3560	known	verified	True	0x13e3560	entry	verified	-	-	True	WaitAndSwapBuffers
+infrastructure	lockstep_world_hash.h	table	0xeac380	421	1	ok	.text	0xeac380	0x0		unmapped	none			manual	none				
+created_ids,infrastructure	lockstep_creation_trace_contract.h,lockstep_registry_origin_identity.h,lockstep_world_hash.h	hash,table	0xeac530	582	1	ok	.text	0xeac530	0x0		unmapped	none			manual	none				
+pathing	lockstep_travel_snapshot.h	hash	0xeac5d0	18	1	ok	.text	0xeac530	0xa0		unmapped	none			manual	none				
+world_queue	lockstep_world_queue.h	hash	0xeac900	94	1	ok	.text	0xeac900	0x0		unmapped	none			manual	none				
+world_queue	lockstep_world_queue.h	hash	0xeacd40	245	1	ok	.text	0xeacd40	0x0	0x13e0f80	xfer:str1	high	True	0x13e0f80	entry	high	-	-	True	score 65
+world_queue	lockstep_world_queue.h	hash	0xeace40	785	1	ok	.text	0xeace40	0x0	0x13d0bc0	xfer:callgraph	high	True	0x13d0bc0	entry	high	-	-	True	score 11.8
+pilot_player,world_queue	lockstep_transition_queue.h,lockstep_world_queue.h	ref	0xeacf66		0	unpinned	.text	0xeace40	0x126	0x13d0bc0	xfer:callgraph	high	True		manual	none	-	-	True	score 11.8
+world_queue	lockstep_world_queue.h	hash	0xeadf30	142	1	ok	.text	0xeadf30	0x0		unmapped	none			manual	none				
+pathing	lockstep_travel_determinism.h,lockstep_travel_snapshot.h	hash	0xeae3c0	1939	1	ok	.text	0xeae3c0	0x0		unmapped	none			manual	none				
+pathing	lockstep_travel_snapshot.h	ref	0xeae930		0	unpinned	.text	0xeae3c0	0x570		unmapped	none			manual	none				
+pathing	lockstep_travel_determinism.h	ref	0xeae940		0	unpinned	.text	0xeae3c0	0x580		unmapped	none			manual	none				
+pathing	lockstep_travel_snapshot.h	ref	0xeae990		0	unpinned	.text	0xeae3c0	0x5d0		unmapped	none			manual	none				
+pathing	lockstep_travel_determinism.h	ref	0xeae9a0		0	unpinned	.text	0xeae3c0	0x5e0		unmapped	none			manual	none				
+pathing	lockstep_travel_determinism.h	hash,ref	0xeaeb60	339	1	ok	.text	0xeaeb60	0x0		unmapped	none			manual	none				
+pathing	lockstep_path_determinism.h	hash	0xeaecc0	176	1	ok	.text	0xeaecc0	0x0	0x13e32f0	known	verified	True	0x13e32f0	entry	verified	-	-	True	pathing batch loop
+pathing	lockstep_agent.h	hash	0xeaed50	48	1	ok	.text	0xeaecc0	0x90	0x13e32f0	known	verified	True	0x13e33a2	call_ordinal	high	-	-	True	pathing batch loop; anchored at Windows call 0xeaed6f
+frame_gate,pathing	lockstep_agent.h,lockstep_gate.c	ref	0xeaed70		0	unpinned	.text	0xeaecc0	0xb0	0x13e32f0	known	verified	True		manual	none	-	-	True	pathing batch loop
+pathing	lockstep_agent.h,lockstep_path_determinism.h	hash,ref	0xeaed74	353	1	ok	.text	0xeaecc0	0xb4	0x13e32f0	known	verified	True		call_count_mismatch	none	-	-	True	pathing batch loop
+pathing	lockstep_path_determinism.h	hash	0xeaf2b0	216	1	ok	.text	0xeaf2b0	0x0		unmapped	none			manual	none				
+pathing	lockstep_spline.h	hash	0xeaf660	3671	1	ok	.text	0xeaf660	0x0	0x142c980	xfer:callgraph	high	True	0x142c980	entry	high	-	-	True	score 17.7
+infrastructure	lockstep_world_trace.h	hash	0xeb1a10	735	1	ok	.text	0xeb1a10	0x0		unmapped	none			manual	none				
+infrastructure	lockstep_world_trace.h	hash	0xeb27c0	5212	1	ok	.text	0xeb27c0	0x0	0x13ed050	xfer:callgraph	high	True	0x13ed050	entry	high	div19,sqrt4,approx8,widen4,narrow2	div24,sqrt9,approx4,widen4,narrow2,x8712,libm18	False	score 122.9
+pathing	lockstep_spline.h	hash	0xeb55a0	3420	1	ok	.text	0xeb55a0	0x0	0x1361710	xfer:str1	high	True	0x1361710	entry	high	div3,sqrt5	sqrt2	False	score 59.2
+pathing	lockstep_spline.h	hash	0xeb6760	90	1	ok	.text	0xeb6760	0x0		unmapped	none			manual	none				
+pathing	lockstep_spline.h	hash,ref	0xeb7230	16379	1	ok	.text	0xeb7230	0x0	0x1363de0	xfer:callgraph	high	True	0x1363de0	entry	high	div32,sqrt6,approx10,widen10,x871	div34,sqrt7,approx10,widen23,narrow6,libm8	False	score 272.9
+pathing	lockstep_spline.h	hash	0xec0cb0	11611	1	ok	.text	0xec0cb0	0x0	0x1374d90	xfer:str1	high	True	0x1374d90	entry	high	div8,sqrt8	div4,sqrt4	False	score 65.6
+frame_gate,pathing	lockstep_flight.h,lockstep_gate.c	hash,ref	0xec40c0	1532	1	ok	.text	0xec40c0	0x0		unmapped	none			manual	none				
+pathing	lockstep_flight.h	ref	0xec40c5		0	unpinned	.text	0xec40c0	0x5		unmapped	none			manual	none				
+pathing,pilot_player	lockstep_flight.h,lockstep_request.h,lockstep_solver.h	hash,ref	0xec7200	10109	2	ok	.text	0xec7200	0x0	0x13e9d50	xfer:callgraph	high	True	0x13e9d50	entry	high	div16,sqrt2,approx2,widen7,narrow4	div16,sqrt2,approx2,widen10,narrow8,x876,libm7	False	score 94.7
+pilot_player	lockstep_request.h	hash	0xec91c7	5	1	ok	.text	0xec7200	0x1fc7	0x13e9d50	xfer:callgraph	high	True		call_target_unmapped	none	div16,sqrt2,approx2,widen7,narrow4	div16,sqrt2,approx2,widen10,narrow8,x876,libm7	False	score 94.7
+pilot_player	lockstep_request.h	hash	0xec91e9	5	1	ok	.text	0xec7200	0x1fe9	0x13e9d50	xfer:callgraph	high	True		call_target_unmapped	none	div16,sqrt2,approx2,widen7,narrow4	div16,sqrt2,approx2,widen10,narrow8,x876,libm7	False	score 94.7
+pilot_player	lockstep_request.h	hash	0xec920b	5	1	ok	.text	0xec7200	0x200b	0x13e9d50	xfer:callgraph	high	True		call_target_unmapped	none	div16,sqrt2,approx2,widen7,narrow4	div16,sqrt2,approx2,widen10,narrow8,x876,libm7	False	score 94.7
+pilot_player	lockstep_request.h	hash	0xec922b	5	1	ok	.text	0xec7200	0x202b	0x13e9d50	xfer:callgraph	high	True		call_target_unmapped	none	div16,sqrt2,approx2,widen7,narrow4	div16,sqrt2,approx2,widen10,narrow8,x876,libm7	False	score 94.7
+pilot_player	lockstep_request.h	hash	0xec924d	5	1	ok	.text	0xec7200	0x204d	0x13e9d50	xfer:callgraph	high	True		call_target_unmapped	none	div16,sqrt2,approx2,widen7,narrow4	div16,sqrt2,approx2,widen10,narrow8,x876,libm7	False	score 94.7
+pilot_player	lockstep_request.h	hash	0xec926f	5	1	ok	.text	0xec7200	0x206f	0x13e9d50	xfer:callgraph	high	True		call_target_unmapped	none	div16,sqrt2,approx2,widen7,narrow4	div16,sqrt2,approx2,widen10,narrow8,x876,libm7	False	score 94.7
+pilot_player	lockstep_request.h	hash	0xecce50	189	1	ok	.text	0xecce50	0x0	0x13c7190	xfer:vtable	high	True	0x13c7190	entry	high	-	-	True	score 6.5
+pilot_player	lockstep_request.h	hash	0xeccf10	614	1	ok	.text	0xeccf10	0x0	0x13c8850	xfer:vtable	high	True	0x13c8850	entry	high	-	libm3	True	score 6.7
+script_rng	lockstep_region_rng.h	hash,ref	0xee16a0	940	1	ok	.text	0xee16a0	0x0		unmapped	none			manual	none				
+rotation_portable	lockstep_rotation_win.h	hash	0xef4400	1457	1	ok	.text	0xef4400	0x0	0x1212490	known	verified	True	0x1212490	entry	verified	-	-	True	U::MoveWorker::Run
+gravidar	lockstep_gravidar.h	hash	0xef45d0	32	1	ok	.text	0xef4400	0x1d0	0x1212490	known	verified	True		call_target_unmapped	none	-	-	True	U::MoveWorker::Run
+frame_gate,gravidar	lockstep_gate.c,lockstep_gravidar.h	ref	0xef45d8		0	unpinned	.text	0xef4400	0x1d8	0x1212490	known	verified	True		manual	none	-	-	True	U::MoveWorker::Run
+gravidar	lockstep_gravidar.h	ref	0xef45de		0	unpinned	.text	0xef4400	0x1de	0x1212490	known	verified	True		manual	none	-	-	True	U::MoveWorker::Run
+frame_gate	lockstep_gate.c	hash	0xef4609	24	1	ok	.text	0xef4400	0x209	0x1212490	known	verified	True		call_target_unmapped	none	-	-	True	U::MoveWorker::Run
+frame_gate	lockstep_gate.c	ref	0xef4610		0	unpinned	.text	0xef4400	0x210	0x1212490	known	verified	True		manual	none	-	-	True	U::MoveWorker::Run
+frame_gate	lockstep_gate.c	ref	0xef461a		0	unpinned	.text	0xef4400	0x21a	0x1212490	known	verified	True		call_target_unmapped	none	-	-	True	U::MoveWorker::Run
+tls_rng	lockstep_render_rng.h	hash	0xef4681	64	1	ok	.text	0xef4400	0x281	0x1212490	known	verified	True		manual	none	-	-	True	U::MoveWorker::Run
+pathing	lockstep_travel_determinism.h,lockstep_travel_snapshot.h	hash,ref	0xf29cd0	132	1	ok	.text	0xf29cd0	0x0		unmapped	none			manual	none				
+frame_gate,rotation_portable,world_queue	lockstep_gate.c,lockstep_portable_windows.h,lockstep_world_queue_phase.h	hash,ref	0xfa2d70	32	1	ok	.text	0xfa2d70	0x0	0x2024fc0	known	verified	True	0x2024fc0	entry	verified	div1,narrow1	div1,narrow1	True	X4::FrameTick
+frame_gate	lockstep_gate.c	hash	0xfa32d2	58	1	ok	.text	0xfa2d70	0x562	0x2024fc0	known	verified	True		manual	none	div1,narrow1	div1,narrow1	True	X4::FrameTick
+frame_gate,rotation_portable	lockstep_gate.c,lockstep_portable_windows.h	ref	0xfa3302		0	unpinned	.text	0xfa2d70	0x592	0x2024fc0	known	verified	True		manual	none	div1,narrow1	div1,narrow1	True	X4::FrameTick
+world_queue	lockstep_world_wait_pins.h	ref,table	0x1062a50	7	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+script_rng	lockstep_script_rng_hooks.h	hash,ref	0x1062f70	566	1	ok	.text	0x1062f70	0x0		unmapped	none			manual	none				
+npc,script_rng,world_queue	lockstep_npc_provenance.h,lockstep_script_rng_hooks.h,lockstep_world_action_pins.h,lockstep_world_queue.h,lockstep_world_values_hooks.h,lockstep_world_wait_pins.h	hash,table	0x10631b0	472	1	ok	.text	0x10631b0	0x0	0x10c0a30	xfer:callgraph	medium	True	0x10c0a30	entry	medium	-	-	True	score 20.4
+script_rng,world_queue	lockstep_world_action_pins.h,lockstep_world_find_rng_config.h,lockstep_world_values_hooks.h,lockstep_world_wait_pins.h	table	0x1063750	3437	1	ok	.text	0x1063750	0x0		unmapped	none			manual	none				
+events	lockstep_interrupt_origin.h	hash	0x10661b0	742	1	ok	.text	0x10661b0	0x0		unmapped	none			manual	none				
+events	lockstep_interrupt.h	hash,ref	0x1066750	343	1	ok	.text	0x1066750	0x0	0x10d4270	xfer:vtable	medium	True	0x10d4270	entry	medium	-	-	True	score 2
+world_queue	lockstep_world_wait_pins.h	table	0x10668b0	153	1	ok	.text	0x10668b0	0x0		unmapped	none			manual	none				
+events,npc,script_rng,world_queue	lockstep_interrupt_origin.h,lockstep_npc_provenance.h,lockstep_script_rng_hooks.h,lockstep_world_action_pins.h,lockstep_world_queue.h,lockstep_world_wait_pins.h	hash,table	0x1066ba0	613	1	ok	.text	0x1066ba0	0x0	0xd633a0	xfer:callgraph	high	True	0xd633a0	entry	high	-	-	True	score 32.8
+world_queue	lockstep_world_wait_pins.h	table	0x1069000	4804	1	ok	.text	0x1069000	0x0	0x10de190	known	verified	True	0x10de190	entry	verified	-	-	True	AIDirector import
+script_rng,world_queue	lockstep_ai_wait_rng.h,lockstep_world_find_rng.h,lockstep_world_wait.h	ref	0x1069bfc		0	unpinned	.text	0x1069000	0xbfc	0x10de190	known	verified	True		manual	none	-	-	True	AIDirector import
+events	lockstep_interrupt_origin.h	hash	0x106afb0	460	1	ok	.text	0x106afb0	0x0	0x10ca860	xfer:callgraph	low	True	0x10ca860	entry	low	-	-	True	score 5.6
+events,frame_gate	lockstep_boot_hold.h,lockstep_interrupt_origin.h	hash,ref	0x106d250	150	1	ok	.text	0x106d250	0x0	0x10e27a0	xfer:str1	high	True	0x10e27a0	entry	high	-	-	True	score 220.1
+npc,world_queue	lockstep_npc_provenance.h,lockstep_world_action_pins.h,lockstep_world_queue.h,lockstep_world_wait_pins.h	hash,table	0x106d5b1	40	1	ok	.text	0x106d250	0x361	0x10e27a0	xfer:str1	high	True		call_count_mismatch	none	-	-	True	score 220.1
+script_rng	lockstep_ai.h	hash	0x106e3e0	48	1	ok	.text	0x106d250	0x1190	0x10e27a0	xfer:str1	high	True		call_target_unmapped	none	-	-	True	score 220.1
+events,frame_gate,script_rng	lockstep_ai.h,lockstep_gate.c,lockstep_interrupt_origin.h	ref	0x106e3f0		0	unpinned	.text	0x106d250	0x11a0	0x10e27a0	xfer:str1	high	True		manual	none	-	-	True	score 220.1
+script_rng	lockstep_ai.h	ref	0x106e3fb		0	unpinned	.text	0x106d250	0x11ab	0x10e27a0	xfer:str1	high	True		manual	none	-	-	True	score 220.1
+events	lockstep_interrupt_origin.h	hash	0x106fd90	639	1	ok	.text	0x106fd90	0x0	0x10e2570	xfer:callgraph	low	True	0x10e2570	entry	low	-	-	True	score 30.7
+script_rng	lockstep_world_find_rng_config.h	table	0x1075c30	125	1	ok	.text	0x1075c30	0x0	0x10a4520	xfer:callgraph	medium	True	0x10a4520	entry	medium	-	-	True	score 14.5
+script_rng	lockstep_world_find_rng_config.h	ref	0x1075cb0		0	unpinned	.text	0x1075cb0	0x0	0x10ae900	xfer:callgraph	high	True	0x10ae900	entry	high	-	-	True	score 31.1
+script_rng	lockstep_world_find_rng_config.h	table	0x107b450	5231	1	ok	.text	0x107b450	0x0	0x10b9cf0	xfer:str1	high	True	0x10b9cf0	entry	high	-	-	True	score 302.7
+pathing	lockstep_spline.h	hash	0x1099650	629	1	ok	.text	0x1099650	0x0	0x10b0b30	xfer:str1	high	True	0x10b0b30	entry	high	-	div1	False	score 19.8
+world_queue	lockstep_world_wait_pins.h	table	0x10998f0	319	1	ok	.text	0x10998f0	0x0	0x10b1560	xfer:str1	high	True	0x10b1560	entry	high	-	-	True	score 50.5
+world_queue	lockstep_world_wait_pins.h	table	0x109a130	861	1	ok	.text	0x109a130	0x0	0x109ac00	xfer:callgraph	high	True	0x109ac00	entry	high	-	-	True	score 37.1
+world_queue	lockstep_world_wait_pins.h	table	0x109a490	123	1	ok	.text	0x109a490	0x0	0x10c1080	xfer:callgraph2	low	True	0x10c1080	entry	low	-	-	True	score 1.6
+world_queue	lockstep_world_wait_pins.h	table	0x10a4ea0	156	1	ok	.text	0x10a4ea0	0x0	0x10d7860	xfer:callgraph	high	True	0x10d7860	entry	high	-	-	True	score 20.7
+script_rng,world_queue	lockstep_ai_wait_rng.h,lockstep_world_wait.h,lockstep_world_wait_pins.h	ref,table	0x10a50d0	93	1	ok	.text	0x10a50d0	0x0	0x10c12b0	known	verified	True	0x10c12b0	entry	verified	-	-	True	WaitAction restore (Windows vtable slot +0x28, Linux +0x30)
+script_rng,world_queue	lockstep_ai_wait_rng.h,lockstep_world_wait.h	ref	0x10a50d5		0	unpinned	.text	0x10a50d0	0x5	0x10c12b0	known	verified	True		manual	none	-	-	True	WaitAction restore (Windows vtable slot +0x28, Linux +0x30)
+events	lockstep_interrupt_origin.h	hash	0x10a7930	464	1	ok	.text	0x10a7930	0x0	0x10c2480	xfer:str1	high	True	0x10c2480	entry	high	-	-	True	score 23.5
+gravidar	lockstep_gravidar.h	hash,ref	0x10acd70	2262	1	ok	.text	0x10acd70	0x0	0x10fd7b0	xfer:callgraph	medium	True	0x10fd7b0	entry	medium	widen1	widen1	True	score 29.8
+gravidar	lockstep_ai_schedule.h,lockstep_gravidar.h	hash	0x10ae0e0	4688	2	ok	.text	0x10ae0e0	0x0	0x1106ee0	xfer:str1	high	True	0x1106ee0	entry	high	-	-	True	score 75.5
+gravidar	lockstep_ai_schedule.h	hash	0x10b0233	221	1	ok	.text	0x10aff30	0x303	0x110b510	xfer:str1	high	True		call_target_unmapped	none	-	-	True	score 56.1
+gravidar	lockstep_ai_schedule.h	hash	0x10b0fd0	84	1	ok	.text	0x10aff30	0x10a0	0x110b510	xfer:str1	high	True		call_target_unmapped	none	-	-	True	score 56.1
+frame_gate,gravidar	lockstep_ai_schedule.h,lockstep_gate.c,lockstep_gravidar.h	hash,ref	0x10b12c0	317	1	ok	.text	0x10b12c0	0x0		unmapped	none			manual	none				
+gravidar	lockstep_gravidar.h	hash,ref	0x10b2dc0	181	1	ok	.text	0x10b2dc0	0x0	0x10f0490	xfer:callgraph	high	True	0x10f0490	entry	high	-	-	True	score 22.5
+gravidar	lockstep_ai_schedule.h	hash	0x10b34c0	96	1	ok	.text	0x10b34c0	0x0	0x1caeab0	xfer:callgraph	high	True	0x1caeab0	entry	high	-	approx4	False	score 77.5
+npc	lockstep_npc_action.h	hash	0x110ef50	472	1	ok	.text	0x110ef50	0x0	0xf48c50	xfer:callgraph	high	True	0xf48c50	entry	high	-	-	True	score 13.1
+npc	lockstep_npc_action.h	hash	0x1110bf0	113	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+md,npc,script_rng	lockstep_md_resume_rng.h,lockstep_npc_provenance.h,lockstep_script_rng_hooks.h	hash	0x1111a40	905	1	ok	.text	0x1111a40	0x0	0xf40220	xfer:callgraph	medium	True	0xf40220	entry	medium	-	-	True	score 18.1
+md	lockstep_md_resume_rng.h	hash	0x1115960	716	1	ok	.text	0x1115960	0x0	0xf77160	xfer:callgraph	high	True	0xf77160	entry	high	-	-	True	score 28.2
+md	lockstep_md_resume_rng.h	ref	0x1115bad		0	unpinned	.text	0x1115960	0x24d	0xf77160	xfer:callgraph	high	True		call_target_unmapped	none	-	-	True	score 28.2
+md	lockstep_md_resume_rng.h	ref	0x1115bae		0	unpinned	.text	0x1115960	0x24e	0xf77160	xfer:callgraph	high	True		manual	none	-	-	True	score 28.2
+md	lockstep_md_resume_rng.h	ref	0x1115bb2		0	unpinned	.text	0x1115960	0x252	0xf77160	xfer:callgraph	high	True		manual	none	-	-	True	score 28.2
+npc	lockstep_npc_action.h	hash	0x1118b30	575	1	ok	.text	0x1118b30	0x0	0xf68ae0	known	verified	True	0xf68ae0	entry	verified	-	-	True	MD cue name formatter
+md,npc,script_rng	lockstep_npc_provenance.h,lockstep_script_rng_hooks.h,lockstep_script_rng_md.h	hash,ref	0x111c290	712	1	ok	.text	0x111c290	0x0	0xf76110	xfer:callgraph	high	True	0xf76110	entry	high	-	-	True	score 15.1
+npc	lockstep_npc_provenance.h	hash	0x111c560	143	1	ok	.text	0x111c560	0x0		unmapped	none			manual	none				
+npc	lockstep_npc_provenance.h	hash	0x111c5f0	1514	1	ok	.text	0x111c5f0	0x0	0xf78f40	xfer:str1	high	True	0xf78f40	entry	high	-	-	True	score 69.3
+md	lockstep_script_rng_md.h	hash	0x111d090	710	1	ok	.text	0x111d090	0x0	0xf76300	xfer:str1	high	True	0xf76300	entry	high	-	-	True	score 60.9
+npc	lockstep_npc_provenance.h	hash	0x111d360	1087	1	ok	.text	0x111d360	0x0	0xf75ee0	xfer:str1	high	True	0xf75ee0	entry	high	-	-	True	score 51.2
+md,npc	lockstep_npc_provenance.h,lockstep_script_rng_md.h	hash	0x111e370	520	1	ok	.text	0x111e370	0x0	0xf78c10	xfer:callgraph	medium	True	0xf78c10	entry	medium	-	-	True	score 19.9
+md	lockstep_md_resume_rng.h	hash,ref	0x111f8c0	204	1	ok	.text	0x111f8c0	0x0	0xf5b380	xfer:callgraph	medium	True	0xf5b380	entry	medium	-	-	True	score 8.5
+script_rng	lockstep_script_rng_hooks.h	hash,ref	0x111f990	5	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+md,npc	lockstep_npc_provenance.h,lockstep_script_rng_md.h	hash	0x1121f80	394	1	ok	.text	0x1121f80	0x0	0xf79c00	xfer:callgraph	low	True	0xf79c00	entry	low	-	-	True	score 17.3
+npc	lockstep_npc_provenance.h	hash	0x1122ae0	317	1	ok	.text	0x1122ae0	0x0	0xf633e0	xfer:callgraph	medium	True	0xf633e0	entry	medium	-	-	True	score 8.4
+npc	lockstep_npc_provenance.h	hash	0x1123610	615	1	ok	.text	0x1123610	0x0	0xf79620	xfer:str1	high	True	0xf79620	entry	high	-	-	True	score 38
+pathing	lockstep_solver.h	hash	0x1191740	803	1	ok	.text	0x1191740	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0x1191a70	941	1	ok	.text	0x1191a70	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0x1195570	7923	1	ok	.text	0x1195570	0x0	0x19e75e0	xfer:callgraph	medium	True	0x19e75e0	entry	medium	div8,widen25,narrow16	div8,sqrt4,widen19	False	score 15.5
+pathing	lockstep_solver.h	hash	0x1197470	1273	1	ok	.text	0x1197470	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0x1197970	1635	1	ok	.text	0x1197970	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash,ref	0x1197fe0	224	1	ok	.text	0x1197fe0	0x0		unmapped	none			manual	none				
+pathing	lockstep_solver.h	ref	0x1197fe5		0	unpinned	.text	0x1197fe0	0x5		unmapped	none			manual	none				
+pathing	lockstep_solver.h	hash	0x11980c0	1067	1	ok	.text	0x11980c0	0x0		unmapped	none			manual	none				
+tls_rng	lockstep_render_rng.h	hash,ref	0x121c1f0	106	1	ok	.text	0x121c1f0	0x0		unmapped	none			manual	none				
+rotation_portable	lockstep_rotation_win.h	hash,ref	0x122b360	3153	1	ok	.text	0x122b360	0x0	0xfeaff0	known	inferred	True	0xfeaff0	entry	inferred	-	div12,widen3,x8718,libm1	False	X4::GameClient::Move
+tls_rng	lockstep_render_rng.h	hash,ref	0x122bfc0	174	1	ok	.text	0x122bfc0	0x0		unmapped	none			manual	none				
+frame_gate	lockstep_gate.c	hash	0x12ae9c7	24	1	ok	.text	0x12ae7d0	0x1f7	0x72f250	known	inferred	True	0x72fb16	call_ordinal	high	-	-	True	main loop holding the FrameTick call; anchored at Windows call 0x12ae9d2
+frame_gate,pilot_player,rotation_portable	lockstep_gate.c,lockstep_portable_windows.h,lockstep_portable_windows_lua.h,lockstep_transition_prebind.h,lockstep_transition_queue_diag.h	ref	0x12ae9d0		0	unpinned	.text	0x12ae7d0	0x200	0x72f250	known	inferred	True		manual	none	-	-	True	main loop holding the FrameTick call
+frame_gate	lockstep_gate.c	ref	0x12ae9d2		0	unpinned	.text	0x12ae7d0	0x202	0x72f250	known	inferred	True	0x72fb16	known_site	verified	-	-	True	main loop holding the FrameTick call
+frame_gate	lockstep_gate.c	ref	0x12ae9d7		0	unpinned	.text	0x12ae7d0	0x207	0x72f250	known	inferred	True		manual	none	-	-	True	main loop holding the FrameTick call
+bullets_physics,frame_gate	lockstep_gate.c,lockstep_mass.h	hash,ref	0x14061e0	32	1	ok	.text	0x14061e0	0x0	0x1a84b20	xfer:callgraph	medium	True	0x1a84b20	entry	medium	-	-	True	score 9
+bullets_physics	lockstep_mass.h	ref	0x14061e5		0	unpinned	.text	0x14061e0	0x5	0x1a84b20	xfer:callgraph	medium	True		manual	none	-	-	True	score 9
+gravidar	lockstep_ai_schedule.h	hash	0x14b7740	125	1	ok	.text	0x14b7740	0x0		unmapped	none			manual	none				
+gravidar	lockstep_ai_schedule.h	ref	0x14b779a		0	unpinned	.text	0x14b7740	0x5a		unmapped	none			manual	none				
+world_queue	lockstep_world_queue_phase.h	hash	0x14b8dc0	89	1	ok	.text	0x14b8dc0	0x0		unmapped	none			manual	none				
+gravidar,pathing,world_queue	lockstep_gravidar.h,lockstep_path_determinism.h,lockstep_world_queue_phase.h	hash,ref	0x14b8e20	101	1	ok	.text	0x14b8e20	0x0		unmapped	none			manual	none				
+tls_rng	lockstep_job_rng.h	hash	0x14bbff0	732	1	ok	.text	0x14bbff0	0x0	0x1a54de0	xfer:str1	high	True	0x1a54de0	entry	high	-	-	True	score 64.2
+frame_gate,pathing,tls_rng	lockstep_gate.c,lockstep_job_rng.h,lockstep_travel_determinism.h	hash,ref	0x14bc2d0	530	1	ok	.text	0x14bc2d0	0x0	0x1a55930	xfer:str1	high	True	0x1a55930	entry	high	-	-	True	score 32.9
+tls_rng	lockstep_job_rng.h	ref	0x14bc2d5		0	unpinned	.text	0x14bc2d0	0x5	0x1a55930	xfer:str1	high	True		manual	none	-	-	True	score 32.9
+world_queue	lockstep_world_wait_pins.h	table	0x14c3090	1204	1	ok	.text	0x14c3090	0x0	0x1a3b1a0	known	verified	True	0x1a3b1a0	entry	verified	-	div1,libm1	False	decimal text parser (scale *= 0.1 versus scale /= 10.0)
+created_ids,nav,pathing,script_rng,tls_rng,world_queue	lockstep_creation_trace_contract.h,lockstep_flight.h,lockstep_render_rng.h,lockstep_world_position_hooks.h,lockstep_world_position_rng_pins.h,lockstep_world_wait_pins.h	hash,ref,table	0x14ddc90	120	2	ok	.text	0x14ddc90	0x0		inlined	none			manual	none				inlined into Linux 0x1a48e30: Windows float-state step is a separate function; Linux inlines it into WithDistribution
+created_ids,nav,script_rng,world_queue	lockstep_creation_trace_contract.h,lockstep_world_position_hooks.h,lockstep_world_position_rng_pins.h,lockstep_world_wait_pins.h	table	0x14ddd10	257	1	ok	.text	0x14ddd10	0x0	0x1a48e30	known	verified	True	0x1a48e30	entry	verified	div1	div1,widen2	False	Random::WithDistribution
+script_rng	lockstep_world_position_rng_pins.h	table	0x14ddd35	5	1	ok	.text	0x14ddd10	0x25	0x1a48e30	known	verified	True		call_count_mismatch	none	div1	div1,widen2	False	Random::WithDistribution
+world_queue	lockstep_world_values_hooks.h	table	0x14dde20	97	1	ok	.text	0x14dde20	0x0	0x1a490a0	xfer:callgraph	high	True	0x1a490a0	entry	high	-	-	True	score 51.8
+script_rng	lockstep_world_position_rng_pins.h	table	0x17501f0	32	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+script_rng	lockstep_world_position_rng_pins.h	table	0x1750210	67	1	ok	.text					none			no_function	none				no unwind entry (MSVC leaf); function start unknown
+script_rng	lockstep_world_position_rng_pins.h	table	0x1750830	2360	1	ok	.text	0x1750830	0x0		unmapped	none			manual	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x1751170	1905	1	ok	.text	0x1751170	0x0		unmapped	none			manual	none				
+pilot_player	lockstep_request.h	hash	0x1a051ac	104	1	ok	.text	0x1a051ac	0x0		unmapped	none			manual	none				
+world_queue	lockstep_world_wait_pins.h	table	0x1a05280	166	1	ok	.text	0x1a05280	0x0		unmapped	none			manual	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x1a19250	556	1	ok	.text	0x1a19250	0x0		unmapped	none			manual	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x1a19480	1782	1	ok	.text	0x1a19480	0x0		unmapped	none			manual	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x1c68570	16	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x1c68580	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x1c68590	16	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x1c685a0	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x1c685b0	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287928	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287930	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287938	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x228793c	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287940	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287944	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287948	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287950	16	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287960	16	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287970	16	2	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287980	16	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287990	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x22879a0	16	2	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x22879b0	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x22879c0	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x22879d0	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x22879e0	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x22879f0	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287a00	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287a10	16	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287a20	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287a30	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287a40	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287a50	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287a60	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287a68	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287a70	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2287a78	4	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x228ded0	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x228ded8	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x228dee0	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x228dee8	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x228def0	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x228df00	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x228df08	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x228df10	8	1	ok	.rdata					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x228df18	8	1	ok	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_player_origin_native.h,lockstep_player_origin_pins.h	ref	0x2a85278		0	unpinned	.rdata					none		0x2e25cc0	data_vote	medium				
+pilot_player	lockstep_player_origin_pins.h	ref	0x2a85280		0	unpinned	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_player_origin_native.h,lockstep_player_origin_pins.h	ref	0x2a85288		0	unpinned	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_player_origin_pins.h	ref	0x2abd728		0	unpinned	.rdata					none			data_unmapped	none				
+bullets_physics	lockstep_shape.h	ref	0x2adbdc0		0	unpinned	.rdata					none		0x3b38e50	data_vote	medium				
+infrastructure	lockstep_state.h	ref	0x2b19700		0	unpinned	.rdata					none		0x3b36b38	data_vote	low				
+script_rng	lockstep_region_rng.h	ref	0x2b2c270		0	unpinned	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_player_origin_native.h	ref	0x2b329a8		0	unpinned	.rdata					none		0x3b5f7a0	data_vote	medium				
+pilot_player	lockstep_player_origin_pins.h	ref	0x2b329c8		0	unpinned	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_player_origin_pins.h	ref	0x2b33a70		0	unpinned	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_player_origin_pins.h	ref	0x2b45558		0	unpinned	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_player_observer.h	ref	0x2b7d218		0	unpinned	.rdata					none			data_unmapped	none				
+created_ids,pilot_player,rotation_portable	lockstep_portable_windows.h,lockstep_registry_native.h,lockstep_snapshot_fixture.h,lockstep_transition.h	ref	0x2b7feb8		0	unpinned	.rdata					none			data_unmapped	none				
+frame_gate	lockstep_gate.c	ref	0x2b7fef8		0	unpinned	.rdata					none			data_unmapped	none				
+frame_gate	lockstep_gate.c	ref	0x2b813c8		0	unpinned	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_transition_hooks.h	ref	0x2b818a0		0	unpinned	.rdata					none			data_unmapped	none				
+created_ids	lockstep_creation_trace.h,lockstep_registry_native.h	ref	0x2b99a88		0	unpinned	.rdata					none			data_unmapped	none				
+created_ids,gravidar,rotation_portable	lockstep_ai_schedule.h,lockstep_portable_windows.h,lockstep_registry_native.h,lockstep_snapshot_fixture.h,lockstep_world_created.h	ref	0x2ba5430		0	unpinned	.rdata					none		0x3ae6860	data_vote	medium				
+npc	lockstep_npc_provenance.h	ref	0x2ba7028		0	unpinned	.rdata					none			data_unmapped	none				
+tls_rng	lockstep_render_rng.h	ref	0x2bae1b8		0	unpinned	.rdata					none			data_unmapped	none				
+nav	lockstep_world_safe_position.h	ref	0x2c0cc88		0	unpinned	.rdata					none		0x2d0c450	data_vote	medium				
+nav	lockstep_world_safe_position.h	ref	0x2c0cca0		0	unpinned	.rdata					none			data_unmapped	none				
+nav,script_rng	lockstep_world_position.h,lockstep_world_position_rng.h	ref	0x2c0cdd0		0	unpinned	.rdata					none			data_unmapped	none				
+script_rng,world_queue	lockstep_world_find_rng.h,lockstep_world_values.h	ref	0x2c0f3c8		0	unpinned	.rdata					none		0x2d06404	data_vote	medium				
+world_queue	lockstep_world_values_hooks.h	ref	0x2c0f3e0		0	unpinned	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_pilot_inputs.h,lockstep_player.h,lockstep_player_origin_native.h,lockstep_transition.h	ref	0x2c39488		0	unpinned	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_player_observer.h	ref	0x2c39590		0	unpinned	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_transition_prebind.h	ref	0x2c39620		0	unpinned	.rdata					none			data_unmapped	none				
+bullets_physics,frame_gate	lockstep_dock.h,lockstep_gate.c	ref	0x2c3e568		0	unpinned	.rdata					none		0x3b0ca90	data_vote	medium				
+bullets_physics,frame_gate	lockstep_dock.h,lockstep_gate.c	ref	0x2c3fdc0		0	unpinned	.rdata					none		0x3b50c20	data_vote	medium				
+bullets_physics,pilot_player	lockstep_bullet.h,lockstep_player_fire.h	ref	0x2c42ac8		0	unpinned	.rdata					none		0x3b3eb10	data_vote	low				
+script_rng	lockstep_region_rng.h	ref	0x2c4b2f0		0	unpinned	.rdata					none		0x3b57b88	data_vote	medium				
+script_rng	lockstep_region_rng.h	ref	0x2c4b330		0	unpinned	.rdata					none			data_unmapped	none				
+created_ids,infrastructure,pathing,pilot_player,rotation_portable	lockstep_flight.h,lockstep_registry_native.h,lockstep_request.h,lockstep_snapshot_fixture.h,lockstep_world_trace.h	ref	0x2c4e9c8		0	unpinned	.rdata					none			data_unmapped	none				
+frame_gate,pathing	lockstep_flight.h,lockstep_gate.c	ref	0x2c4ea38		0	unpinned	.rdata					none			data_unmapped	none				
+created_ids,frame_gate,infrastructure,pathing,rotation_portable	lockstep_gate.c,lockstep_registry_native.h,lockstep_snapshot_fixture.h,lockstep_spline.h,lockstep_world_trace.h	ref	0x2c4f480		0	unpinned	.rdata					none		0x3b5d6b8	data_vote	medium				
+pathing,pilot_player	lockstep_player_getup_native.h,lockstep_spline.h	ref	0x2c4f4f0		0	unpinned	.rdata					none			data_unmapped	none				
+world_queue	lockstep_world_queue.h	ref	0x2c4f578		0	unpinned	.rdata					none		0x3b5d7a8	data_vote	medium				
+infrastructure	lockstep_world_trace.h	ref	0x2c4f610		0	unpinned	.rdata					none			data_unmapped	none				
+created_ids,frame_gate,infrastructure,pathing,pilot_player,rotation_portable	lockstep_agent.h,lockstep_creation_trace.h,lockstep_gate.c,lockstep_path_determinism.h,lockstep_portable_windows.h,lockstep_registry_native.h,lockstep_registry_origin_identity.h,lockstep_registry_raw.h,lockstep_snapshot_fixture.h,lockstep_transition.h,lockstep_world_trace.h	ref	0x2c51158		0	unpinned	.rdata					none			data_unmapped	none				
+frame_gate,nav	lockstep_gate.c,lockstep_velocity.h	ref	0x2c51198		0	unpinned	.rdata					none			data_unmapped	none				
+frame_gate,nav	lockstep_gate.c,lockstep_nav.h,lockstep_nav_cadence.h	ref	0x2c51260		0	unpinned	.rdata					none			data_unmapped	none				
+pilot_player	lockstep_transition_queue.h,lockstep_transition_queue_diag.h	ref	0x2c51c38		0	unpinned	.rdata					none			data_unmapped	none				
+world_queue	lockstep_world_queue.h	ref	0x2c51c40		0	unpinned	.rdata					none			data_unmapped	none				
+gravidar	lockstep_gravidar.h	ref	0x2c67610		0	unpinned	.rdata					none			data_unmapped	none				
+frame_gate,gravidar	lockstep_gate.c,lockstep_gravidar.h	ref	0x2c67648		0	unpinned	.rdata					none			data_unmapped	none				
+gravidar	lockstep_ai_schedule.h,lockstep_gravidar.h	ref	0x2c68860		0	unpinned	.rdata					none		0x3b2cf08	data_vote	medium				
+world_queue	lockstep_world_wait.h	ref	0x2c68d78		0	unpinned	.rdata					none		0x3b2a650	data_vote	medium				
+world_queue	lockstep_world_wait_pins.h	ref	0x2c68d80		0	unpinned	.rdata					none			data_unmapped	none				
+world_queue	lockstep_world_wait_pins.h	ref	0x2c68da0		0	unpinned	.rdata					none			data_unmapped	none				
+pathing	lockstep_spline.h	ref	0x2c68f98		0	unpinned	.rdata					none		0x3b28b38	data_vote	high				
+created_ids	lockstep_world_unknown_identity.h	ref	0x2c69030		0	unpinned	.rdata					none		0x3b28db0	data_vote	high				
+script_rng	lockstep_world_find_rng.h,lockstep_world_find_rng_config.h	ref	0x2c69060		0	unpinned	.rdata					none		0x3b28b10	data_vote	high				
+script_rng	lockstep_world_find_rng_config.h	ref	0x2c69068		0	unpinned	.rdata					none			data_unmapped	none				
+script_rng	lockstep_script_rng.h	ref	0x2c690b8		0	unpinned	.rdata					none		0x3aedd58	data_vote	medium				
+script_rng	lockstep_script_rng_hooks.h	ref	0x2c6a260		0	unpinned	.rdata					none			data_unmapped	none				
+created_ids,nav,script_rng,world_queue	lockstep_script_rng.h,lockstep_world_action.h,lockstep_world_find_rng.h,lockstep_world_position.h,lockstep_world_unknown_identity.h,lockstep_world_wait.h	ref	0x2c6a270		0	unpinned	.rdata					none		0x3b28df0	data_vote	medium				
+frame_gate,gravidar	lockstep_gate.c,lockstep_radar.h	ref	0x2c6a970		0	unpinned	.rdata					none			data_unmapped	none				
+events,frame_gate	lockstep_gate.c,lockstep_interrupt.h	ref	0x2c6b418		0	unpinned	.rdata					none			data_unmapped	none				
+script_rng	lockstep_script_rng.h	ref	0x2c75170		0	unpinned	.rdata					none		0x3aad7d8	data_vote	high				
+script_rng	lockstep_script_rng_hooks.h	ref	0x2c76318		0	unpinned	.rdata					none			data_unmapped	none				
+rotation_portable	lockstep_rotation_win.h	ref	0x2c8abd0		0	unpinned	.rdata					none		0x2c742be	data_vote	medium				
+tls_rng	lockstep_render_rng.h	ref	0x2c8abe0		0	unpinned	.rdata					none			data_unmapped	none				
+tls_rng	lockstep_render_rng.h	ref	0x2c8ac10		0	unpinned	.rdata					none			data_unmapped	none				
+created_ids,script_rng	lockstep_creation_trace_contract.h,lockstep_world_position_rng_pins.h	table	0x2cbe008	4	1	ok	.rdata					none		0x2cf1c8c	data_vote	medium				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2cbe430	4	1	ok	.rdata					none		0x2e25da4	data_vote	medium				
+pilot_player	lockstep_player_origin_pins.h,lockstep_request.h	hash,ref	0x2cbe470	8	1	ok	.rdata					none		0x2e24558	data_vote	medium				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2cbe5d4	4	1	ok	.rdata					none		0x2e24600	data_vote	medium				
+pilot_player	lockstep_player_origin_pins.h	ref	0x2cbe610		0	unpinned	.rdata					none		0x2e3b920	data_vote	medium				
+world_queue	lockstep_world_wait_pins.h	table	0x2cbe6e8	8	1	ok	.rdata					none		0x2e244f0	data_vote	medium				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2cbe748	4	1	ok	.rdata					none		0x2e27174	data_vote	medium				
+world_queue	lockstep_world_wait_pins.h	table	0x2cbe870	8	1	ok	.rdata					none		0x2e244d0	data_vote	medium				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2cbe8e0	8	1	ok	.rdata					none		0x2d55b10	data_vote	medium				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2cbe918	4	1	ok	.rdata					none		0x2e24600	data_vote	medium				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2cbe960	8	1	ok	.rdata					none		0x2e511d0	data_vote	medium				
+world_queue	lockstep_world_wait_pins.h	table	0x2cbe9f8	8	1	ok	.rdata					none		0x2e25cd8	data_vote	medium				
+world_queue	lockstep_world_wait_pins.h	table	0x2cbea98	8	1	ok	.rdata					none		0x2e25cd8	data_vote	high				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2cbeab4	4	1	ok	.rdata					none		0x2e27154	data_vote	medium				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2cbebdc	4	1	ok	.rdata					none		0x2e24944	data_vote	medium				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2cbf01c	4	1	ok	.rdata					none		0x2e2b920	data_vote	medium				
+script_rng	lockstep_world_position_rng_pins.h	table	0x2cc2a70	16	1	ok	.rdata					none		0x2e245d0	data_vote	medium				
+script_rng	lockstep_world_position_rng.h	ref	0x2f3f220		0	unpinned	.data					none			data_no_linux_refs	none				
+pilot_player	lockstep_player_fire.h	ref	0x2f4b6d8		0	unpinned	.data					none		0x3daa778	data_vote	low				
+created_ids,frame_gate,infrastructure,pathing,pilot_player,rotation_portable	lockstep_creation_trace.h,lockstep_gate.c,lockstep_registry_native.h,lockstep_registry_raw.h,lockstep_request.h,lockstep_snapshot_fixture.h,lockstep_solver.h,lockstep_world_hash.h,lockstep_world_trace.h	ref	0x2f4b6f4		0	unpinned	.data					none		0x3d8e254	data_vote	high				
+pilot_player	lockstep_pilot_inputs.h	ref	0x2f4b760		0	unpinned	.data					none		0x3d8d9e0	data_vote	medium				
+pilot_player	lockstep_player_observer.h	ref	0x2f4b7d8		0	unpinned	.data					none		0x3d8da58	data_vote	medium				
+pilot_player	lockstep_pilot_inputs.h	ref	0x2f4b7e4		0	unpinned	.data					none		0x3d8da64	data_vote	medium				
+pilot_player	lockstep_transition.h	ref	0x2f4b828		0	unpinned	.data					none		0x3d8daa8	data_vote	medium				
+script_rng	lockstep_world_find_rng.h	ref	0x31c2de8		0	unpinned	.data					none		0x3e480a8	data_vote	medium				
+script_rng	lockstep_world_find_rng_config.h	ref	0x31fc828		0	unpinned	.data					none			data_unmapped	none				
+script_rng	lockstep_world_find_rng_config.h	ref	0x31fc850		0	unpinned	.data					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng.h	ref	0x38edec0		0	unpinned	.data					none			data_no_linux_refs	none				
+pilot_player	lockstep_pilot_inputs.h,lockstep_player_fire.h	ref	0x38f0728		0	unpinned	.data					none		0x3e5b29b	data_vote	low				
+pilot_player	lockstep_pilot_inputs.h	ref	0x38f0a51		0	unpinned	.data					none		0x3e06768	data_vote	high				
+md	lockstep_registry_md.h	ref	0x38f0a52		0	unpinned	.data					none		0x3d8d97a	data_vote	medium				
+events	lockstep_event_order.h	ref	0x38f4bc8		0	unpinned	.data					none		0x3eedf90	data_vote	high				
+created_ids,nav,npc,pilot_player,world_queue	lockstep_npc_pilot.h,lockstep_npc_provenance.h,lockstep_world_action.h,lockstep_world_position.h,lockstep_world_queue.h,lockstep_world_unknown.h	ref	0x38f4c60		0	unpinned	.data					none		0x3e19b80	data_vote	medium				
+frame_gate	lockstep_gate.c	ref	0x38f4d00		0	unpinned	.data					none		0x3dfa1c0	data_vote	medium				
+bullets_physics	lockstep_bullet_cadence.h	ref	0x38f4eb4		0	unpinned	.data					none		0x3e7742c	data_vote	medium				
+bullets_physics	lockstep_bullet_cadence.h	ref	0x38f4ee0		0	unpinned	.data					none		0x3e77430	data_vote	medium				
+created_ids,frame_gate,infrastructure,nav,pathing,pilot_player	lockstep_creation_trace.h,lockstep_gate.c,lockstep_path_determinism.h,lockstep_registry_raw.h,lockstep_request.h,lockstep_velocity.h,lockstep_world_hash.h,lockstep_world_trace.h	ref	0x38f4ee4		0	unpinned	.data					none		0x3e4fea8	data_vote	high				
+events	lockstep_event_order.h	ref	0x39943e0		0	unpinned	.data					none		0x426dfb0	data_vote	medium				
+pilot_player,rotation_portable	lockstep_pilot_inputs.h,lockstep_player.h,lockstep_rotation_win.h	ref	0x3d196f0		0	unpinned	.data					none		0x3db6948	data_vote	medium				
+nav,world_queue	lockstep_world_position.h,lockstep_world_queue_phase.h	ref	0x3d19790		0	unpinned	.data					none		0x3e03b08	data_vote	medium				
+attention,bullets_physics,pilot_player,tls_rng	lockstep_bullet_cadence.h,lockstep_camera_perturb.h,lockstep_player_fire.h,lockstep_player_origin_native.h,lockstep_view_points.h	ref	0x3d198f8		0	unpinned	.data					none		0x3db6948	data_vote	high				
+bullets_physics	lockstep_bullet_cadence.h	ref	0x3d19900		0	unpinned	.data					none		0x3db6950	data_vote	medium				
+pilot_player	lockstep_request.h	ref	0x3d19b15		0	unpinned	.data					none		0x3db6b75	data_vote	medium				
+pilot_player	lockstep_request.h	ref	0x3d19b24		0	unpinned	.data					none		0x3db6b84	data_vote	high				
+pathing	lockstep_spline.h	ref	0x3d74938		0	unpinned	.data					none		0x3e76960	data_vote	medium				
+nav,rotation_portable,world_queue	lockstep_rotation_win.h,lockstep_world_position.h,lockstep_world_queue_phase.h	ref	0x6adf9fc		0	unpinned	.data					none		0x3daab04	data_vote	medium				
+frame_gate,rotation_portable	lockstep_gate.c,lockstep_portable_windows.h	ref	0x6adfc58		0	unpinned	.data					none		0x4533d38	data_vote	medium				
+frame_gate,rotation_portable	lockstep_gate.c,lockstep_portable_windows.h	ref	0x6adfc60		0	unpinned	.data					none		0x3daa6a0	data_vote	medium				
+gravidar	lockstep_gravidar.h	ref	0x6b60e10		0	unpinned	.data					none		0x3db8280	data_vote	medium				
+frame_gate,gravidar,infrastructure,nav,rotation_portable,world_queue	lockstep_gate.c,lockstep_getup_diagnostic_transport.h,lockstep_gravidar.h,lockstep_portable_windows.h,lockstep_world_position.h,lockstep_world_queue_phase.h	ref	0x6b60e38		0	unpinned	.data					none		0x3db82b0	known_data	verified				TimerBase game time (f64)
+frame_gate,infrastructure,nav,rotation_portable,world_queue	lockstep_gate.c,lockstep_getup_diagnostic_transport.h,lockstep_portable_windows.h,lockstep_world_position.h,lockstep_world_queue_phase.h	ref	0x6b60e40		0	unpinned	.data					none		0x3db82b8	known_data	verified				TimerBase real time (f64)
+npc,rotation_portable	lockstep_npc_deadline.h,lockstep_npc_finish.h,lockstep_npc_ready.h,lockstep_npc_speak.h,lockstep_portable_windows.h	ref	0x6b60e48		0	unpinned	.data					none		0x3db82c0	known_data	verified				TimerBase unpaused real time (f64)
+frame_gate,rotation_portable	lockstep_gate.c,lockstep_portable_windows.h	ref	0x6b60e60		0	unpinned	.data					none		0x3db82d8	known_data	verified				TimerBase speed factor (f64)
+created_ids,frame_gate,infrastructure,pilot_player,rotation_portable,tls_rng	lockstep_gate.c,lockstep_pilot_camera.h,lockstep_pilot_inputs.h,lockstep_player_origin_native.h,lockstep_portable_windows.h,lockstep_registry_creation.h,lockstep_render_rng.h,lockstep_snapshot_fixture.h,lockstep_transition_prebind.h,lockstep_transition_watch.h,lockstep_world_created.h,lockstep_world_hash.h	ref	0x6cf1500		0	unpinned	.data					none		0x3daa860	data_vote	high				
+rotation_portable	lockstep_rotation_win.h	ref	0x6cf1520		0	unpinned	.data					none		0x3daab80	data_vote	high				
+pathing,pilot_player	lockstep_request.h,lockstep_solver.h	ref	0x6cf1538		0	unpinned	.data					none		0x3db83c8	data_vote	high				
+tls_rng	lockstep_job_rng.h	ref	0x6cf1540		0	unpinned	.data					none		0x3daab88	data_vote	medium				
+frame_gate,infrastructure,nav,rotation_portable,world_queue	lockstep_gate.c,lockstep_getup_diagnostic_transport.h,lockstep_portable_windows.h,lockstep_rotation_win.h,lockstep_world_position.h,lockstep_world_queue_phase.h	ref	0x6cf1570		0	unpinned	.data					none		0x3dbc4d8	known_data	inferred				XLib::VbiTable* global (both read the loading flag at +0x130)
+npc	lockstep_npc_finish.h	ref	0x6cf15b8		0	unpinned	.data					none		0x3db6c08	data_vote	medium				
+frame_gate	lockstep_boot_hold.h	ref	0x6cf15f0		0	unpinned	.data					none		0x3dea760	data_vote	medium				
+created_ids,frame_gate,gravidar,rotation_portable	lockstep_ai_schedule.h,lockstep_gate.c,lockstep_gravidar.h,lockstep_registry_native.h,lockstep_snapshot_fixture.h	ref	0x6cf1650		0	unpinned	.data					none		0x3dfa4a0	data_vote	medium				
+script_rng	lockstep_world_find_rng.h	ref	0x6cf1750		0	unpinned	.data					none		0x3decec0	data_vote	high				
+frame_gate,infrastructure,pathing,pilot_player,rotation_portable,world_queue	lockstep_gate.c,lockstep_path_determinism.h,lockstep_rotation_win.h,lockstep_transition_prebind.h,lockstep_transition_queue.h,lockstep_transition_queue_diag.h,lockstep_world_queue.h,lockstep_world_trace.h	ref	0x6cf21c8		0	unpinned	.data					none		0x3e0ced0	data_vote	high				
+pilot_player	lockstep_pilot_inputs.h	ref	0x6cf2210		0	unpinned	.data					none		0x3dbafd0	data_vote	high				
+pathing	lockstep_spline.h	ref	0x6cf29c0		0	unpinned	.data					none		0x3e5b850	data_vote	high				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e19000	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1ad00	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1ad40	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1ad80	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1adc0	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1ae00	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1ae40	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1ae80	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1aec0	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1af00	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1af40	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1af80	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1b080	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1b0c0	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1b100	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1b140	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1b180	16	1	ok	_RDATA					none			data_unmapped	none				
+script_rng	lockstep_world_position_rng_pins.h	table	0x6e1b1c0	16	1	ok	_RDATA					none			data_unmapped	none				
+infrastructure	lockstep_world_hash.h	ref	0x6fa7e18		0	unpinned	.reloc					none			not_a_site	none				image bound or header arithmetic, not an engine site
+events,infrastructure,npc,world_queue	lockstep_interrupt_step.h,lockstep_nested_action.h,lockstep_world_action.h,lockstep_world_hash.h	ref	0x6fa8fe0		0	unpinned						none			not_a_site	none				image bound or header arithmetic, not an engine site
+bullets_physics,events,infrastructure,nav,npc,pilot_player,rotation_portable,world_queue	lockstep_contact.h,lockstep_contact_properties.h,lockstep_damage.h,lockstep_interrupt_origin.h,lockstep_interrupt_step.h,lockstep_mass.h,lockstep_nested_action.h,lockstep_params.h,lockstep_player_origin_native.h,lockstep_request.h,lockstep_snapshot_fixture.h,lockstep_transition.h,lockstep_transition_queue.h,lockstep_transition_queue_diag.h,lockstep_velocity.h,lockstep_world_action.h,lockstep_world_hash.h,lockstep_world_queue.h,lockstep_world_trace.h,lockstep_world_values.h	ref	0x6fa9000		0	unpinned						none			not_a_site	none				image bound or header arithmetic, not an engine site

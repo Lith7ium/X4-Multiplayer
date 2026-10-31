@@ -1,0 +1,136 @@
+CREATEPOSITION POST-EVALUATION INPUT RECEIPTS - 28 OCTOBER 2026
+
+SOURCE-ONLY RESULT
+
+The explicit, default-off world-position observer is implemented. It records
+the original transform arguments/result, consumed base, evaluated range Values,
+actual scalar sampler arguments/result, radius and final position. It never
+reevaluates an expression, invokes an extra getter, changes RNG, or changes the
+position. This is diagnostic source awaiting independent review, not a native
+game result or an approved deterministic correction.
+
+The accepted design is efcac3f. Independent caller-stack proof c32a19c was read,
+its private source/executable hashes checked, and its 254 active checks and
+wrong-offset negative control independently executed. The implementation starts
+from integrated f0b3cf0, preserving the existing unknown, Find and GetUp work.
+
+FOUR OWNED SITES AND ABI
+
+The reserved thunk ranges remain 3776..3839, 3840..3871, 3872..3903 and
+3904..3967. All are emitted before the shared page's single RX publication.
+
+* c6f7b0: aligned8 entry CAS, replay7, typed four-pointer call returning full
+  opaque RAX. The replay's RAX=entry-RSP survives the indirect continuation jump.
+  Only selected CreatePosition Actions with original caller be0bd1 are supported.
+* c6fb48: call in aligned16 word c6fb40, displacement only. The original
+  3db8a0 receives RCX space, RDX transform, XMM2 time, R9 reference and the fifth
+  stack byte. The observer copies arguments and the 64-byte buffer around the
+  one original call; it does not call the mutable transform getter again.
+* c6fb6a: call in aligned16 word c6fb60, displacement only. The original
+  c59b00 receives descriptor+68, the original Action frame and NULL. The consumed
+  base is copied before and after; scalar XMM0 result bits are retained.
+* 14ddd10: aligned8 entry CAS, replay5. The noinline production wrapper captures
+  its own _AddressOfReturnAddress() directly. In the exact active radius scope,
+  immediate return c59951 and parent return c59b2f establish the audited stack
+  relation. T+38/T+58 hold the already evaluated difference/minimum Values;
+  T+148/T+150 must match the original range/frame. Actual stack limits and the
+  complete T..T+158 span are checked. No helper guesses its caller's frame.
+
+All eleven full contiguous native roots are pinned. The existing exact image
+check remains mandatory. Reattachment reconstructs only exact owned patch words
+before hashing; foreign neighboring bytes refuse. Installation and restoration
+retain independent original-protection and instruction-cache debts, including
+after byte ownership clears. Cleanup retries those debts without overwriting a
+foreign word. Sticky failure remains even after a later successful repair.
+
+LIFETIME AND READ BOUNDS
+
+There are 64 retained events, at most four sampler receipts per event, supported
+nesting depth four, 256 guarded reads and 8192 copied bytes per selected event.
+Supported owned fixtures measured 175 reads/5472 bytes with a null reference and
+201 reads/5880 bytes with a saved reference. No allocation, Lua, logging or native
+getter is used in these boundaries. Full program hashing is performed only by
+the enclosing existing Action observer, not hidden inside these read counts.
+
+Each partial boundary guard checks the same retained Action/NPC scope, current
+ExecState, context lifetime, owner, descriptor name/version, program header,
+actual node/slot, type/Execute, original frame, thread, TLS, native phase and
+clocks. The stored PC and actual program slot remain distinct. Space/reference
+use the existing bounded registry-generation/full-ID/class proof and retained
+saved map; unresolved objects stay unsupported. A failed object capture cannot
+be interpreted as a typed null.
+
+Original calls execute once on admitted and denied paths, with no observer lock
+held across them. The new finally blocks touch only resident private scopes and
+counters on abnormal return. They neither read the borrowed native stack/object
+buffers nor call Lua/logging. The pre-existing enclosing Action/Values observers
+do not acquire a new abnormal-cleanup guarantee from this change. Their missing
+completion or retained failures remain strict failures. Double copies cannot
+exclude byte-identical ABA and do not constitute a reference/lifetime lease.
+
+CONFIGURATION, RELOAD AND RECEIPTS
+
+--world-position requires --world-values and the existing selected Action
+manifest. It emits only native_gate_world_position=true. Lua configures it after
+Action and Values, before Load. The native configuration binds the immutable
+boot/image/thunk, token, slot, port, digest, options and Action manifest. Identical
+healthy reattachment acknowledges existing state without writes, installation,
+counter reset or cursor reset. Changed bindings, STOP, failed dependencies,
+foreign words and protection/cache debt refuse.
+
+The four Lua exports are world_position_config, world_position_cursor,
+world_position_status and world_position_row. Each event uses 5176 explicit
+little-endian bytes, emitted as 21 bounded WORLD_POSITION rows of at most 256
+data bytes. The cursor survives genuinely fresh UI states. WORLD_POSITION_STOP
+reports capacity, read/byte limits, calls/open/peak/restore-open, complete/export
+counts, failure/drop counts, owned patches and independent repair debts. Rows
+remain drainable after STOP; draining is not evidence that configuration passed.
+
+The independent parser derives supported status, rather than accepting producer
+success flags. It requires the completed parent Action with its full-program
+before/after proof and exactly one validated downstream CreatePosition Value.
+It checks exact output/RNG joins, stack/owner/phase/registry evidence, finite
+immediate numeric Values, bounded known sampler modes, causal nesting and
+publication completeness. It retains every enclosing error, including reason6
+unknown-owner coverage, separately from valid selected diagnostic rows.
+
+Sampler RNG endpoint counts are checked against the pinned algorithm. The two
+direction draws are only an endpoint relation when returned radius is positive;
+there are no per-direction-call samples. Space/reference and radius expressions
+may consume RNG before these boundaries: their endpoints are retained, not
+assumed equal to earlier Action keys. Raw Windows pointers/RVAs remain local
+diagnostics. No new canonical identities or cross-platform math claim is made.
+
+OFFLINE VALIDATION
+
+* Full existing native C build/test driver passed against the exact read-only
+  Windows image after adding the four recipes (46 total). This includes the
+  existing Find, unknown, player, portable transport and rotation checks.
+* Focused production observer executable: 5345 active checks with -DNDEBUG.
+  All 201 read-failure and STOP positions preserve reached original calls and
+  drain private scopes. Real no-access memory, pointer/read-budget bounds,
+  saturation, four exception locations, immutable reattachment and all four
+  foreign-word preservation cases are exercised.
+* The real production sampler wrapper executes through an independently authored
+  seven-push/0x100 owned frame at the exact caller addresses, with registered
+  unwind descriptions. Normal T/Value joins and actual foreign SEH propagation
+  pass. All four production patch/thunk paths execute on owned code, preserving
+  full RAX, replayed RAX, XMM2, fifth byte and opaque scalar result payload bits.
+* 32 transient/persistent protection/cache failures across installation and
+  restoration pass. Later repairs recover original bytes/RX and clear debts;
+  sticky failure is preserved. STOP after each installed site rolls back.
+* Actual production C Action/position/Value formatter output parses successfully;
+  223 independently altered raw guard/object receipts reject.
+* 123 focused Python/LuaJIT tests passed, including separate fresh Lua states,
+  retained cursors, refused reattachment, typed-null negatives, missing parents,
+  output joins, chunk/nesting/terminal debt and enclosing failure retention.
+
+Reproduce with build_native_gate.py --test --native-image <exact-image> using
+the pinned Zig toolchain. The dedicated test accepts an optional owned export
+path; check_native_world_position.py validates it. New Python tests are in
+test_native_world_position.py. Private build/export evidence remains under
+.local/native-lockstep/build and is not part of source publication.
+
+No X4 process was launched, installed or patched by this implementation work.
+The executable fixtures are owned test code; the game file is read-only. Native
+capture cost, actual input equality and a safe correction remain unproved.

@@ -1,0 +1,150 @@
+SELECTED CREATEPOSITION RNG SCOPE: SOURCE REVIEW CANDIDATE
+28 October 2026 | no game run, staging or new native result
+
+SCOPE
+
+This implements the accepted 2a9e395 proposal and f1ab9da cleanup supplement
+on the isolated bf86f16-derived branch. It uses the existing four Position
+sites and adds no hook, thunk, engine getter, replacement output or broad
+Action seed. The separate option is absent by default. The selected occurrence
+is saved pilot 9d3a4 / saved order 3cdb / saved script 38361 DECIMAL,
+order.fight.patrol v10, native slot 215 / PC 216, gate phase 2 / tick 0.
+The first selected attempt consumes occurrence 1, including a refused attempt.
+
+The 260-byte key and seed remain exactly as reviewed:
+a582beee51faba17312d1d025a75a6cd8e0eca078e86efcf3efbe4fb3353aff0
+17bafa51eebe82a5
+Native scalar radius bits 46c881ce and the three expected states are unchanged.
+The manifest explicitly chooses Find composition 1 or 2; no fallback exists,
+and composition is not included in the semantic seed. Existing Wait and Find
+keys/policies are unchanged. The committed inert example chooses composition 2.
+
+IMPLEMENTATION
+
+The new lockstep_world_position_rng*.h files own admission, finite input/pin
+checks, the single seed store, restoration and export. Default-NULL callbacks
+in the existing Position wrapper run after raw pre-capture, around the existing
+sampler original, and in outer finally after raw post-capture. The per-scope
+sample/finally pointers are retained at entry. A changed global callback cannot
+silently remove cleanup; it instead produces a failed receipt.
+
+Before any write, the helper requires the exact native owner/order/import and
+completed Find binding; selected Action/node/program/phase; zero base; kind 0,
+coordinates 0, absent space/reference, range kind 2; evaluated minimum 0,
+maximum/difference 50000; distribution/count 1; exact caller frame and RNG
+argument; required FP controls; and supported stable math dispatch flags.
+The full reviewed functions, direct calls and constants are pinned, with only
+verified owned Position patch bytes reconstructed. Evaluated maximum T+0x78
+and result scratch T+0x178 are read from the actual incoming sampler frame.
+Ignored padding remains local raw evidence and never enters the key.
+
+Seed admission and STOP closure share wpr_lock. Caller state is copied, then
+write_attempted, restore_required and debt are set BEFORE the guarded store.
+Only successful exact readback marks applied. A partial/faulting/uncertain store
+therefore still owns restoration. A true pre-write refusal leaves native RNG
+behavior intact and does not restore a saved state. No lock spans the original.
+
+The engine sampler executes once. The native radius continuation and two
+direct direction draws execute normally. No radius, direction, transform or
+return value is replaced. The inherited raw Position post-capture records the
+actual scoped endpoint. The new finally then conditionally restores the exact
+caller TLS location before wp_outer_finish publishes completion/open counts.
+STOP closes admission before stats.active clears and before hook restoration.
+
+Normal and abnormal cleanup revalidate the retained thread, TLS provider,
+address, alignment and writable storage. Store/readback and provider faults
+are contained in cleanup; the original foreign exception still propagates.
+Abnormal cleanup does not read unwound Value/native object frames. Changed TLS
+or unsupported restoration retains explicit debt. A successful restore never
+clears STOP, nesting, identity, postcondition or exception errors.
+
+The existing Find/Wait conflict seam rejects nested intervention while this
+scope is present. The existing raw Position schema 2 remains byte-for-byte the
+same. It remains natural-only when the new option is absent.
+
+CONFIGURATION AND EVIDENCE
+
+--world-position-rng-manifest requires --world-position and the exact reviewed
+Find/Wait/Action/snapshot closure already enforced by the builder. Native
+configuration is first-install phase 0 only. Healthy exact same-session UI
+retries retain consumed occurrence, receipts and export cursors; failed,
+changed, detached, closed or indebted state refuses. Lua configures Position
+and Find before the new scope and resumes the native drain cursor on reload.
+
+WORLD_POSITION_RNG schema 1 is a fixed 576-byte record in three bounded rows.
+It distinguishes raw caller input, effective seed, native sampler/outer output,
+restored caller state, write attempt, applied/readback, restoration and debt.
+It also copies the selected identity, max/scratch Values and math flags.
+
+The Python reader requires an exact configured intervention and joins each
+record to the raw Position, completed Action, downstream Value, prior Find
+and import Wait. It does not rewrite raw observer bytes. The raw pre-seed
+sampler and raw scoped outer output are interpreted through an independently
+validated bridge. Missing or malformed bridges cannot produce selected-valid
+results. Pair comparison requires distinct slots, matching composition, equal
+math inputs and equal selected output. Unknown Action/Values/full-world failures
+remain separate and strict. No Linux math equivalence is asserted.
+
+VALIDATION
+
+The full existing native build/test driver completed successfully against the
+pinned executable read-only. Its existing Position tests retain 6,772 checks
+and 225 raw mutants. The new production scope test has 6,635 always-on checks
+under -O2 -DNDEBUG, including:
+
+- both explicit Find compositions and exact caller-state restoration;
+- all 277 reader failure positions and all 277 STOP positions;
+- partial and faulting seed writes, failed restore, changed TLS/order/math,
+  phase changes, detached cleanup callback and retained debt;
+- selected/foreign nesting, duplicate occurrence and omitted/repeated draws;
+- healthy native retry before/after use and immutable failed acknowledgments;
+- a controlled worker interleaving showing STOP waits for seed publication,
+  then records the open scope while ordinary native execution completes;
+- actual production sampler wrapper/thunk with authored native-shaped frames,
+  true incoming T+0x78/T+0x178, disabled behavior and real foreign SEH.
+
+The actual C formatter's new records and raw Position records pass the strict
+bridge reader; 122 coherent raw/identity/guard mutants are rejected. This
+fixture deliberately models already-completed parent/Value/Find/Wait metadata.
+It is not an end-to-end game/import/script execution. Those dependency readers
+and wrappers have their separate existing production tests. This distinction
+is explicit in check_native_world_position_rng.py and its JSON result.
+
+The Python/Lua suite discovered 768 tests: 761 pass and seven unchanged
+Linux-specific tests skip on this Windows host. They were not rerun on WSL in
+this source task. An initial invocation omitted tools/ from PYTHONPATH and had
+six import errors; the corrected full invocation passes with no source change.
+After the final paired-composition refusal was added, 61 focused Python/Lua
+tests passed. Actual Lua tests cover configuration ordering, retained cursor,
+UI reload, STOP export and refused reattachment. These mock native Lua APIs;
+they do not replace the separate native configuration tests above.
+
+Import-only historical replay of immutable World014 and World015 retains
+exactly their 64 and 56 ordered errors, respectively, with evidence_valid and
+session_pass both false. The original validations, barriers and raw logs are
+rehash-verified unchanged. No old invalid receipt is repaired or promoted.
+
+REVIEW EVIDENCE AND LIMITS
+
+Private paths in the position-rng tree:
+.local/position-rng/full-c.log
+.local/position-rng/full-python-final.log
+.local/position-rng/historical-replay.json
+.local/position-rng/historical-014-validation.json
+.local/position-rng/historical-015-validation.json
+.local/native-lockstep/build/position-rng-owned-export.log
+.local/native-lockstep/build/test_world_position_rng.exe
+
+Full C log SHA256:
+461cee6cd9cd6e3f6559c31d66af98dd0bf91bcce497080875d2df47a2ebc568
+Full Python log SHA256:
+9c7efa2b65468f7c042eacb34eccbac0674705cca7f2f0c930c2eaba4c9d6b8c
+Private tested DLL SHA256 (not staged or approved for a game):
+7e1970cdc11518c809719a7369a34a9835fc8ff68c44248fff9883797e0629cf
+
+World015/016 were captured without this intervention. Their unequal position
+outputs cannot be attributed to this unrun code. Earlier chance/range effects,
+other owners and other actions remain natural. The finite kernel proof is for
+the pinned Windows image and supported copied dispatch flags. This candidate
+still requires independent frozen source review, root integration, a separately
+reviewed exact artifact and one explicit native-run authorization.

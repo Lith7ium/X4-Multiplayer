@@ -30,6 +30,14 @@ class BubbleAdapterTests(unittest.TestCase):
  def test_setup_waits_and_original_profile_is_inactive(self):
   l=self.make(ready=False);l.execute("frames.onUpdate(); assert(countRequest('SetupHost')==0); events['X4LAN.Loaded'](); now=10;frames.onUpdate(); assert(countRequest('SetupHost')==1)")
   l=self.make("api.GetSaveFolderPath=function() return '/X4/original/save' end",False);self.assertIsNone(l.eval('frames.onUpdate'))
+ def test_dedicated_authority_does_not_teleport_into_shared_ship(self):
+  import xml.etree.ElementTree as ET
+  l=self.make("X4LAN_CONFIG.dedicated=true;X4LAN_CONFIG.ship_macro='ship_test'")
+  l.execute("local found=false;for _,r in ipairs(requests) do if r[2]=='PrepareShips' then found=true;assert(r[3].teleport==false) end end;assert(found)")
+  root=ET.parse(Path(__file__).resolve().parents[1]/'src/extension/x4_lan_lab/md/x4lan_bubble.xml')
+  teleport=root.find(".//cue[@name='PrepareShips']/actions/do_else/do_if[@value='$args.$teleport']/teleport_player")
+  self.assertIsNotNone(teleport)
+
  def test_commands_deduplicated_before_engine_and_after_result(self):
   l=self.make();l.execute("r=string.rep('b',32);command(r,'PICKUP');command(r,'PICKUP');assert(countRequest('Command')==1);events['X4LAN_Bubble.Result'](nil,r..'|OK');command(r,'PICKUP');assert(countRequest('Command')==1);assert(sent[#sent]=='DONE|1|'..client.lease..'|'..r..'|OK')")
  def test_pause_defers_commands_and_trade_done_is_forwarded(self):

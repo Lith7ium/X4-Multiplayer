@@ -1,0 +1,15 @@
+[package]
+name = "x4mp-agent"
+description = "Opt-in, build-pinned Linux X4 engine agent (LD_PRELOAD) for the dedicated server: per-frame cadence observer"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "x4mp_agent"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "x4mp-sigcheck"
+path = "src/bin/x4mp-sigcheck.rs"

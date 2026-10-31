@@ -1,0 +1,154 @@
+World010: equal candidate sets, different native selection
+========================================================
+
+Result and limits
+-----------------
+The single approved disposable pair failed the strict whole-world comparison
+at frame1 and stopped. Validation retains68 errors, evidence_valid=false and
+session_pass=false. Both instances closed gracefully and their lanes and
+snapshot installations were restored. No repeat, new seed or correction was
+performed. Earlier World009 artifacts remain unchanged.
+
+The new receipts establish a specific selected target divergence: the same
+ordered four candidates and null optional component reached the native final
+selection helper, but different incoming RNG states selected different saved
+components. That is useful local evidence, not acceptance of the entire Values
+capture. Six receipts per client failed explicit caller/type guards, and global
+Action ownership remains incomplete.
+
+Frozen inputs and lifecycle
+---------------------------
+Source eb2c0ece70a8bf94fc5e3d39d424b265369bbf28; DLL632832 bytes:
+89c41a2ce42a167e7c26f290b7871f5a57c95ef41a00854abb1d87e5bdb2ec8c
+Overlay manifest:
+3f76f6a7d367db2d7092c3dc3e48e3839e9cb8a148c31bc3d172dbd6625b3053
+Snapshot:
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8
+
+Independent checks matched311 committed source files,144 frozen build hashes
+and11 overlay payloads with no extra files. Only config changes from World009
+were enabling Values receipts and appending read-only ship watch930fc to
+6d940/80d4f/92baa/9d39b. All three input manifests were byte-identical. The two
+existing selected Wait keys and natural third policy were unchanged.
+
+Released lane runner5d5a680ec6ef admitted b1/profile45850 and b2/profile45851.
+Runner31968 was requested at2026-10-28T04:47:18.369698Z. X4 PIDs were110760 and
+55568; both closed through WM_CLOSE with process exit0. Runner duration77.593s,
+result exit5/fail_pattern: battle_state_mismatch_tick_1. Both lane_restored and
+native_snapshot.restored were true; staged/copied snapshot hashes matched the
+pristine input. Released post-status showed no X4, lane locks, queue or instance
+mutex. The command retained12 ticks/first mismatch and260s/900s run/admission
+bounds. This release has no RAM admission threshold.
+
+Strict frame1 difference and physical phase
+------------------------------------------
+All521929 imported identities remained in the comparison, with426799 present,
+unknown_motion32607, unknown_class0 and unknown_references0 on both clients.
+Topology, health, motion and inventory matched at frame1. Exactly10008 objects
+differed in the raw timing field nav.refresh_cursor, and no other timing field.
+Client1 had raw cursor0; client2 had1. Physical selectors were read0/write1 and
+read1/write0 respectively, stable before/after each full scan. All five watches
+showed the same raw cursor difference. Frame2 was not admitted, so this run does
+not measure whether prior motion divergence recurs at that frame.
+
+Existing static evidence identifies controller+0xc8 as a physical bank label,
+not a generation counter. RefreshFromPathingState ea2a20 compares it with current
+selector38f4ee4 at ea2a6f and stores that selector at ea2ab3. Its eligibility also
+requires strictly newer TLS simulation time; it can consume notifications.
+Constructor/import use sentinel2. Full ea2a20/537-byte SHA was rechecked:
+d301bea94b279ddce92ced403bafdd17a90ed2eb83c5cc5944cf2ae600fc4a4f
+See NATIVE-LOCKSTEP-STATIC-COMPARISON-20261027.txt sections8/9 for the prior audit.
+
+An independent derived diagnostic finds current/current relation for every one
+of the10008 differing cursors. This explains the raw label difference without
+erasing it. No raw hash was rewritten or excluded, and both physical banks,
+refresh times and notification fields remain retained. Relabeling selectors
+after import could change eligibility; this report does not authorize that.
+The older006/007 captures with matching physical phases and differing motion
+remain separate evidence of a real motion-input divergence.
+
+Equal candidates, exact differing selection
+------------------------------------------
+Both clients recorded75 selected Action events with no per-event Action error.
+The earliest differing clean typed result is Values event3, nested in candidate
+event2 and selected Action4: saved pilot9d3a4, order.fight.patrol version10,
+native program slot129 (dispatched PC130), FindComponent target b87a30.
+Both candidate lists, in exact order, were [28,29,2b,428af]. Every item had
+Windows type RVA2b66080 and valid byte1. Before/after lists were stable, the
+optional component was null and the observed declaration flags matched.
+
+The final helper d2ab50 called the pinned97-byte RNG helper14dde20 with count4.
+That helper computes, in unsigned64 arithmetic:
+  next = rotate_right(state * 5851f42d4c957f2d + 14057b7ef767814f, 30)
+  selected_index = next modulo count
+
+Client1 input062fa8b031ac8702 -> nextd77ceaa780153fd5 -> index1 -> saved29.
+Client2 input0ef3dc5bdd8312fd -> next5c796b203a806fbc -> index0 -> saved28.
+The captured child assignment reports exactly those saved IDs. It did not
+advance RNG further. Full helper SHA was rechecked:
+b472ced0db2e62425089baf6b0ef72b29b258f3a8a34fdabcf98b389171121b7
+
+The RNG inputs already differ at the first selected Action receipt. Thus this
+proves how the observed final selection diverges, not where the upstream RNG
+stream first diverged. Earlier filters, skipped Actions and pre-dispatch chance
+draws remain outside this new helper's coverage.
+
+Positions and command chronology
+--------------------------------
+Clean typed position receipts also differ. Trader80d4f's move.idle slot59
+assignment exactly matches its queued target xyz bytes and saved reference95:
+  client1 [32131.568359375,-5495.5947265625,-9854.3310546875]
+  client2 [34322.0,-2984.510009765625,-12039.3701171875]
+Destroyer9d39b's later queue uses saved reference29 versus28, matching the native
+selection above. Its queued positions differ; earlier patrol and seek-enemies
+Value coordinates are retained as local coordinates. Some coordinate conversion
+occurs before publication, so they are not mislabeled as identical world-space
+vectors merely from their association with the same selected owner.
+
+Queue evidence is structurally clean: client1 has15 enqueue/15 dispatch/3 append
+receipts; client2 has10/10/2. The extra five-command batch belongs to watched
+ship930fc and pilot93101, move.generic PC363, gate boot2/tick0/native time7.083.
+It is absent from client2's queue trace. This is pre-admission gate phase, not
+proof the native Load function is still executing. Pilot93101 remains outside
+the two-owner Action manifest, so its earlier decision/wake cause is unobserved.
+
+Selected Wait outputs still match for the two interventions:
+80d54 due7.0451471956503395;9d3a4 due6.4457276735734945.
+Natural third pilot6d945 differs again:7.471031243162155 versus7.253529185609818.
+No third seed was introduced and no batch in this capture is attributed to it.
+
+Coverage refusals retained
+--------------------------
+Each Values trace contains24 complete events/80 rows, with six failures:
+- Events10/11 and20/21: caller guard2. Nested assignment returns c71c12/c71b7b
+  occurred inside GetSafePos Actions; those caller/declaration roles were not
+  supported by the approved observer and were not silently accepted.
+- Events18/19: type guard8. Selected SetValue inputs use unhandled tags56/58.
+
+There was no overflow, open scope at STOP, unmatched publication, remaining
+entry patch, protection/cache pending work or patch failure. The captures remain
+invalid rather than filtering these six events to make the clean subset pass.
+
+Global Action unknown totals were2093 and2094. The new diagnostic classified all
+of them as failure at the saved-identity lookup (reason6); it does not establish
+their cause or make them foreign. Four bounded examples per client share raw
+runtime1358082 and context lifetime1358094, with a valid native ownership bracket
+but no imported saved identity. Omitted example counts2089/2090 remain explicit.
+No complete producer-coverage or full lockstep claim follows from these samples.
+
+Evidence and next scope
+-----------------------
+Private artifacts under .local/native-lockstep/world-motion-010 retain result,
+raw logs, strict validation, full world differences, selected causality/queue/
+Action/Values receipts, and value-input-output-summary.json. Independent
+check_world_motion_010_report.py re-read roots, all10008 cursor relations,
+selection arithmetic, target bytes, six failures and cleanup; assertions PASS
+are retained in report-assertions.json. Proprietary code/raw logs are not shipped.
+
+Next source proposal should specify a guarded deterministic stream at an exact
+selected NPC/Action/FindComponent boundary, separate from upstream scheduling
+and position draws. Stable owner/order/script/version/frame/sequence binding,
+original-once, caller TLS restoration, refusal and exception limits need review
+before implementation. The raw cursor result can support a separate logical
+relation diagnostic; it does not justify dropping timing failures. No new game
+or broader intervention is authorized by this report.

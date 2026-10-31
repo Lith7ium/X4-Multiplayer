@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lockstep player orders (config native_gate_player_orders, default off; driven only by
+     native_gate_player_orders.lua). Every client receives the same admitted command at the same
+     gated tick. Lua already decoded it, resolved saved IDs and checked the ownership table; this
+     script re-checks world state, creates the order and writes exactly one PLAYER_ORDER_APPLIED
+     line per command. It never decides ownership tables or invents commands. -->
+<mdscript name="X4LAN_PlayerOrders" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="State"><actions><set_value name="$ordinal" exact="0"/></actions></cue>
+  <cue name="Apply" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_PlayerOrders'" control="'Apply'"/></conditions>
+   <actions>
+    <set_value name="$a" exact="event.param3"/>
+    <set_value name="$s" exact="@$a.$subject"/>
+    <set_value name="$t" exact="@$a.$target"/>
+    <set_value name="$order" exact="null"/>
+    <set_value name="$expect" exact="''"/>
+    <set_value name="$result" exact="''"/>
+    <!-- Lua numbers arrive as floats: compare by value. A gap means a lost or reordered event;
+         ordinal 1 starts a new Lua session (the counter is not part of any snapshot). -->
+    <do_if value="$a.$ordinal != 1 and $a.$ordinal != State.$ordinal + 1">
+     <set_value name="$result" exact="'refused_md_sequence'"/>
+    </do_if>
+    <do_elseif value="not @$s.isoperational or not $s.isclass.ship">
+     <set_value name="$result" exact="'refused_subject_inoperational'"/>
+    </do_elseif>
+    <do_elseif value="$a.$ownership == 'faction' and $s.owner.id != $a.$faction">
+     <set_value name="$result" exact="'refused_not_owner'"/>
+    </do_elseif>
+    <do_elseif value="$a.$op == 'move' and not @$a.$sector.isclass.sector">
+     <set_value name="$result" exact="'refused_sector_invalid'"/>
+    </do_elseif>
+    <do_elseif value="($a.$op == 'attack' or $a.$op == 'follow' or $a.$op == 'protect' or $a.$op == 'dock' or $a.$op == 'buy' or $a.$op == 'sell' or ($a.$op == 'assign' and $a.$hascommander == 1)) and not @$t.isoperational">
+     <set_value name="$result" exact="'refused_target_inoperational'"/>
+    </do_elseif>
+    <do_elseif value="($a.$op == 'attack' or $a.$op == 'follow' or $a.$op == 'protect' or $a.$op == 'dock' or $a.$op == 'buy' or $a.$op == 'sell' or ($a.$op == 'assign' and $a.$hascommander == 1)) and $t == $s">
+     <set_value name="$result" exact="'refused_self_target'"/>
+    </do_elseif>
+    <do_elseif value="$a.$ownership == 'faction' and $a.$op == 'attack' and $t.owner.id == $a.$faction">
+     <set_value name="$result" exact="'refused_own_target'"/>
+    </do_elseif>
+    <do_elseif value="$a.$ownership == 'faction' and $a.$op == 'assign' and $a.$hascommander == 1 and $t.owner.id != $a.$faction">
+     <set_value name="$result" exact="'refused_commander_not_owned'"/>
+    </do_elseif>
+    <do_elseif value="($a.$op == 'dock' and not $t.isclass.[class.station, class.ship]) or (($a.$op == 'buy' or $a.$op == 'sell') and not $t.isclass.station) or ($a.$op == 'protect' and not $t.isclass.ship)">
+     <set_value name="$result" exact="'refused_target_class'"/>
+    </do_elseif>
+    <do_elseif value="($a.$op == 'buy' or $a.$op == 'sell') and typeof @ware.{$a.$ware} != datatype.ware">
+     <set_value name="$result" exact="'refused_ware_invalid'"/>
+    </do_elseif>
+    <do_else>
+     <do_if value="$a.$clear == 1"><cancel_all_orders object="$s"/></do_if>
+     <do_if value="$a.$op == 'move'">
+      <set_value name="$expect" exact="'MoveWait'"/>
+      <create_position name="$position" x="($a.$x)m" y="($a.$y)m" z="($a.$z)m"/>
+      <create_order object="$s" id="'MoveWait'" immediate="$a.$immediate == 1" name="$order">
+       <param name="destination" value="[$a.$sector, $position]"/>
+      </create_order>
+     </do_if>
+     <do_elseif value="$a.$op == 'attack'">
+      <set_value name="$expect" exact="'Attack'"/>
+      <create_order object="$s" id="'Attack'" immediate="$a.$immediate == 1" name="$order">
+       <param name="primarytarget" value="$t"/>
+      </create_order>
+     </do_elseif>
+     <do_elseif value="$a.$op == 'follow'">
+      <set_value name="$expect" exact="'Follow'"/>
+      <create_order object="$s" id="'Follow'" immediate="$a.$immediate == 1" name="$order">
+       <param name="target" value="$t"/>
+      </create_order>
+     </do_elseif>
+     <do_elseif value="$a.$op == 'protect'">
+      <set_value name="$expect" exact="'ProtectShip'"/>
+      <create_order object="$s" id="'ProtectShip'" immediate="$a.$immediate == 1" name="$order">
+       <param name="target" value="$t"/>
+      </create_order>
+     </do_elseif>
+     <do_elseif value="$a.$op == 'dock'">
+      <set_value name="$expect" exact="'DockAndWait'"/>
+      <create_order object="$s" id="'DockAndWait'" immediate="$a.$immediate == 1" name="$order">
+       <param name="destination" value="$t"/>
+      </create_order>
+     </do_elseif>
+     <do_elseif value="$a.$op == 'hold'">
+      <set_value name="$expect" exact="'Wait'"/>
+      <create_order object="$s" id="'Wait'" immediate="$a.$immediate == 1" name="$order">
+       <param name="holdfire" value="$a.$holdfire == 1"/>
+      </create_order>
+     </do_elseif>
+     <do_elseif value="$a.$op == 'buy' or $a.$op == 'sell'">
+      <set_value name="$expect" exact="if $a.$op == 'buy' then 'SingleBuy' else 'SingleSell'"/>
+      <create_order object="$s" id="$expect" immediate="$a.$immediate == 1" name="$order">
+       <param name="ware" value="ware.{$a.$ware}"/>
+       <param name="locations" value="[$t]"/>
+       <param name="maxamount" value="$a.$amount"/>
+       <param name="pricethreshold" value="($a.$price)ct"/>
+      </create_order>
+     </do_elseif>
+     <do_elseif value="$a.$op == 'assign'">
+      <set_value name="$expect" exact="'AssignCommander'"/>
+      <set_value name="$assignment" exact="null"/>
+      <do_if value="$a.$hascommander == 1">
+       <set_value name="$assignment" exact="if $a.$assignment == 'defence' then assignment.defence else if $a.$assignment == 'attack' then assignment.attack else if $a.$assignment == 'interception' then assignment.interception else if $a.$assignment == 'bombardment' then assignment.bombardment else if $a.$assignment == 'mining' then assignment.mining else if $a.$assignment == 'trade' then assignment.trade else if $a.$assignment == 'supplyfleet' then assignment.supplyfleet else if $a.$assignment == 'positiondefence' then assignment.positiondefence else if $a.$assignment == 'assist' then assignment.assist else if $a.$assignment == 'salvage' then assignment.salvage else null"/>
+      </do_if>
+      <do_if value="$a.$hascommander == 1 and $assignment == null">
+       <set_value name="$result" exact="'refused_assignment_invalid'"/>
+      </do_if>
+      <do_else>
+       <create_order object="$s" id="'AssignCommander'" immediate="true" name="$order">
+        <param name="commander" value="if $a.$hascommander == 1 then $t else null"/>
+        <param name="assignment" value="$assignment"/>
+        <param name="subordinategroup" value="$a.$group"/>
+        <param name="setgroupassignment" value="$a.$group gt 0"/>
+        <param name="cancelorders" value="true"/>
+       </create_order>
+      </do_else>
+     </do_elseif>
+     <do_else>
+      <set_value name="$result" exact="'refused_op_unknown'"/>
+     </do_else>
+     <do_if value="$result == ''">
+      <set_value name="$result" exact="if @$order.exists and $order.id == $expect then 'applied' else 'refused_order_creation'"/>
+     </do_if>
+    </do_else>
+    <set_value name="State.$ordinal" exact="$a.$ordinal"/>
+    <debug_text text="'[X4LAN] PLAYER_ORDER_APPLIED %s result=%s %s time=%s'.[$a.$head, $result, $a.$tail, player.age]"/>
+   </actions>
+  </cue>
+ </cues>
+</mdscript>

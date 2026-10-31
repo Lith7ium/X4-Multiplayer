@@ -2,7 +2,7 @@
 -- Use a small Lua module via the supported unprotected package.loadlib path.
 X4LAN_TRANSPORT = {}
 local native
-function X4LAN_TRANSPORT.open(host, port)
+local function load_native()
     if not native then
         assert(package and package.loadlib, "native Lua modules unavailable; disable Protected UI mode")
         if GetUISafeModeOption then assert(GetUISafeModeOption() == false, "disable Protected UI mode") end
@@ -14,5 +14,14 @@ function X4LAN_TRANSPORT.open(host, port)
         native = initialise()
         assert(native and native.open, "native module could not resolve the running Lua 5.1 ABI")
     end
-    return native.open(host, port)
+    return native
+end
+function X4LAN_TRANSPORT.open(host, port)
+    return load_native().open(host, port)
+end
+-- Dedicated authority control record: found, firstLine (see x4lan_net read_control).
+function X4LAN_TRANSPORT.read_control(path)
+    local module = load_native()
+    assert(module.read_control, "native module lacks read_control; rebuild the package")
+    return module.read_control(path)
 end

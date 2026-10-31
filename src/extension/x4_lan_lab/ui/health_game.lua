@@ -24,7 +24,9 @@ local A=X4LAN_BUBBLE_API;local cfg=X4LAN_CONFIG
 if not cfg or not cfg.coop or not cfg.pilot_health or not A or not A.coop or not A.state.active then return end
 local c=A.coop;local s=A.state
 local h={seq=0,valid={},gen={0,0},last={0,0},closed={0,0},stale={0,0},remote={},auth={{0,false},{0,false}}};A.health=h
-local INTERVAL,FRESH,TTL,READING,RETRY=.1,1.0,1.0,.5,.5
+-- FRESH: a pilot stream older than this closes the generation. On the dedicated Internet server
+-- (UI-paced networking, ~20 Hz) 1 s flapped, re-granting authority every few seconds; LAN keeps 1 s.
+local INTERVAL,FRESH,TTL,READING,RETRY=.1,(cfg.dedicated_session and 3.0 or 1.0),1.0,.5,.5
 local function log(v) DebugError('[X4LAN] '..v) end
 local function number(v,max)
  local n=tonumber(v);if not n or n~=n or n<0 or n>max then return nil end;return n

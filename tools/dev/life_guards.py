@@ -2,6 +2,26 @@
 import xml.etree.ElementTree as E
 
 
+def _write_only_changes(cue):
+    """Wrap hull/shield writes so unchanged values are not re-applied on every packet.
+
+    Each set_object_shield counts as a change and re-shows the HUD shield bar, so the
+    guest's unconditional writes made the bar flash. Differences up to 0.5 points are skipped.
+    """
+    parents = {child: parent for parent in cue.iter() for child in parent}
+    for node in list(cue.iter()):
+        prop = {'set_object_hull': 'hullpercentage', 'set_object_shield': 'shieldpercentage'}.get(node.tag)
+        parent = parents.get(node)
+        if not prop or parent is None or parent.get('value', '').endswith(' gt 0.25'):
+            continue
+        obj, value = node.get('object'), node.get('exact')
+        guard = E.Element('do_if', value='(%s.%s - %s) * (%s.%s - %s) gt 0.25' % (obj, prop, value, obj, prop, value))
+        index = list(parent).index(node)
+        parent.remove(node)
+        guard.append(node)
+        parent.insert(index, guard)
+
+
 def guard_bubble(xml):
     root = E.fromstring(xml)
     actions = root.find('./cues/cue/actions')
@@ -32,6 +52,7 @@ def guard_bubble(xml):
     for child in selected[:2]:
         loop.remove(child); health.append(child)
     gate.append(health)
+    _write_only_changes(root.find(".//cue[@name='Apply']"))
     for child in selected[2:]:
         loop.remove(child); gate.append(child)
     loop.insert(1, E.fromstring('''<do_if value="$v.{($i - 1) * 3 + 1} le (if @Arena.$healthOwn.{$i} then 0 else 1.01)"><set_value name="Arena.$dead.{$i}" exact="true"/></do_if>'''))

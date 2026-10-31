@@ -13,17 +13,25 @@
     <set_value name="$arena" exact="md.X4LAN_Bubble.Arena"/>
     <!-- Read by x4lan_bubble.xml: guest Apply skips health/dead of a ship in $healthOwn; host
          Publish sends $healthValue for a ship in $healthLive instead of the proxy readback. -->
-    <set_value name="$arena.$healthOwn" exact="[false,false]"/>
-    <set_value name="$arena.$healthLive" exact="[false,false]"/>
-    <set_value name="$arena.$healthValue" exact="[[0,0],[0,0]]"/>
-    <set_value name="$arena.$healthGen" exact="[0,0]"/>
-    <set_value name="$arena.$healthClosed" exact="[0,0]"/>
-    <set_value name="$arena.$healthAuth" exact="[0,0]"/>
-    <set_value name="$arena.$healthBased" exact="[0,0]"/>
-    <set_value name="$arena.$healthAt" exact="[0s,0s]"/>
-    <set_value name="$arena.$healthKeptAt" exact="[0s,0s]"/>
-    <set_value name="$arena.$healthProxyLost" exact="[false,false]"/>   <!-- x4lan_life.xml: logged once, never recreated -->
-    <set_value name="$arena.$healthTop" exact="[0,0]"/>
+    <!-- One entry per shared ship (Arena.$ships, up to MAX_PLAYERS): pilot health authority
+         exists for ships 1/2 only (ui/health_game.lua), but the 10 Hz Own readback, life tick,
+         shot capture and NPC combat index these lists by any shared ship, so ships 3+ read the
+         neutral entry instead of an out-of-range lookup (native p4: $healthOwn.{3} error spam). -->
+    <set_value name="$arena.$healthOwn" exact="[]"/><set_value name="$arena.$healthLive" exact="[]"/>
+    <set_value name="$arena.$healthValue" exact="[]"/><set_value name="$arena.$healthGen" exact="[]"/>
+    <set_value name="$arena.$healthClosed" exact="[]"/><set_value name="$arena.$healthAuth" exact="[]"/>
+    <set_value name="$arena.$healthBased" exact="[]"/><set_value name="$arena.$healthAt" exact="[]"/>
+    <set_value name="$arena.$healthKeptAt" exact="[]"/>
+    <set_value name="$arena.$healthProxyLost" exact="[]"/>   <!-- x4lan_life.xml: logged once, never recreated -->
+    <set_value name="$arena.$healthTop" exact="[]"/>
+    <do_all exact="[$arena.$ships.count,2].max" counter="$i">
+     <append_to_list name="$arena.$healthOwn" exact="false"/><append_to_list name="$arena.$healthLive" exact="false"/>
+     <append_to_list name="$arena.$healthValue" exact="[0,0]"/><append_to_list name="$arena.$healthGen" exact="0"/>
+     <append_to_list name="$arena.$healthClosed" exact="0"/><append_to_list name="$arena.$healthAuth" exact="0"/>
+     <append_to_list name="$arena.$healthBased" exact="0"/><append_to_list name="$arena.$healthAt" exact="0s"/>
+     <append_to_list name="$arena.$healthKeptAt" exact="0s"/><append_to_list name="$arena.$healthProxyLost" exact="false"/>
+     <append_to_list name="$arena.$healthTop" exact="0"/>
+    </do_all>
     <raise_lua_event name="'X4LAN_Health.Ready'"/>
     <debug_text text="'[X4LAN] HEALTH_SETUP host=%s'.[$arena.$host]"/>
    </actions>
@@ -84,7 +92,7 @@
      <do_if value="$a.$gen == $arena.$healthAuth.{$a.$entity} and player.timewarp.factor gt 0s and player.systemtime.{'%Y-%m-%dT%H:%M:%S'} == $a.$stamp and player.age / 1s ge $a.$from and player.age / 1s le $a.$deadline and @$ship.isoperational and player.occupiedship == $ship">
       <!-- A generation's baseline is written once; a retry of it only confirms. -->
       <do_if value="$arena.$healthBased.{$a.$entity} != $a.$gen">
-       <set_object_hull object="$ship" exact="$a.$hull"/><set_object_shield object="$ship" exact="$a.$shield"/>
+       <do_if value="($ship.hullpercentage - $a.$hull) * ($ship.hullpercentage - $a.$hull) gt 0.25"><set_object_hull object="$ship" exact="$a.$hull"/></do_if><do_if value="($ship.shieldpercentage - $a.$shield) * ($ship.shieldpercentage - $a.$shield) gt 0.25"><set_object_shield object="$ship" exact="$a.$shield"/></do_if>
        <set_value name="$arena.$healthBased.{$a.$entity}" exact="$a.$gen"/>
        <do_if value="@$arena.$healthProbe"><debug_text text="'[X4LAN] HEALTH_PROBE written Base entity=%s gen=%s requested=%s/%s readback=%s/%s age=%s'.[$a.$entity,$a.$gen,$a.$hull,$a.$shield,$ship.hullpercentage,$ship.shieldpercentage,player.age]"/></do_if>
        <debug_text text="'[X4LAN] HEALTH_BASE entity=%s gen=%s hull=%s shield=%s'.[$a.$entity,$a.$gen,$a.$hull,$a.$shield]"/>
@@ -105,8 +113,8 @@
       <!-- Physical writes only on an operational proxy. -->
       <do_if value="@$ship.isoperational">
        <set_object_min_hull object="$ship" exact="1"/>
-       <set_object_hull object="$ship" exact="$a.$hull"/>
-       <set_object_shield object="$ship" exact="$a.$shield"/>
+       <do_if value="($ship.hullpercentage - $a.$hull) * ($ship.hullpercentage - $a.$hull) gt 0.25"><set_object_hull object="$ship" exact="$a.$hull"/></do_if>
+       <do_if value="($ship.shieldpercentage - $a.$shield) * ($ship.shieldpercentage - $a.$shield) gt 0.25"><set_object_shield object="$ship" exact="$a.$shield"/></do_if>
        <do_if value="@$arena.$healthProbe"><debug_text text="'[X4LAN] HEALTH_PROBE written Apply entity=%s gen=%s requested=%s/%s readback=%s/%s age=%s'.[$e,$a.$gen,$a.$hull,$a.$shield,$ship.hullpercentage,$ship.shieldpercentage,player.age]"/></do_if>
       </do_if>
      </do_if>
@@ -119,7 +127,7 @@
        <set_value name="$ship" exact="$arena.$ships.{$i}"/>
        <do_if value="@$ship.isoperational">
         <set_object_min_hull object="$ship" exact="1"/>
-        <do_if value="not $arena.$dead.{$i}"><set_object_hull object="$ship" exact="$arena.$healthValue.{$i}.{1}"/><set_object_shield object="$ship" exact="$arena.$healthValue.{$i}.{2}"/></do_if>
+        <do_if value="not $arena.$dead.{$i}"><do_if value="($ship.hullpercentage - $arena.$healthValue.{$i}.{1}) * ($ship.hullpercentage - $arena.$healthValue.{$i}.{1}) gt 0.25"><set_object_hull object="$ship" exact="$arena.$healthValue.{$i}.{1}"/></do_if><do_if value="($ship.shieldpercentage - $arena.$healthValue.{$i}.{2}) * ($ship.shieldpercentage - $arena.$healthValue.{$i}.{2}) gt 0.25"><set_object_shield object="$ship" exact="$arena.$healthValue.{$i}.{2}"/></do_if></do_if>
        </do_if>
        <!-- Expiry closes the generation natively: no queued old Apply can re-arm it after a hang. -->
        <set_value name="$arena.$healthLive.{$i}" exact="false"/>
@@ -139,7 +147,7 @@
       <do_if value="@$ship.isoperational">
        <set_object_min_hull object="$ship" exact="1"/>
        <do_if value="$arena.$healthLive.{$e} and not $arena.$dead.{$e}">
-        <set_object_hull object="$ship" exact="$arena.$healthValue.{$e}.{1}"/><set_object_shield object="$ship" exact="$arena.$healthValue.{$e}.{2}"/>
+        <do_if value="($ship.hullpercentage - $arena.$healthValue.{$e}.{1}) * ($ship.hullpercentage - $arena.$healthValue.{$e}.{1}) gt 0.25"><set_object_hull object="$ship" exact="$arena.$healthValue.{$e}.{1}"/></do_if><do_if value="($ship.shieldpercentage - $arena.$healthValue.{$e}.{2}) * ($ship.shieldpercentage - $arena.$healthValue.{$e}.{2}) gt 0.25"><set_object_shield object="$ship" exact="$arena.$healthValue.{$e}.{2}"/></do_if>
        </do_if>
       </do_if>
       <set_value name="$arena.$healthLive.{$e}" exact="false"/>

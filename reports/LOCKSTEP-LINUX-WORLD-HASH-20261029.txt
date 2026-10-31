@@ -1,0 +1,244 @@
+LINUX GATE: WORLD IDENTITIES AND WORLD HASH IN THE WINDOWS FORMAT
+30 October 2026 | Offline | branch contrib/ferrite-linux-gate on smoke head 55fdacb2
+
+SCOPE
+
+Plan step 1 of LOCKSTEP-LINUX-GATE-CORE-20261029.txt: the Linux gate records the
+saved UniverseID of every object the snapshot load imports and hashes the world in
+exactly the Windows format, so tools/dev/census_world.py compares a Linux client with
+a Windows client unchanged (WORLD_IMPORTED_2 summary, WORLD_OBJECT pages, WORLD_DETAIL
+rows, WORLD_BANKS line). Also: the first native Linux live test as one command
+(tools/dev/linux_gate_live.py). No game, lane, relay or remote machine was started or
+contacted; both executables were only read. Labels: PROOF = read from both
+executables or tested; INFERENCE = reasoned, to be confirmed by the live run.
+
+RESULT
+
+- Format and content: PROOF (synthetic). A shared synthetic world
+  (src/native/engine/test_lockstep_world_scenario.h: ships with nav, dock and undock
+  controllers, a turret with a static controller, zones with movement, other and no
+  controllers, an absent object, a non-positional object, shields with and without
+  modifiers, a known and an unknown parent, pending and bank references) is built
+  once in the Windows layout and fed to the unchanged Windows world hash
+  (test_lockstep_world_golden.c, with the pinned X4.exe mapped and relocated for its
+  layout pins and class stubs), and once in the Linux layout and fed to the Linux
+  world hash (linux/test_gate_world.h). Over three ticks and both schemas the Linux
+  text equals the Windows text byte for byte (30,812 bytes: summaries, WORLD_OBJECT
+  pages, WORLD_DETAIL rows, WORLD_BANKS lines; linux/test_gate_world_golden.txt).
+- Every hashed value is the Windows value: objects and movement controllers are
+  hashed with their Windows vtable RVA (167 classes paired by RTTI name, see CLASS TABLE),
+  class flags are the Windows IsRealClass flags (and the Linux stub decodes to the same
+  bits for every class: 0 mismatches), and each field is read at its Linux offset (table
+  below).
+- Linux offsets: PROOF from paired functions of both executables, INFERENCE where noted.
+  Only a live run shows them on real objects. Pointer links (nav owner/agent/slots,
+  dock owner, shield source back pointer, identity recheck, class table) fail the
+  capture closed with a named stage; plain value fields (mode, hull, attention) have
+  no such check, so a wrong value offset would show only as a Windows/Linux difference
+  in a mixed census (which is exactly what the census measures).
+
+LINUX OFFSETS (Windows -> Linux) AND THEIR SOURCES (all functions pinned in gate_sites.h)
+  Component       +0x8 id, +0x68 mode, +0x70 parent, +0xd3, +0x1ec attention,
+                  +0x200 controller: unchanged (Windows 0x6cac60/0x7461c0/0x3e5680 vs
+                  Linux 0x14670f0/0x13142a0/0x18c73b0 use the same displacements)
+                  hull +0x280 -> +0x278 (0x517fe0/0xf09f0 vs 0x17f9d10/0x11b4230)
+                  shield group +0x290 -> +0x288 (shield percent 0x51f5b0 vs 0x17d7b70)
+  ShieldGroupData +0x10/+0x18/+0x28/+0x40/+0x48/+0x50 unchanged; value +0x68 -> +0x60,
+                  changed +0x70 -> +0x68, ShieldRechargeSource vtable +0x90 -> +0x78
+                  (Windows 0x2b19700 -> Linux 0x3b8d6d8), its group pointer +0x98 ->
+                  +0x80, modifiers +0xa0 -> +0x88 (+0x18 unchanged): the Linux group
+                  constructor 0x17be2e0 and recharge evaluation 0x1293330
+  NavigationController owner/slots/params/agent/commands/pending +0x28..+0x50 ->
+                  +0x20..+0x48 (EventListener base 8 bytes lower); time/cursor +0xc0/
+                  +0xc8 and deadline/gate +0xd0/+0xd8 unchanged (nav select 0xea2a20 vs
+                  0x14498d0; params +0x30 is INFERENCE from its neighbours)
+  Pathing agent   commands +0x6e0 -> +0x700, slots (banks) +0xad0 -> +0xaf0, params
+                  +0xe10 -> +0xe30, pending +0xed0 -> +0xef0, owner +0xef0 -> +0xf10;
+                  bank layout (0x1a0 each: vectors, refs +0xb0, +0xcc, +0x150, +0x159,
+                  +0x15b) unchanged (Agent update 0xe8f250 vs 0x1444c70: every offset
+                  from 0xad0 to 0xf7b moves by exactly 0x20; agent constructor 0x13d1dd0;
+                  commands reset 0x14286a0; rotation import report of 27 October)
+  Dock/Undock     every field 0x10 lower (owner 0x60, poses 0x10, time 0x50, more 0x70,
+                  last 0xf0, animation/flags 0x110/0x114, undock 0xb0/0xb4): dock
+                  evaluator 0xd6e810 vs 0x1758130, state slots 0xd6e3f0/0xd6fc50 vs
+                  0x176d330/0x118d1c0
+  Movement        static and movement controllers keep their transform at +0x10 of the
+                  complete object on Linux (Windows static +0x10, movement +0x20): value
+                  setters and the shared reference getter 0xd57f00 (lea rax,[rdi+0x10])
+  Controller ptr  object+0x200 is a MovementControllerInterface*. MSVC keeps that interface
+                  at offset 0 of every controller. Itanium keeps it at offset 0 of nav,
+                  player, static and closest-point controllers only; the others start with
+                  their value source and hold it at +0x58 (the IndirectValueSource one,
+                  AnimationController, at +0x10), under a secondary vtable. The class table
+                  maps that vtable and its offset-to-top leads back to the complete object.
+                  Field offsets in this table are of the complete object.
+  Globals         component find 0xced70 -> 0xa68df0 (same algorithm, table at map+0x60);
+                  registry pointer 0x6cf1500 -> 0x3daa860 (662 call sites load it into
+                  find); bank selectors read 0x38f4ee4 -> 0x3e4fea8 and write 0x2f4b6f4 ->
+                  0x3d8e254 (WaitAndSwapBuffers 0xeac170 vs 0x13e3560 and the Agent
+                  import's first/second bank writes 0xe86cf9/0xe870e2 vs 0x13e67d5/0x13e69cd)
+
+IDENTITIES
+
+Windows hooks 0x79f720, the import of one saved UniverseID ("[0x...]" attribute) into
+the import map 0x31c2110, called from the component import 0x8e2ec0 (twice) and the
+ResourceArea constructor 0x77ee10; seven other Windows functions inline the same code
+for other maps or classes and are not recorded. Linux inlines 0x79f720 into its
+callers; every inline copy inserts through the shared map insert 0x10c8140
+(operator[] of the Windows 0x4795a0 kind, node key +0x20, value +0x28), which also
+serves the AI order map 0x3e480a0. The Linux gate hooks that insert (8-byte entry
+patch, the three relocated pushes in its trampoline; patch and restore exact, foreign
+owners never overwritten) and keeps inserts into the UniverseID map 0x3e1cac0 during
+boot phases 1-2. Each inline import stores the runtime ID in the returned node right
+after the call. The load function then clears the map through the map clear 0x11e0b30
+(Windows 0x942540; call sites 0x1cdd737/0x1cddf54, Windows 0x9eeddb/0x9f0804), which
+returns the node blocks to the allocator. So the gate hooks the clear too (same patch
+form, push rbx and sub rsp in its trampoline; other maps pass through) and at its entry
+reads every recorded node and records (runtime, saved) as Windows does; the table is
+sealed at the first live frame. Failures stop the session with 72 (as on Windows); a
+refused install of either hook stops with 71 and leaves nothing patched.
+Same set as Windows: the first live run counted calls=521929, the count every Windows
+run reports (NATIVE-ACTION-UNKNOWN-IDENTITY-20261028: calls=count=521929).
+
+FIRST LIVE RUNS (coordinator, VPS, 30 October; bundle 00ab3fc3)
+
+Both native Linux instances reached the menu, armed, loaded the full snapshot and
+stopped at boot: STOP completed=0 reason=72, WORLD_IDENTITY_STOP calls=521929 late=0
+restored=1 with count=149350 failures=372579 (client 1) and count=143248
+failures=378681 (client 2).
+- Cause: the gate read the nodes at the first live frame, after the load had freed
+  them; 72% had been reused or changed, a different share on each client, as allocator
+  reuse is. The count of inserts was already right. PROOF of the code path from both
+  executables (value at +0x28 stored after the insert, the clear of this map in both load
+  functions, the blocks freed by aligned delete); that it explains these numbers is
+  INFERENCE until a rerun shows count=521929 failures=0. The synthetic world did not
+  show it because its nodes were never freed.
+- Now reproduced offline: the stand-in clear of the unit test and the engine scenario
+  destroys the nodes as the load does. With the hook's read removed, protocol2_world_hash
+  stops exactly like the live run (reason=72, calls=12 count=1 failures=11) and the unit
+  test asserts; with it, calls=12 count=12 failures=0.
+- Live script: a NATIVE_GATE STOP with a reason other than 1 now ends the run (5 s after
+  the last STOP for its trailing lines, at most 120 s waiting for the peer's own); a peer
+  that never stops ends it after 300 s, a missing relay verdict 120 s after both stopped.
+  X4 renames its main thread (comm is 'Main()'), so preflight and x4_left identify it by
+  /proc/<pid>/exe; instances of this run still there 30 s after cleanup are killed, any
+  other X4 is only reported. run-result.json also carries each client's identity counts.
+
+SECOND LIVE RUN AND THE CLASS TABLE (coordinator, VPS, 30 October; bundle 4b79f555)
+
+The identity fix held: both instances passed boot and reached tick 1 under the relay. Then
+both failed the first capture at the same object: saved=0x939 stage=controller_class_unmapped.
+- Cause: the table held every class's primary vtable, but an object points to the interface
+  subobject (see Controller ptr above), so of the 49 concrete controller classes only the 4
+  with the interface at offset 0 could be found. 0x939, a CollectableWares on a
+  ConnectionMovementController, was simply the first object with one of the other 45. PROOF:
+  Linux builds these controllers with the secondary vtable at primary+0x190 and goes on with the
+  pointer +0x58 (0x188e0cb), and the Windows's census hash of this object resolves to that class.
+- The same layout difference would have broken the next stage too: dock, undock and movement
+  controllers were read at offsets of the complete object from the interface pointer. Fixed in
+  the same change (controller + top), so that is no further round trip.
+- CLASS TABLE, generated from both executables' RTTI (lockstep_linux_world_classes.py):
+  167 classes: 118 objects, 49 controllers (nav 1, dock 1, undock 1, static 1, movement 3,
+  other 42); Linux interface offsets 0 (4 classes), 0x10 (1), 0x58 (44).
+  Not 1:1, all abstract with no complete vtable on Linux, so never an object or a controller:
+    U::Collectable, U::Ship, U::MovementControllerInterface,
+    MovementControllerBase<IndirectValueSource<PosRot>>,
+    NestableMovementControllerBase<IndirectValueSource<PosRot>>.
+  Mismatched: 0. On Linux only: 0.
+- Independent checks (PROOF):
+  - Type IDs: for all 49 controller pairs, the interface's type getter returns the same ID on
+    both (Windows vtable slot 0, Linux slot 7), and those Linux vtables are the mapped ones.
+  - Class flags: the Linux stub gives the Windows bits for all 118 objects.
+  - Layout: movement, dock and undock classes have the value source at offset 0 on Linux.
+  - Windows census (--census, one client's full tick of 521,929 rows, 426,799 present): every
+    object class is in the table and agrees with the row's destructible and positional flags.
+    All 32,607 rows without motion state resolve from their hash to a controller in the table:
+    no controller 23,175, CrossConnection 7,210, Connection 1,814, LinearDeceleration 404,
+    UIAnchor 2, FirstPerson 1, Player 1.
+- The golden world now builds its controllers in the real layout, with the interface at +0x58:
+  the Linux text still equals the Windows text byte for byte.
+- A capture now reads every object even after a failure and still publishes nothing when any
+  failed. The error names the first failure as before and adds one line per distinct (stage,
+  vtable), up to 64 and within the logger's 8191 bytes per call, with no change to the probe:
+    NATIVE_GATE WORLD_CAPTURE_PROBLEM stage=... count=N first_saved=... vtable=... top=... class=...
+  This covers every stage (nav links, dock owner, shield, ...), not only unmapped classes.
+  run-result.json lists these lines per client, and a gate error now gives the other client its
+  moment too, as a failed STOP does.
+- Not known yet: the field offsets on real objects, shields and nav included. Those are the
+  next things a capture can name.
+- RNG at tick 1 differed between the clients in that run (b3341af6173047d6 / a90941c77efaf5e1),
+  expected without the RNG fixes, which are not ported.
+
+WHAT IS NEW
+  src/native/engine/linux/gate_world.h          identities, world hash, Lua methods
+  src/native/engine/linux/gate_world_classes.h  generated class table (167 rows)
+  tools/dev/lockstep_linux_world_classes.py     its generator and --check
+  src/native/engine/linux/gate_sites.h          25 new pins, the world constants
+  src/native/engine/linux/gate_linux.c          boot option 2^46, seal, restore, poll
+  src/native/engine/test_lockstep_world_scenario.h, test_lockstep_world_golden.c,
+  src/native/engine/linux/test_gate_world.h, test_gate_world_golden.txt   tests
+  tools/dev/linux_gate_live.py                  the live run (bundle + run)
+  tools/dev/build_native_gate_overlay.py        --gate-so accepts world identities/hash
+
+TESTS (this PC; offline)
+- Windows: build_native_gate.py --test --native-image passes and now also runs
+  test_world_golden.exe and requires its text to equal linux/test_gate_world_golden.txt.
+- Linux (WSL, gcc; the zig 2.17 module loads in LuaJIT with 23 methods):
+  check_lockstep_gate_linux.py --x4 passes: unit tests on the synthetic and the ELF
+  image (world golden equal, import and clear hooks: install bytes, trampolines, map
+  filter, load window, nodes read before the clear frees them, seal, two-saved-IDs and
+  empty-node failures, foreign owner kept, exact restore), the Lua bridge, and five engine scenarios with the real probe, including
+  protocol2_world_hash: two peers import 12 identities through the hooked insert during
+  the emulated load, capture WORLD_IMPORTED_2 at ticks 1/30/60/90 with equal lines,
+  WORLD_IDENTITY_STOP restored=1.
+- check_lockstep_gate_linux_sites.py: 112 checks, including the decoded world
+  references and no pin or patch inside the 765 exact-reciprocal windows.
+- tests/test_lockstep_gate_linux.py: class table current (both executables), name
+  translation, overlay world options, live-runner overlay composition and private
+  instance staging (Linux).
+- Read cost: process_vm_readv measured 270-290 ns per read in WSL; the four object
+  reads of 520,000 objects take 0.55 s; with shields, controllers and SHA-256 per row
+  a full capture is estimated at 2-4 s on Linux (Windows' guarded copy is faster).
+
+FIRST NATIVE LINUX LIVE TEST (tools/dev/linux_gate_live.py)
+  On the PC (or any machine with this repository and Zig 0.15.2):
+    python tools/dev/linux_gate_live.py bundle --zig <zig 0.15.2> \
+      --snapshot <X4-Multiplayer-parallel-mp>/.local/native-lockstep/snapshot-capture-005/native-snapshot/save_009.xml.gz \
+      --extension-base <X4-Multiplayer-parallel-mp>/.local/lockstep-live/frozen-v3/src/extension/x4_lan_lab \
+      --out <DIR> [--ticks 600 --stride 60]
+  (27 MB: the composed x4_lan_lab with the zig-built x4lan_gate.so, the probe and the
+  clock + world identity + WORLD_IMPORTED_2 configuration, the snapshot, the relay,
+  the script, manifest.json with every file's SHA-256.) Copy <DIR> to
+  ~x4server/x4mp-linux-gate-live-<id>/ on the host, touch .x4mp-linux-gate-live in it,
+  then as root:
+    python3 .../linux_gate_live.py run --root ~x4server/x4mp-linux-gate-live-<id> --preflight
+    python3 .../linux_gate_live.py run --root ~x4server/x4mp-linux-gate-live-<id>
+  Requirements (the preflight refuses with the reason): the pinned X4 9.00 at
+  ~x4server/x4/game; the x4server Steam client running and logged in (never touched;
+  its identity must stay unchanged); no other X4 running (stop x4mp-server first);
+  MemAvailable >= 13 GiB (two instances at ~6 GiB each on Windows; Linux unmeasured,
+  --min-memory-gib overrides); bwrap, runuser, Xvfb, xauth, python3; Mesa lavapipe
+  (no GPU: one private Xvfb per instance, the /opt/x4mp/vklayer discard layer when
+  present); ~2 GiB disk. Isolation as the reviewed linux_native_admission_run.py:
+  private HOME/XDG, profile 45841 with autosave off and UI safe mode off, read-only
+  game, DLC-only extension view plus x4_lan_lab, private X4 lock; relay on 127.0.0.1.
+  Pass: both clients STOP reason=1 restored=1, relay verdict pass, every WORLD_HASH
+  state equal (exit 0). Output: ROOT/runs/<name>/ in the census layout
+  (client1|2/engine-output.log, client1|2/installed/x4_lan_lab-config.lua,
+  relay.json, run-result.json); copy it back and run tools/dev/census_world.py on it.
+  Triage: REFUSED code=11 stage=<site> (other build or pin), 71 (world identity hook
+  refused), 72 (identity seal failure), 26 (boot over 600 s), 27/15/19 as in the core
+  report; capture failure "native world hash capture failed saved=<id> stage=<stage>"
+  names the link that did not hold (object/controller_class_unmapped,
+  nav_owner_invalid, dock_controller, ...). Measured by the first live runs: both
+  instances start under the discard layer, the menu after ~117 s, the snapshot loads,
+  ~6 GiB per instance; two instances on one Steam client work.
+
+LIMITS
+- Reads use process_vm_readv (fault-safe like Windows' guarded copy, one system call
+  per read; see TESTS for the cost).
+- Created identities, every fix module and the snapshot fixture are not ported; a
+  mixed census therefore needs a configuration both gates support.
+- The exact-reciprocal preload (src/native/portable_math/preload) patches 765 Linux
+  windows; no gate patch overlaps one, and the two pins that contained a window were
+  split around it.

@@ -1,0 +1,335 @@
+{
+  "image_sha256": "19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891",
+  "scope": "read-only import/wait reconstruction audit; selected runtime passage not yet observed",
+  "functions": [
+    {
+      "rva": "0x1069000",
+      "database_size": 4804,
+      "root_bytes": 4804,
+      "next_start": "0x106a2d0",
+      "sha256": "a467e6dfa7fe07f49e9f9424147ffbe54c8f4ab52f024db0ca1b6a0282405969",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0xb5a060",
+      "database_size": 1833,
+      "root_bytes": 1833,
+      "next_start": "0xb5a790",
+      "sha256": "e47ee5624a5cfc775b5e02dffbdc2836a8646c49374bcbd069e5e2a2d7afdf4b",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x10a4ea0",
+      "database_size": 156,
+      "root_bytes": 156,
+      "next_start": "0x10a4f40",
+      "sha256": "ce78b1096aca48f82a2f9e66420cdebe2718997d9513f2e9794c366ed69af323",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x10a5040",
+      "database_size": 142,
+      "root_bytes": 142,
+      "next_start": "0x10a50d0",
+      "sha256": "3b1cdac18048821d665c6b949fcc4b9bdfb29a7fb6bb024683c5642210f2299f",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x10a50d0",
+      "database_size": 93,
+      "root_bytes": 93,
+      "next_start": "0x10a5130",
+      "sha256": "eebaef8c3abd745eccb74b4877a66363d994103ac25f834faf6ac5e52d24d954",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x1062a50",
+      "database_size": 7,
+      "root_bytes": 7,
+      "next_start": "0x1062a60",
+      "sha256": "0561483817089c1834dfa134d262316fc3cdb3713cf5853d41dca7cf68772d39",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x109a490",
+      "database_size": 123,
+      "root_bytes": 123,
+      "next_start": "0x109a510",
+      "sha256": "ede114fdfc8f1f6207f7724956fffa2c2fb16455ab92fe18e7f4dab3fe14fbb7",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x10668b0",
+      "database_size": 153,
+      "root_bytes": 153,
+      "next_start": "0x1066950",
+      "sha256": "bb690671b43c8f40ebaf0bff539cf960d47c384ccdca73a964304ae1df2fd851",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0xc59be0",
+      "database_size": 220,
+      "root_bytes": 220,
+      "next_start": "0xc59cc0",
+      "sha256": "3f483835f3e22ee4087155b5da2a914efcb9dde6235f3a7b96acbafa9bd662e0",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0xc58da0",
+      "database_size": 3224,
+      "root_bytes": 3224,
+      "next_start": "0xc59a40",
+      "sha256": "6497e4f7003ee60b44682b9ecf4fc83e4bad1370f4ccfd4679d2b1e026480ae0",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0xc588b0",
+      "database_size": 1264,
+      "root_bytes": 1264,
+      "next_start": "0xc58da0",
+      "sha256": "4e53405584287d07f69a5a7684e33ba24283b5f0e4b257fdb963eb908b15a56c",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0xd1e810",
+      "database_size": 1662,
+      "root_bytes": 1662,
+      "next_start": "0xd1ee90",
+      "sha256": "a4ba7d7bc74858b0d5c1540ac95ec27dc85fb0b6aba68730341b4b918032b47c",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0xd2a1b0",
+      "database_size": 983,
+      "root_bytes": 983,
+      "next_start": "0xd2a590",
+      "sha256": "542fbf0b7b19c3aa910a463fd52fb2bec9f1ab23a23dcd5b86d9054df8f83729",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x1063750",
+      "database_size": 3437,
+      "root_bytes": 3437,
+      "next_start": "0x10644c0",
+      "sha256": "0d1c301108dac632a0163a03f309310e188c2df418a4222694fcec3ca646c056",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x10631b0",
+      "database_size": 472,
+      "root_bytes": 472,
+      "next_start": "0x1063390",
+      "sha256": "b5468455eb7534da2330706d124b3e70c1aedf137869208687e6686adfb2917d",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x1066ba0",
+      "database_size": 613,
+      "root_bytes": 613,
+      "next_start": "0x1066e10",
+      "sha256": "ab00b7598d2b6cce00d9d0135844f47bd2c9a94d9a9fcc1cf9508a994a8d9434",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x10998f0",
+      "database_size": 319,
+      "root_bytes": 319,
+      "next_start": "0x1099a30",
+      "sha256": "6811db36ed68ebe50ac3fcce323aaa712fc9c90265d44516d279af7a2b994e06",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x109a130",
+      "database_size": 861,
+      "root_bytes": 861,
+      "next_start": "0x109a490",
+      "sha256": "e9ed2e8873dd3d959d45208bf325d48ae13186d9b629900977c3ce3e091792f8",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0xb59ed0",
+      "database_size": 87,
+      "root_bytes": 87,
+      "next_start": "0xb59f30",
+      "sha256": "52f66c866282323825b2ce7674820b7e2ce891adfde2137e8b75048575995675",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x14ddd10",
+      "database_size": 257,
+      "root_bytes": 257,
+      "next_start": "0x14dde20",
+      "sha256": "1db1ba392a17c5d2bd2cbca21a6d2f7234bbf6e6c726a0ef0d72594c19acf921",
+      "scope": "contiguous PE function root bounded by next known start"
+    },
+    {
+      "rva": "0x14ddc90",
+      "database_size": 120,
+      "root_bytes": 120,
+      "next_start": "0x14ddd10",
+      "sha256": "584854a7bdbf956043c7756157888674152bd0ffc0a307c00f29537332e8780e",
+      "scope": "contiguous PE function root bounded by next known start"
+    }
+  ],
+  "wait_vtable_rva": "0x2c68d78",
+  "restore_slot": "0x28",
+  "import_call_rva": "0x1069bf9",
+  "import_return_rva": "0x1069bfc",
+  "scripts": {
+    "move.idle": {
+      "version": "4",
+      "sha256": "7367042b95c38b07d75efb1ac95a410ef3531a140503474df58922561cbd2dab",
+      "blocking_sequence": [
+        {
+          "index": 0,
+          "tag": "move_to",
+          "attributes": {
+            "endzone": "$endzone",
+            "object": "this.assignedcontrolled",
+            "destination": "this.sector",
+            "sinceversion": "3"
+          }
+        },
+        {
+          "index": 1,
+          "tag": "wait",
+          "attributes": {
+            "min": "1s",
+            "max": "3s",
+            "sinceversion": "3"
+          }
+        },
+        {
+          "index": 2,
+          "tag": "wait",
+          "attributes": {}
+        },
+        {
+          "index": 3,
+          "tag": "move_to",
+          "attributes": {
+            "object": "this.ship",
+            "destination": "this.sector",
+            "finishonapproach": "true",
+            "uselocalhighways": "false",
+            "forceposition": "false",
+            "commandaction": "false"
+          }
+        },
+        {
+          "index": 4,
+          "tag": "move_to",
+          "attributes": {
+            "object": "this.ship",
+            "destination": "this.sector",
+            "finishonapproach": "true",
+            "uselocalhighways": "false",
+            "forceposition": "false",
+            "commandaction": "false"
+          }
+        },
+        {
+          "index": 5,
+          "tag": "wait",
+          "attributes": {
+            "min": "100ms",
+            "max": "500ms"
+          }
+        },
+        {
+          "index": 6,
+          "tag": "move_to",
+          "attributes": {
+            "object": "this.assignedcontrolled",
+            "destination": "this.sector",
+            "finishonapproach": "true",
+            "commandaction": "false",
+            "sinceversion": "2"
+          }
+        }
+      ]
+    },
+    "order.fight.patrol": {
+      "version": "10",
+      "sha256": "b3db3d518eb44c03f8ca0ec3c1fb222a5cadd61e4efd58e12b0523c5712ca0d7",
+      "blocking_sequence": [
+        {
+          "index": 0,
+          "tag": "run_script",
+          "attributes": {
+            "name": "'move.generic'",
+            "result": "$movesuccess"
+          }
+        },
+        {
+          "index": 1,
+          "tag": "wait",
+          "attributes": {
+            "min": "1ms",
+            "max": "1s"
+          }
+        },
+        {
+          "index": 2,
+          "tag": "run_script",
+          "attributes": {
+            "name": "'move.generic'",
+            "result": "$movesuccess"
+          }
+        },
+        {
+          "index": 3,
+          "tag": "wait",
+          "attributes": {
+            "min": "1s",
+            "max": "2s"
+          }
+        },
+        {
+          "index": 4,
+          "tag": "run_script",
+          "attributes": {
+            "name": "'move.seekenemies'"
+          }
+        },
+        {
+          "index": 5,
+          "tag": "wait",
+          "attributes": {
+            "min": "1s",
+            "max": "2s"
+          }
+        }
+      ]
+    }
+  },
+  "selected": [
+    {
+      "saved_pilot": "0000000000080d54",
+      "saved_ship": "0000000000080d4f",
+      "script": "move.idle",
+      "version": 4,
+      "saved_blocking_index": 5,
+      "saved_time": "6.91667",
+      "min_seconds": 0.1,
+      "max_seconds": 0.5,
+      "saved_time_double_bytes_le": "b4e55c8aabaa1b40",
+      "saved_time_uint64_hex": "401baaab8a5ce5b4"
+    },
+    {
+      "saved_pilot": "000000000009d3a4",
+      "saved_ship": "000000000009d39b",
+      "script": "order.fight.patrol",
+      "version": 10,
+      "saved_blocking_index": 1,
+      "saved_time": "6.31667",
+      "min_seconds": 0.001,
+      "max_seconds": 1.0,
+      "saved_time_double_bytes_le": "4e7ff62345441940",
+      "saved_time_uint64_hex": "4019444523f67f4e"
+    }
+  ],
+  "version_relation": "10699e3 reads descriptor+58; optional XML version is stored there at1069a10; context import1063750 stores descriptor in context+d8 at1063778; complete caller/body pins retain this relationship.",
+  "deadline_limit": "10668b0 retains an already earlier context+190 deadline; after_due minus saved_start is not automatically the newly sampled duration.",
+  "runtime_index_limit": "Runtime observer reads native program slot and exact node identity. Saved XML blocking ordinal remains manifest metadata, not a direct ordinal observation."
+}

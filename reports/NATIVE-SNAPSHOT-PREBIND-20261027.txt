@@ -1,0 +1,103 @@
+NATIVE SNAPSHOT FIXTURE PREBINDING - 27 OCTOBER 2026
+
+The snapshot fixture previously registered its native actors after the first
+admitted frame. gate_tick admitted frame 1, the native FrameTick and movement
+update ran, and only then did Lua enqueue RestoreActors. The resulting MD Actor
+events populated Lua handles; a later sample's gate.actor call registered the
+native identities. Fixture-specific RNG and refresh hooks could not cover the
+first frame through this path.
+
+The third full-world diagnostic narrowed its first-frame mismatch to two
+fixture navigation parameter deadlines. Actors 6 and 12 were beyond the native
+1,000-metre camera threshold and received randomized refresh deadlines while
+unregistered. Their remaining topology, health and motion fields matched.
+This does not explain the earlier broad outside-object timing differences.
+
+The explicit --snapshot-prebind option requires a battle snapshot, imported
+identity capture and serial pathing. The builder resolves the exact saved MD
+X4LAN_NativeGate Spawn.$ships reference, its ordered list of twelve components,
+and each referenced component's expected class, macro, faction and navigation
+record. Missing/duplicate identities, another script's list, unexpected types
+or changing snapshot bytes are refused. The ordered manifest joins the snapshot
+digest in the initial coordinator handshake.
+
+Before loading, Lua configures the immutable twelve-ID manifest. The existing
+full-pinned import observer captures only those saved identities. At the first
+load-to-live admission boundary, native code validates all completed Ship,
+macro, navigation, agent-owner and registry relationships before changing its
+private registration tables. No engine preparation runs on the main thread.
+
+The first simulation/UI path-release callback verifies its normal TLS view and
+time, waits for the existing serial radar boundary, and performs the already
+enabled radar, movement-parameter and steering preparations. It releases the
+native pathing semaphore only afterward. Other fixture hooks now see the bound
+identities from frame 1. Later MD enrollment must match each saved/runtime
+identity exactly; mismatches cannot replace a binding.
+
+No new patch site or boot bit is introduced. The existing import, admission
+and path-release owners are extended. Read-only registry lookup is full-pinned
+at 0xced70/184, and the pure macro-name accessor at 0xefb10/5. A separate trace
+records the first native navigation call, its initialization decision, seed,
+time and before/after deadline. The independent validator checks frame-0
+binding, frame-1 preparation/navigation, the existing RNG domain, later MD
+enrollment and peer equality. The strict first-frame world hash is retained.
+
+No saved arrival flags or outside-object timers are reset. This change does
+not establish general-world lockstep acceptance.
+
+The first native attempt validated and bound all twelve ships on both clients,
+with all 521,929 imported identity mappings complete. It then refused during
+preparation: one radar initialization and one parameter initialization completed,
+but no steering registration or navigation call ran. This locates the refusal
+at the first ship's steering registration, after the UI/TLS/frame guards passed.
+The snapshot restores that ship's flight model as spline. The former frame-end
+actor reader already accepts spline and absent models; its steering registrar
+correctly returns false for those kinds. Requiring every prebound ship to have
+a steering model was therefore too strict. Preparation now validates the same
+supported kinds, initializes only actual steering models, and leaves spline or
+absent models to their existing native update/construction paths. No model is
+replaced. The failed attempt is retained as invalid session evidence; both
+lanes and all native hooks were restored.
+
+The corrected repeat has independently verified matching first-frame roots
+and timing preimages for all 521,929 imported objects. All twelve actors bind
+at tick 0, prepare at tick 1, execute their first admitted navigation call at
+tick 1 with the expected seeded stream and native initialization, and match
+their later MD enrollment. Their restored models are spline. Actors 6 and 12
+retain different loaded deadline preimages; the explicitly enabled first-refresh
+policy then runs the ordinary native refresh and produces equal deadlines.
+Both input and result comparisons are reported separately. The strict world
+hash includes the actual resulting deadline bytes, unchanged.
+
+The corrected repeat completed 18,000 frames. Both clients reported all twelve
+bindings, preparations and later enrollments with zero snapshot failures. The
+recorded preparation boundary was tick 1, UI thread true, main thread false,
+TLS view 1 and stage complete. Both stopped with reason 1 and restored native
+hooks. The first-frame repair is therefore verified at its intended native
+boundary, including the seeded first refresh and resulting deadline bytes.
+
+The full session still failed its strict final comparison. At tick 18,000 all
+four imported-world roots differ, with 426,480 versus 426,488 present objects
+and 1,652 versus 1,620 unresolved references. These later differences are not
+explained by this bounded fixture registration fix. The final world hash was
+not suppressed, and the run is not claimed as a passing lockstep session.
+Independent full-run validation reports evidence_valid=true, no evidence
+errors, session_pass=false and first_mismatch=18000. The 33,529 native contact
+callbacks per client match in both strict input order and traversal metadata;
+native damage inputs/results and interrupt instruction decisions also match.
+The separate snapshot result comparison passes, while the complete preimage
+comparison correctly reports the unequal loaded deadlines. Native C checks
+and all 93 Python/LuaJIT tests pass. No further native pair was launched.
+
+Independent final-world reconstruction found 4,604 topology, 5,026 health,
+10,083 motion and 11,153 timing object differences, with identical saved-ID
+inventory keys. The first sorted health difference is saved object 0x14f60;
+only its hash was captured, so the exact health field is unavailable. The first
+sorted topology/motion/timing difference is 0x20880: absent on one client and
+present on the other, with parent 0x90c and attention 2. Topology is appended
+to every domain, so the domain counts overlap. Timing differences include
+9,628 refresh timestamps, 5,294 refresh cursors and 3,719 parent identities.
+Watched object 0x9fad7 differs in shield encoding, both motion banks and its
+refresh timestamp. Neither watched fixture deadline actor has a final detail
+difference. These are final-frame locations, not temporal first causes: only
+frames 1 and 18,000 were sampled in this repeat.

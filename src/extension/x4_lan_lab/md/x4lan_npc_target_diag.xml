@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Log-only diagnostic: why NPCs do or do not target the shared player ships.
+     Inactive unless the Lua adapter (npc_target_diag) sends Start. Never changes objects. -->
+<mdscript name="X4LAN_NpcTargetDiag" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="Session" namespace="this">
+   <conditions><event_ui_triggered screen="'X4LAN_NpcTargetDiag'" control="'Start'"/></conditions>
+   <actions>
+    <set_value name="$radius" exact="5km"/>
+    <set_value name="$maxRows" exact="24"/>
+    <set_value name="$stopped" exact="false"/>
+    <raise_lua_event name="'X4LAN_NpcTargetDiag.Ready'"/>
+   </actions>
+   <cues>
+    <cue name="Stop" instantiate="true"><conditions><event_ui_triggered screen="'X4LAN_NpcTargetDiag'" control="'Stop'"/></conditions><actions>
+     <set_value name="Session.$stopped" exact="true"/>
+    </actions></cue>
+    <library name="Attention"><actions>
+     <set_value name="$att" exact="'low'"/>
+     <do_if value="$obj.attention ge attention.visible"><set_value name="$att" exact="'visible'"/></do_if>
+     <do_elseif value="$obj.attention ge attention.nearby"><set_value name="$att" exact="'nearby'"/></do_elseif>
+     <do_elseif value="$obj.attention ge attention.insector"><set_value name="$att" exact="'insector'"/></do_elseif>
+    </actions></library>
+    <cue name="Sample" instantiate="true" checkinterval="3s">
+     <conditions><check_value value="not Session.$stopped and @md.X4LAN_Bubble.Arena.$ships.count ge 2"/></conditions>
+     <actions>
+      <set_value name="$ships" exact="md.X4LAN_Bubble.Arena.$ships"/>
+      <do_all exact="2" counter="$i">
+       <set_value name="$p" exact="$ships.{$i}"/>
+       <do_if value="@$p.isoperational">
+        <set_value name="$obj" exact="$p"/><include_actions ref="Attention"/>
+        <raise_lua_event name="'X4LAN_NpcTargetDiag.Ship'" param="'ship=%s sector=%s attention=%s local=%s gametime=%s'.[$i, $p.sector.macro.id, $att, if $p == player.occupiedship then 1 else 0, player.age]"/>
+        <find_ship name="$npcs" space="$p.sector" multiple="true">
+         <match_distance object="$p" max="Session.$radius"/>
+         <match owner="faction.player" negate="true"/>
+        </find_ship>
+        <set_value name="$rows" exact="0"/>
+        <do_all exact="$npcs.count" counter="$k">
+         <set_value name="$n" exact="$npcs.{$k}"/>
+         <do_if value="$rows lt Session.$maxRows and $ships.indexof.{$n} == 0 and $n.isoperational and not $n.dock">
+          <set_value name="$rows" exact="$rows + 1"/>
+          <set_value name="$obj" exact="$n"/><include_actions ref="Attention"/>
+          <set_value name="$target" exact="null"/>
+          <do_if value="@$n.order.$target"><set_value name="$target" exact="$n.order.$target"/></do_if>
+          <do_elseif value="@$n.order.$primarytarget"><set_value name="$target" exact="$n.order.$primarytarget"/></do_elseif>
+          <set_value name="$targetKind" exact="'none'"/>
+          <do_if value="$target == $p"><set_value name="$targetKind" exact="'this_player'"/></do_if>
+          <do_elseif value="$target and $ships.indexof.{$target} gt 0"><set_value name="$targetKind" exact="'other_player'"/></do_elseif>
+          <do_elseif value="$target"><set_value name="$targetKind" exact="'other'"/></do_elseif>
+          <find_gravidar_contact name="$contacts" object="$n" class="class.defensible" multiple="true"/>
+          <raise_lua_event name="'X4LAN_NpcTargetDiag.Npc'" param="'ship=%s npc=%s macro=%s owner=%s dist=%s attention=%s enemy=%s relation=%s order=%s target=%s radar=%s'.[$i, $n.idcode, $n.macro.id, $n.owner.id, ($n.distanceto.{$p} / 1m)i, $att, if $n.owner.hasrelation.enemy.{faction.player} then 1 else 0, $n.owner.relationto.{faction.player}, @$n.order.id, $targetKind, if $contacts.indexof.{$p} gt 0 then 1 else 0]"/>
+         </do_if>
+        </do_all>
+        <raise_lua_event name="'X4LAN_NpcTargetDiag.Summary'" param="'ship=%s nearby=%s logged=%s'.[$i, $npcs.count, $rows]"/>
+       </do_if>
+      </do_all>
+     </actions>
+    </cue>
+   </cues>
+  </cue>
+ </cues>
+</mdscript>

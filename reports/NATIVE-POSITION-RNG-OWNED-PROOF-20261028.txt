@@ -1,0 +1,103 @@
+SELECTED POSITION RNG: OWNED CALLER PROOF AND CLEANUP CONTRACT
+28 October 2026 | supplement to frozen proposal 2a9e395
+
+SCOPE AND RESULT
+
+The unchanged production Position wrappers pass 6,805 always-on checks in an
+owned-memory executable built with -O2 -DNDEBUG. The previous 6,772 checks are
+retained. The additional checks establish the proposed maximum/result-scratch
+locations and independently construct the 260-byte semantic key and scalar
+three-draw vector. Two deliberately wrong offsets fail with exit 42. This is
+not a game run, an engine-function execution, or proof of Linux math parity.
+
+The test reads the pinned executable only for image verification. Its caller
+bodies are authored assembly with native-shaped frames, not copied executable
+engine bodies. It uses the actual production wrapper, incoming-return-slot
+capture, guarded reads, exception handling and existing thunk/patch fixtures.
+
+The first authored caller has c58da0's seven pushes and 0x100-byte frame; it
+sets RBP from the incoming RSP as in the pinned prologue. The maximum Value is
+at RBP-0x79, equal to the sampler's true incoming T+0x78. The second authored
+caller has c59b00's 0x58-byte frame, initializes its result scratch, and passes
+its actual address in R8. The range body records that incoming R8. The wrapper
+test requires it to equal T+0x178, rather than accepting a merely plausible
+stack address. The scratch tag/payload are zero and its ignored padding has
+a distinctive marker; the maximum/difference are tag 5, float 50000.
+
+Both ordinary return and a real foreign SEH exception pass. The inherited
+four-site tests retain full RAX, XMM2, fifth stack byte, opaque XMM0, foreign
+scope and original-once checks. The proof does not assert that the future RNG
+intervention or its own finally has been implemented or tested yet.
+
+NEGATIVE CONTROLS AND REPRODUCTION
+
+Positive: exit 0, 6,805 checks.
+Maximum offset changed to T+0x79: check 5681 fails, exit 42.
+Scratch offset changed to T+0x179: check 5682 fails, exit 42.
+
+Private evidence lives in the position-rng worktree at .local/position-rng/:
+prepare_proof.py generates the derivative from the unchanged committed tests;
+run_proof.py runs the positive and both negative controls and pins the outputs.
+The compile uses the existing pinned Zig compiler, with no download:
+
+zig cc -target x86_64-windows-gnu -mcx16 -std=c11 -O2 -DNDEBUG
+  -Wall -Wextra -Werror -fms-extensions -I src/native/engine
+  src/native/engine/portable_rotation.c
+  .local/position-rng/test_position_rng_proof.c
+  .local/position-rng/test_position_rng_proof.S
+  -lbcrypt -lws2_32 -o .local/position-rng/test_position_rng_proof.exe
+
+The executable receives ../x4-re/bin/X4.exe for read-only pin validation.
+The independent reviewer rebuilt an archive of 2a9e395 with the pinned private
+derivative and reproduced all three results. Both parties independently
+reproduced the typed 260-byte key, seed 17bafa51eebe82a5 and scalar bits
+46c881ce / 3f36a3c2 / 3f92dca8. The reviewer also matched all 15 function roots,
+7 call spans and 73 constant reads and reviewed the bounded finite branches.
+
+SHA256 pins:
+production test C:
+ca2b8b648ab90fcf6bd581d3eb23bca771de826b818986626ab744e092e5af9b
+production test assembly:
+1f53ba1b7c86d797792d3c34df1c9af427607369f414d06fa4c33591e9240dd1
+private derivative C:
+247f13febc4da85b9ed9f5999ac5e3af6a0c9924bd54858d3f4855bc94bc552b
+private derivative assembly:
+2380c34cbf552add6ee43ca48ad4d5149d13d77d9ee62ae0170b95bb95c91075
+private executable:
+9e8c9476227a9cf993247d34ca39626db2bd9f657cc785ba0efa52a9274c8f20
+positive log:
+478a854815f76310f8aaa48a9d64fe228673da32e7266c2686917f2ab25267e8
+maximum-offset negative log:
+3ed1ea717636e17c29db5c8a0b9bd0947d89c12160ca7d5aa8fb5d40c41ac6ca
+scratch-offset negative log:
+2448f7c9481d53bcdb189cf9d8a291c63aa873509c9ac6450469994a692dabf5
+
+REQUIRED CLEANUP PRECISIONS
+
+This supplement resolves two ambiguities in the frozen proposal. It does not
+alter its key, selected inputs, finite math paths or allowed Find compositions.
+
+1. A pre-write refusal is different from an attempted seed store. The receipt
+must distinguish prewrite_refused, write_attempted, applied/readback_confirmed,
+restore_required, restored and debt. Under serialized admission, preserve the
+caller state and mark write_attempted plus restore_required BEFORE attempting
+the guarded store. Confirm the exact stored value by readback before calling
+the scope applied. A faulting, partial or uncertain store must still enter
+conditional restoration, even if applied remains zero. Only a path on which no
+write was attempted may use the natural refusal path without restoration.
+Unsupported restoration retains debt and a strict failure; it cannot borrow
+another TLS location or claim that an unconfirmed write did not occur.
+
+2. The outer finally runs after the generic raw outer-post capture and BEFORE
+wp_outer_finish publishes completion or decrements the generic open count.
+It executes outside wp_lock and runs even if post-capture, STOP, identity or
+SEH checks failed. The raw scoped output is retained before restoration; the
+separate receipt records both the actual scoped endpoint and restored caller
+state. Abnormal cleanup uses only resident observer metadata and revalidated
+TLS storage. It does not dereference unwound engine frames or suppress the
+original exception. A successful restoration never erases the original error.
+
+The reviewer accepts this bounded implementation plan with these precisions.
+Production code, bridge/parser joins, both explicit compositions, failed-write
+cases and unchanged historical failures still require a frozen source review.
+No new native game, artifact staging, or global RNG rewrite is authorized here.

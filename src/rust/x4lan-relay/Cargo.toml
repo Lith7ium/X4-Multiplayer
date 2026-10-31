@@ -1,0 +1,22 @@
+[package]
+name = "x4lan-relay"
+description = "Rust port of the x4lan Python UDP relay (host.py and its session layers)"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "x4lan_relay"
+
+[[bin]]
+name = "x4lan-relay"
+path = "src/bin/x4lan-relay.rs"
+
+[[bin]]
+name = "x4lan-replay"
+path = "src/bin/x4lan-replay.rs"
+
+[[bin]]
+name = "x4lan-dedicated"
+path = "src/bin/x4lan-dedicated.rs"

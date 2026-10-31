@@ -8,7 +8,8 @@
  <set_value name="$host" exact="$arena.$host"/><set_value name="$ships" exact="$arena.$ships"/>
  <set_value name="$wares" exact="[]"/><set_value name="$drops" exact="[]"/>
  <set_value name="$network" exact="table[]"/><set_value name="$replicas" exact="table[]"/><set_value name="$replicaGenerations" exact="table[]"/><set_value name="$executed" exact="table[]"/>
- <create_group groupname="$players"/><add_to_group groupname="$players" list="$ships"/>
+ <!-- Native cargo transactions cover the fixture ships 1/2 only (also in N-player sessions). -->
+ <create_group groupname="$players"/><add_to_group groupname="$players" object="$ships.{1}"/><add_to_group groupname="$players" object="$ships.{2}"/>
  <raise_lua_event name="'X4LAN_Cargo.Ready'"/>
 </actions>
 <cues>

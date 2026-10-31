@@ -1,0 +1,167 @@
+PROSPECTIVE INITIALIZATION RECEIPT - SOURCE IMPLEMENTATION
+28 October 2026
+
+Scope
+
+Implements the bounded proposal in
+NATIVE-GETUP-PREBIND-RECEIPT-PROPOSAL-20261028.txt. This is source and owned-memory
+verification only. No game was launched, no artifact was staged, and GetUp004
+was not retried. Its strict result remains failed with the same 32 errors and
+zero public GetUp calls. No independent player context or completed release is
+claimed.
+
+The concrete refusal in004 remains the unbound selected-recipient gate before
+model decoding. The new code creates its own prospective receipt at the original
+enqueue borrow. It never promotes the copied diagnostic rows into tickets or
+changes their ticket_authority=0 declaration. The original general saved-watch
+guard, raw world watches, fixed-controller failures, and ordinary bound immediate
+dispatch behavior remain in place.
+
+Closed opt-in and configuration
+
+The builder accepts --player-transition-prebind-receipt only with the existing
+single-copy diagnostic GetUp fixture and copied queue observation. The generated
+literal-true flag is native_gate_player_transition_prebind_receipt. The closed
+runtime manifest adds exact integer prebind_receipt=1, requiring queue_evidence=1.
+The exact bootstrap suffix |PLAYER_TRANSITION_PREBIND_1 follows the copied queue
+suffix once. Actual Lua, Python reconstruction and native configuration check
+that same preimage. Missing flags preserve the previous manifest and preimage.
+
+Configuration requires the existing exact selected saved ship/pilot, watch120,
+passive mask, physical slot1, initial digest, image/thunk/session ownership and
+pre-Load phase. It also verifies PlayerController slot51 against the pinned
+native producer. Healthy same-session reattachment retains records, export
+cursors, pending debt and claim state. Changed configuration, late first
+activation, failed state and STOP refuse. Setup order is saved watch, prospective
+receipt, copied evidence, then transition observer. No new hook, thunk or numeric
+option bit is used.
+
+Native receipt state machine
+
+SOURCE reserves the selected command identity under the transition lock before
+borrowed reads. Only the observed boot2/tick0 producer at d8dd26 is eligible,
+under the same-thread still-open context8 activation with arg1 and active-before0.
+The native manager, unique imported saved/full-runtime/object association,
+complete PlayerController/Agent/owner state, registry status/generation, and two
+stable typed mode0 copies must all match. Two complete state/registry captures
+are compared without omitting model or pointer fields. Publication rechecks the
+session, import and poison state under the lock. Read failure or changing state
+fails closed. The source event is complete before ownership transfer; its
+internal ticket is provisional and cannot admit dispatch.
+
+ACK records only the original enqueue's ordinary return and observer-local
+ordering. It reads neither the transferred command nor ship/controller memory.
+It cannot repair a prior dispatch, missing return, duplicate return, STOP or
+poisoned source. A controlled PAGE_NOACCESS command test covers both ACK and
+the later bind boundary without native command rereads.
+
+BIND uses the existing phase3/issued0 joined binding boundary and fresh complete
+guarded snapshots. It joins the source, ACK, completed activation and original
+registry proof. The canonical watch, immutable BIND row and ticket eligibility
+are committed in one held-lock transaction. Repeated healthy binding emits
+nothing and changes nothing. Any mismatch remains failed; reattachment does not
+reconstruct or repair a missing phase.
+
+Dispatch retains exact command bytes, caller eacf66, full runtime, Agent,
+controller, owner, source completion and once-only retirement checks. Dispatch
+before ACK or before BIND is permanently refused. The native original still runs
+once on rejected observer paths. Session-long observed reuse of the early command
+address, including after retirement or for another recipient, poisons this path.
+This conservative rule may reject ordinary allocator reuse; it is not proof of
+an allocation generation or of every unobserved destruction path.
+
+Only a duplicate initialization activation at boot2/tick0 is forbidden. Later
+legitimate GetUp activation callbacks remain observable. A mode0 dispatch is an
+observed native handler invocation, not a blanket assertion that the model
+pointer becomes zero: the pinned handler can return when the existing model
+already reports the requested mode.
+
+In this opt-in mode the action30 guard also requires the initialized-model ticket
+to be finalized, unpoisoned and retired exactly once, with a completed error-free
+dispatch from an earlier tick and no open observer scope. SOURCE-only, ACK-only,
+finalized-but-pending, dispatch-open, failed-return and stopped states call the
+public GetUp original zero times. Later retirement cannot repair an action that
+already refused. Default/off behavior is unchanged.
+
+One immutable footer receipt records this successful prerequisite check: action
+tick, sampled core clock, thread, ticket and dispatch identity. These fields stay
+zero when no check succeeds. They are not a claim or acceptance receipt. The
+independent consumer additionally joins them to the actual request1/post_tick30,
+post thread and native claim, requiring dispatch leave <= prerequisite sample <=
+delivery's transition-before sample. A dispatch that enters early but returns
+after the sampled prerequisite is refused. SOURCE/ACK/BIND rows are untouched;
+the footer check cannot be overwritten by retries or STOP.
+
+Evidence and failure accounting
+
+The separate PREBIND_1 stream has exactly three bounded immutable phases:
+SOURCE, ACK and BIND. It exports the phase/thread/tick/clock, producer caller,
+core event/ticket/parent, complete state and registry witnesses. Its ordinal is
+an observer ordinal. The phase clock samples the existing core clock without
+changing core event ordering. The independent parser derives every causal join
+and checks widths, exact fields, ordering, uniqueness and configured run binding.
+A boot2 source, including a relabeled child under boot2 ancestry, cannot pass
+with the new phases stripped or the option absent.
+
+Reservation, pending state and completed rows are distinct. An active drain can
+observe a healthy pending source before publication. STOP exports the raw footer
+and refuses pending/open/restore debt. It cannot reopen admission or finalize a
+late source. No observer lock spans a native original or a guarded bulk read.
+The existing activation finally propagates exceptions and clears its own scope;
+the shared queue wrappers still declare queue_exception_cleanup=0. The throwing
+enqueue test retains the queue open/pending debt and emits no ACK. This work does
+not claim complete queue exception cleanup.
+
+The independent local validator retains all world, queue, origin, transition,
+transport and restoration failures. Session pass, parity checked, independent
+native players and completed release remain false even for a fully valid modeled
+local contract. Sequential guarded reads are not an atomic owner/lifetime lease.
+Full prebind readability in X4 is still untested and may fail closed.
+
+Verification
+
+Owned-memory actual-image tests exercise producer identity/read faults, full
+runtime generation changes, controller/Agent/model/owner replacements, exact
+original-once behavior, immediate and delayed dispatch orderings, concurrent
+reservation/STOP/reuse, missing/duplicate ACK, immutable repeated bind, command
+unreadability after transfer, and native exception propagation with retained
+unsupported queue debt. Existing bound immediate-dispatch and raw overlap tests
+remain passing.
+
+The actual C formatter is passed through the production Lua module and independent
+Python parser, including active pending and STOP refusal. Actual builder output,
+packaged module setup, phase1/2 fresh-Lua reattachment, closed manifest, and shared
+bootstrap preimage are tested. Independent modeled mutations delete or alter
+each phase, field, state/registry join, chronology, mode marker, run/config/manifest
+binding and hard-false claim boundary against a valid complete fixture.
+
+Final validation: full exact-image native build/test exited0, including the
+production action guard, direct and queue lifecycle tests, formatter/Lua/parser
+checker, 15 real-loopback NGD cases, ordinary transport and other existing native
+checks. Full test_native*.py discovery found749 tests:742 passed, seven existing
+Linux-only tests skipped. The focused PREBIND module ran11 tests successfully.
+The counts are discovered tests, including imported shared fixture tests, not a
+claim of749 unique new tests. No native game or live GetUp occurred.
+
+Private full-native log SHA256:
+3d20739089eff1e106ba4b831895197e39656e08c646a5b5d8319c2874464382
+Private full-Python log SHA256:
+3befcbe6812ebcd55bc674d0064e3cce801b27000cf4c7585cd24e7c079741f8
+Actual C owned-receipt export SHA256:
+5fcac367313dd87020f1e8da597bef0c456bf0db5b0b3570cee71e4ee56968d3
+Owned active/STOP pending export SHA256:
+0d29d379844185d94f9c7a7ef3f6856dcb59d543ac500623b86a4b107678aa2a
+Private DLL is793088 bytes, SHA256:
+a67ce5c85107399b926269891c1d5730b9a739b00d7dac003c3a343e034a66ef
+Generated DLLs, snapshots, runtime tokens, raw engine logs and native pointers
+remain private and are not committed.
+
+GetUp004 preservation was checked with the new local evidence parser: the same
+31 local errors remain, followed by the unchanged outer runner-closure error in
+the retained 32-error strict result. Raw engine SHA256:
+60f4a6bad659af5dc8c01599f53fbb0292ff745d1dba852b84a30c18cbbc7a10
+Retained strict result SHA256:
+97b0a6b6b7b8918c2b1399ef161b7e382bb13c8241b5648852a760b0840dcf8c
+Neither that run nor the copied enqueue/dispatch association is a repaired or
+successful native session. A later native attempt requires source review and a
+fresh separately reviewed frozen artifact.

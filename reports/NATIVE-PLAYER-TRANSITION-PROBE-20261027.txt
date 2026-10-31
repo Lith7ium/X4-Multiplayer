@@ -1,0 +1,62 @@
+READ-ONLY PLAYER TRANSITION PROBE WIRING
+27 October 2026
+
+Scope and result
+
+The explicit --player-transition-observer overlay option installs the existing
+read-only observer before snapshot loading, after early world-watch and queue
+configuration. It does not set another numeric option bit. It requires the
+observe-only player probe and refuses tactical command plans. No player action,
+control-state write, controller construction or native launch was added or run.
+
+The separate native_gate_transition.lua adapter drains consuming native rows
+before other observer families. It resumes the native export cursor after a UI
+reload, bounds rows/counts, exports STOP before asserting restoration failures,
+and runs during the main error cleanup. The independent validator requires every
+earlier row even after a cursor resume. Missing, duplicate, out-of-order, dropped,
+open-at-restore and failed records remain failures. The probe does not replay or
+clear native events, and STOP is exported once per adapter instance.
+
+Validation exposes local causal receipts under native_player_transitions. Raw
+process pointers are used only for local joins. Neither pointer equality across
+replicas nor an authority lease is claimed. A valid empty capture explicitly has
+transition_exercised=false. Activation/enqueue alone still do not establish
+model completion. Raw world/queue errors remain strict failures even when the
+separate causal completion diagnostic is present. Action-origin proof remains
+false: no command-to-transition writer/provenance path is implemented here.
+
+Controlled-ship limitation discovered before live testing
+
+Current transition selection borrows world_trace_watches. world_trace_bind in
+lockstep_world_trace_early.h requires each imported watched object to have the
+original NavigationController (vtable RVA2c51158), excludes registered fixture
+actors, then calls world_trace_prepare. A failure ends the gate with reason74.
+
+The pristine saved controlled Small ship ae79c has movement class=player,
+player=1, owner=player, macro ship_arg_s_scout_01_a_macro. Its playerpilot post
+references saved player11e12. Prior native player-context captures independently
+identify ae79c as container/occupied/controlled. Its initial PlayerController
+vtable2c39488 cannot satisfy the existing raw world-watch binding. Therefore
+adding ae79c to today's early watch list would stop before an admitted action.
+No impossible fixture was launched or labeled ready. No fixed-controller check
+was relaxed, and no watch was rebound to a new controller.
+
+The player probe also intentionally rejects any change to its bound singleton
+identity tuple. GetUp followed by release would need a separate reviewed command
+state machine; changing this observation option does not permit that transition.
+
+Next source proposal is a separate imported transition-watch manifest and a
+separate receipt ledger fed by the existing queue wrappers. It must support the
+audited initial Nav/Player controller types without pretending those watches had
+raw world-trace coverage. The old world watch/queue trace/parser remain strict.
+No expanded C source or control writer is part of this commit.
+
+Verification
+
+358 focused native-gate Python/LuaJIT tests PASS, no skips. Fifteen transition
+tests include production Lua consuming drain/reload, configuration before load,
+cleanup after another observer fails, capacity/missing/oversized rows, raw STOP
+failure retention, opt-in overlay generation/prerequisite rejection, and actual
+top-level validator output retaining earlier session failures and raw queue256.
+Native C is unchanged from reviewed base67537d9. No native pair is active or
+queued; no frozen DLL/overlay was represented as a working action fixture.

@@ -1,0 +1,56 @@
+SINGLE-NATIVE GETUP002 STARTUP FAILURE AND SOURCE CORRECTION
+28 October 2026 | one completed disposable run, no successful action
+
+The approved artifact002 ran once in disposableb4 against the pinned pristine
+save009, with one physicalp1 and the distinct diagnostic-getup-1 contract.
+Runtime endpoint/token were created by the reviewed runner; immutable inputs and
+execution receipt matched the reviewed artifact. No automatic retry occurred.
+
+X4 reached the start menu, then native_gate_transition.lua rejected the explicit
+diagnostic-getup mode at module initialization. X4 continued loading later Lua
+files; the actual probe then failed on the missing transition adapter. It logged
+ABORT stopped=1 active=0 restored=1 tick=0. The raw world/queue configured-but-
+unexercised footers and diagnostic missing-status error remain preserved.
+The save Load request, report29 and GetUp action30 were not reached. There is no
+GetUp native footer and no request/delivery/publication completion evidence.
+
+The released runner stopped on its fail pattern (exit5), closed its owned X4
+with WM_CLOSE (game exit0), and recorded lane restoration and snapshot restoration.
+Elapsed runner time was31.453seconds. Follow-up checks found the three owned
+runner/game process IDs and endpoint gone, b4 idle, and both reserved save009
+filenames absent. The game creation timestamp was not independently observed
+before this early shutdown; PID, executable and released run receipts are retained.
+A fresh frozen validator independently returned local_contract_valid=false with
+36 errors, retaining incomplete/raw failures. Session, parity, independent-player
+and completed-release claims all remain false. No simulation or action success is
+inferred from hook restoration or cleanup.
+
+Source correction
+-----------------
+A new isolated branch starts from reviewedc9197ce. The only production change is
+the transition adapter's explicit mode guard: diagnostic-getup joins its already
+supported observe and agreed-getup modes. The actual diagnostic, origin, player
+and probe adapters already recognize the mode and retain their contract/slot,
+input authority, world coverage and option guards. Other transition modes remain
+refused. No C, native bit, DLL, queue/lifetime behavior or production probe changes.
+
+The earlier source tests loaded actual origin/probe code but substituted the
+transition adapter, so they could not catch this module-initialization failure.
+The new LuaJIT fixture runs the actual builder, validates its generated closed
+configuration (including actor_diag=true), then loads all five emitted production
+Lua modules in the exact ui.xml.files order. Only engine/native-export callbacks
+are modeled. The snapshot hash substitution applies only to an owned synthetic
+XML save; this test does not assert that arbitrary saves satisfy the real fixture.
+
+Tests verify successful pre-Load configuration order and bootstrap digest,
+one snapshot Load request, fresh-VM reattachment during both loading phases,
+no native action/capture during startup, and the actual proposal29 behavior.
+A meaningful legacy-guard mutation reproduces the native missing-adapter abort.
+Wrong contract/slot/dependencies refuse without loading; rejected action config
+retains raw incomplete transition and schema2 origin footers. Existing paired
+startup and other transition mode refusals remain. These are source-level
+startup/load-request tests, not completed native loading or a successful GetUp.
+
+Validation: five focused startup tests pass. Full test_native*.py with
+PYTHONPATH=tools;tools/dev;src;tests discovers694 tests:689 pass and the same
+five platform skips remain. No native rebuild or further game run was performed.

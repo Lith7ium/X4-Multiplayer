@@ -1,0 +1,188 @@
+NATIVE PLAYER TAKEOVER/RELEASE: SYNCHRONIZED STAGES, NOT A TWO-PILOT LEASE
+27 October 2026 | static/read-only follow-up to request-observer-002
+
+RESULT
+
+X4 has an active native takeover path. It need not wait for AI requests to become
+naturally zero: it transfers the existing per-ship Agent to a PlayerController,
+changes Agent+f79 under the pathing manager's synchronization, and later replaces
+the AI flight model with mode 0 through a deferred command. With no flight model,
+Agent update skips its normal motion publication when f79 is set. Old orders can
+remain stored. Release transfers the same Agent back to a NavigationController,
+clears f79 under the same synchronization, and selects an AI flight model again.
+
+This supplies a real native transition to study, but not a complete authority
+transaction for two pilots. Its public/script/UI returns and flight-control
+events precede some effects. The PlayerController constructors and input callback
+still use singleton global input state. Owner mutation, component destruction,
+later model replacement, all producer lifetimes and the entire transition's
+execution exclusion are not proved by this audit. No native function was invoked,
+no control/model/pointer was written, and no new hook or native pair was started.
+
+PASSIVE NEUTRALITY IS OPTIONAL
+
+The recorded nonzero angular requests on both idle/empty candidate ships remain
+strict evidence against the original passive preconditions. A naturally neutral
+interval is useful historical evidence for a passive experiment. Requiring it
+for every takeover could prevent control indefinitely while native AI continues
+idle corrections. An active takeover instead needs a native transfer and an
+acknowledgment of its completed authority state. Neither waiting longer nor
+silently forcing a zero request creates that transfer. The run002 raw request
+and solver failures remain unchanged; this analysis does not reinterpret a pass.
+
+ENTRY AND POST ASSIGNMENT
+
+ActivatePlayerControls 175a00 and DeactivatePlayerControls 179760 update the global
+input-disable counter; d9cc30 computes global input-context activation. They are
+not per-ship authority assignment APIs. SetEntityToPost 1ffa00 resolves native
+objects and delegates to 44d790, which changes entity/post relationships and emits
+events. That bool indicates post assignment, not a completed pilot handoff.
+
+The native control-position action 35b8a0 can signal an occupying NPC to leave its
+chair and return success without entering player control yet. Actual entry 716670
+uses the singleton player and the pilot branch 70e630. That path assigns the pilot
+post and calls ship virtual+2190. For the saved Small type at primary vtable
+2b7feb8, this resolves to 4ed040, forwarding to 4500a0. These paths include room,
+activity, UI and event side effects; they are not pure control-state setters.
+
+4500a0 allocates a 0x19520 PlayerController. With a prior NavigationController it
+uses d83ae0 to transfer the existing navigation state; otherwise d83550/ea4a00
+construct and bind fresh state. It replaces the ship's component+200 controller
+through virtual+19e8, resolving to 6cd8b0 and then 745e00. Native getters supply
+pose/velocity for initialization. This audit does not propose writing those
+values or using controller construction as transform reconciliation.
+
+THE SYNCHRONIZED PER-SHIP TRANSFER
+
+d83ae0 calls ea4c00(newController, oldController, flag 1, virtualBaseFlag 0).
+ea4c00 retains the old controller's owner component at+28 using the native
+reference-count sequence, copies navigation links+30..50 including Agent+40,
+copies cached state, sets newController+58=1 and oldController+58=0.
+
+It then enters PathingManager+48, resets the manager+70 event, and if active
+count+40 is nonzero waits on that event. Under that critical section it resolves
+the ship's full runtime ID in the manager+130 tree and writes the supplied flag
+to Agent+f79 at ea4e0c. It leaves the critical section at ea4e17, before later
+event-listener work. Missing Agent lookup silently skips this flag write; the
+constructor return is therefore not itself proof that the transfer flag changed.
+This is the native synchronization observed in complete code, not a proposal to
+take arbitrary engine locks from an adapter or to reproduce refcount writes.
+
+The+58 ownership role is corroborated by the destruction route. Navigation
+destructor ea5230 calls ClearOwner ea9230. ClearOwner removes the manager's Agent
+only when controller+58 is nonzero; it otherwise releases owner/listener state
+without that removal. The transfer deliberately clears the old flag, allowing
+old controller destruction while retaining the Agent for the new controller.
+Retaining the component and transferring this Agent are meaningful native
+lifetime operations. They do not establish that faction ownership or every
+model/solver allocation is fixed across the full transition.
+
+745e00 can detach/destroy the prior controller, writes component+200, then binds
+the new controller's owner through virtual+118. PlayerController uses d9cdb0.
+No single critical section in this body spans component controller publication,
+the earlier f79 write, deferred model dispatch and owner mutation. Fresh binding
+ea8cf0 creates/registers an Agent through eac530 under manager+48 synchronization,
+then performs additional listener/setup work and queues model/context commands.
+It is a different path from transfer, not evidence that two constructors are safe.
+
+DEFERRED MODEL CHANGE AND REAL PUBLICATION SUPPRESSION
+
+Global input-context callback d88710 activates the current PlayerController via
+d9c590. On its enabling branch, d9c590 requests mode 0 through controller virtual
++198, which resolves to d8dd00. d8dd00 calls eac900(manager, shipRuntimeID, mode).
+eac900 allocates a 0x10-byte SetFlightControlModelOrder with vtable 2c51c38 and a
+uint32 mode at+8, then transfers ownership to the existing eacd40 manager queue.
+Its virtual dispatch+8 is e979d0; that forwarder calls e87cf0(Agent, mode).
+The existing typed world observer does not yet interpret this command type.
+Its generic unsupported-type refusal must remain until reviewed support exists.
+
+For mode 0, e87cf0 deletes the current Agent+f10 flight model, leaves f10 null,
+and copies typed current motion-bank fields through e91c40/e91c80. It does not
+empty the Agent pending/main vectors or exclude later manager commands. When
+Agent update e8f250 reaches e8f800 with f10 null, f79=1 skips the normal old-to-new
+motion-bank copy. The common null-model branch updates limited metadata and exits
+at e8f9c0 to e91b72, before normal pending/main consumption and model update.
+This is bounded native AI-publication suppression with preserved queue state.
+It does not imply that every writer of those banks or every producer is excluded.
+
+The order matters: setting f79 while f10 is still nonnull does not take this
+null-model branch; deleting f10 with f79=0 still takes the motion-copy path.
+A diagnostic must observe both actual transitions, not infer them from an event.
+The manager's detached command list remains relevant: consumer eace40 releases
+the producer+90 lock before dispatch under+48. More commands can arrive while
+that list processes; a later model-change command can restore a flight model.
+Empty shared head alone does not prove a closed authority interval. The transfer
+does not require all dormant orders to disappear; what needs proof is that none
+can regain conflicting publication authority during an admitted pilot interval.
+
+FlightControlStarted 70eb10 and FlightControlStopped 70ec00 notify the singleton
+player and carry a controlled runtime ID. The input callback posts them after
+queueing the model request, before that queued request's dispatch is established.
+They are not native-completion acknowledgments. EventSystem_FlushCommandQueue
+99abe0 operates a different event-system queue; it is not a pathing-command drain.
+
+RELEASE AND SINGLETON LIMIT
+
+Native release 716e20 reaches 70e940, ship virtual+2198,7e1f10 and 450380. It also
+performs activity/UI/room notifications and can signal the NPC pilot to return.
+450380 allocates a 0xf0 NavigationController and calls ea4c00 with flag 0, preserving
+the Agent while clearing f79 under the same manager synchronization. It replaces
+the component controller and queues native model/forced-reference/behavior work.
+d9c250 also selects native models during input deactivation. Thus release is a
+multi-stage restoration of native control, with existing orders able to resume;
+it is not an invented rollback, snapshot reload or all-orders cancellation.
+
+Both PlayerController constructors call d84c20, which initializes shared input
+storage including 2f4b720. d88710 obtains the current controller from the singleton
+player and resets/updates shared input values and timers. A second invocation of
+the complete native takeover path would not create an isolated second input
+source. Temporary global-pointer swaps are still excluded. The active native
+handoff removes the Steering model that supplies the previously proposed six
+request calls; it cannot simply be combined with that passive substitution.
+
+SMALLEST NEXT EVIDENCE AND FAILURE BOUNDARY
+
+Before any two-ship writer, a reviewed observe-only transition should correlate:
+  - a canonical logical ticket and full saved/runtime ship identity;
+  - native post/control request acceptance, separately from actual completion;
+  - old/new controller identity, Agent transfer and actual f79 change;
+  - the exact SetFlightControlModelOrder enqueue generation, detached dispatch
+    and completion, including mode and before/after f10/model type;
+  - subsequent Agent/PlayerController solver/publication branches at shared ticks;
+  - release's corresponding transfer/model restoration and retained queue state.
+
+Existing Agent/solver observers and the world agent's deferred dispatcher provide
+parts of that evidence. Observing transfer and component replacement still needs
+reviewed coverage; no new patch is proposed or reserved by this report. The next
+native observation should use an actual native takeover/release of one saved ship
+first, because it exercises the supported transaction. That would validate one
+singleton transition only, not two independently controlled native players.
+
+A future authority ACK must name an agreed epoch, both logical capabilities,
+native ship ID/generation/true owner and actual completed controller/model state.
+An event, successful action return or matching repeated reads is insufficient.
+Unknown command type, missing transfer/dispatch, stale identity, owner change,
+replacement during a pending ticket, unbalanced coverage or a conflicting family
+must refuse completion. A partial native effect poisons the ticket/tick and holds
+both replicas; it cannot be retried as if nothing happened. Orders retained for
+release must have explicit ownership and producer rules, not silent suppression.
+Full two-slot and cross-family validation still precedes any future write.
+
+VERIFICATION AND LIMITS
+
+The accompanying pin manifest adds 39 static function extents, 5 virtual-slot
+relationships and 19 direct call/tail edges. Full contiguous PE chained-unwind
+extents were checked;
+leaf/tail functions were decoded completely. Four decompiler body-byte counts
+are shorter than their actual pinned spans (body count / complete span):
+44d790: 2296/2299; 716670: 1795/1803; e87cf0: 1094/1124; 99abe0: 2131/2156.
+The manifest records both counts and hashes the complete span, including internal
+alignment/jump-table data. These are evidence
+pins, not a complete transitive write manifest or authorization to invoke them.
+
+Native source, DLL and frozen overlay remain unchanged. This documentation-only
+follow-up uses static checks and diff/link review; the previously recorded 125
+focused Python/Lua/UDP tests and native C actual-image checks were not rerun.
+Request002 remains fully retired with its two strict raw failures. No actual
+takeover/release was performed in this follow-up, and no independent-player,
+physical-input, faction, weapon, travel or complete lifetime claim is added.

@@ -1,0 +1,191 @@
+{
+  "purpose": "Static proposal pins only; not hook or live action authorization; no complete transitive callee pinset claimed.",
+  "image_sha256": "19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891",
+  "functions": [
+    {
+      "rva": "001aba30",
+      "length": 246,
+      "sha256": "ec38c42516226029599055391ce481f2aea48f21ad0d4e305a712b60d08b207c",
+      "role": "GetUp export, all fragments"
+    },
+    {
+      "rva": "00716d80",
+      "length": 160,
+      "sha256": "799f73503d1970523fe2e4f5e9d49765d5f064ee1075a5165a386c928d13d1db",
+      "role": "native eligibility"
+    },
+    {
+      "rva": "0099a210",
+      "length": 468,
+      "sha256": "0e3ed2e1d468f72dd886645a3270366cf4eca25fb29f06fb58e0128d53c4dede",
+      "role": "immediate eligibility event"
+    },
+    {
+      "rva": "0099a3f0",
+      "length": 807,
+      "sha256": "5ca12a5d17041238645af6d6028c718bb3714cc53e9dd6963769d51827087c0d",
+      "role": "PostEvent, all branches"
+    },
+    {
+      "rva": "0099bb50",
+      "length": 2331,
+      "sha256": "f6b47d17c23e03b5fe0ff5d6f36f5bbac8cd7cfa168ff3ed211df8795c39c9ff",
+      "role": "due-event processing"
+    },
+    {
+      "rva": "0099c470",
+      "length": 467,
+      "sha256": "b605dc6a10b27c1d26b2ecd6f30d8e7c93641c56162a89c9c995eee83d3447f5",
+      "role": "native recipient dispatch, three unwind fragments"
+    },
+    {
+      "rva": "0099c740",
+      "length": 875,
+      "sha256": "c088ffa6885ba388e1085f5332d0905d65ede6eb7f0dcb47fec6eec9c237c1b7",
+      "role": "script/listener event queue and release path"
+    },
+    {
+      "rva": "00998700",
+      "length": 24,
+      "sha256": "0d525161ea656c9990495b0d656c7e69ce2a0dd980143ef620f4a7431096ff09",
+      "role": "receiver virtual adapter, complete leaf"
+    },
+    {
+      "rva": "00152860",
+      "length": 6,
+      "sha256": "554d8cb4ae56115973e1129c5c379e14a498f16f858b7b88e9de1686fd9eb948",
+      "role": "GetUpEvent event ID, complete leaf"
+    },
+    {
+      "rva": "00152870",
+      "length": 19,
+      "sha256": "b89c9991cf33644216ce830713b3291b1e3923e58aa08fccffee4f3a6d87d657",
+      "role": "GetUpEvent native dispatcher, complete leaf"
+    },
+    {
+      "rva": "00706cc0",
+      "length": 57,
+      "sha256": "4348afd1cc87ae418a286394a41325b058e4cb045d8a1110274e125998802718",
+      "role": "Player GetUpEvent receiver"
+    },
+    {
+      "rva": "00716e20",
+      "length": 1481,
+      "sha256": "010ba9e22844f7a03046316572ee102ea8e689ec94e42ec048be93428f1d0852",
+      "role": "control release"
+    },
+    {
+      "rva": "000f04b0",
+      "length": 166,
+      "sha256": "a63156dd2a7794da525f86b9847e8cbcab99bd1b1eba58baef2aef845dd67632",
+      "role": "event deleting destructor"
+    },
+    {
+      "rva": "0018a150",
+      "length": 1037,
+      "sha256": "10df659b91bf44068dcb3fcb88f2b72e00a3e091df8fb6eff072be75839e227b",
+      "role": "GetCompSlotPlayerActions, six unwind fragments"
+    },
+    {
+      "rva": "00199db0",
+      "length": 586,
+      "sha256": "570305e24c596b9a5c65f8cc98a044a9a303850816eee1a169ab7065acf3066c",
+      "role": "GetNumCompSlotPlayerActions, three unwind fragments"
+    },
+    {
+      "rva": "001b5450",
+      "length": 685,
+      "sha256": "b376a99d502c950f04c797ed9fb236843c0fe8ad16db3db16ddf02a00e7e69b9",
+      "role": "PerformCompSlotPlayerAction"
+    },
+    {
+      "rva": "003508e0",
+      "length": 93,
+      "sha256": "3a48fd72ded5585551dcaa1396bc9c0400b3e5083bb99ce7b370a70b75c104fc",
+      "role": "single action container invoke"
+    },
+    {
+      "rva": "006a1a60",
+      "length": 8,
+      "sha256": "785f88f0575511d53e4c60b6a077b7167c083c7dbe962ef4b2970aa0ad1e50b1",
+      "role": "ControlPositionAction action type leaf"
+    },
+    {
+      "rva": "0035b8a0",
+      "length": 1332,
+      "sha256": "21cf3cb1237650c26747101f4d94f94b8a13205850af9ec3d0bcae9da596d357",
+      "role": "ControlPositionAction including occupied NPC defer"
+    }
+  ],
+  "slots": [
+    {
+      "slot": "02a85278",
+      "target": "000f04b0"
+    },
+    {
+      "slot": "02a85280",
+      "target": "00152860"
+    },
+    {
+      "slot": "02a85288",
+      "target": "00152870"
+    },
+    {
+      "slot": "02b329c8",
+      "target": "00998700"
+    },
+    {
+      "slot": "02b33a70",
+      "target": "00706cc0"
+    },
+    {
+      "slot": "02abd728",
+      "target": "003508e0"
+    },
+    {
+      "slot": "02b45558",
+      "target": "0035b8a0"
+    }
+  ],
+  "callsite": {
+    "rva": "001abb07",
+    "length": 5,
+    "target": "0099a3f0",
+    "resume": "001abb0c",
+    "bytes": "e8e4e87e00",
+    "aligned_cas_rva": "001abb00",
+    "aligned_cas_bytes": "0f5815092bb102e8e4e87e00488b7424",
+    "changed_offsets": [
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "unchanged_offsets": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      12,
+      13,
+      14,
+      15
+    ]
+  },
+  "time_constants": [
+    {
+      "rva": "02cbe610",
+      "bits": "7b14ae47e17a843f",
+      "double": 0.01
+    },
+    {
+      "rva": "02cbe470",
+      "bits": "2d431cebe2361a3f",
+      "double": 0.0001
+    }
+  ]
+}

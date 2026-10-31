@@ -7,9 +7,17 @@ an ambiguous transaction in a new world.
 from collections import OrderedDict
 import hmac
 import math
-from .host import Session, HEX, sequence
+from .host import Session, HEX, ATOM, sequence
 
 WORLD_FIELDS = 17
+# WALK2 (walk_game.lua): an on-foot pose relative to a context every client resolves
+# identically. Sender: WALK2|1|lease|seq|state|kind|ship|sector|code|macro|room|x|y|z|
+# yaw|speed|stime|transfers. Forwarded with the sender's lease and slot to every other
+# peer while fresh, once per new sequence and at most every WALK2_REPEAT seconds otherwise.
+WALK2_FIELDS = 18
+WALK2_KINDS = ('none', 'ship', 'station')
+WALK2_FRESH = 1.0
+WALK2_REPEAT = .2
 VERBS = {'PICKUP','TRADE'}
 RESULTS = {'OK','REJECTED','BUSY','CANCELLED'}
 
@@ -24,6 +32,25 @@ class BubbleSession(Session):
         self.bodies={}
         self.suit_kills={}
         self.walkers={}
+        self.walkers2={}
+        self.walk2_sent={}
+
+    def ship_count(self):
+        return 2
+
+    def walk2(self,f):
+        """Validated WALK2 fields 3.. as (seq, text fields); ValueError otherwise."""
+        seq,state,ship,transfers=sequence(f[3]),sequence(f[4]),sequence(f[6]),sequence(f[17])
+        kind=f[5]
+        if state>1 or kind not in WALK2_KINDS or ship>self.ship_count():raise ValueError('walk2')
+        if not all(ATOM.fullmatch(v) for v in f[7:11]):raise ValueError('walk2 atom')
+        if (state==1)==(kind=='none'):raise ValueError('walk2 state')
+        if (kind=='ship')!=(ship>0):raise ValueError('walk2 ship')
+        if kind=='station' and '-' in (f[7],f[8],f[9]):raise ValueError('walk2 station')
+        x,y,z,yaw,speed,stime=(float(v) for v in f[11:17])
+        if not all(math.isfinite(v) for v in (x,y,z,yaw,speed,stime)):raise ValueError('walk2 finite')
+        if max(abs(x),abs(y),abs(z))>100000 or abs(yaw)>360 or not 0<=speed<=100 or not 0<=stime<=1e9:raise ValueError('walk2 range')
+        return seq,f[3:]
 
     def expire(self,now):
         old_host=self.peers.get('p1')
@@ -38,6 +65,8 @@ class BubbleSession(Session):
         self.suit_kills={lease:v for lease,v in self.suit_kills.items() if lease in retained}
         self.fire={lease:v for lease,v in self.fire.items() if lease in live}
         self.walkers={lease:v for lease,v in self.walkers.items() if lease in live}
+        self.walkers2={lease:v for lease,v in self.walkers2.items() if lease in live}
+        self.walk2_sent={k:v for k,v in self.walk2_sent.items() if k[0] in live and k[1] in live}
         for cmd in self.commands.values():
             if cmd['lease'] not in live and cmd['result']=='PENDING':cmd['result']='CANCELLED'
 
@@ -72,9 +101,14 @@ class BubbleSession(Session):
                     return [f'RESULT|1|{request}|SESSION_FULL'.encode()]
                 self.commands[request]={'slot':slot,'lease':peer.lease,'ip':address[0],'verb':verb,'result':'PENDING','created':now}
                 return [f'RESULT|1|{request}|PENDING'.encode()]
-            if f[0] not in ('WORLD','FIRE','DONE','BODY','SUITKILL','WALK'):return super().receive(raw,address,now)
+            if f[0] not in ('WORLD','FIRE','DONE','BODY','SUITKILL','WALK','WALK2'):return super().receive(raw,address,now)
             slot,peer=self._peer(f[2],address)
             if peer is None:return []
+            if f[0]=='WALK2' and len(f)==WALK2_FIELDS:
+                seq,fields=self.walk2(f)
+                old=self.walkers2.get(peer.lease)
+                if old and seq<=old['seq']:return []
+                self.walkers2[peer.lease]=dict(seq=seq,at=now,fields=fields)
             if f[0]=='WALK' and len(f)==11:
                 seq=sequence(f[3]);context=sequence(f[4]);pose=[float(v) for v in f[5:]]
                 if context not in (0,1,2,3,4):return []
@@ -119,6 +153,15 @@ class BubbleSession(Session):
         except (ValueError,OverflowError,IndexError):return []
         return []
 
+    def walk2_packets(self,peer,other_slot,other,now):
+        walker=self.walkers2.get(other.lease)
+        if not walker or now-walker['at']>=WALK2_FRESH:return []
+        key=(peer.lease,other.lease);last=self.walk2_sent.get(key)
+        if last and last[0]==walker['seq'] and now-last[1]<WALK2_REPEAT:return []
+        self.walk2_sent[key]=(walker['seq'],now)
+        payload='|'.join(walker['fields'])
+        return [(peer.address,f'WALK2|1|{peer.lease}|{other.lease}|{other_slot}|{payload}'.encode())]
+
     def snapshots(self,now):
         result=super().snapshots(now)
         host=self.peers.get('p1')
@@ -126,12 +169,14 @@ class BubbleSession(Session):
             if self.world and host:
                 payload='|'.join(format(v,'.9g') for v in self.world)
                 result.append((peer.address,f'WORLD|1|{peer.lease}|{host.lease}|{self.world_revision}|{payload}'.encode()))
-            other=self.peers.get('p2' if slot=='p1' else 'p1')
+            other_slot='p2' if slot=='p1' else 'p1'
+            other=self.peers.get(other_slot)
             if other:
                 walker=self.walkers.get(other.lease)
                 if walker and now-walker[1]<1:
                     payload='|'.join(map(str,(walker[0],*walker[2:])))
                     result.append((peer.address,f'WALK|1|{peer.lease}|{other.lease}|{payload}'.encode()))
+                result.extend(self.walk2_packets(peer,other_slot,other,now))
                 body=self.bodies.get(other.lease)
                 if body:
                     payload='|'.join(map(str,body))

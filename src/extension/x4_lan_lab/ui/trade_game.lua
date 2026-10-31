@@ -103,7 +103,7 @@ function A.trade.receive(client,f,now)
   local parsed=t.assembler:add(P.integer(f[5]),P.integer(f[6],8),P.integer(f[7],8),f[8],now)
   if parsed then
    t.snapshot=parsed;t.lastSnapshot=now
-   if cfg.slot=='p2' and t.ready and not t.worldChanged then
+   if cfg.slot~='p1' and t.ready and not t.worldChanged then
     parsed.money=parsed.balances[cfg.coop and 1 or 2]
     local key=table.concat(parsed.balances,',')
     for _,r in ipairs(parsed.rows) do key=key..'|'..table.concat(r.cargo,',') end
@@ -169,7 +169,7 @@ RegisterEvent('X4LAN_Trade.Market1',function(_,object) t.markets[1]=key(object) 
 RegisterEvent('X4LAN_Trade.Market2',function(_,object) t.markets[2]=key(object) end)
 RegisterEvent('X4LAN_Trade.Ready',function()
  t.ready=true;log('market adapter ready')
- if cfg.slot=='p2' and t.snapshot and not t.worldChanged then
+ if cfg.slot~='p1' and t.snapshot and not t.worldChanged then
   t.snapshot.money=t.snapshot.balances[cfg.coop and 1 or 2];AddUITriggeredEvent('X4LAN_Trade','Apply',t.snapshot)
  end
 end)

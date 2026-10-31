@@ -1,0 +1,232 @@
+LOCKSTEP UI REPLAY: STOCK UI ACTIONS AS RECORD EVENTS OF SLOT K
+30 October 2026 | offline static analysis of the pinned Windows X4.exe 9.00 (RVAs, base 0x140000000)
+and of the extracted stock UI scripts (read locally in x4-re, nothing copied here). No X4 was launched.
+[F] = read in the binary or scripts; [I] = inference; "live" = what only a native run can show.
+
+GOAL (user): every client is X4's native player 1. Stock UI actions that change the world are captured on
+client k and replayed for slot k on every client at the same tick, not blocked.
+
+1. INVENTORY: WHICH STOCK UI ENTRY POINTS CHANGE THE WORLD
+Counted from the base game's ui/ scripts [F]: 1949 FFI functions in use, 672 not plain queries by name, 214 of
+those change the world; the rest is widgets, map display and filters, options, construction-map editing,
+custom game starts. On top of FFI: Lua C functions the engine registers as globals (the second column of a
+menu's calls): about 30 change the world. A pure UI call stays local on every client and needs nothing.
+There is no single choke point: each family below has its own.
+
+P0 flying the own ship (the first thing a player misses)
+  activities   StartPlayerActivity, StopPlayerActivity (travel, scan, long range scan, SETA). Both exports only
+               tail-jump to 0x9fd120 / 0x9fd330, as does the input handler d86c80 (action 0x12f etc.): those two
+               are the choke point. They post startactivity/stopactivity on the singleton; md/modes.xml does the rest.
+  soft target  FFI SetSofttarget, Lua SetSofttarget / RemoveSofttarget, the HUD's target system, the radar click,
+               the cycling actions 0xa7..0xaa, MD set_player_target. All end in 0xaecb60, see 3b.
+  flight       ToggleFlightAssist, SetAutoRoll, ToggleAutoPilot, SetGuidance, EndGuidance, match speed (input 0x5b).
+  docking      QuickDock, RequestDockAt, RequestDockAtReason (check only with its flag), UndockPlayerShip.
+  weapons      SetDefensibleActiveWeaponGroup, SetWeaponGroup, SetWeaponMode, SetWeaponArmed, CycleTurretMode,
+               CycleTurretMissile, SetTurretGroupMode2, SetTurretGroupArmed, SetAll*Turret*, SetAllowedWeaponSystems,
+               SetAmmoOfWeapon, ToggleDrones, CycleNextDroneMode, SetDroneMode, SetDroneTypeArmed, SetAllDronesArmed.
+  deployables  LaunchMine, LaunchNavBeacon, LaunchResourceProbe, LaunchSatellite, LaunchLaserTower, DropCargo,
+               DropInventory, ActivateObject, SelfDestructComponent.
+  the seat     TeleportPlayerTo, TransportPlayerToTarget, PerformCompSlotPlayerAction, StartControlPanelHack
+               (the players agent owns death and respawn; a seat change is a world change for slot k).
+  (not per slot, a vote: SETA; camera views SetPlayerCamera* are the client's own, they stay local.)
+
+P1 commanding ships
+  simple orders Lua CreateOrder (35 calls: every menu.order* of the map and interact menus, the main path),
+               RemoveAllOrders, RemoveAllOrders2.
+  queue editor FFI CreateOrder, CreateOrder2, CreateOrder3 (one function), Lua SetOrderParam, RemoveOrderListParam,
+               EnableOrder, AdjustOrder, RemoveOrder, RemoveOrder2, ResetOrder, EnablePlannedDefaultOrder,
+               RemovePlannedDefaultOrder, CreateDeployToStationOrder, SetOrderLoop, ResetOrderLoop, SetCurrentLoopOrder,
+               SetOrderSyncPointID, RemoveOrderSyncPointID, ReleaseOrderSyncPoint*, SetSyncPointAutoRelease*,
+               RemoveOrderFailure, RemoveDefaultOrderFailure, SetOrderQueueOption.
+  fleets       RemoveCommander2, SetSubordinateGroup* (7), SetFormationShape, SetFleetUnit*, AddFleetUnitSubordinate,
+               RemoveFleetUnit, ReassignControllableToFleetUnit, ReleaseDetachedSubordinateGroup, SetFleetManagement,
+               SetFleetName, SetFleetLogo, SetShipStance, SetControllableFightRule, SetControllableBlacklist,
+               SetDefaultResponseToSignalForControllable, ResetResponseToSignalForControllable.
+
+P2 economy and assets
+  trade        Lua AddTradeToShipQueue, TransferPlayerMoneyTo, TransferMoneyToPlayer, TransferPlayerInventoryTo,
+               TransferInventoryToPlayer, SetVirtualCargoMode, SetContainerWarePriceOverride,
+               SetContainerStockLimitOverride, SetMinBudget, SetMaxBudget; FFI SetContainer*, ClearContainer*,
+               AddTradeWare, RemoveTradeWare, CreateTradeRule, UpdateTradeRule, RemoveTradeRule, SetPlayerTradeRuleDefault,
+               SetSupplyManual, UpdateSupplyOverrides, SetShipTradeLoopCargoReservationOverride, UpdateProduction*.
+  assets       PerformCrewExchange2, ReassignPeople, AssignHiredActor, CreateNPCFromPerson, RemovePerson, ClaimShip,
+               SellPlayerShip, PutShipIntoStorage, TakeShipFromInternalStorage, RequestShipFromInternalStorage2,
+               Install*Mod, Dismantle*Mod, SetComponentName, AddBuildTask6, build plots, station construction.
+  conflict     CreateBoardingOperation and its family, StartResearch, AddResearch, LearnBlueprint, terraforming, diplomacy
+               (AbortActiveDiplomacyActionOperation, StartDiplomacyActionOperation, SetRelationBoostToFaction, ...).
+
+P3 bridges into scripts: not one action but a door to many. AddUITriggeredEvent, SignalObject,
+  SignalObjectWithNPCSeed*, StartConversationFromMenu, StartSubConversationFromMenu, AbortMission, SetActiveMission.
+  Fired on one client they run MD on one client. Conversations, missions and the menus' MD cues need their
+  own treatment, not an event per function. Not started.
+
+Global options in menus (gameoptions: autoroll, aim assist, stop ship in menus, collision assist...) are in the
+stock settings fingerprint already: a difference is a relay desync, not a replay item.
+
+2. THE MECHANISM (lockstep_ui_replay.h, native_gate_ui_replay, default off, stop reason 164)
+Capture on client k, in the local phases only (UI slot 6, render slot 10 where the HUD's scripts run, the slot 4
+dispatch of presentation ids; simulation code passes through untouched):
+  native  a five-byte jump at the entry or block, through a private page near the image, to a C wrapper. The
+          wrapper encodes its arguments as an event of this client's slot and returns as if done (void, or the
+          predicted result). JIT-compiled FFI calls reach it too, as they call the address.
+  Lua     Lua C function globals are wrapped once in Lua (the menus look them up by name at each call). Only the
+          stock function ever runs at replay.
+Event: op, length, data; components as (runtime ID u64, 32-bit check of its portable ID). Needs
+  native_gate_runtime_ids (same IDs on every client); a check that differs at apply stops the session.
+Wire: its own section 'ui' (kind 0x55) in the input blob, after stock, version byte, capture tick low 16 bits,
+  events. Stock keeps priority; a tick without room keeps the events queued, in order, for the next one. Reported
+  with tick c, applied at c+delay (native_gate_pilot_delay), same delay rule as the stock record.
+Apply, every client including the capturing one (it never applies early), slot order 1..N:
+  native events in path_release, right after the stock records of the tick, slot 1 canonical, slot k inside
+  its slot scope (pslot_enter: singleton = P_k), through the stock function.
+  Lua-run events (orders) in slot 6 of the same tick from the probe's frame, canonical: X4's own UI context for
+  those calls. No singleton read in their direct-call closure to depth 3 [F; virtual calls not followed].
+Fail closed: any refused section, ref check, foreign hook owner or lost patch stops with 164 and why=; a capture
+that cannot be encoded is refused locally, counted and logged (nothing ran anywhere, nothing diverged).
+Declared state: every applied event folds into a receipt per tick (PUIREP_1) that joins the pilot receipt.
+Guard: FFI mutators of a family that is armed but not replayed yet return their failure value natively and count
+  (ui_refused=), which closes the hole of reports/LOCKSTEP-PLAYER-ORDERS-20261029.txt, open question 1.
+
+3. FIRST ACTIONS, WHAT THE BINARY SAYS
+3a Travel for slots 2+ [F]
+  MD does not help: the cues listen on player.entity, which is slot 1's. So 0x9fd120 / 0x9fd330 are wrapped:
+    in slot scope k   the activity setter 0x710ed0(P_k, activity) replaces the event: exactly what md/modes.xml does for
+                      travel, with its availability check (Ship vfunc 1008 at +0x1f80, or the drive already charging).
+    local phase       captured as an event (the FFI buttons); the J key already rides the stock record (action 0x12f
+                      moves from refused to replayed for slots 2+).
+    otherwise         stock (slot 1 canonical: MD on every client, as today).
+  Stopping reads P+0x6a30, the last controlled ship's runtime ID, nothing sets it on P_k: written with the seat.
+  710ed0 then reaches 6d8bf0 / 6d9190 on ship k through 55aeb0 with P_k as the singleton. Charge, drive and thrust are
+  generic ship code (AI ships use them too); the player branches compare against 9f7860 and stay out for other ships.
+  No tint and no sounds on slot k: they are MD's. The HUD's event 'playerActivityChanged' only sets decoration
+  colours, its listeners sit on slot 1's player: client k's colours do not follow, the travel state does (polled).
+3b Soft target [F]: a correction first. Report section 16.6 calls 0x9fcd70 the setter: it is a getter (the target as a
+  ship, clearing a dead ID). The writer is 0xaecb60(target manager, UI target element, ...), UI code with a simulation
+  half inlined in two blocks: 0xaecfdc..0xaed0ac clears the old target, 0xaed115..0xaed212 sets the new one. Both act
+  on the singleton: +0x6dc0's ID at +0x6dd0, +0x6e20, +0x6e30, PlayerChangedTargetEvent, ship vfunc 1076 / 1077, the
+  global 0x38f0a88 (cycling hint, UI only). The same two halves exist as stock functions without UI:
+  0x3e73f0(component+0x48, offset, flag) and 0x3e7560(component+0x48), slots 4 and 5 of the component's +0x48 interface.
+  So: the two blocks are patched (a jump to a stub at each start, back at their ends), the UI half still runs at
+  once on client k so its HUD reacts, the simulation half becomes an event, and every client replays it through
+  0x3e73f0 / 0x3e7560 in slot k's scope. MD's set_player_target outside the local phases goes straight to the same
+  two functions. The event now really fires on every client, also for slot 1, where it fired on one until now.
+  Then match speed (0x5b) can leave the refused list: d9cd00 and vfunc33 read the target through 9fcd70, per scope.
+  Missiles: not in this step, the secondary group and its aim are not per slot yet.
+3c Orders [F]: map and interact menu orders are menu.order* -> optional RemoveAllOrders2, then Lua CreateOrder(component,
+  id, params table, ...). The return value is unused in all 35 calls. Captured as one Lua-run event per call,
+  replayed by the stock C function. The queue editor (order rows you edit in the map) stays blocked for now: it
+  reads the new order back in the same frame, which a delayed apply cannot answer. Next step, see 4.
+
+4. TROUBLE SPOTS
+- Functions that return what the menu needs at once: FFI CreateOrder gives the index for the following SetOrderParam
+  and EnableOrder. A short transaction in one frame can be a batch with predicted indices; the queue editor cannot
+  without a local shadow of the queue. Not solved here.
+- Order subjects: only `player`-owned ships pass CreateOrder's own check, so --mode factions does not offer orders on the
+  slot ships; slot ships themselves are refused (a PlayerController flies them). The test needs a player-owned ship
+  with a pilot in coop mode (builder option, section 6).
+- Stock Lua that mutates automatically on each client would now be captured per client: fine for the own slot,
+  to watch in the census.
+- Runtime IDs are a hard precondition.
+- Long params (many attack targets) do not fit one section (about 190 bytes free next to a busy stock record): refused
+  at capture until events can span ticks.
+- MD-driven follow-ups for slot k have no listener: PlayerChangedTargetEvent on P_k reaches nobody, so notifications.xml
+  and similar react for slot 1 only.
+
+5. BUILT (default off, native_gate_ui_replay; files)
+  src/native/engine/lockstep_ui_replay.h, lockstep_ui_replay_lua.h, test_lockstep_ui_replay.h
+  tools/dev/native_gate_ui_replay_core.lua (Lua half), native_gate_ui_replay.xml (test fleet's owner only)
+  tests/test_native_gate_ui_replay.py
+  Small edits: the input mux in its three mirrors (kind 0x55), pstk verdicts (0x12f for slots 2+ with travel, 0x5b with
+  target), pres_leave and pview_sample (the target is P_k's own with this family), pnat_pass, pilot_stop_reason, the probe
+  (arming, block_orders leaves captured entries open, the receipt), native_gate_players.py, check_gate_options.py.
+  Stop reason 164. why= values: ui_section, ui_activity, ui_target, ui_orders, ui_op (section), ui_slot, ui_tick, ui_late,
+  ui_conflict, ui_ring (staging), ui_ref_mismatch, ui_scope, ui_scope_leave, ui_fault (apply), ui_hook_lost, ui_install,
+  ui_restore, ui_runtime_ids (pass), ui_lua_decode, ui_lua_op, ui_lua_overflow (the Lua half).
+  Options: --ui-replay [travel,target,orders] (no value: all), --ui-replay-script (a fixed plan through the stock
+  entries, for runs without people), --ui-replay-fleet SAVED,... (hands ships to `player`, needs --mode coop),
+  --ui-replay-dock STATION.
+  With ship death (native_gate_pilot_death, stop 163) a dead slot's native events are consumed and hashed, not applied, the
+  same on every client; its Lua-run orders still run (commanding other ships needs no own ship). Not tested together live.
+  The receipt PUIREP_1 carries every slot's activity and soft target, the fleet's order queues join it (UIFLEET_1): what took
+  on one client only is a digest mismatch at that tick, whatever the event was.
+
+6. VERIFIED AND NOT
+  Statically [F]: every pinned function and prefix, the slots relied on (ship 1008, +0x48 slots 4 and 5 across all 120
+  component classes), the exports' tail jumps, the stop path through +0x6a30, the blocks' register use and their ends.
+  On stand-ins: in C on an executable region: the capture and pass-through rule, the queue, staging, the adapter, slot
+  order, the receipt equal on two clients, the fail-closed paths, each patch by one CAS, a hook's whole chain and both
+  soft target strides executed for real (with X4's frame alignment), restore. In Lua: the codec, the wrappers, the same stock
+  call on two clients, the real probe and mux on the mocked gate. On the pinned image: pins, prefixes, slots, patches.
+  Not live: nothing has run in X4. So in particular these are inference until the first run:
+  - 710ed0 / 6d8bf0 in a slot scope (the drive's charge and thrust on ship k, its events on P_k);
+  - 3e73f0 in a slot scope (ship vfunc 1076 on ship k; no view cache is touched by the direct-call closure, virtual calls
+    not followed);
+  - stock Lua CreateOrder's effect on a `player` ship from the probe's frame (the AI order script starting on every client);
+  - that no sim-phase call of aecb60 exists apart from MD (target_passed= counts them, expected 0 in these runs);
+  - the UI half of 0xaecb60 without its simulation half: the HUD selects at once, GetPlayerTarget follows after the delay.
+  Known risk to test: travel start reaches 6d9db0 -> 0x6da210 (cockpit effects), which reads the LOCAL camera's mode for "the
+  player's ship", in a scope ship k on every client. Clients in different views when a slot starts travel may differ in
+  what that spawns. Slot 1 has this today. All cockpit in the first runs; an external view on one client is the test.
+
+7. NOT FINISHED
+  - The queue editor (FFI CreateOrder, EnableOrder, AdjustOrder, RemoveOrder, ResetOrder, planned default orders, SetOrderParam):
+    refused and counted, menu entries blocked.
+  - Other P0 items: autopilot, guidance, docking of the own ship, weapon groups, deployables, seat. The mechanism takes them
+    one family at a time (a hook, an op, an apply).
+  - Slot k's travel: no tint, no sounds, HUD decoration colours stay (see 3a). +0x6e30 (the target offset) is P_k's but not in
+    the presentation overlay, the HUD reads slot 1's.
+  - Long-range scan and scan for slots 2+: refused (scan's MD part needs its own adapter). SETA stays a vote.
+  - Linux: Windows only; the gate's probe refuses at arming there (gate without ui_replay).
+  - Events longer than one section (many attack targets): refused at capture.
+
+8. LIVE RUNS (first results in section 9; DLL of this branch, native_gate_players.py as usual; add your census keys)
+  Common: overlay --base <protocol-3 base> --gate-dll <dll> --probe tools/dev/native_gate_probe.lua --out <out> --players 2
+    --mode coop --source stock --present --window 40 900 --battle calm
+  No --stock-script: its demos' full stop ends a travel as it should (d86c80 0x7b -> 6d9600 -> 9fd330), and the J key is a toggle.
+  A base without native_gate_runtime_ids gets = true from the builder. Every step: relay pass, 0 digest mismatches, census 0,
+  no stop 164, UI_REPLAY_PINS ok=1, UI_REPLAY_ARMED on both, UI_REPLAY_STATUS (every 120 ticks): target_passed=0, equal on both
+  except captured=, taken=, passed=. UI_REPLAY_SLOTS rows give activity/target of each slot at each change, equal on both.
+  Ticks below are absolute (window start 40, delay 3).
+  U1 travel: --ui-replay travel --ui-replay-script
+     Client 2: J key 70 and 370, FFI 400 and 640. Client 1: FFI 100 and 340.
+     Pass: UI_REPLAY_SLOTS shows slot 2 at activity 1 from 73 to 373 and from 403 to 643, slot 1 from about 103 to 343
+     (MD's delay on top); PILOT_SHIPS: speed far above boost range once the drive has charged, identical on
+     both; status scope=2/2/0 and nested= above 0, unavailable=0; client 2's HUD shows travel.
+  U2 + target: --ui-replay travel,target --ui-replay-script
+     Client 1 targets slot 2's ship at 580, match speed 620..720, clears at 760. Client 2 accelerates 645..695, targets slot
+     1's ship at 660, match speed 730..780, clears at 820. UI_REPLAY_SCRIPT op=target_slot result=true: if false, X4 has no HUD
+     element for that ship yet (distance): move the ships closer, the script is not at fault.
+     Pass: UI_REPLAY_SLOTS shows the runtime ID as target from 3 ticks after, on both; slot 1's speed in PILOT_SHIPS follows
+     slot 2's while it accelerates, slot 2's falls to slot 1's in 733..783; no digest mismatch at those ticks
+     (PlayerChangedTargetEvent now fires on every client).
+  U3 + orders: --ui-replay --ui-replay-script --ui-replay-fleet 0000000000176a13 [--ui-replay-dock <saved station>]
+     Fixture ship goes to `player` at tick 36 (UI_REPLAY_FLEET_OWNED on both). Client 1 at 540: Attack on the last fixture,
+     600: clear, 601: MoveWait to Argon Prime 3000,100000,3000, 630 with a station: clear, DockAndWait.
+     Pass: UI_REPLAY_APPLIED ... result=applied what=order=... on both at +3, UI_REPLAY_FLEET rows identical and showing
+     Attack, then MoveWait, the ship turning on both clients. If refused: its what= is X4's own message, same on both.
+  U4 people: same without --stock-script and --ui-replay-script, --window 40 72000. J key, the interact menu's Travel
+     button, clicking targets, the map on the fleet ship (right click: fly to, attack, dock). Pass as above; menu actions outside
+     the list stay refused and logged (PILOT_ORDER_BLOCKED, UI_REPLAY_REFUSED*).
+
+9. LIVE RESULTS
+  u1, u2, u3 (build115, a91ea9ae in smoke eda94e4c, Play29L base, 30 Hz): armed on both clients, 0 mismatches up to tick 193, then
+  X4 exits 0xC00000FD (stack overflow): client 2 in u1 and u2, client 1 in u3, the other client still running at that moment.
+  Tick 193 is client 2's second J key (70+120+3), the first stop of a travel in a slot scope.
+  Cause [F for every link, not observed as a stack: no dump]: the adapter calls 0x710ed0(P_k, 0); it stops the drive
+  through 0x6d9190 before it writes +0x6ab4; 0x6d9190 posts TravelModeChargeAborted or Stopped on the singleton P_k at once
+  (U::EventSource::PostEvent 0x99a3f0, immediate); U::Player's listener slots 262 and 264 are both 0x706000: "if it is my own event
+  and my activity reads travel, 0x9fd330(travel)"; that comes back through the wrapper into the adapter, the activity still reads
+  travel, so into the setter again. In stock 0x9fd330 only posts an event for MD, which breaks the cycle. Slot 1 never had it.
+  That the second J key took the stop branch also means the first one had set activity 1 on P_k. The stop itself has not
+  completed once yet: everything behind it is first seen in the next run.
+  Fix: while the adapter is inside the setter, what comes back is counted (nested=) and dropped. Simulation's own stops outside
+  the setter still end the activity. Tested in C with a stand-in setter that sends both answers back the way X4 does.
+  Travel had not engaged by 193: slot 2 moves 502 m from tick 120 to 180 (251 m/s), so the 120-tick span was shorter than the
+  drive's charge at 30 Hz [I]. The script's spans are now 240..300 ticks, the window 40..900. The demo's full stop at 450 would
+  end a longer travel [F], its other inputs were not checked for that, so these runs go without --stock-script.
+  Nothing of the script was logged and no receipt could be read: frame rows go through ticklog, which held them for the status
+  stride (60) and dropped them. UI replay rows are written at once now, UI_REPLAY_SLOTS was added, the status comes every 120 ticks.
+  shots-U1: of 15 shots of client 2 one is in flight (b8-...-084520: its scout's cockpit, stock HUD still fading in, 147 m/s), no travel
+  to see. Target and orders never ran in these runs: their first ticks were after 193.
+  Open, not observed: a drive stopped by simulation outside the slot's scope (0x6d9190's player branch compares with slot 1's ship)
+  leaves P_k's activity at travel until the next J key; UI_REPLAY_SLOTS against PILOT_SHIPS would show it.

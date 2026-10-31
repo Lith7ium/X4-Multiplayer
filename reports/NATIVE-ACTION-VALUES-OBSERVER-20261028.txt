@@ -1,0 +1,168 @@
+Read-only early Action values and candidate receipts (source only)
+================================================================
+
+Purpose and current result
+--------------------------
+World009 still failed the whole imported-world motion comparison at frame2.
+Selected Action metadata showed different RNG inputs, but did not record the
+evaluated positions or component choices. This opt-in observer fills that
+specific evidence gap. It does not change RNG, deadlines, commands, transforms,
+hash coverage, fixture registration, or the existing Action unknown counts.
+No native game was launched with this source. The World009 failure is retained.
+
+The implementation is based on integration fa49d3d and is inactive unless the
+overlay explicitly sets native_gate_world_values=true. The builder requires an
+existing selected early Action manifest, whose prerequisites still apply.
+The same selected pilots/scripts, exact phase predicate and NPC ownership
+guards are reused. FindComponent remains stage0 in the older Action schema;
+the new receipt recognizes its exact type/target without relabeling old data.
+
+Pinned sites and ABI
+--------------------
+Supported image SHA256:
+19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891
+
+cc6710, 1403 contiguous bytes:
+0863f3019f3027b33c2cac7c05d10a8708bd0db6e04ce1e24cb4fbf3bc327391
+This common assignment helper receives declaration, frame, secondary
+declaration, and evaluated Value in RCX/RDX/R8/R9. The selected caller and
+declaration offsets must match the enclosing Action. Its AL result is recorded;
+the wrapper preserves the entire RAX for every native caller, including calls
+outside the observed selections. The Value is copied before the original and
+is never dereferenced afterwards. This is an assignment-input receipt, not a
+second evaluation or proof of later persistence in a script variable.
+
+d2ab50, 580 contiguous bytes:
+31147ea3aa368fe67fca23ff4d35005584f63dcc520adc2cebba62e93b72ee84
+This final component helper receives declaration, vector header, frame and an
+optional component. The enclosing FindComponent target is b87a30, vtable
+2c0f3c8; its exact caller return is b87ae8. In the single-result branch d2ab50
+calls 14dde20 with the retained count, then uses the selected component runtime
+ID in a Value passed to cc6710 (return d2ad67). The earlier c5f680 helper returns
+a retained count after filtering/reordering; it is not treated as an index.
+No additional site is installed for the earlier filtering stage.
+
+Both entry prefixes are five-byte home-slot stores. The aligned eight-byte CAS
+preserves the next three bytes. Reserved resident thunk regions are 3584..3647
+and 3648..3711, emitted before the existing shared page's sole RX publication.
+Configuration validates exact frozen thunk bytes and full function pins before
+publishing either entry. It never makes the live shared thunk page writable.
+The canonical hook registry contains these two source-only reservations.
+Full dependent layout/caller/consumer pins are in lockstep_world_values_hooks.h
+and the existing Action pin list; no partial wildcard scan is used.
+
+What is captured
+----------------
+At most256 complete events and128 candidates per vector are admitted. Supported
+Value tags are the pinned numeric tags0..9, position63 and componenta. Numeric
+payloads and positions must be finite. Position storage is borrowed from the
+pinned0x30 allocation, positive native reference count and vector at+20; the
+observer never increments references or calls an engine getter/destructor.
+Two independent reads must agree before the original is called.
+
+Candidate headers and copied object/runtime/saved/type/valid tuples are bounded
+and double-read before and after the original. The declaration and optional
+component are also revalidated. Component IDs use the existing imported saved
+identity map; native pointers remain local diagnostics. An observed assignment
+must nest in the exact candidate receipt and match an actual canonical item.
+A nested foreign helper cannot borrow the outer candidate scope.
+
+Each receipt also retains exact parent Action identity, caller, thread,
+before/after RNG, PC, flags, phase and native clocks. It records full opaque RAX
+from the candidate helper without assigning it a semantic meaning. Every path
+calls the native original once, including refused/unsupported observation.
+No observer lock is held across an original call.
+
+Bounded unresolved-owner examples preserve the old Action failures. Seven
+reason counters distinguish guard, context tag, context type, entity, runtime
+ID, saved-map and script-name failures. Up to four examples per reason retain
+raw current ExecState, shallow identity, read/ownership flags and phase data.
+Missing or unstable samples do not silently become foreign objects. The parent
+Action unknown total must match the new diagnostic total during validation.
+
+Lifecycle and interpretation
+----------------------------
+Admission and configuration/restoration share a lock. STOP closes admission
+before entry restoration, records open scopes, leaves resident thunks intact,
+and makes any overlap incomplete evidence. Partial installation rolls back;
+failed rollback remains visible and is retried at restoration. Exact retries
+must still own both entry patches and immutable thunk bytes. No config can
+reopen a completed STOP.
+
+The independent parser checks widths, row bounds, exact fields, publication,
+parent/candidate joins, phase/lifetime conditions and admission/sample totals.
+Per-client raw pointers, padding and thread IDs are retained but are not portable
+comparison keys. Cross-client comparison follows each saved owner's causal
+sequence, script/version/native slot and parent relationships. It compares
+typed numeric/position bits and ordered canonical candidates exactly.
+
+Selected receipts can be locally valid while global Action coverage remains
+incomplete. Those are separate result fields. Unknown owners, failed parent
+scopes, missing receipts, overflow, STOP overlap or any existing world/queue
+failure prevent a claimed session pass. No tolerance or hash exclusion is added.
+This observer does not capture skipped Actions, pre-dispatch chance draws,
+every earlier candidate-filter decision or unselected ships such as930fc.
+The Action program hash remains a vtable-shape diagnostic, not semantic proof.
+Native exception cleanup is explicitly unproven; the contract and tests cover
+ordinary return paths, including STOP while an original is open.
+
+Validation
+----------
+The full optimized Windows C build/harness passes against the pinned image.
+New tests verify actual native prefix bytes, owned CAS/foreign-byte refusal,
+four arguments, full RAX, original-once and restoration inside the original;
+borrowed Values changed by native code; guarded partial reads; changed parent,
+candidate/header/runtime and Value data; nested foreign scope; overflow;
+worker/STOP overlap; serialized configuration/STOP; and partial rollback.
+Every newly pinned range is checked against the image and a last-byte mutation.
+
+Worst-width formatter tests pass: the largest event row is644 bytes, safely
+below the2048-byte receipt bound including the engine log prefix. STOP has its
+separate1024-byte buffer. A real C-exported Action plus Value receipt is parsed
+independently with no errors.
+
+410 focused Python/LuaJIT tests pass. Added tests cover corrupt fields/widths,
+rows, causal joins, unresolved reason/count inconsistencies, parent coverage,
+cross-owner interleaving, exact opt-in configuration, builder dependency,
+append-only draining before STOP and the main validator retaining an existing
+whole-world failure. Synthetic/owned-memory tests are not live gameplay proof.
+
+Reproduce offline:
+  python -B tools/dev/build_native_gate.py --zig <zig executable> --test
+      --native-image <locally owned pinned X4.exe>
+  python -B -m unittest discover -s tests -p "test_native_gate*.py"
+
+Source/artifact review and a separately authorized frozen pair are still needed
+before drawing new native causal conclusions or attempting a correction.
+
+Independent review corrections
+------------------------------
+Frozen43b6c91 had two confirmed defects. Its byte-CAS result ignored subsequent
+VirtualProtect restoration and FlushInstructionCache failures. Its canonical
+candidate tuple omitted optional-component identity and component type. The
+follow-up preserves43b6c91 for reproduction and changes both contracts.
+
+Publication now reports byte ownership separately from OS-operation success.
+Every successful CAS is accounted for before testing the later result. An
+installation failure rolls back the current changed site as well as earlier
+sites. Restoration clears a site only after restoring its owned bytes. Failed
+protection/cache work retains explicit retry obligations even if bytes already
+match the original. The original protection target survives failed restoration
+and rollback; temporary RWX is never adopted as the desired final protection.
+Sticky patch failure counts and cause bits prevent a later successful repair
+from becoming a clean STOP. Foreign bytes are not overwritten.
+
+Candidate comparison now includes optional-component saved ID/type/valid and
+each candidate's type, along with the previous ordered saved IDs and flags.
+The type is an explicitly Windows-image-local RVA, not portable Linux type
+identity. Raw pointers and runtime IDs are still excluded from cross-client
+semantic keys and retained in each local receipt.
+
+The actual-image C suite passes the follow-up. Controlled OS-operation tests
+cover protection/flush failures after both installation and restoration CAS,
+both installation sites, failed rollback, persistent cleanup failure followed
+by retry with native bytes already restored, and foreign-byte restoration.
+411 Python/LuaJIT tests pass, including negative optional-ID/type/valid and
+candidate-type comparisons, and refusal of every new failure/pending field.
+The production C export still parses independently without errors. No native
+game, staging or RNG change was performed for these corrections.

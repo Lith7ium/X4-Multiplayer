@@ -12,7 +12,7 @@ local function call(action,r)
 end
 function q.receive(f,now)
  if f[1]~='MSTATE' and f[1]~='MREQ' then return false end
- if cfg.slot=='p2' and f[1]=='MSTATE' then
+ if cfg.slot~='p1' and f[1]=='MSTATE' then
   if q.epoch and q.epoch~=f[4] then return true end
   local r=q.assembly:add(f,now)
   if r then q.epoch=r.epoch;q.records[r.id]=r;q.pending[r.id]=r;q.requests[r.id]=nil end
@@ -82,7 +82,7 @@ RegisterEvent('X4LAN_Missions.Mirrored',function(_,text)
  if q.pending[id] and q.pending[id].rev==rev then q.pending[id]=nil end
 end)
 RegisterEvent('X4LAN_Missions.Request',function(_,text)
- if cfg.slot~='p2' then return end
+ if cfg.slot=='p1' then return end
  local id,rev,action=text:match('^(%d+)|(%d+)|([A-Z]+)$');id,rev=tonumber(id),tonumber(rev)
  local r=q.records[id]
  if r and r.rev==rev and ((action=='ACCEPT' and r.row.state=='O') or (action=='ABORT' and r.row.state=='A')) then

@@ -1,0 +1,163 @@
+World010 unknown Action owners: identity coverage and native type audit
+=====================================================================
+
+Result and limits
+-----------------
+The saved-ID observer did not omit a saved component class in World010. On both
+clients, its 521,929 saved IDs exactly equal the snapshot's complete union of
+428,369 component, 90,314 connection and 3,246 area IDs. All 23,457 saved AI
+entity references name members of that component set. No missing or additional
+ID occurs in either set comparison. The native owner field is also correctly
+identified: AIScriptContext+0x120 holds an Entity reference, whose +8 field is a
+runtime UniverseID. It is not a script-local ordinal or the context's own ID.
+
+This narrows the failure but does not identify the sampled Entity. Creation
+without a saved-ID import is a plausible explanation. Later identity replacement
+and stale-owner/lifetime faults remain distinguishable alternatives. Existing
+receipts lack the owner's class, full-ID registry resolution, script descriptor
+and creation provenance. Therefore they cannot establish which alternative
+occurred, identify the creator, or support a canonical replacement identity.
+Unknown ownership remains a strict coverage failure.
+
+This is a read-only analysis of existing Windows evidence and both exact native
+images. No game, hook, memory write, RNG change, new native artifact or unknown
+suppression was introduced. No equivalent Linux unknown event was observed.
+
+Evidence scope
+--------------
+World010 used source eb2c0ece70a8bf94fc5e3d39d424b265369bbf28 and snapshot
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+Its strict failure and cleanup remain as recorded in
+NATIVE-ACTION-VALUES-DIAGNOSTIC-010-20261028.txt.
+
+All 2,093/2,094 unknown Action observations failed at reason6, the retained
+runtime-to-saved lookup. Only the first four examples per client are retained.
+Those examples share runtime 1358082 (hex14b902) and context lifetime 1358094
+(hex14b90e). The remaining 2,089/2,090 observations have no equivalent sampled
+owner metadata; they must not be attributed to this one entity by extrapolation.
+
+The samples have tag0x66, the exact Windows AIScriptContext vtable, equal repeated
+context/owner/ID reads, native CURRENT equal to the observed Exec, reads31,
+owned1 and errors0. They occur at UI boot2/tick0 with app0x20, native loading0,
+and TLS/game/saved time7.083. Boot2 is the instrumentation's pre-admission phase,
+not proof that the native Load function is still executing. Pointer values are
+local diagnostics and are deliberately absent from this report.
+
+The retained-map STOP receipt on each client has calls=count=521929, late=0,
+failures=0 and restored=1. The full saved-ID census was compared as sets, rather
+than inferring coverage merely from the equal counts. Snapshot component IDs
+are unique. All saved AI entity references also resolve within this set.
+The complete runtime/saved pair table was not exported by World010; WORLD_OBJECT
+rows retain saved keys, not every object's runtime key.
+
+Why the index is expected to miss fresh identities
+------------------------------------------------
+The frozen lockstep_world_identity.h observes successful native imports at
+0x79f720, after calling the original once. It parses the saved textual ID and
+records object+8. Native 0x79f720 itself parses the saved ID at0x79f733, reads
+object+8 at0x79f768, finds/inserts the native remapping tree at0x31c2110, and
+publishes the runtime value at0x79f7b5. It imposes no Component-only class filter.
+
+The retained observer uses one hash/probe rule for insertion and lookup under
+the same lock, accepts only nonzero saved/runtime IDs, and does not delete or
+expire entries. A conflicting mapping, capacity/probe exhaustion, failed native
+import or unreadable ID increments failures. None was reported. Its storage
+remains alive after STOP. Native import-tree cleanup therefore cannot by itself
+explain this retained-table miss.
+
+The observer covers the import operation, not every runtime ID allocation.
+Windows Component constructor0x3d2400 calls IDBase::AssignNewID0xcc220 at0x3d242c.
+AIScriptContext constructor0x10631b0 calls ScriptEventHandler constructor0xcaab00,
+which calls the same allocator at0xcaab13. The context receives its own ID at+8;
+its Entity owner has a separate ID at owner+8. Allocator0xcc220 obtains a free
+registry slot and publishes the allocated full ID at0xcc2df. Helper0xcc500
+combines the generation with the slot at0xcc64a..0xcc655. These IDs describe a
+local registry lifetime; equal values, adjacency or allocation order across
+clients do not establish a shared creation event.
+
+An Entity created without importing a saved ID will naturally have no entry.
+If an imported object later changes full ID, the retained original pair also
+does not map that new ID. The census and counters alone cannot rule that out.
+Nor do repeated readable pointer/ID samples independently validate the live
+registry generation or the pointed-to Entity's current class. The observed
+context type proves the meaning of the field; it is not a substitute for those
+additional lifetime checks.
+
+Windows owner proof
+-------------------
+Constructor0x10631b0 accepts descriptor in RDX and Entity owner in R8. It stores
+the descriptor at context+0xd8 and owner at context+0x120 (0x1063262), acquiring
+the owner's reference through +0x40/+0x44. Importer0x1063750 accepts descriptor
+in R8 and owner in R9; it stores the descriptor at0x1063778, acquires the new
+owner and replaces context+0x120 at0x10637a7, then releases the previous reference.
+
+The upstream importer0x1069000 resolves XML attribute token0x1fe through saved
+reference remapper0xcb4d0 at0x10693f5. It resolves the returned runtime ID through
+the registry at0x6cf1500, then asks the native class predicate for class0x2c
+(Entity) at0x106942e. Only a successful result becomes the owner passed in R9
+to0x1063750 at0x1069a25. Thus the saved owner reference is neither a raw context
+number nor an arbitrary script Value payload.
+
+Windows tag0x66 payload points to context+0xa8, independently of the context's
+own ID at+8. The unknown sampler correctly subtracts0xa8 and requires vtable
+0x2c6a270. It does not read a script name/PC after lookup failure: the selected
+Action ring is reached only after saved owner resolution and manifest selection.
+
+Linux comparison
+----------------
+Both images are X4 9.00, Steam23660954, in-game611726. Exact image hashes,
+function ranges and SHA256 pins accompany this report. Linux addresses are ELF
+virtual addresses; Windows addresses are RVAs. Matching labels alone were not
+used as proof. ELF hashes here use exact FDE pc_range extents and exclude
+detached cold fragments; some older private caches used different root bounds.
+
+Linux AIScriptContext constructor0x10c0a30 takes descriptor in RSI and owner in
+RDX. It calls IDBase::AssignNewID0xeed870 at0x10c0a85, stores vtable0x3b28df0,
+descriptor at+0xd0 and owner at+0x120 (0x10c0b5a). The owner reference fields
+are again +0x40/+0x44. The allocator publishes the generation/slot ID at+8.
+
+Linux importer0x10de190 reads the same XML attribute token0x1fe, calls saved
+reference remapper0xce4fd0 at0x10de314, resolves the runtime registry entry, then
+calls0xa68ef0 at0x10de34c. That helper requests class0x2c through vtable+0x11e8.
+The accepted owner is retained at stack+0xd0. Later0x10de687..0x10de6bb passes
+it to reference assignment0xf371f0, targeting payload+0x80 = context+0x120.
+The context payload and its subtraction are explicit at0x10de5a4..0x10de5bd.
+
+Linux tag0x66 payload uses context+0xa0, not Windows+0xa8; typed recovery1e04890
+checks the tag/non-null payload and subtracts0xa0. Descriptor layout also differs
+(+0xd0 versus +0xd8, and different string storage). A future Linux diagnostic
+must use those verified layouts instead of copying Windows offsets wholesale.
+This establishes matching identity semantics, not an observed Linux occurrence
+of World010's unknown Entity or portable equality of runtime IDs.
+
+Next diagnostic and stable identity options
+------------------------------------------
+The smallest useful extension is to the existing bounded unknown callback,
+before any new native interception: retain script descriptor/name/version,
+program slot/PC, exact entity vtable, a read-only full-ID registry resolution,
+and the entity's stable saved ancestry where supported. Recheck all identities
+within the same existing owner bracket. Unknown class/layout/registry generation
+must remain explicit refusal. Do not call lazy getters or assume Object-specific
+faction fields on every Entity. No implementation is included or authorized by
+this report.
+
+If that proves a newly created owner, a portable identity needs the actual
+creation cause and lifetime: a stable creator/parent, an agreed event or command,
+its deterministic ordinal and the created role. Macro/name, context lifetime ID,
+pointer, runtime ID, or proximity to another allocation is insufficient. A saved
+ancestor plus crew role is only a candidate after uniqueness and replacement
+semantics are proved. Existing fixture snapshot restoration emits RestoreActors,
+not the Spawn branch; it does not itself explain these unknown owners.
+
+The exact creator and membership of the omitted unknown samples remain unknown.
+Fresh bounded identity metadata is needed before selecting a creation boundary,
+adding a canonical key, or declaring these actions irrelevant to lockstep.
+
+Verification
+------------
+Private coverage.py re-read the exact compressed snapshot and both full logs;
+component/connection/area set equality and AI owner-reference coverage passed.
+Private pin_identity.py rehashed both complete executables and all16 roots in
+NATIVE-ACTION-UNKNOWN-IDENTITY-PINS-20261028.json. Original assembly, raw logs,
+snapshot data, private paths and analysis intermediates remain outside Git.
+No gameplay or native process test was needed for this report-only change.

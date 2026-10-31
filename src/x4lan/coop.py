@@ -14,6 +14,9 @@ from .missions import MissionJournal
 POSITION_LIMIT = 50_000_000
 HEALTH_STALE = .75   # seconds without a pilot frame before a live health generation ends
 SHOT_DIGEST = re.compile(r'[a-z0-9_]{1,48}:\d{1,9}\.\d{3}')   # weapon macro : per-shot strength
+# NMODE (coop_game.lua): optional companion of NAV2, same seq/source time. Unknown to older
+# relays and clients, which drop it; receivers then infer the mode from sampled speed.
+MOTION_MODES = ('normal', 'boost', 'travel', 'highway')
 
 
 def pose(values):
@@ -31,6 +34,7 @@ class CoopSession(EconomySession):
         self.epochs = {1: 1, 2: 1}
         self.crew = {}
         self.navigation = {}
+        self.motion_modes = {}
         # FIRE2: latest weapon-group/shot-counter frame per ship (see coop_game.lua).
         self.fire2 = {}
         # HEALTH (health_game.lua): one generation per ship covers one (owner, epoch, pilot). Its
@@ -116,7 +120,7 @@ class CoopSession(EconomySession):
         except UnicodeError: return []
         if len(f) < 3 or f[1] != '1': return []
         kind = f[0]
-        if kind not in ('CREW', 'NAV', 'NAV2', 'FIRE2', 'HEALTH', 'HACK', 'HSTALE', 'SHOT', 'BODY2', 'PERF', 'COOPORDER', 'QUEST', 'BOLT', 'BEND'):
+        if kind not in ('CREW', 'NAV', 'NAV2', 'NMODE', 'FIRE2', 'HEALTH', 'HACK', 'HSTALE', 'SHOT', 'BODY2', 'PERF', 'COOPORDER', 'QUEST', 'BOLT', 'BEND'):
             # Legacy movement/fire/dock frames must never override cooperative authority.
             if kind in ('STATE', 'FIRE', 'DOCKSTATE', 'BODY', 'ORDER'): return []
             old_leases = {s: p.lease for s, p in self.peers.items()}
@@ -129,6 +133,7 @@ class CoopSession(EconomySession):
                             if self.owners[entity] == slot and nav and nav['lease'] != peer.lease:
                                 self.epochs[entity] += 1
                                 self.navigation.pop(entity, None)
+                                self.motion_modes.pop(entity, None)
                                 self.authority_revision += 1
             if kind == 'ACTION' and len(f) == 7:
                 cmd = self.commands.get(f[4])
@@ -159,6 +164,7 @@ class CoopSession(EconomySession):
                         self.owners[controlled] = slot
                         self.epochs[controlled] += 1
                         self.navigation.pop(controlled, None)
+                        self.motion_modes.pop(controlled, None)
                         self.authority_revision += 1
                 self.crew[peer.lease] = (seq, granted, aboard)
                 if old[1:] != (granted, aboard): self.authority_revision += 1
@@ -180,6 +186,16 @@ class CoopSession(EconomySession):
                                for i,v in enumerate(velocity)): return []
                     if old and old.get('kind') == 'NAV2' and source_time <= float(old['fields'][12]): return []
                 self.navigation[entity] = dict(lease=peer.lease, seq=seq, at=now, fields=f[3:], kind=kind)
+            elif kind == 'NMODE' and len(f) == 8:
+                # entity|epoch|navSeq|sourceTime|mode, from the ship's current movement authority.
+                entity, epoch, seq = integer(f[3], 2), sequence(f[4]), sequence(f[5])
+                if entity not in (1, 2) or self.owners[entity] != slot or epoch != self.epochs[entity]: return []
+                source_time = float(f[6])
+                if not math.isfinite(source_time) or not 0 <= source_time <= 1e12 or f[7] not in MOTION_MODES: return []
+                old = self.motion_modes.get(entity)
+                if old and old['lease'] == peer.lease and old['epoch'] == epoch and seq <= old['seq']: return []
+                if self.dead(entity): return []
+                self.motion_modes[entity] = dict(lease=peer.lease, epoch=epoch, seq=seq, at=now, fields=f[3:])
             elif kind == 'FIRE2' and len(f) == 11:
                 # entity|epoch|seq|sourceTime|primaryGroup|secondaryGroup|primaryShots|secondaryShots
                 # Groups use the C API numbering 1-4. Shot counters are monotonic per epoch.
@@ -290,6 +306,11 @@ class CoopSession(EconomySession):
             authority = [str(self.authority_revision)]
             for entity in (1, 2): authority += [self.owners[entity], str(self.epochs[entity]), self.pilot(entity)]
             result.append((peer.address, ('AUTH|1|' + peer.lease + '|' + '|'.join(authority)).encode()))
+            for entity, mode in self.motion_modes.items():
+                # Forwarded before NAV2 so a receiver knows the mode of the sample it renders.
+                if (self.owners[entity] == slot or mode['epoch'] != self.epochs[entity] or
+                        now - mode['at'] > .75 or self.dead(entity)): continue
+                result.append((peer.address, ('NMODE|1|' + peer.lease + '|' + mode['lease'] + '|' + '|'.join(mode['fields'])).encode()))
             for entity, nav in self.navigation.items():
                 if self.owners[entity] == slot or now - nav['at'] > .75 or self.dead(entity): continue
                 result.append((peer.address, (nav.get('kind','NAV')+'|1|' + peer.lease + '|' + nav['lease'] + '|' + '|'.join(nav['fields'])).encode()))

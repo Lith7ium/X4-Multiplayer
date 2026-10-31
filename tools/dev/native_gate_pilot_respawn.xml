@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A dead slot's ship comes back (config native_gate_pilot_respawn, default off; driven only by
+     native_gate_probe.lua; report LOCKSTEP-VIRTUAL-PLAYERS-RE-20261029 section 16.17). Every client
+     raises the same events at the same gated tick, MD runs them in the next gated frame. Note: at the
+     window start the slot ship's macro, sector and owner. Respawn: a ship of that macro at the start
+     pose the probe kept, from a fixed seed, without a safe-position search (it draws randomness). Slot 1
+     without a pilot: the player takes the seat. Slots 2..N with an AI pilot in the seat and a default Wait
+     order, as the saved ships they replace (their seat is then occupied, as it was; the slot's
+     PlayerController takes control above it), the pilot as the identity's create step picks it. Slot 1: X4's own
+     teleport_player takes the player out of the emergency eject's spacesuit, X4 then removes the suit.
+     Slots 2..N: the gate seats the slot's player at the fixed seat tick. Suit (native_gate_pilot_death_suit):
+     a spacesuit of the player's macro for a dead slot 2..N, created as stock does for an entity
+     (scenario_transport_refugees), minimum hull 100% as X4's own eject, oxygen paused; the gate seats the
+     slot's player in it. X4's eject builds slot 1's. -->
+<mdscript name="X4LAN_PilotRespawn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="State">
+   <actions>
+    <set_value name="$slots" exact="table[]"/>
+   </actions>
+  </cue>
+  <cue name="Note" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_PilotRespawn'" control="'Note'"/></conditions>
+   <actions>
+    <set_value name="$a" exact="event.param3"/>
+    <set_value name="$ship" exact="$a.$object"/>
+    <do_if value="@$ship.isoperational and $ship.isclass.ship">
+     <set_value name="State.$slots.{'$s' + $a.$slotname}" exact="table[$macro=$ship.macro, $sector=$ship.sector, $owner=$ship.owner]"/>
+     <debug_text text="'[X4LAN] PILOT_RESPAWN_NOTE slot=%s macro=%s sector=%s owner=%s time=%s'.[$a.$slotname, $ship.macro.id, $ship.sector.macro.id, $ship.owner.id, player.age]"/>
+    </do_if>
+    <do_else>
+     <debug_text text="'[X4LAN] PILOT_RESPAWN_NOTE slot=%s refused=ship_missing'.[$a.$slotname]"/>
+    </do_else>
+   </actions>
+  </cue>
+  <cue name="Suit" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_PilotRespawn'" control="'Suit'"/></conditions>
+   <actions>
+    <set_value name="$a" exact="event.param3"/>
+    <set_value name="$n" exact="@State.$slots.{'$s' + $a.$slotname}"/>
+    <set_value name="$suit" exact="null"/>
+    <do_if value="typeof $n == datatype.table">
+     <create_ship name="$suit" macro="player.entity.spacesuitmacro" sector="$n.$sector" seed="$a.$seed">
+      <owner exact="$n.$owner" overridenpc="true"/>
+      <loadout><level exact="1.0"/><variation exact="0"/></loadout>
+      <position x="($a.$x)m" y="($a.$y)m" z="($a.$z)m"/>
+      <rotation yaw="($a.$yaw)deg" pitch="($a.$pitch)deg" roll="($a.$roll)deg"/>
+     </create_ship>
+    </do_if>
+    <do_if value="@$suit.isoperational">
+     <set_object_min_hull object="$suit" exact="100"/>
+     <pause_spacesuit_oxygen object="$suit"/>
+     <debug_text text="'[X4LAN] PILOT_RESPAWN_SUIT slot=%s macro=%s owner=%s time=%s'.[$a.$slotname, $suit.macro.id, $suit.owner.id, player.age]"/>
+     <raise_lua_event name="'X4LAN_PilotRespawn.Suit' + $a.$slotname" param="$suit"/>
+    </do_if>
+    <do_else>
+     <debug_text text="'[X4LAN] PILOT_RESPAWN_SUIT slot=%s refused=create_failed'.[$a.$slotname]"/>
+    </do_else>
+   </actions>
+  </cue>
+  <cue name="Respawn" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_PilotRespawn'" control="'Respawn'"/></conditions>
+   <actions>
+    <set_value name="$a" exact="event.param3"/>
+    <set_value name="$n" exact="@State.$slots.{'$s' + $a.$slotname}"/>
+    <set_value name="$ship" exact="null"/>
+    <do_if value="typeof $n == datatype.table and $a.$slotname == '1'">
+     <create_ship name="$ship" macro="$n.$macro" sector="$n.$sector" seed="$a.$seed">
+      <owner exact="$n.$owner" overridenpc="true"/>
+      <loadout><level exact="1.0"/><variation exact="0"/></loadout>
+      <position x="($a.$x)m" y="($a.$y)m" z="($a.$z)m"/>
+      <rotation yaw="($a.$yaw)deg" pitch="($a.$pitch)deg" roll="($a.$roll)deg"/>
+     </create_ship>
+    </do_if>
+    <do_elseif value="typeof $n == datatype.table">
+     <create_ship name="$ship" macro="$n.$macro" sector="$n.$sector" seed="$a.$seed">
+      <owner exact="$n.$owner" overridenpc="true"/>
+      <loadout><level exact="1.0"/><variation exact="0"/></loadout>
+      <pilot><select faction="faction.argon" tags="tag.aipilot"/></pilot>
+      <position x="($a.$x)m" y="($a.$y)m" z="($a.$z)m"/>
+      <rotation yaw="($a.$yaw)deg" pitch="($a.$pitch)deg" roll="($a.$roll)deg"/>
+     </create_ship>
+    </do_elseif>
+    <do_if value="@$ship.isoperational">
+     <do_if value="$a.$slotname == '1'">
+      <teleport_player object="$ship" control="true" instant="true" force="true"/>
+     </do_if>
+     <do_else>
+      <create_order object="$ship" id="'Wait'" default="true"/>
+     </do_else>
+     <debug_text text="'[X4LAN] PILOT_RESPAWN_CREATED slot=%s macro=%s owner=%s pilot=%s time=%s'.[$a.$slotname, $ship.macro.id, $ship.owner.id, $ship.pilot != null, player.age]"/>
+     <raise_lua_event name="'X4LAN_PilotRespawn.Ship' + $a.$slotname" param="$ship"/>
+    </do_if>
+    <do_else>
+     <debug_text text="'[X4LAN] PILOT_RESPAWN_CREATED slot=%s refused=create_failed'.[$a.$slotname]"/>
+    </do_else>
+   </actions>
+  </cue>
+ </cues>
+</mdscript>

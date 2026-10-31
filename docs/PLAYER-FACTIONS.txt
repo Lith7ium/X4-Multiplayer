@@ -1,0 +1,329 @@
+PLAYER FACTIONS (config flag player_factions) - INTERNAL
+Native status: the two-client faction/relations/piloted-owner stage passed in two real Windows
+X4 clients on 26 October2026 (s004, frozen819c070, below). Later PFREQ second-hop ordering
+changes7c23ab2 have synthetic Python/LuaJIT coverage; they were not in that native run.
+
+Two-client evidence must also pass:
+  python tools/dev/validate_player_factions_session.py .local/lane/sessions/<label>
+The lane runner's independent regex hits alone are insufficient. This validator correlates each
+client with the OTHER human's identity/diplomacy entry, both simultaneously piloted ship owners,
+successful intent calls, and the ordered allied -> neutral -> hostile -> allied round trip.
+It requires final readback after 160 seconds, two launched native clients and lane cleanup;
+any feature failure/refusal is rejected even after DONE. It does not establish cargo, radar,
+save/load, sector ownership, or a dedicated-server session. Validator fixtures are synthetic.
+
+Each human gets an own faction. Data, MD and Lua only; no engine hooks. Source config is
+inert (player_factions = false); internal packages enable it (session_launcher.py).
+
+POOL
+libraries/factions.xml (generated: python tools/dev/build_player_factions.py) adds
+x4lan_player1 .. x4lan_player16, one per slot (p1 -> 1, p2 -> 2, ...). The pool starts at 1,
+not 2: the host's human must also have a pool faction, because on every OTHER machine the host's
+assets belong to x4lan_player1. Mod-prefixed ids suffice; nothing requires a plain "player2".
+- active="0" known="0" until assigned; fixed distinct inline colour each (colour cannot be
+  changed at runtime). The palette has no greens (the player's own colour), no azure (friendly/
+  neutral relation colour) and no reds (enemy/hostile), so a pool faction never looks like "own"
+  when the UI uses faction colours (target HUD option "factioncolortargetsystem", map).
+- Own icon per slot: x4lan_playerN (libraries/icons.xml; assets/textures/ui/x4lan/*.dds, a disc
+  in the slot colour with the slot number, tools/dev/build_player_faction_icons.py). The player's
+  own logo faction_player is never given to another human: an announced faction_player icon
+  is replaced by the slot icon.
+- Displayed name: the announced player name, except when it is empty, the gamestart default
+  "Multiplayer Pilot" or equal to this machine's own name: then "Player N" (N = slot number).
+  Reported 26 October 2026 on the 8-player build: two clients left at the default name and icon
+  showed the other human as an identical "Multiplayer Pilot"/faction_player faction.
+- tags "claimspace police", policefaction = itself, exactly like vanilla faction "player";
+  no "economic" tag; no factionlogic.xml manager, no jobs, no god entries. So no faction AI,
+  no economy and no diplomacy agents act for them. Diplomacy stays inactive (vanilla default).
+- Licences: the same basic set the vanilla player starts with (base-game issuers).
+- Relations: allied (0.75; ally range 0.5..1) to "player" and to every other pool faction;
+  the player's values to the relation-LOCKED base factions (xenon, khaak, holyorderfanatic,
+  criminal, outlaw, buccaneers, scaleplate), written on both sides in the library because
+  set_faction_relation has no effect on a locked faction at runtime; neutral to the rest. At runtime every ASSIGNED pool faction then carries
+  this machine's player relations to all NPC factions (MD RelationMirror, every 10 s, skips
+  relation-locked factions): shared reputation, so xenon/pirates are hostile to the other human's
+  ships and police friendly, exactly as to the local player.
+
+MAPPING
+Client of human L: human L = real "player"; human K != L = x4lan_playerK. The same rule is used
+for identities, relations, ships and sectors (ui/player_factions_core.lua: factionFor, tokenFor).
+Machine-neutral owner tokens on the wire: S<K> for human K, otherwise the NPC faction id; a
+literal "player" or x4lan_playerK token is refused (it would name another machine's human).
+Roles: slot p1 is the authority. In 7.x sessions p1 is client 1 (a human who also runs the
+authority world). On a dedicated server (cfg.dedicated = true, p1 = the server, no human) the
+core has no local human: it sends no PFID, maps EVERY human K to x4lan_playerK, never publishes
+its own observer "player" as a human owner, and authors the default alliance for every pair of
+connected humans (also client 2 <-> client 3).
+
+PROTOCOL (relay src/x4lan/players.py, routed in Relay.step; old relays drop PF* packets)
+  PFID     client -> relay   own name (UTF-8 hex, plain text, max 48 bytes) and icon id, every 2 s
+  PFROSTER relay -> clients  every connected human, 1 Hz
+  PFREL    host -> relay -> guests   authoritative relation per human pair, revisioned
+  PFREQ    client -> relay -> authority    relation intent; relay stamps sender and envelope order
+  PFSEC    host -> relay -> guests   sector owner rows (cached, every 5 s and on change)
+           guest -> relay -> host    claim intent, only for the sender's own token S<own>
+A new host lease clears cached relations/sectors (new authority epoch).
+PFREQ keeps its wire field count. Client -> relay uses the client's own sequence; the relay
+rejects duplicate/older sequences per client lease and target. Relay -> authority field5 is a separate
+monotonic envelope sequence scoped to the authority lease. The authority rejects duplicate/
+older envelopes per unordered relation pair, preventing reordering on either UDP hop from undoing a later
+choice. A client reconnect may restart its ingress sequence, but the forwarded envelope order
+continues. A new authority lease resets the relay envelope sequence and the authority's
+receiver fences; old-lease datagrams are rejected by the outer authenticated client. Identity
+refresh alone resets nothing. Invalid targets/values do not advance ordering fences. Both
+relay and authority must include this behavior for reorder protection; older code lacks it.
+Independent target pairs keep independent fences: reordering an intent for one pair does not
+discard an unrelated pair's change. Opposite endpoints changing the same pair share its fence.
+
+FLOW
+1. After the bubble is ready and the relay lease exists, Lua sends Setup; MD resolves the pool
+   via lookup.faction (no static faction refs, so a missing pool cannot break script load) and
+   answers Ready with the count. Missing pool or no answer -> FEATURE player_factions DISABLED.
+2. Each machine sends its player name (GetPlayerName) and icon (cfg.player_faction_icon, default
+   faction_player). For every OTHER human, MD runs set_faction_identity (name, shortname,
+   prefixname, description, icon), set_faction_known true, set_faction_active true.
+3. The host authors the default alliance per pair and publishes it; guests mirror revisions in
+   order. Intent: X4LAN_PLAYERS.setRelation('p2', 'allied'|'neutral'|'hostile'|-1..1). The host
+   applies directly; a guest sends PFREQ, the host validates (sender must be in the pair and in
+   the roster), applies and reflects it back. No UI buttons yet (follow-up).
+4. Ships: host-side NPC scene capture (universe_game.lua) now also publishes player-owned ships
+   that did NOT exist when player factions became ready, with owner x4lan_player1. On the guest
+   they become ordinary scene replicas owned by the host's faction: host colour, not commandable.
+4b. Shared co-op ships (md.X4LAN_Bubble.Arena.$ships) follow their pilot (coop AUTH pilots):
+   a ship another human is flying shows as that human's pool faction on this machine; a ship
+   nobody flies, or this human flies, stays "player". So on client 1 the ship client 2 flies is
+   owned by x4lan_player2 (client 2's name/colour in the map, target monitor and property owner),
+   and on client 2 it is its own "player" ship. MD CoopOwnerTick (1 s) keeps "player" whenever the
+   ship is docked, has or requests a dock, trades (Arena.$busy/$docking), is dead, or is this
+   machine's occupied/controlled ship; every request_docking of a shared ship first hands it back
+   to "player" (bubble/coop/trade/coop_attachment MD, inert while the feature is off). A stopped
+   feature hands both ships back to "player". Logs: COOP_PILOT, COOP_OWNER(_APPLIED).
+5. Sectors: MD polls every 5 s and reports sectors owned by player/pool factions (and later
+   changes of those). The host publishes S<K> rows; guests apply set_owner with the mapping.
+   A guest's local claim becomes an intent; the host applies x4lan_player<guest> and reflects it.
+6. Relation guard: the authority's value per human pair is reapplied when a local event (friendly
+   fire between humans, boarding) moved it (MD RelationGuard every 5 s, log RELATION_DRIFT).
+Logs: [X4LAN] PLAYER_FACTIONS READY/ASSIGN/IDENTITY/IDENTITY_APPLIED/RELATION/RELATION_APPLIED/
+RELATION_REQUEST/RELATION_DRIFT/RELATION_MIRROR/COOP_PILOT/COOP_OWNER/SECTOR/SECTOR_CLAIM/
+SECTOR_APPLY/SECTOR_OWNER/REFUSED and
+FEATURE player_factions DISABLED reason=core_missing|bubble_adapter_inactive|requires_coop|
+invalid_slot|md_unavailable|pool_missing count=N|relay_unsupported|error.
+
+DELIBERATELY UNCHANGED
+- The test station, donor, targets and drops stay player/ownerless-owned on both machines. The
+  two shared co-op ships are "player" whenever docked, docking, trading or free (4b), so handoff,
+  docking, trade and cargo keep their 7.x owner; only a ship in free flight under the OTHER
+  human shows that human's faction.
+- Player-owned assets that already exist when the feature starts (fixtures and the pristine
+  save's own assets) exist in BOTH worlds and stay "player" on both; re-publishing them would
+  spawn a duplicate replica on top of the guest's own copy.
+- Guest-only new ships are not replicated to the host (the guest has no world authority).
+
+WHAT WORKS WITHOUT HOOKS (per faction, native engine features)
+Faction name/short name/icon, known/active, colour, relations between any two factions,
+diplomacy list entry (menu_diplomacy lists GetLibrary("factions") minus "player"), ownership of
+ships and sectors (set_owner), per-faction money account and licences, knowledge lists.
+
+WHAT STILL NEEDS THE ENGINE HOOKS (only "player" is the player)
+- Each client only controls its own "player"; a pool faction is never treated as a human: no
+  orders, no player money UI, no isplayerowned, no logbook/notifications, no player price
+  modifiers or inventory for it (single player entity; 874/962 compare sites per RE report).
+- On a dedicated server, pool factions would have to BE the players there: faction.player and
+  isplayerowned per acting player (RE report section 7: stop folding faction.player, capture
+  script context, resolve per context).
+- Personal logo files (set_faction_identity personal="true") need the logo/banner files on every
+  machine: distribution of player logo files is a follow-up. Only built-in icon ids are carried.
+
+PLOTS AND SECTOR CLAIMS FOR POOL FACTIONS
+- Natively per faction: sector owner is a faction field (set_owner); claimspace tag makes the
+  faction eligible where vanilla checks $faction.hastag.claimspace / willclaimspace; build plots
+  belong to the station (owner = station's faction) and payment uses the builder faction's account.
+- In this mod no pool faction builds anything: no faction logic, and the other human's stations
+  are not replicated, so a pool faction never acquires plots by itself. A sector owned by
+  x4lan_playerK on a machine exists because the authority mirrored it.
+- Player-only paths: buying/expanding plots, construction ordering, plot licence checks and
+  achievements go through the player UI and C++ sites comparing with the one player faction
+  (RE report: buildplot/canbuildmacro/build-plot rules at Win 0x7fe600, 0x992d80). A pool faction
+  cannot buy a plot or pay for one from its account until the hooks make it the acting player.
+- Unverified natively: whether the engine recomputes sector ownership from stations and reverts a
+  mirrored owner (the authority republishes rows every 5 s; a guest reapplies only on change).
+  Whether set_faction_identity plain-text names survive save/load (docs recommend {page,line}).
+
+NATIVE TEST STEPS (two matched internal packages, new disposable world, profile 45841)
+1. Both logs: PLAYER_FACTIONS READY, then ASSIGN slot=pX (local human) and ASSIGN for the
+   other slot, IDENTITY_APPLIED, RELATION_APPLIED ... 0.75. No FEATURE player_factions DISABLED.
+2. Diplomacy (host): a faction named after the guest's player name, its colour, ally status;
+   no "LAN Player 1" entry for the host itself. Guest: the host's name, ally status.
+3. Host: X4LAN_PLAYERS.setRelation('p2','hostile') via Lua console -> both diplomacy views show
+   enemy/kill relation; then 'allied' again. Guest: X4LAN_PLAYERS.setRelation('p1','neutral')
+   -> host applies, both sides show neutral.
+4. Host buys or spawns a new ship in the guest's sector: on the guest map/target monitor it shows
+   the host's faction name and colour, cannot be given orders. Co-op ships stay commandable and
+   swappable for both humans exactly as before; radar, cargo and Cooperative Trial unchanged.
+5. Sector: host claims a sector (or debug set_owner to faction.player) -> guest map shows that
+   sector owned by the host's faction within ~5 s.
+6. Save/load the disposable world on one side and repeat 2 (name persistence check).
+
+NATIVE EVIDENCE (single X4 9.00 game, lane b1/b2, new custom_creative world; tools/dev/player_factions_probe.*)
+Runs 2026-10-26 pfprobe-001..003 (logs in .local/lane/runs/, not committed):
+- lookup.faction resolves all 16 pool factions (148 factions in total).
+- set_faction_identity with plain text works at runtime: name/shortname/prefix "Probe Bob", known 0->1,
+  active 0->1. The vanilla UI sees it: GetLibrary("factions") (diplomacy list source) contains
+  x4lan_player2 named "Probe Bob"; GetFactionData name/shortname; GetUIRelation 28 at 0.75.
+- set_faction_relation is absolute and symmetric when written both ways: 0.75 -> -0.5 (ishostileto
+  true) -> 0.75 (false).
+- Mirror: 6 unlocked factions changed; 10 factions are relation-locked and ignore runtime changes
+  (xenon stayed 0 until the library entries above; after them xenon<->pool = -1, xenon hostile).
+- set_owner ship player -> x4lan_player2: owner id/name "Probe Bob", isplayerowned false, UI
+  GetComponentData owner x4lan_player2 / ownername "Probe Bob"; the pilot follows the ship's owner
+  (no overridenpc needed). Unchanged after 8 s; set_owner back to player restores ship and pilot.
+- set_owner sector -> x4lan_player2 stays for 8 s (no engine recompute in that window), restorable.
+- Pool factions have NO own account (hasownaccount 0; .money reads garbage): per-player money
+  cannot use the pool faction's account; it needs a ledger (open).
+That single-game probe did not cover the Lua/MD session path or two-client owner switching.
+The later two-client run below covers those narrower paths.
+
+TWO-NATIVE-CLIENT EVIDENCE (26 October2026, loopback relay, new x4lan_internal worlds)
+s002 used the older task-base32-datagram receive cap. Client1 applied allied/neutral/hostile/
+allied, but client2 retained the initial alliance. Preserve that failed run. Relay output to
+client2 was about1200 packets/s; its receive capacity was insufficient under the measured load.
+s004 used frozen819c070 with ONLY the DRAIN256+metrics client fix ported from reviewedb9f03b4.
+Lanes b1/b3, profiles45850/45853, released toole04b02a. Both clients completed16 correlated
+named faction/diplomacy/piloted-owner observations and native BILATERAL relation readbacks
+0.75 ->0 ->-0.5 ->0.75. UI values28 ->0 ->-27 ->28, with final allied readback after160s.
+Client2's neutral intent and client1's hostile/allied intents succeeded. Both fixtures used
+the name Multiplayer Pilot: distinct simultaneous human names are not independently proven.
+Client2 drainMax147 exceeds the old cap32. Both games closed normally and lanes restored.
+Strict validator970f3bd passes; all115 frozen input hashes verified after completion.
+Evidence .local/lane/sessions/s-004-drain256/{result,acceptance}.json and native client logs;
+frozen input manifest .local/lane/inputs/s-004-drain256/SOURCE-CHECKPOINT.json. No raw logs in Git.
+This is a two-co-op-client functional result, not timing, dedicated-server, cargo/magnet/radar,
+save/load, personal ledger or sector-claim acceptance.
+s005 repeats that full native acceptance with frozen2741117, including protocol fix7c23ab2:
+16 valid samples per client, all four bilateral relation states and final160s allied UI.
+Lanes b3/b4, profiles45853/45854; both restored, all116 frozen hashes verified. Evidence:
+.local/lane/sessions/s-005-ordering/{result,acceptance}.json and corresponding input manifest.
+This proves normal native compatibility of the ordering fix. Reordering, duplicates and
+reconnect faults are injected by the cross-language regression tests, not this native probe.
+s-003 and s-004 (04:24-04:51, tree c8b5f5b, lanes b1/b2, relay with PFREL/PFREQ trace, driver
+logging every received PFREL) repeat it: both clients 16 valid samples, bilateral readbacks
+0.75 -> 0 -> -0.5 -> 0.75, strict validator success. Evidence .local/lane/sessions/s-003, s-004.
+
+PROPOSAL: MONEY PER PLAYER (goal 4) - DESIGN ONLY, NOT IMPLEMENTED
+Today (7.x co-op) there is ONE shared wallet: md/x4lan_trade.xml Order debits/credits faction.player
+on the authority for both ships ($account = faction.player when co-op) and checks FUNDS against it;
+client 2 mirrors it (Apply: reward_player money = snapshot money - player.money). Shared faction
+mission rewards are paid once by the stock GM on the authority and reach client 2 the same way.
+Pool factions have no own account (native probe: hasownaccount 0), so faction accounts cannot hold
+per-player money. Proposal: an authority-owned ledger, behind its own flag (player_ledger).
+1. State: md.X4LAN_PlayerFactions.Setup.$ledger = table[$p<K> = integer credits], plus a revision
+   per row. MD variables persist in the authority's save. A human's row is created on first
+   assignment with the session's start balance (the authority's player.money at that moment), so
+   every human starts equal; nothing is minted later except by game rewards.
+2. Writes (authority only), one entry per effect: (rev, K, delta, reason, ref). Trade Order for
+   ship slot K: FUNDS check and debit/credit against ledger K instead of faction.player; the
+   station side stays the station account. Shared mission rewards: credited to the accepting
+   client K (the mission record already carries $client). Kill bounties/other rewards: to the
+   pilot of the ship that earned them (coop pilots), else unassigned (logged).
+   In the 7.x model client 1 is the authority's own player: its row IS player.money there (the
+   authority keeps applying it natively); every other row lives only in the ledger.
+3. Wire: PFMONEY|1|lease|rev|K|balance, authority -> relay -> client K only (cached, resent 1 Hz
+   and on change, new authority lease = new epoch). Client K sets player.money to its row
+   (reward_player delta) and logs PLAYER_FACTIONS MONEY rev balance. This replaces the snapshot
+   money mirror for client 2 when the flag is on.
+4. Local spending on a client (vanilla menus: ship/equipment purchase, crew, plots) is not
+   authoritative today. With the ledger, such spending must become an intent (design section 8:
+   kind, amount, ref) validated against ledger K; until intents exist, the next PFMONEY would
+   silently refund a local purchase, so the flag must stay off for sessions that allow vanilla
+   purchases, or log LEDGER_DIVERGENCE local=... authority=... and keep the authority value.
+5. Server (dedicated): every human is a ledger row; the server's own player.money is unused.
+6. Acceptance (two real clients): a trade by client 2 changes only row p2 and client 2's money,
+   client 1 unchanged; FUNDS refusal independent per client; reconnect republishes the row;
+   save/load on the authority keeps the ledger; a shared mission reward reaches only the
+   accepting client; ordinary cargo/magnet and co-op trade results unchanged.
+
+MANUAL CHECKLIST (two humans; what tools/dev/player_factions_session_probe.* cannot prove)
+Setup: matched internal packages, new world, both players use DIFFERENT commander names; client 1
+runs the authority world (7.x model). Both seated in their own co-op ship, undocked, about 2 km
+apart. Record both x4lan-debug.txt files.
+1. Radar/target (each client): the other co-op ship is on the radar and in the target list; select
+   it: target monitor shows the OTHER player's name as owner and the pool colour (client 1: slot 2
+   colour 255/140/0; client 2: slot 1 colour 0/170/255), green/friendly marker. Map: same owner
+   name in the object list and property owner filter does NOT list it as own property.
+2. Own ship: shows as own property ("player") on its own client; property menu lists it.
+3. Docking: client 2 docks at the LAN test station. Expect COOP_OWNER ... now=player on client 1
+   before/while docking (ship docked = shared player owner); docking granted; undock; the owner
+   returns to x4lan_player2 within ~1 s after free flight resumes.
+4. Trade: while docked, client 2 buys/sells energy cells at the station. Expect CARGO/TRADE result
+   OK on both logs and equal cargo counts on both clients (shared wallet in 7.x co-op).
+5. Jettison + magnet (7.1.1 case): client 2 drops 10 energy cells from its ship menu, then turns
+   on the loot magnet near the container: expect CARGO RESULT DROP OK then CARGO RESULT PICKUP OK
+   on client 2, the container disappears on both clients, ship 2 cargo equal on both.
+6. Handoff: client 2 docks, leaves the pilot seat; client 1 docks the other ship next to it and
+   takes ship 2's controls. Expect COOP_PILOT ship=2 pilot=0 -> pilot=p1, ship 2 player on client 1,
+   x4lan_player1 on client 2 once client 1 flies it.
+7. Diplomacy: both open the diplomacy menu: the other player's faction listed under its name and
+   colour, relation "Ally"; one changes it via console X4LAN_PLAYERS.setRelation (p1/p2) and both
+   menus follow; reset to allied.
+8. Friendly fire: client 1 fires a few shots at client 2's ship while allied. Expect at most a
+   short relation dip, RELATION_DRIFT ... restored=0.75 within 5 s on the affected client, no
+   police/NPC aggression afterwards.
+Pass = every step as expected and no FEATURE player_factions DISABLED / BUBBLE STOPPED lines.
+
+NAMES, RADAR, CARGO/MAGNET (session n-001, 26 October 2026 13:24-13:49, lanes b1/b2, tree 67002c0 +
+tools/dev/player_factions_session_probe.{lua,xml}; strict validator success; logs .local/lane/sessions/n-001)
+- Distinct names: client 1 "Alpha Tester", client 2 "Bravo Tester" (set_object_name on player.entity
+  before READY; GetPlayerName reads it back). Client 1 shows x4lan_player2 = "Bravo Tester"
+  (diplomacy list, faction name, co-op ship 2 owner name); client 2 shows x4lan_player1 = "Alpha
+  Tester" likewise. Relations 0.75 -> 0 -> -0.5 -> 0.75 as before.
+- Radar: on each client the other client's co-op ship is known=true, isradarvisible=true, owner =
+  the other client's pool faction, ownername = the other player's name. (The target-monitor header
+  returned the unresolved placeholder $unlockheader$; the header text itself is not verified.)
+- Cargo/magnet with player factions on: client 1 (authority) seeded 30 energy cells into shared
+  ship 2 while it was owned by x4lan_player2 there. Client 2 jettisoned 10 natively (CARGO RESULT
+  DROP OK; authority CARGO_ORDER DROP status=OK, TRACK amount=10; client 2 CREATED the replica) and
+  collected it with the loot magnet (CARGO RESULT PICKUP OK; authority CARGO_ORDER PICKUP OK).
+- Not covered: docking/trade and handoff under player factions, visual colours, the target-monitor
+  header, and ships bought by client 2 mid-session (client-only new ships are not replicated to the
+  authority in the 7.x model, so they cannot appear on client 1 at all). See MANUAL CHECKLIST.
+
+DEDICATED SERVER (VPS) EVIDENCE (26 October 2026 14:13-14:35 EDT, internal test build 7.6.50:
+player factions + Linux dedicated server + the Rust relay PF* routing now on dev; Linux server
+p1 on the VPS (x4lan-dedicated), two Windows clients on one PC: p2 "Alpha Tester" (profile 45843),
+p3 "Bravo Tester" (45844); logs in .local/vps/evidence/, not committed)
+Run 2 (after two fixes below), all observed natively on server and both clients:
+- Server role: PLAYER_FACTIONS READY local=none (server) authority=true; it sends no identity and
+  assigns p2 -> x4lan_player2 "Alpha Tester", p3 -> x4lan_player3 "Bravo Tester".
+- Each client is its own player (SELF player_name, ASSIGN ... faction=player) and sees the other as
+  its pool faction with the right name in the diplomacy list source and faction data.
+- Relations, both directions, all as requests to the server: p2 neutral, p3 hostile, p3 allied ->
+  server RELATION ... source=request:p2/p3, both clients apply 0.75 -> 0 -> -0.5 -> 0.75 (UI 28/0/-27/28).
+- Ship owners: on the server both co-op ships are owned by the flying client's pool faction
+  (COOP_OWNER_APPLIED 2 -> x4lan_player2, 1 -> x4lan_player3) and return to player when the pilot
+  leaves. On p2 the ship p3 flies is x4lan_player3 "Bravo Tester"; on p3 the ship p2 flies is
+  x4lan_player2 "Alpha Tester"; each own ship is player.
+- Radar: each client sees the other's ship known and radar-visible with the right pool owner/name.
+- Cargo drop/magnet: NOT measured. Co-op ships start empty and only the server can add cargo
+  (no server-side fixture in this package; native DropCargo returned false).
+- No "native log overflow or truncation" in this package's logs.
+Fixed during the test:
+1. The 7.6.50 test build's ui/client.lua refused slot p3 ("slot must be p1 or p2"); fixed there.
+   Not needed on dev: its 8-player client already accepts p3..p8.
+2. Co-op owner switch on p3 targeted the wrong ship: Lua's AUTH ship numbering differs from the MD
+   arena list on dedicated p3. CoopOwner now carries the ship object from Lua.
+Also observed: p2's UI reloaded once after 340 s in run 1 (cause unknown); the seed gate then
+stopped the bubble ("snapshot already contains multiplayer fixtures"), as designed for reloads.
+WHAT BREAKS WITHOUT A HUMAN `player` (input for the context hooks)
+Observed in logs:
+- Vanilla md.NPC_Agent.Faction_ActivationStateChanged errors on set_faction_active of a pool
+  faction (md.Diplomacy.Start.$DiplomacyFactionTable has no entry), on the server and clients.
+- Vanilla md.PlayerReputation.PromotionInstant errors on clients when the relation to a pool faction
+  rises (md.$FactionData has no entry; "Failed to remove null.$PromotionActive").
+- On the server the flying clients' ships are not player-owned: isplayerowned and every C++
+  GetTrueOwner()==player test treat them as allied NPC ships while flown.
+Present in code, not exercised in this run (no trade, mission or kill happened):
+- Co-op trade/money: src/extension/x4_lan_lab/md/x4lan_trade.xml debits/credits faction.player on the authority, which on
+  the server is the observer's account; client wallets mirror that one balance.
+- Shared mission rewards are paid by the stock GM to the server's player (observer).
+- Every faction.player / player.occupiedship reference in vanilla AI/MD (RE report: 2,078
+  faction.player, 592 isplayerowned) refers to the observer on the server.

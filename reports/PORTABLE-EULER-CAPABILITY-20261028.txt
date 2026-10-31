@@ -1,0 +1,51 @@
+EXPLICIT SAVED-EULER IMPORT CAPABILITY
+28 October 2026
+
+Source preparation only. These files do not install hooks, write game memory,
+launch games or enable the correction in either existing runtime adapter.
+
+The new opt-in mode is portable-fixture12-euler-v1. Its descriptor binds the
+original integer arithmetic source, decimal grammar, angle order, every rounded
+basis expression, nine scalar write offsets, unchanged-byte rule, absent-element
+pass-through and whole-session refusal behavior. Descriptor SHA256:
+413da729cc58150f7f7d5136113537231d5fe3f231b2462263ecb12f611da589
+
+import_math is included in the complete portable contract hash. The existing
+state schema and raw-bit comparison remain unchanged. A peer with the old
+contract cannot join a coordinator using the new capability. Missing, unknown,
+changed or downgraded capability fields are rejected. Header generation requires
+the complete validated capability-bearing contract; a bare digest or legacy
+contract is insufficient.
+
+The reviewed new contract adds only import_math to the exact prior contract:
+  legacy 516ef8728fad1e9c99da5e3fa864d5d05366525ba7576c5256b2e9926b10bd50
+  new    d1e810d9180594338f64af4fe287834f618da24181e1f5b53d4924ff58717d82
+The three common fixture files retain their previous exact bytes. The builder's
+explicit shared-fixture option copies only those declared inputs; platform files
+are excluded. Existing bundles are never modified. A preliminary private output
+with local checkout line endings remains separate and is not this contract.
+
+Read-only preflight of the exact owned saved snapshot found 10,008 navigation
+records. Each read/write role has 10,005 Euler orientations and three absent
+orientations: 20,010 conversions and six native pass-throughs. It rejects unknown
+or repeated children, offset attributes, nested/repeated navigation identities,
+duplicate XML attributes, unsupported angle grammar and overflowing decimals.
+Absent rotation, missing attribute, empty attribute and negative zero remain
+distinct preflight inputs. Sorted saved-input digest:
+78eaca2babb8329f856c380148617180aafeb2ba8a6abf1065a71b39817bd7a8
+This is static saved-input evidence, not live native conversion receipts.
+
+Independent review confirmed unchanged legacy schema and frame bytes at ticks
+0, 1 and 120, exact legacy-contract reconstruction, all copied fixture hashes,
+header/descriptor agreement, capability mutations, 2,801 lexical cases and
+17 additional refusal probes. Root focused tests passed. Review also prompted
+the header generator's rejection of bare digests.
+
+Earlier root standalone Windows/Linux C checks matched all tested compiler and
+rounding/FTZ-DAZ modes, including the 20,016-bank saved workload. The common
+algorithm is deterministic on that corpus. Its rounded Machin-series PI2 is not
+claimed to be correctly rounded mathematical pi/2, and exhaustive correctly
+rounded finite-input trigonometry remains unproved. Native adapters must still
+prove owner/lifetime, original-once, cancellation, untouched bytes, final true
+Load return and complete per-role counts before allowing frame zero. Subsequent
+native state differences remain strict failures; no epsilon or hash masking.

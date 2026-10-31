@@ -1,0 +1,91 @@
+MIXED006: LINUX IMPORT REFUSAL BEFORE WINDOWS LAUNCH
+28 October 2026 | Internal bounded native test | FAIL
+
+One reviewed controller invocation completed with exit1. Linux reached the actual
+saved-world Load and imported part of the navigation cohort. Its rotation guard
+refused rotation_movement_reused. The independent Linux-first gate withheld the
+Windows launch grant. No Windows game started, no portable HELLO/frame0 was
+admitted, and no simulation permit was released. This is neither a paired-state
+comparison nor successful cross-platform lockstep.
+
+The accepted source stack is da10751, b8f0315, 92bd980, 4318447 and test-only
+1ecac3b. The corrections join all three independently read clocks to the native
+Load baseline and preserve the released five-second network audit cadence. Source
+and complete inert artifacts/controller had independent review before the single
+invocation. Staging was exclusive; prior attempts and frozen inputs were retained.
+
+Exact participant scope
+
+Windows candidate: frozen6e0a1f5, DLL SHA256
+782b29e0eca56d34f6bce47cfc606e0e9902346ef52b6abdf227f531c03c8d2c.
+It was staged in the disposable lane, never loaded into a native process.
+Linux runtime: accepted99e6c96, agent SHA256
+d7198847e232d541ee147742d1e48cbf96deabe919362a7560fbc55dbc18e648,
+readiness bridge SHA256
+122b18db5e146d9d8be80f30eb666b37c42bc0c4c31abdc3625be1b935b78f4a.
+Mode portable-fixture12-euler-v2; common contract SHA256
+77b19d6f210426c86c73bafdf3a3f2531747968819a5ef61e93344f902da2790.
+The common fixture bytes, arithmetic, snapshot and Linux binaries were unchanged.
+Only accepted Windows rotation rejection diagnostics were enabled in addition to
+the previous import configuration. No input/gameplay operation was requested.
+
+Observed sequence
+
+The same Linux supervisor fully hashed all127 stock files and retained their
+read-only descriptors before emitting PREPARED. The coordinator and Windows
+runner then started, with the Windows game blocked. Linux reached a fresh MENU,
+the owned preload request, observer installation and LOAD_REQUEST. The native
+observer recorded one Load entry and no return or later load marks.
+
+The first recorded rotation failure follows a clean sampled state of72 cohort
+entries and71 completed read/write pairs. At the failed sample,103 navigation
+entries had both roles converted:103 Euler conversions and927 basis-word stores
+per role; no Player conversion or absent-orientation completion had occurred.
+The reason was rotation_movement_reused. Subsequent refused callbacks make the
+final overall call totals256 read and192 write; these are not accepted cohort
+counts. The reason remains sticky. The observer then reported
+rotation_import_failed and portable state reported portable_external_disarm.
+
+The frozen cohort guard rejects a previously indexed movement XML pointer when
+it appears with a different Agent entry. The log demonstrates this guard fired;
+it does not record the two pointer values or prove whether native XML storage
+was legitimately recycled. A source/lifetime investigation is required. No
+acceptance condition was relaxed and no automatic retry was performed.
+
+Termination and evidence limits
+
+The controller withheld the Windows grant and closed its owned channels. Windows
+returned failure8 for owner-channel closure; its native process record is empty.
+Linux returned failure1. The strict combined validator rejected the run, including
+absent prelaunch and Windows/native terminal proof. The separate Windows rejection
+diagnostic is unavailable because no game log exists; its acceptance stays false.
+
+The Linux probe independently read back seven ordinary code regions, bothslot13
+entries and both16-byte rotation sites as original. However, the native rotation
+receipt still had an open Load scope, no Load return and restored0;
+failure_rotation_drain_complete was false. Code readbacks and process cleanup do
+not establish successful native continuation or completed import. The probe
+remains failed. The launcher reported verified127 stock files and retained
+identity after cleanup, but its success-only intermediate preparation receipt
+was absent and was not synthesized by the collector.
+
+The exact owned Linux game, Xvfb, supervisor and coordinator generations were
+independently confirmed absent after exit. Steam's process identity was unchanged.
+The released Windows runner restored the lane and staged snapshot; fresh status
+showed no X4 process, free instance mutex and all lanes free. No broad process
+cleanup or modification of production services or normal saves was performed.
+
+The final coordinator retained ssh_input_eof as its primary transport cause and
+ssh_checkpoint_output_failed as a separate secondary diagnostic. Its HELLO,
+frame and terminal sets are empty, released=-1. This preserves the accepted SSH
+failure classification; it is not evidence of a disk persistence failure.
+
+Private evidence
+
+Raw evidence is retained under this worktree's .local/mixed-native-006. The closed
+39-file evidence manifest SHA256 is
+4e1f220d935664aad031ffb38d8534cf1af0cb3f6c89885919866f404f7672b8.
+It includes the bounded first-fault extract, exact participant/probe receipts,
+strict combined result, raw native logs and independently sampled cleanup.
+No raw game data, private process paths, token or credentials appear in this
+report. Native_pair_verified remains false.

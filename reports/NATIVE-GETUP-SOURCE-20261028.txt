@@ -1,0 +1,102 @@
+BOUNDED GETUP REQUEST MODE
+28 October 2026 | Default off; source and owned-memory tests only
+
+agreed-getup is an exclusive one-singleton fixture on the reviewed saved player
+11e12/shipae79c/cockpitae79f. Slot1 proposes87010000 at report29; slot2 must propose
+zero. Both replica processes apply the same logical player's request. This is
+not two independent pilots. Existing player modes keep their immutable context
+guard. The new mode permits only a separately captured selected PC-to-Nav
+publication, while preserving fixed raw world-watch failures and all world hashes.
+
+The DLL retains the run SHA256, epoch1, processed tick, claim and native counters.
+It checks the actual admitted input words, exact UI issued/report boundary, fresh
+saved/runtime/registry-generation/object/Agent/faction continuity, and observer
+ownership. Both slots validate before effect. The stock bool GetUp1aba30 is
+called once outside the claim lock. A false result, exception, duplicate/gap,
+changed epoch or STOP cannot retry the action. STOP closes admission using the
+same ledger lock; a call claimed before STOP may finish but stop_open remains a
+failure. Exceptional cleanup touches only observer storage and rethrows naturally.
+The before/after guarded reads do not establish an atomic lifetime or owner lease.
+
+The public boolean is only request acceptance. A true return with no posted event
+is refused by the native selected-state view. Schema3 origin tickets add request1,
+post/delivery ordinals, after-capture tick and before/after transition-order bounds.
+The independent parser checks the local delivery containment of linked events.
+Immediate reentrant delivery and deferred delivery remain distinct valid orders;
+partial overlapping orders are unsupported. Existing schema1/2 receipts retain
+their original limitations and field sets. Global activation still supplies no
+selected-ship identity or completion proof.
+
+At tick120 the fixture requires observed selected publication and a valid joined
+model dispatch. That is a dispatch observation, not an audited release-model
+semantic predicate: completed_release remains0 and independent_player remains0.
+The selected native state, run/epoch, processed inputs and public identity are
+added through the existing per-tick digest. No process-local pointer enters that
+suffix. No raw hash is suppressed, controller watch rebound or transform written.
+The known strict world tick1 mismatch still prevents the tick30 grant and leaves
+the public call count0. Source tests exercise that actual coordinator branch.
+
+The probe configures the selected watch, transition, origin and request ledger
+before Load. It drains versioned raw origin tickets, links and STOP/footer evidence
+on failure. Successful native boot now establishes cleanup ownership before any
+adapter configures; a later GetUp configuration failure stops the native gate and
+drains the installed origin footer even though the probe is not fully armed.
+C producer formatters are tested through their real Lua
+entry points. The builder requires the exact pinned snapshot SHA and selected
+watch120; it creates no action mode by default. There is no new hook, thunk or
+double option bit. Full GetUp/origin pins run before installation and the action
+preflight checks owned patched sites rather than pretending those bytes remain
+unmodified. The GetUp scope is independent of the portable transport experiment.
+
+Validation uses actual pinned-image ranges and argument adapters on owned memory,
+not a game. Native tests cover the production Lua batch entry, public bool ABI,
+immediate/deferred origin/direct-transition joins, missing post despite true,
+changed player generation/Agent/owner, unowned preexisting events, invalid slots,
+and exception propagation through valid caller unwind metadata. The pure claim
+core covers STOP-before-claim, synchronous STOP and a worker paused after claim.
+Independent Python/Lua tests include a fully modeled request/delivery/publication/
+model-dispatch baseline and altered counters, ordinals, modes, slots and scope.
+
+The actual C formatter's synthetic export has valid local origin schema3 receipts
+and serialized containment. Its combined result intentionally remains false:
+the fixture does not restore the separate transition hooks, preserving sites7 /
+enabled1, and it does not run the full120 tick action experiment or model queue.
+Those raw fields are not rewritten to manufacture a positive end-to-end result.
+
+Queue exception cleanup, release completion semantics, chair discovery/re-entry,
+independent player authority and full-world equality remain unproved. No game,
+staged overlay, native action against X4, or single-copy runner was used here.
+
+Independent review found three defects in the first source checkpoint: controller
+replacement could hide an earlier publication, phase1/2 UI replacement could not
+reattach, and a partial probe configuration could skip native cleanup. The earlier
+standalone adapter test did not exercise that last production probe path.
+
+The follow-up derives the unique selected initial-PC-to-Nav publication from
+immutable origin-linked receipts before comparing the current controller. It
+retains the publication/controller permanently and rejects fresh PC or Nav
+replacement, including replacement before the first post-action view. Additional
+publication, loss of the initial controller, or phase regression poisons the
+fixture; restoring the old values cannot repair it. The independent parser joins
+phase to that publication's chronology and refuses later regression. This bounded
+receipt contract conservatively requires the post-publication phase by its tick;
+it does not invent an ordering between otherwise uninstrumented same-tick reads.
+
+Same-session configuration can now reattach without modifying claim, processed
+ticks, counters or publication state. It checks owned origin/transition sites and
+binds run/epoch, image/thunk, options, start time, slot/port/timeout, initial digest,
+origin token and watch manifest. Changed binding, failed/closing ledger, open call
+or inconsistent counts refuses. Initial configuration still requires phase0.
+Reattachment permits no action retry and establishes no new lifetime authority.
+
+Validation checkpoint: full actual-image C suite including GetUp production
+entry/adapter tests,527 claim-core checks,42 loopback transport cases,3 boot
+watchdog cases and441 focused Python/LuaJIT tests pass. New native fixtures check
+phase1/2 and post-claim reattachment byte-for-byte, changed-session/STOP refusal,
+replay after reattachment and four fresh-controller replacement schedules.
+Two fresh Lua VMs execute the actual ORIGIN/probe against one retained synthetic
+backend: one Load, two configurations, zero actions. A separate full-probe failure
+test installs origin then refuses GetUp config: one stop, zero Load/actions and
+the raw schema2 origin footer retained. These are owned-memory/Lua tests, not a
+native session. The earlier actual C schema3 footer compatibility and unchanged
+raw transition failure remain recorded; no raw failure was rewritten.

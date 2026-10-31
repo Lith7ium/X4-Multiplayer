@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Disposable native gate stress fixture for lockstep census runs: highway travel.
+     native_gate_probe.lua raises every cue at a fixed gated tick on every client
+     (native_gate_highway = true|'warp'|'fly', optional native_gate_highway_super).
+     The local highway is Highway02 of Argon Prime (cluster_14_sector001, the snapshot 005
+     start sector): a 230 km tube from Zone001 (entry, z = -110 km) to Zone003 (z = +120 km),
+     about 50 km east of the sector centre at y = 0.
+     HighwayStart       'warp': warps the player ship 3 km above the highway entry (fixed
+                        point, no safe-position search); 'fly': stays put (player must be in
+                        Argon Prime). Spawns a convoy (three Argon S fighters, one M
+                        transporter) next to the player with precise MoveWait orders to the
+                        far end, so native pathing routes them through the highway, and two
+                        Argon beacon ships beside the tube (half way and at the far end).
+     HighwayEnter       player autopilot (stock move.autopilot, useunknown) to the highway
+                        itself (target 'highway': autopilot enters it and sets full throttle)
+                        or to the far beacon (target 'beacon': native path may use the tube).
+     HighwayLeave       player autopilot to the half-way beacon: leaves the tube mid-way.
+     HighwaySuper       optional: stops the autopilot and warps the player 5 km above the
+                        Grand Exchange I superhighway entry gate towards cluster_01_sector002.
+     HighwaySuperEnter  player autopilot into that superhighway (or to a beacon behind it).
+     HighwaySample      logs player zone/sector/position/speed, nearby mass traffic and the
+                        convoy; zone and sector changes of the player and convoy are logged as
+                        they happen. Every line is "[X4LAN] NATIVE_GATE HIGHWAY ..." and prints
+                        no runtime IDs. -->
+<mdscript name="X4LAN_NativeHighway" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="Highway" namespace="this">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeGate'" control="'HighwayStart'"/></conditions>
+   <actions>
+    <set_value name="$mode" exact="event.param3.$mode"/>
+    <set_value name="$target" exact="event.param3.$target"/>
+    <set_value name="$ready" exact="false"/>
+    <set_value name="$hw" exact="null"/>
+    <find_sector name="$sector" macro="macro.cluster_14_sector001_macro"/>
+    <do_if value="$sector">
+     <find_highway name="$hw" space="$sector" macro="macro.highway02_cluster_14_sector001_macro"/>
+    </do_if>
+    <do_if value="not player.ship or not $sector or not @$hw.entry or not @$hw.exit">
+     <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY setup tick=%s refused=missing ship=%s sector=%s highway=%s'.[event.param3.$tick, player.ship != null, $sector != null, $hw != null]"/>
+    </do_if>
+    <do_elseif value="$mode == 'fly' and player.sector != $sector">
+     <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY setup tick=%s refused=fly_outside_highway_sector sector=%s'.[event.param3.$tick, @player.sector.macro.id]"/>
+    </do_elseif>
+    <do_else>
+     <create_position name="$entry" space="$sector" object="$hw.entry"/>
+     <create_position name="$exit" space="$sector" object="$hw.exit"/>
+     <do_if value="$mode == 'warp'">
+      <set_value name="$origin" exact="position.[$entry.x, $entry.y + 3km, $entry.z]"/>
+      <warp object="player.ship" sector="$sector">
+       <position value="$origin"/>
+       <rotation yaw="0deg" pitch="0deg" roll="0deg"/>
+      </warp>
+     </do_if>
+     <do_else>
+      <create_position name="$origin" space="$sector" object="player.ship"/>
+     </do_else>
+     <create_group groupname="$watch"/>
+     <add_to_group groupname="$watch" object="player.ship"/>
+     <set_value name="$convoy" exact="[]"/>
+     <do_all exact="4" counter="$i">
+      <create_ship name="$ship" macro="if $i le 3 then macro.ship_arg_s_fighter_01_a_macro else macro.ship_arg_m_trans_container_01_a_macro" sector="$sector" seed="9800 + $i">
+       <owner exact="faction.argon" overridenpc="true"/>
+       <loadout><level exact="1.0"/><variation exact="0"/></loadout>
+       <pilot><select faction="faction.argon" tags="tag.aipilot"/></pilot>
+       <position x="$origin.x + (if $i le 2 then -250m else 250m)" y="$origin.y" z="$origin.z + (if $i % 2 == 1 then -250m else 250m)"/>
+       <rotation yaw="0deg"/>
+      </create_ship>
+      <do_if value="$ship.exists">
+       <append_to_list name="$convoy" exact="$ship"/>
+       <add_to_group groupname="$watch" object="$ship"/>
+       <!-- For native_gate_highway_trace: the probe reads the convoy poses every tick. -->
+       <raise_lua_event name="'X4LAN_NativeGate.HighwayShip%s'.[$convoy.count]" param="$ship"/>
+       <create_order object="$ship" id="'MoveWait'" immediate="true">
+        <param name="destination" value="[$sector, position.[$exit.x + ($i - 2.5) * 400m, $exit.y + 3km, $exit.z]]"/>
+        <param name="precise" value="true"/>
+        <param name="noattackresponse" value="true"/>
+       </create_order>
+      </do_if>
+     </do_all>
+     <set_value name="$beacons" exact="[]"/>
+     <do_all exact="2" counter="$i">
+      <set_value name="$f" exact="if $i == 1 then 0.5 else 0.95"/>
+      <create_ship name="$ship" macro="macro.ship_arg_s_scout_01_a_macro" sector="$sector" seed="9900 + $i">
+       <owner exact="faction.argon" overridenpc="true"/>
+       <loadout><level exact="1.0"/><variation exact="0"/></loadout>
+       <pilot><select faction="faction.argon" tags="tag.aipilot"/></pilot>
+       <position x="$entry.x + ($exit.x - $entry.x) * $f + 2km" y="$entry.y + ($exit.y - $entry.y) * $f + 1km" z="$entry.z + ($exit.z - $entry.z) * $f"/>
+       <rotation yaw="0deg"/>
+      </create_ship>
+      <do_if value="$ship.exists">
+       <append_to_list name="$beacons" exact="$ship"/>
+       <create_order object="$ship" id="'Wait'" default="true"/>
+      </do_if>
+     </do_all>
+     <set_value name="$ready" exact="$convoy.count == 4 and $beacons.count == 2"/>
+     <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY setup tick=%s ready=%s mode=%s target=%s highway=%s local=%s entry=%s,%s,%s exit=%s,%s,%s origin=%s,%s,%s convoy=%s beacons=%s'.[event.param3.$tick, $ready, $mode, $target, $hw.macro.id, $hw.islocalhighway, ($entry.x / 1m)i, ($entry.y / 1m)i, ($entry.z / 1m)i, ($exit.x / 1m)i, ($exit.y / 1m)i, ($exit.z / 1m)i, ($origin.x / 1m)i, ($origin.y / 1m)i, ($origin.z / 1m)i, $convoy.count, $beacons.count]"/>
+    </do_else>
+   </actions>
+   <cues>
+    <cue name="HighwayEnter">
+     <conditions>
+      <event_ui_triggered screen="'X4LAN_NativeGate'" control="'HighwayEnter'"/>
+      <check_value value="Highway.$ready"/>
+     </conditions>
+     <actions>
+      <do_if value="Highway.$target == 'beacon'">
+       <start_player_autopilot destination="Highway.$beacons.{2}" useunknown="true"/>
+      </do_if>
+      <do_else>
+       <start_player_autopilot destination="Highway.$hw" useunknown="true"/>
+      </do_else>
+      <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY enter tick=%s target=%s autopilot=%s'.[event.param3.$tick, Highway.$target, player.autopilottarget != null]"/>
+     </actions>
+    </cue>
+    <cue name="HighwayLeave">
+     <conditions>
+      <event_ui_triggered screen="'X4LAN_NativeGate'" control="'HighwayLeave'"/>
+      <check_value value="Highway.$ready"/>
+     </conditions>
+     <actions>
+      <start_player_autopilot destination="Highway.$beacons.{1}" useunknown="true"/>
+      <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY leave tick=%s inlocal=%s autopilot=%s distance=%s'.[event.param3.$tick, @player.ship.zone.islocalhighway, player.autopilottarget != null, (player.ship.distanceto.{Highway.$beacons.{1}} / 1m)i]"/>
+     </actions>
+    </cue>
+    <cue name="HighwaySuper">
+     <conditions>
+      <event_ui_triggered screen="'X4LAN_NativeGate'" control="'HighwaySuper'"/>
+      <check_value value="Highway.$ready"/>
+     </conditions>
+     <actions>
+      <set_value name="$superready" exact="false"/>
+      <find_sector name="$supersector" macro="macro.cluster_01_sector001_macro"/>
+      <set_value name="$supergate" exact="null"/>
+      <do_if value="$supersector">
+       <find_highway_entry_gate name="$gates" space="$supersector" superhighwaygate="true" multiple="true"/>
+       <do_all exact="$gates.count" counter="$i">
+        <do_if value="@$gates.{$i}.destination.sector.macro == macro.cluster_01_sector002_macro">
+         <set_value name="$supergate" exact="$gates.{$i}"/>
+        </do_if>
+       </do_all>
+      </do_if>
+      <do_if value="$supergate and @$supergate.highway and @$supergate.exit">
+       <stop_player_autopilot speak="false"/>
+       <create_position name="$gatepos" space="$supersector" object="$supergate"/>
+       <warp object="player.ship" sector="$supersector">
+        <position x="$gatepos.x" y="$gatepos.y + 5km" z="$gatepos.z"/>
+        <rotation yaw="0deg" pitch="0deg" roll="0deg"/>
+       </warp>
+       <set_value name="$supertarget" exact="$supergate.highway"/>
+       <do_if value="Highway.$target == 'beacon'">
+        <set_value name="$supertarget" exact="null"/>
+        <set_value name="$destsector" exact="$supergate.exit.sector"/>
+        <do_if value="$destsector">
+         <create_position name="$exitpos" space="$destsector" object="$supergate.exit"/>
+         <create_ship name="$supertarget" macro="macro.ship_arg_s_scout_01_a_macro" sector="$destsector" seed="9903">
+          <owner exact="faction.argon" overridenpc="true"/>
+          <loadout><level exact="1.0"/><variation exact="0"/></loadout>
+          <pilot><select faction="faction.argon" tags="tag.aipilot"/></pilot>
+          <position x="$exitpos.x" y="$exitpos.y + 5km" z="$exitpos.z"/>
+          <rotation yaw="0deg"/>
+         </create_ship>
+         <do_if value="@$supertarget.exists">
+          <create_order object="$supertarget" id="'Wait'" default="true"/>
+         </do_if>
+        </do_if>
+       </do_if>
+       <set_value name="$superready" exact="@$supertarget.exists"/>
+       <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY super tick=%s ready=%s gates=%s gate=%s,%s,%s highway=%s'.[event.param3.$tick, $superready, $gates.count, ($gatepos.x / 1m)i, ($gatepos.y / 1m)i, ($gatepos.z / 1m)i, $supergate.highway.macro.id]"/>
+      </do_if>
+      <do_else>
+       <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY super tick=%s refused=missing sector=%s gates=%s'.[event.param3.$tick, $supersector != null, @$gates.count]"/>
+      </do_else>
+     </actions>
+    </cue>
+    <cue name="HighwaySuperEnter">
+     <conditions>
+      <event_ui_triggered screen="'X4LAN_NativeGate'" control="'HighwaySuperEnter'"/>
+      <check_value value="@Highway.$superready"/>
+     </conditions>
+     <actions>
+      <start_player_autopilot destination="Highway.$supertarget" useunknown="true"/>
+      <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY super_enter tick=%s target=%s autopilot=%s'.[event.param3.$tick, Highway.$target, player.autopilottarget != null]"/>
+     </actions>
+    </cue>
+    <cue name="HighwayZone" instantiate="true">
+     <conditions><event_object_changed_zone group="Highway.$watch"/></conditions>
+     <actions>
+      <set_value name="$who" exact="if event.object == player.ship then 'player' else 'convoy%s'.[Highway.$convoy.indexof.{event.object}]"/>
+      <set_value name="$where" exact="'superhighway'"/>
+      <do_if value="event.object.sector">
+       <create_position name="$p" space="event.object.sector" object="event.object"/>
+       <set_value name="$where" exact="'%s,%s,%s'.[($p.x / 1m)i, ($p.y / 1m)i, ($p.z / 1m)i]"/>
+      </do_if>
+      <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY zone ms=%s who=%s from=%s to=%s fromlocal=%s tolocal=%s fromsuper=%s tosuper=%s pos=%s speed=%s'.[(player.age / 1ms)i, $who, @event.param2.macro.id, @event.param.macro.id, @event.param2.islocalhighway, @event.param.islocalhighway, @event.param2.issuperhighway, @event.param.issuperhighway, $where, (event.object.speed / 1m)i]"/>
+     </actions>
+    </cue>
+    <!-- Diagnostics for sc-highway (29 Oct): MD cues reacting to the player entering the
+         highway ran at tick 703 on one client and 704 on the other while the player SHIP's
+         zone change below was delivered at the same game time. Log the player ENTITY's zone
+         change and the player activity signals (travel mode forced off in a highway) with
+         their game time, so the first per-client player event is visible. -->
+    <cue name="HighwayPlayerZone" instantiate="true">
+     <conditions><event_object_changed_zone object="player.entity"/></conditions>
+     <actions>
+      <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY entity_zone ms=%s from=%s to=%s tolocal=%s tosuper=%s shipzone=%s activity=%s'.[(player.age / 1ms)i, @event.param2.macro.id, @event.param.macro.id, @event.param.islocalhighway, @event.param.issuperhighway, @player.ship.zone.macro.id, player.activity]"/>
+     </actions>
+    </cue>
+    <cue name="HighwayActivity" instantiate="true">
+     <conditions>
+      <check_any>
+       <event_object_signalled object="player.entity" param="'startactivity'"/>
+       <event_object_signalled object="player.entity" param="'stopactivity'"/>
+       <event_object_signalled object="player.entity" param="'activitycharged'"/>
+      </check_any>
+     </conditions>
+     <actions>
+      <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY activity ms=%s signal=%s value=%s now=%s zone=%s local=%s speed=%s'.[(player.age / 1ms)i, event.param, event.param2, player.activity, @player.ship.zone.macro.id, @player.ship.zone.islocalhighway, if player.ship then (player.ship.speed / 1m)i else -1]"/>
+     </actions>
+    </cue>
+    <!-- sc-highway-fly: the first differing script entries (tick 185 vs 212) were MD cues
+         woken by event_speak_finished of actor 11e13 (player computer): speech completion
+         follows audio playback, i.e. wall-clock time. Log every finished speech line. -->
+    <cue name="HighwaySpeech" instantiate="true">
+     <conditions><event_speak_finished/></conditions>
+     <actions>
+      <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY speech ms=%s actor=%s page=%s line=%s interrupted=%s'.[(player.age / 1ms)i, @event.object.knownname, event.param, event.param2, event.param3]"/>
+     </actions>
+    </cue>
+    <cue name="HighwaySector" instantiate="true">
+     <conditions><event_object_changed_sector group="Highway.$watch"/></conditions>
+     <actions>
+      <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY sector ms=%s who=%s from=%s to=%s'.[(player.age / 1ms)i, if event.object == player.ship then 'player' else 'convoy%s'.[Highway.$convoy.indexof.{event.object}], @event.param2.macro.id, @event.param.macro.id]"/>
+     </actions>
+    </cue>
+    <cue name="HighwaySample" instantiate="true">
+     <conditions>
+      <event_ui_triggered screen="'X4LAN_NativeGate'" control="'HighwaySample'"/>
+      <check_value value="Highway.$ready"/>
+     </conditions>
+     <actions>
+      <set_value name="$where" exact="'none'"/>
+      <set_value name="$traffic" exact="-1"/>
+      <do_if value="player.ship">
+       <set_value name="$where" exact="'superhighway'"/>
+       <do_if value="player.ship.sector">
+        <create_position name="$p" space="player.ship.sector" object="player.ship"/>
+        <set_value name="$where" exact="'%s,%s,%s'.[($p.x / 1m)i, ($p.y / 1m)i, ($p.z / 1m)i]"/>
+       </do_if>
+       <do_if value="player.ship.zone">
+        <find_ship name="$mass" space="player.ship.zone" masstraffic="true" multiple="true"/>
+        <set_value name="$traffic" exact="$mass.count"/>
+       </do_if>
+      </do_if>
+      <set_value name="$rows" exact="''"/>
+      <do_all exact="Highway.$convoy.count" counter="$i">
+       <set_value name="$ship" exact="Highway.$convoy.{$i}"/>
+       <do_if value="$ship.isoperational and $ship.sector">
+        <create_position name="$q" space="$ship.sector" object="$ship"/>
+        <set_value name="$rows" exact="$rows + ' c%s=%s:%s:%s'.[$i, if @$ship.zone.islocalhighway then 'hw' else 'sp', ($q.z / 1m)i, ($ship.speed / 1m)i]"/>
+       </do_if>
+       <do_else>
+        <set_value name="$rows" exact="$rows + ' c%s=gone'.[$i]"/>
+       </do_else>
+      </do_all>
+      <debug_text text="'[X4LAN] NATIVE_GATE HIGHWAY sample tick=%s sector=%s zone=%s local=%s super=%s pos=%s speed=%s autopilot=%s activity=%s entityzone=%s masstraffic=%s%s'.[event.param3.$tick, @player.ship.sector.macro.id, @player.ship.zone.macro.id, @player.ship.zone.islocalhighway, @player.ship.zone.issuperhighway, $where, if player.ship then (player.ship.speed / 1m)i else -1, player.autopilottarget != null, player.activity, @player.entity.zone.macro.id, $traffic, $rows]"/>
+     </actions>
+    </cue>
+   </cues>
+  </cue>
+ </cues>
+</mdscript>

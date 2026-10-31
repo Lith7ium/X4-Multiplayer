@@ -1,0 +1,75 @@
+LINUX PORTABLE SAME-SUPERVISOR PREPARATION
+28 October 2026 | source and owned nongame tests only
+
+PROBLEM
+The existing launcher hashes127 stock files (about28.44GB) after the paired
+coordinator has started its absolute600s startup budget. A cold filesystem can
+consume that budget before Linux X4 starts. No hash or native timing check is
+removed. The new optional preparation path completes verification before the
+Windows participant/coordinator is started.
+
+CONTRACT
+linux_native_portable_run.py retains its existing --config path. The new
+--prepare-request/--handoff pair uses fresh direct children of the existing private
+test root. A bounded root-owned0600 request binds mode, common contract, optional
+Euler descriptor, both participant hashes, review digest, ticks/native deadlines,
+run ID and planned coordinator script. It contains no fabricated coordinator and
+no session token. The actual final config retains the existing closed schema.
+
+The same supervisor installs cancellation handlers before verification, hashes
+every stock payload in1MiB chunks with cancellation/deadline checks and retains
+readonly descriptors. It records device/inode/size/mtime/ctime/mode/owner/link
+identity of each descriptor and its pathname/target. Partial acquisition closes
+all opened descriptors. Its preparation deadline is1800s. No case, Xvfb, probe or
+game is created before PREPARED. The receipt binds the actual supervisor PID/start,
+request/review/stock digests and count127. The independent handoff wait is1200s.
+
+The controller retains the SSH stdin channel open without data. EOF, unexpected
+input, signal or deadline refuses preparation and closes descriptors. After
+handoff, cancellation remains active while existing600s/120s native limits apply.
+There is no reusable cache or later process accepting a cached successful hash.
+
+linux_portable_handoff.py validates the existing coordinator PIDFD/start/command/
+socket/source proof and the exact preparing supervisor PIDFD/start/UID/executable/
+argv/request. It publishes a fresh private final config, rechecks both identities,
+then publishes a single handoff binding PID/start/request and config path/digest.
+The receiver validates the full session and all preparation fields and consumes
+the handoff once. Linked private parents/targets, stale or duplicate handoffs,
+wrong process generation and changed final configuration refuse.
+
+Publication uses dirfd-relative libc renameat2(RENAME_NOREPLACE), with no fallback
+if unavailable. A hardlink would briefly expose link-count2 while the strict
+reader requires1; the rename makes the completed link-count1 file visible at once.
+An existing foreign target remains untouched. Owned temporary files and directory
+descriptors are cleaned on every path. Published private config may remain as
+failure evidence if a later identity check prevents handoff; it is never reused.
+
+After handoff the launcher repeats bundle/Steam/no-X4 checks and retained file
+identity checks, including immediately before native start and after cleanup.
+All existing native ownership, isolated profile, code guards, probe, socket,
+restoration and cleanup requirements remain. The final launch record carries
+the preparation receipt and retained-stock checks. Readonly descriptors do not
+prevent other processes writing files: changed metadata/path identities refuse.
+This is detection and exact same-process provenance, not a filesystem write lease.
+
+VALIDATION
+Owned temporary files and nongame Python processes test partial hash cancellation,
+same-size content changes with restored mtime, replacement/symlink changes,
+private-file/link/duplicate-key refusal, wrong PID/start/request/config, one-shot
+publication, deadlines/EOF/signals, real PIDFD same-process handoff and production
+runner ordering before any case/display/probe/game and cancellation after handoff
+during staging before the xauth helper. Forced publication
+interleavings cover foreign target preservation and an immediate receiver read
+after rename before publisher cleanup. Missing renameat2 fails closed.
+
+Publisher orchestration tests use mock process-verification outcomes to cover
+first/second coordinator and preparer refusal; the separate real process test
+exercises actual PIDFD/argv identity. These are not native X4 tests.
+
+NEXT / LIMITS
+Independent source review, updated004 controller/manifest and a fresh Python
+payload bundle are still required. The previously reviewed Linux agent/bridge
+can be reused byte-for-byte; no native binary or game file changes here. Frozen003
+and its failure evidence remain immutable. No remote stage/full stock hash/native
+attempt was performed for this change. Controller exit0 additionally requires
+both child exits0 and actual frozen combined acceptance, never missing proof.

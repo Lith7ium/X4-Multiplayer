@@ -81,6 +81,45 @@ class SeedTests(unittest.TestCase):
                 self.transfer(identity={**IDENTITY, field: wrong})
             self.assertFalse((self.root / "guest").exists())
 
+    def test_reserved_multiplayer_profiles_stage_without_overwriting_existing_saves(self):
+        for number in range(45841, 45849):
+            with self.subTest(profile=number):
+                profile = self.root / str(number)
+                saves = profile / "save"
+                saves.mkdir(parents=True)
+                cloud = saves / "steam_autocloud.vdf"
+                cloud.write_bytes(b"existing cloud metadata")
+                target = seed.stage_test_save(self.host, profile)
+                self.assertEqual(target.read_bytes(), self.payload)
+                self.assertEqual(cloud.read_bytes(), b"existing cloud metadata")
+                target.write_bytes(b"later player save")
+                with self.assertRaises(seed.SeedError):
+                    seed.stage_test_save(self.host, profile)
+                self.assertEqual(target.read_bytes(), b"later player save")
+                self.assertEqual((self.host / "seed.bin").read_bytes(), self.payload)
+
+    def test_multiplayer_staging_refuses_normal_missing_and_linked_profiles(self):
+        for name in ("45840", "45849", "70000001", "45843-extra"):
+            profile = self.root / name
+            profile.mkdir()
+            with self.subTest(profile=name), self.assertRaises(seed.SeedError):
+                seed.stage_test_save(self.host, profile)
+            self.assertEqual(list(profile.iterdir()), [])
+        profile = self.root / "45843"
+        with self.assertRaises(seed.SeedError):
+            seed.stage_test_save(self.host, profile)
+        self.assertFalse(profile.exists())
+        normal = self.root / "70000001"
+        profile.symlink_to(normal, target_is_directory=True)
+        with self.assertRaises(seed.SeedError):
+            seed.stage_test_save(self.host, profile)
+        profile.unlink()
+        profile.mkdir()
+        (profile / "save").symlink_to(normal, target_is_directory=True)
+        with self.assertRaises(seed.SeedError):
+            seed.stage_test_save(self.host, profile)
+        self.assertEqual(list(normal.iterdir()), [])
+
     def test_content_mismatch_names_requirements_without_publishing_a_save(self):
         with self.assertRaisesRegex(seed.SeedError, "Host: ego_dlc_timelines@900"):
             self.transfer(identity={**IDENTITY, "extensions": []})

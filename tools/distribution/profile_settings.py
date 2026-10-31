@@ -7,7 +7,8 @@ import re
 import tempfile
 import xml.etree.ElementTree as ET
 
-TEST_PROFILES = {'45841', '45842'}
+# Isolated multiplayer test profiles (one per client on a shared PC); never a settings source.
+TEST_PROFILES = {str(45841 + i) for i in range(8)}
 SETTINGS_API = 1
 INPUT_FILE = re.compile(r'inputmap(?:_[A-Za-z0-9_-]+)?\.xml\Z')
 
@@ -30,7 +31,9 @@ def owned_profile(package_root, slot_validator=None):
             or state.get('package_id') != package['package_id']):
         raise RuntimeError('Settings import requires this package\'s installed internal mod.')
     profile = Path(state['profile'])
-    if not profile.is_absolute() or profile.name != '45841' or profile.resolve().name != '45841':
+    expected = str(package.get('test_profile', '45841'))
+    if (expected not in TEST_PROFILES or not profile.is_absolute() or profile.name != expected
+            or profile.resolve().name != expected):
         raise RuntimeError('Unexpected test profile path.')
     marker = Path(state['game']) / 'extensions/x4_lan_lab/.x4lan-package-id'
     if marker.read_text(encoding='utf-8-sig') != package['package_id']:

@@ -1,0 +1,153 @@
+{
+  "scope": "Static comparison only; no hooks, runtime wait selection or cross-platform simulation proof",
+  "linux_image_sha256": "113f73d74570084f6ce18a659b365009eccf579fb66dbabb5dad2b1718045f20",
+  "windows_image_sha256": "19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891",
+  "linux_functions": [
+    {
+      "rva": "0x10de190",
+      "database_size": 12667,
+      "root_bytes": 12432,
+      "next_start": "0x10e1220",
+      "sha256": "35242e4520e221afb9693933a8becfa767d0dfd11804c52da3bb1cada7d178c6",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0xd633a0",
+      "database_size": 1087,
+      "root_bytes": 1024,
+      "next_start": "0xd637a0",
+      "sha256": "c5d56ad690fdacb80f31ed863154326ec7e884cda6767645fec69578cf1e4ddc",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x109b210",
+      "database_size": 79,
+      "root_bytes": 79,
+      "next_start": "0x109b260",
+      "sha256": "f8fe35559c70939d23842d08cd55a60f011df870ac18930afb792afc8c5d6514",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x10c12b0",
+      "database_size": 240,
+      "root_bytes": 240,
+      "next_start": "0x10c13a0",
+      "sha256": "101f5cd1d9b86cd5ba3ba1b1ffbe2779ef920bfa93464bba90a19639e3bfa0b6",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x10c11b0",
+      "database_size": 250,
+      "root_bytes": 250,
+      "next_start": "0x10c12b0",
+      "sha256": "443f14b5e1d73aedacd851313ef55c096a540fb5e8a97f98380603c0d65b0702",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x10d7860",
+      "database_size": 124,
+      "root_bytes": 112,
+      "next_start": "0x10d78d0",
+      "sha256": "db114fc2654244e25979738567a605d762b9d83b925338ca3e275268b5e63455",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x10c0a30",
+      "database_size": 729,
+      "root_bytes": 672,
+      "next_start": "0x10c0cd0",
+      "sha256": "51a2ce0b6d11dbc046288b23092bd86f65ea32d98633122c6b0005989230b53e",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x1e04890",
+      "database_size": 51,
+      "root_bytes": 51,
+      "next_start": "0x1e048d0",
+      "sha256": "4d57289930e79b524756d5c6209dd93692dce8ef3a93daab94bed37ff0806382",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x1df4a70",
+      "database_size": 106,
+      "root_bytes": 106,
+      "next_start": "0x1df4ae0",
+      "sha256": "d999725129588eee370b1f313b661adad2a8dcb12fe4b20ac7ec078f3946ceb8",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x1d9b750",
+      "database_size": 217,
+      "root_bytes": 208,
+      "next_start": "0x1d9b820",
+      "sha256": "6c7f21ca07f7d110ecaa449b5a6b9fa3516b612b64b0eca3b350c57ea5fc5bb7",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0xcf4f30",
+      "database_size": 1815,
+      "root_bytes": 1648,
+      "next_start": "0xcf55a0",
+      "sha256": "a90fbd2c7d88d7bdf9827820b433986a8aa18d90869ade90f0fef40e54b1b461",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x1d9bd80",
+      "database_size": 760,
+      "root_bytes": 704,
+      "next_start": "0x1d9c040",
+      "sha256": "8e3ada4e295edfc363be7ab57c0e9d2e39a174cab75d6f0cce9fd5e4355a10f6",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x1a48e30",
+      "database_size": 617,
+      "root_bytes": 617,
+      "next_start": "0x1a490a0",
+      "sha256": "06fe9109880cdff39a1d806bfe66dfdedd7aed9bec25e9f577f204e7192dfcf4",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x1a491c0",
+      "database_size": 126,
+      "root_bytes": 126,
+      "next_start": "0x1a49240",
+      "sha256": "bd0f5a41ee0f72ece023eec0b6ae4134c62e345874c57fe45dc17194d190c6ea",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x10c1080",
+      "database_size": 300,
+      "root_bytes": 300,
+      "next_start": "0x10c11b0",
+      "sha256": "5063ec54dfeae617adbae25274c9ee95d806fdfdf874eed0e5fddeb9a4abdd1d",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0xd58ac0",
+      "database_size": 7,
+      "root_bytes": 7,
+      "next_start": "0xd58ad0",
+      "sha256": "6fafe2e3f135e8130036ee7f1ab2f310d812d02d6681b610b63de0ba4fa10797",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    },
+    {
+      "rva": "0x1a3b1a0",
+      "database_size": 927,
+      "root_bytes": 927,
+      "next_start": "0x1a3b540",
+      "sha256": "47bc5447258d3ca6626890a416f84788fb0f0d9f8b04b5e8bf8fe85cf3585110",
+      "scope": "contiguous ELF function root; next known start bounded; cold fragments excluded"
+    }
+  ],
+  "linux_import_restore_call": {
+    "rva": "0x10df368",
+    "return_rva": "0x10df36b",
+    "length": 3,
+    "sha256": "f801a6f1f65f33a9b750f2f1a009031db41328122f5449d3b6fb81f92fbb2fc6",
+    "vtable_slot": "0x30",
+    "abi": "RDI action, RSI ExecState, RDX context Value; boolean AL"
+  },
+  "linux_wait_vtable": "0x3b2a650",
+  "linux_wait_reattach_slot": "0x30"
+}

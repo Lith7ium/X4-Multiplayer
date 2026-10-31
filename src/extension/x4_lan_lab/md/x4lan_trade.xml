@@ -44,7 +44,7 @@
 <set_object_account object="$arena.$donor" /><set_object_min_hull object="$arena.$donor" exact="100" /></actions>
 <cues>
  <cue name="Tick" instantiate="true" checkinterval="0.5s"><conditions><check_value value="not $busy" /></conditions><actions>
-  <do_if value="$arena.$proxy.isoperational and not $arena.$dead.{3 - $arena.$localSlot}"><set_value name="$arena.$remoteBalance" exact="$arena.$proxy.money" /></do_if><set_value name="$localdock" exact="'none'" />
+  <do_if value="$arena.$proxy.isoperational and not $arena.$dead.{if $arena.$localSlot == 1 then 2 else 1}"><set_value name="$arena.$remoteBalance" exact="$arena.$proxy.money" /></do_if><set_value name="$localdock" exact="'none'" />
   <do_all exact="2" counter="$m">
    <set_value name="$station" exact="$markets.{$m}" />
    <do_if value="$arena.$local.isoperational and $arena.$local.dock and $arena.$local.dock.container == $station"><set_value name="$localdock" exact="'m%s'.[$m]" /></do_if>
@@ -62,7 +62,7 @@
  </actions></cue>
  <cue name="RemoteDock" instantiate="true" namespace="this"><conditions><event_ui_triggered screen="'X4LAN_Trade'" control="'RemoteDock'" /></conditions><actions>
   <set_value name="$m" exact="event.param3" /><set_value name="$ship" exact="Market.$arena.$proxy" />
-  <do_if value="$ship.isoperational and not Market.$arena.$dead.{3 - Market.$arena.$localSlot}"><do_if value="$m == 0">
+  <do_if value="$ship.isoperational and not Market.$arena.$dead.{if Market.$arena.$localSlot == 1 then 2 else 1}"><do_if value="$m == 0">
    <do_if value="$ship.dock"><undock ship="$ship" /></do_if>
    <remove_docking_request ship="$ship" container="Market.$markets.{1}" immediate="true" />
    <remove_docking_request ship="$ship" container="Market.$markets.{2}" immediate="true" />
@@ -72,7 +72,7 @@
    <do_if value="$ship.dock and $ship.dock.container != $station"><undock ship="$ship" /></do_if>
    <do_if value="$ship.assigneddock and $ship.assigneddock.container != $station"><remove_docking_request ship="$ship" container="$ship.assigneddock.container" immediate="true" /></do_if>
    <do_if value="$ship.distanceto.{$station} lt 8km and not $ship.dock">
-    <do_if value="not $ship.assigneddock"><request_docking ship="$ship" container="$station" requiretrading="true" allowplayeronly="true" queuedresult="$queued" grantedresult="$granted" /></do_if>
+    <do_if value="$ship.owner != faction.player"><set_owner object="$ship" faction="faction.player" /></do_if><do_if value="not $ship.assigneddock"><request_docking ship="$ship" container="$station" requiretrading="true" allowplayeronly="true" queuedresult="$queued" grantedresult="$granted" /></do_if>
     <do_if value="$ship.assigneddock"><dock ship="$ship" /></do_if>
    </do_if>
    <do_if value="Market.$lastRemoteDock != $m">

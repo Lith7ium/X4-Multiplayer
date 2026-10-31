@@ -1,0 +1,138 @@
+LOCKSTEP INPUT MULTIPLEXER: PILOT RECORDS, ORDERS AND HIT CLAIMS IN ONE BLOB
+29 October 2026 | offline (LuaJIT/Python, synthetic clients, mocked gate; the
+container codec also checked against the C functions); no X4 launched
+
+WHY
+Protocol 3 carries one opaque blob per client and tick (<= 240 bytes). The
+probe's pilot adapter (wire source) and the player orders adapter each owned
+X4LAN_NATIVE_INPUTS exclusively, so humans could not fly by wire and give
+lockstep orders in one session, and hit claims (prediction work) had no slot.
+The prediction agent defined the container in src/native/engine/
+lockstep_hit_claims.h (input_mux_decode/encode); this work is its Lua side.
+
+FILES
+tools/dev/native_gate_inputs_core.lua  container codec (Lua mirror), hit claim
+                                       payload codec, multiplexer, hit carrier
+tools/dev/native_gate_inputs.py        Python reference (decode/encode/pack)
+tools/dev/native_gate_probe.lua        sections registered instead of exclusive
+                                       adapters; pilot records from the section
+tools/dev/native_gate_player_orders*   proposal(tick, budget)
+build_native_gate_overlay.py, native_gate_sandbox.py, native_gate_players.py
+                                       ship ui/native_gate_inputs_core.lua
+tests/test_native_gate_inputs.py       (+ updated probe/orders/sandbox/players
+                                       tests)
+
+FORMAT (identical to lockstep_hit_claims.h; reasons identical)
+  ''                       no input
+  28 bytes, first 0x01     pilot record v1 alone (legacy form)
+  first byte 0x50          player orders v1 alone (legacy form)
+  0x4d 'M', 0x01, then sections kind|length|payload, kinds strictly ascending:
+    0x01 pilot (28 bytes, first byte 1), 0x48 hit claims, 0x50 orders (first
+    byte 0x50). A container with only pilot or only orders is refused
+    (noncanonical): every content has one encoding, encode(decode(x)) == x.
+Refusals: encoding (Lua/Python text check), too_long, pilot_length, channel,
+version, truncated, order, section_length, kind, orders_channel, noncanonical.
+Hit claim payload: count 1..8 + 26-byte claims (version<<4|kind 1 in/2 out,
+flags 0, observe16, projectile key, target portable ID, point 3 x int16 in
+1/8 m, little endian); refusals length, claim, point, identity, duplicate.
+A pilot-only or orders-only session sends exactly the bytes it sent before.
+
+MULTIPLEXER (X4LAN_NATIVE_INPUTS, owner 'mux')
+Sections register by name (pilot, orders, hits) with an owner tag; only the
+same owner may replace a section (a UI reload re-registers). An external
+adapter that is not the multiplexer keeps the wire to itself (contract
+unchanged), and a section cannot register then.
+Each section keeps the adapter contract for its own payload:
+  apply(tick, inputs, clients, slot) -> receipt or nil   inputs[k] = slot k's
+    payload of this section, '' when absent or the blob was refused
+  proposal(tick, budget) -> payload or nil   budget in hex characters
+  refused(tick, reason)                     optional; 'overflow'
+Admission (every client, identical blobs): each slot's blob is decoded; a
+malformed blob, or one with a section nobody registered, yields no sections
+for that slot (INPUT_MUX_REFUSED tick= slot= reason=). The fold
+  INPUTS_1|<tick>|<k:sections or - or refused_<reason>,...>|pilot:<slots>/
+  <bytes>|<receipt or ->|hits:...|orders:...
+(registered sections only, wire order) is the adapter result the probe adds
+to the declared digest; orders still contribute PORDERS_1, hits HITS_1, the
+pilot receipt stays in PILOT_1 (gate.pilot_inputs_frame).
+Proposal (local, deterministic): sections in priority order (default pilot,
+orders, hits; native_gate_input_priority = {...}); each is offered the bytes
+left after the container header (2) and the sections already taken (2 + its
+length each), minus its own header. A payload above its budget is refused for
+this tick (INPUT_MUX_OVERFLOW tick= section= bytes= budget=, refused callback);
+later sections are still offered. Budgets with the default order: pilot 236,
+orders 206 after a pilot (orders never exceed 120), hits 84 after a pilot and
+a full orders blob (3 claims; 8 claims need 209). The orders adapter packs
+only the commands that fit its budget and keeps the rest queued (no command
+is lost); the hit carrier packs only whole claims that fit. Idempotent per
+tick. A malformed local payload stops the session (local bug, fail closed).
+
+HIT CLAIMS
+native_gate_hit_claims = 'carry' registers K.hit_carrier: scripted claims
+(native_gate_hit_claims_script = {[slot]={[tick]={{kind=1|2, back=0..8,
+projectile=, target=, point={x,y,z}}}}}, observe tick = tick - back) ride the
+wire; admission decodes them, reconstructs the observe tick as hit_stage does
+(window 8, from tick 2) and folds HITS_1|tick|slot/index/in|out/observe/
+projectile/target/point/carried|refused_far rows (log HIT_CLAIM). It never
+applies a hit: the native staging/resolution of lockstep_hit_claims.h has no
+Lua binding yet. Interface for that adapter: register section 'hits' with its
+own owner tag, apply(tick, inputs) stages the payloads (gate call), proposal
+(tick, budget) returns the claims that fit.
+
+BUILDERS
+build_native_gate_overlay.py --session-clients and the sandbox/players
+builders add ui/native_gate_inputs_core.lua before the probe; the probe stops
+with "input multiplexer core missing" if a section must register without it.
+Sandbox: a base with a scripted orders block ("players": 2) is now kept next
+to wire piloting; orders UI capture is refused there (the sandbox order block
+wraps the same menu entries; the probe refuses pilot_block_orders together
+with player_orders_capture, the identity order block likewise).
+Players builder: --orders demo works with --source wire; human sessions use
+the probe's pilot order block (menus/travel/SETA) as the sandbox does.
+
+TESTS (offline)
+tests/test_native_gate_inputs.py: every valid form decodes and re-encodes
+identically in Lua and Python (legacy forms byte-identical); 19 malformed
+blobs refuse with the same reason; encoder refusals; hit claim layout (exact
+bytes of the C test claim), round trip and refusals; observe tick window incl.
+16-bit wrap; opt-in X4LAN_ZIG=<zig.exe>: the C functions copied from the
+header, compiled, agree on every vector (passed with the engine toolchain);
+multiplexer apply lists/receipt, unregistered section refusal, priority/budget
+/overflow (Lua and Python pack agree), owner tags, malformed proposals; hit
+carrier (budget truncation keeps the queue, window, refused payloads); three
+synthetic clients running the real probe, multiplexer, orders core/glue and
+hit carrier with wire piloting for 7 ticks: slot 2's tick-2 blob carries all
+three sections, every client hashes identical data every tick, stages every
+slot's record, applies the same order (refusing the other by the table) and
+carries the same claims; builders. Updated: probe pilot wire test (records
+must now be valid pilot records), orders probe test, sandbox overlay/probe
+tests, players builder tests.
+python -m unittest discover -s tests -p "test_native_gate*.py" and
+-p "test_census*.py" pass.
+
+LIVE TEST (coordinator)
+(a) 3 clients, wire pilots + scripted orders, players builder:
+  python tools/dev/native_gate_players.py overlay --base <full-stack base>
+    --gate-dll <dll> --probe tools/dev/native_gate_probe.lua --out <dir>
+    --players 3 --mode coop --source wire --orders demo
+  (humans optional: without input every record is neutral). Pass: relay
+  verdict pass; INPUTS lines at tick 41 show container blobs (pilot +
+  orders on slots 1..3); INPUT_SECTION ARMED pilot/orders on every client; no
+  INPUT_MUX_REFUSED/OVERFLOW; PILOT_INPUTS staged/missing=0; the three demo
+  order lines at tick 43 on every client; players compare PASS.
+(b) add hit claims to (a)'s overlay config (ui/config.lua.append):
+  X4LAN_CONFIG.native_gate_hit_claims = 'carry'
+  X4LAN_CONFIG.native_gate_hit_claims_script = {[2]={[50]={{kind=2,back=0,
+    projectile='00000000000000b1',target='0000000000176c95',point={0,0,8}}}}}
+  Pass: tick 51 HIT_CLAIM 2/1/out/50/.../carried on every client, digests
+  equal; slot 2's tick-50 blob is a three-section container if it also holds
+  an order (else pilot + hits).
+
+LIMITS
+- Offline only; the native relay/gate treat blobs as opaque (no native change).
+- Hit claims are carried, not applied (no native binding yet).
+- The overflow rule refuses a section for the tick; the orders adapter and the
+  carrier keep their queues, a third-party section must do the same.
+- Blob decoding is strict: a peer that sends an unknown section or a
+  malformed container loses all its sections for that tick on every client
+  (with wire piloting the pilot module then stops on the missing record).

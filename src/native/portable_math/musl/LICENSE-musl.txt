@@ -1,0 +1,65 @@
+Third-party notices for src/native/portable_math/musl/
+
+The files in this directory (and the algorithms used by ../portable_math.c) are
+derived from the math library of musl libc, taken from the copy of musl that is
+bundled with Zig 0.15.2 (lib/libc/musl/src/math). Changes are listed at the top
+of each file. The original copyright and permission notices are preserved in
+the individual sections of each file and repeated here.
+
+1. musl libc (MIT)
+
+----------------------------------------------------------------------
+Copyright © 2005-2020 Rich Felker, et al.
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+----------------------------------------------------------------------
+
+musl's COPYRIGHT file states: "Much of the math library code (src/math/* and
+src/complex/*) is Copyright © 1993,2004 Sun Microsystems or Copyright ©
+2003-2011 David Schultz or Copyright © 2003-2009 Steven G. Kargl or Copyright ©
+2003-2009 Bruce D. Evans or Copyright © 2008 Stephen L. Moshier or Copyright ©
+2017-2018 Arm Limited and labelled as such in comments in the individual source
+files. All have been licensed under extremely permissive terms."
+
+2. fdlibm / FreeBSD msun (sin, cos, tan kernels and reduction, asin, acos, atan,
+   atan2, log10, cbrt, expm1, log1p): Sun Microsystems notice
+
+ * ====================================================
+ * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+ *
+ * Developed at SunPro, a Sun Microsystems, Inc. business.
+ * Permission to use, copy, modify, and distribute this
+ * software is freely granted, provided that this notice
+ * is preserved.
+ * ====================================================
+
+ (k_tan.c carries the same notice dated 2004.) Several of these files were
+ optimized by Bruce D. Evans, as noted in them.
+
+3. exp, exp2, log, log2, pow and their data tables: Arm Limited
+
+ Copyright (c) 2018, Arm Limited.
+ SPDX-License-Identifier: MIT
+ (the MIT license text is the same as in section 1, with "Arm Limited" as the
+ copyright holder)
+
+The remaining musl files used here (fmod, hypot, scalbn, sinh, cosh, tanh,
+__expo2 and the __math_* helpers) carry no separate notice and are covered by
+section 1.

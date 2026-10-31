@@ -1,0 +1,144 @@
+SELECTED SAVED-WAIT RNG EXPERIMENT - SOURCE CANDIDATE
+27 October 2026
+
+Purpose and limits
+------------------
+Native world007 observed fresh RNG evaluation while restoring two persisted Wait
+actions. The trader's differing deadline straddled the load clock and aligned
+with its earlier/later move.idle command sequence. This experiment tests that
+specific boundary. It does not establish full lockstep, synchronize ambient RNG,
+rewrite deadlines, repair later target selection, or remove any raw failure.
+The historical007 manifest-bit failure remains unchanged.
+
+Activation is separate and default off: --world-wait-rng-manifest supplies an
+explicit JSON schema1 experiment selection in addition to the existing schema2
+read-only observation manifest. The builder requires the exact same snapshot,
+saved owner, script, saved version, XML blocking index, original persisted
+time_text and min/max values. The experiment adds exact native slot/PC/since
+guards. No existing bit, fixture authority or RNG gate is widened.
+
+Lua world_wait_rng_config runs after read-only Wait configuration and before
+Load. First configuration requires boot phase0/tick0/UI thread, active observer,
+its exact owned entry and immutable RX thunk. Configuration, exact retries,
+intervention admission and restoration share the existing Wait lock. A closed
+observer cannot be reopened. No new hook, trampoline or executable-page write is
+introduced; existing full importer/Wait/range/RNG/clock pins remain required.
+
+Native scope
+------------
+Only the exact importer return1069bfc through the existing10a50d0 entry can
+produce a selected intervention. All existing owner/runtime-to-saved mapping,
+context lifetime, script descriptor/version, program/node, restored-time bits,
+constant expression and before/after identity checks remain strict.
+
+Additional final guards immediately before the TLS write require:
+- exact selected native slot, PC and action since-version;
+- constant finite range mode2/distribution1/count1, absent explicit seed/basis,
+  timeout and listeners, as verified by the existing raw expression checks;
+- boot2/tick0, UI thread, non-main thread, view1, app flags0x26, VBI loading1,
+  equal TLS/game/saved clocks, stable raw phase and elapsed boot time <=120s;
+- same actual native TLS slot0, aligned readable/writable TLS+318 RNG state,
+  matching wrapper-entry RNG, active admission and unused selection.
+
+Boot phase2 and these loading flags are recorded as pre-admission evidence;
+they are not a native Load-function bracket. Unrecognized phases refuse.
+The XML index is exact persisted selection metadata; native slot/PC are separate
+observed guards. The observer still does not claim an independent native ordinal
+count through arbitrary blocking predicates.
+
+After all guards, the selected RNG is installed around exactly one original
+call. No observer lock crosses original. The scoped output is captured and the
+caller's pre-call RNG restored on normal return. Invalid original AL, changed
+identity, nested/duplicate call, STOP overlap or phase change remains fatal
+evidence even if restoration succeeds. Refused/unselected paths run original
+once with its natural RNG and never restore a state that was not seeded.
+
+If actual TLS identity or its writable extent is lost after original, restoration
+is refused and explicitly fails; an unverified old address is never written.
+Pinned normal Wait has no TLS lifetime transition. TLS nesting retains a resident
+event pointer, not an observer stack address. Engine exceptions are unsupported:
+no claim of exception cleanup follows from normal-return or unwind tests.
+An interrupted scope remains open/incomplete; no continuing run is accepted.
+
+Key schema1
+-----------
+All arithmetic is uint64 modulo2^64. Domain WAIT_SV1=0x574149545f535631.
+FNV1a64 uses ASCII bytes without a terminator, offset14695981039346656037,
+multiplier1099511628211. mix(x) is the existing sequential xor-shift/multiply
+function with constants bf58476d1ce4e5b9 and94d049bb133111eb, shifts30/27/31.
+
+Start mix(0x58344c5345454432 XOR domain), then separately mix(value XOR field)
+for each field in this exact order:
+1. saved script version as uint64;
+2. canonical saved owner ID as uint64;
+3. FNV1a64(script name);
+4. persisted XML blocking index as uint64;
+5. FNV1a64(original exact saved time_text);
+6. minimum binary64 bit pattern as uint64;
+7. maximum binary64 bit pattern as uint64;
+8..11. snapshot SHA256 split left-to-right into four16-hex-digit words, each
+       interpreted as a big-endian hexadecimal uint64.
+
+Runtime IDs, pointers, current time, native slot/PC, invocation order, thread and
+caller RNG do not enter the seed. Native slot/PC remain mandatory guards. Python
+computes the sequential key independently and tests paired-field XOR aliasing.
+Saved-time text conversion uses the previously audited bounded Windows decimal
+arithmetic only; no generic Windows/Linux decimal-bit parity is implied.
+
+For snapshot7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8:
+  80d54 move.idle v4 XMLindex5 text6.91667 range0.1..0.5 ->41aa3ad655ad9a9c
+  9d3a4 order.fight.patrol v10 XMLindex1 text6.31667 range0.001..1 ->8b0f91e8910d9f7c
+
+Interpretation and validation
+-----------------------------
+The existing four WORLD_WAIT raw rows retain wrapper-entry and wrapper-exit RNG.
+Separate WORLD_WAIT_RNG rows retain caller-before, seed, scoped-before/after,
+caller-restored, exact guard expectations, refusal/application/restoration flags
+and key-domain/hash metadata. STOP retains applied/refused/open/restore_open,
+global_sync=0 and exception_cleanup=0. Rows remain below2048 bytes including the
+log prefix; the engine formatter cap is3072. Complete-only publication persists.
+
+Natural one-step interpretation is disabled for explicitly configured experiment
+captures. The independent parser instead requires scoped-before=derived seed,
+scoped-after=one audited RNG step, exact selected phase/identity and successful
+normal-return restoration. Main validation publishes separate experiment
+coverage and paired outputs, while existing raw Wait comparison, whole-world
+roots, queue checks and all other strict failures remain unchanged. Unequal raw
+caller streams remain visible and cannot become a claimed strict pass.
+
+Restoring each caller's PRE-call stream deliberately removes this isolated draw
+from its continuing stream. It does not reproduce the unseeded baseline's
+naturally advanced stream and does not make the two ambient streams equal.
+Later behavior changes therefore cannot be attributed solely to wake timing.
+
+Offline validation
+------------------
+Production C wrapper tests cover default-off behavior, independent seed goldens,
+all11 audited decimal arithmetic goldens, field aliasing, immutable exact retry,
+closed configuration, incorrect selection/phase/version/explicit seed/TLS,
+duplicate and nested selected/foreign calls, overflow, original AL/lifetime
+failure, original-once behavior and normal-return restoration. Controlled
+schedules cover STOP after admission but before the seed, STOP inside original,
+and a worker held inside original while another thread restores the observer.
+Open/restore_open and failures remain visible. Loss of actual TLS refuses writes.
+
+Actual pinned-image tests preserve the existing three-argument/AL ABI and entry
+replay. C-exported raw and intervention rows independently parse with no errors.
+Python mutation tests cover every receipt/STOP field, missing/truncated/duplicate
+records, raw phase/identity/expression changes, manifest binding, old errors and
+main-validator separation. These are offline tests, not native gameplay proof.
+Final source validation: full native C build/test with the pinned image and
+portable transport harness passed;361 focused Python/Lua tests passed.
+
+Proposed bounded native008 (NOT launched by this source change)
+-------------------------------------------------------------
+After review/integration and a frozen artifact audit, one released-runner pair
+would use unchanged007 snapshot, four world watches, root stride1, early queue
+and NPC provenance options, 12-tick bound/first strict mismatch stop,260s runtime
+and900s admission wait. Differences: schema2 original-text Wait selector plus
+this separate two-entry experiment manifest and integrated reviewed source.
+No NPC deadline/RNG, player transition or other intervention is proposed.
+Require both selected applies exactly once, identical derived seeds and scoped
+draws, caller restoration and unchanged strict raw diagnostics. Capture exact
+deadlines, boot-phase command order and first world mismatch, then close and
+restore both owned lanes. No automatic retry or claim of all-feature lockstep.

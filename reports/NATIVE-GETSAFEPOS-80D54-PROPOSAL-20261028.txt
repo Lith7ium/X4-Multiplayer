@@ -1,0 +1,217 @@
+WORLD016: EARLIER GETSAFEPOS TARGET DIVERGENCE - 28 OCTOBER 2026
+
+Status and scope
+
+This is a read-only investigation and a proposed diagnostic, not a gameplay
+change. World016 remains invalid with its original 56 strict errors. The two
+owned games and relay were cleaned up. No game, hook, patch, evaluator, getter,
+RNG write or additional test session was invoked for this investigation.
+
+The first observed unequal target for ship saved80d4f is GetSafePos Action43,
+not the later CreatePosition Action48. The latter converts an already unequal
+target. The available receipts establish the following chain within each
+client; they do not establish equality of every GetSafePos input.
+
+  pilot80d54 move.idle v4, slot51 / stored PC52: GetSafePos Action43
+    -> valid assignment Value9, tag63, caller be23af
+  slot59 / PC60: GetSafePos Action47 -> valid assignment Value12
+  slot60 / PC61: CreatePosition Action48 -> valid assignment Value13
+  slot66 / PC67: movement Action51 -> manager target enqueue5
+    -> tick1 pending queue -> tick2 Agent/model and bank differences
+
+Exact observed joins
+
+All three relevant completed parent Actions and Values9,12,13 pass their local
+validators. Values10/11 retain errors2 and are excluded from this reasoning.
+The complete session's unknown-owner failures also remain in force.
+
+Value9 sector-position xyz, in native binary32 decimal rendering:
+  client1: 47256.296875, -5886.4091796875, -22112.314453125
+  client2: 50267.6875,    916.2078857421875, -29161.734375
+Value12 zone-position xyz:
+  client1: 26932.345703125, -5886.4091796875, -9986.3037109375
+  client2: 29943.736328125,   916.2078857421875, -17035.72265625
+
+Within each client, all16 bytes of Value12 equal Action48 transform_before's
+position. All16 bytes of Action48 transform_after, its returned output, Value13
+and the earlier Value9 are identical. Action48 consumes zero RNG steps. Its
+copied class evidence identifies source Zone saved95 and reference Sector
+saved8c; these IDs/classes, time7.083, identity basis and branch fields agree
+between clients. This is evidence that this conversion preserves the earlier
+target difference. It is not a general claim that every transform cache agrees.
+
+The native target enqueue has reference95 and its16-byte position equals
+Value12. Its producer is the same locally observed Exec/context/lifetime as
+Action51, saved pilot80d54, move.idle, PC67. The tick1 pending queue retains
+those different bytes. The watched loaded-state semantic fields agree except
+the independent constructor timer and ambient RNG; the tick1 baseline adds
+only pending.0.vector0 to that difference set. Tick2 Agent update then exposes
+different model targets/orientation and bank pose. Raw local addresses and
+uninterpreted fields are not asserted equal. There is no claim of globally
+pristine post-load state or exclusive causality from this bounded trace.
+
+Action43 ambient RNG endpoints:
+  client1 35bd238531f970bf -> 2acc3565dc71be2b
+  client2 b01b176df56078c2 -> 3552bd2202d5bbf8
+Both endpoints are five steps apart under the pinned native transition.
+Action47 endpoints are two steps apart. These counts do not identify every
+consumer or prove the generated candidate equals the final safe position.
+
+Saved inputs versus new evaluation
+
+The exact common snapshot contains pilot80d54's move.idle script32889, v4,
+label start, index5, time6.91667. Its position-typed references resolve through
+the vector reference table, not another table with the same numeric ref ID:
+  anchor5812: (53332.344, -1774.037, -20611.332)
+  temp5813 and randpos5814: (52822.203, -1678.1, -21611.002)
+  Offset1421: (33008.391, -1774.037, -8485.322)
+MaxDistance is10000, zone_anchor is95, and the separate TimeOut is42.0323.
+The saved navigation read/write positions both contain
+(32498.252,-1678.1,-9484.991), yaw-152.96432, reference95.
+
+Thus the unequal Value9 payloads are not verbatim copies of the saved target.
+The common move.idle XML has a non-capital path which evaluates a new safe
+position around anchorpos_sector, minimum ship.size, maximum
+MaxDistance+ship.size, safety radius ship.safesize/2. Its later zone-space
+GetSafePos and CreatePosition match the observed action-type/control-flow
+sequence. This source correspondence does not substitute for copied native
+descriptor tags, evaluated sizes/range or the candidate output at Action43.
+
+Pinned native path
+
+Exact images: Windows SHA19750a65.../55,412,768 bytes; Linux
+SHA113f73d7.../60,459,280 bytes, the previously verified9.00/build611726 pair.
+Companion PINS.json supplies full hashes, function extents and call hashes.
+
+Windows be2320 (226 bytes) is the observed GetSafePos Execute target at vtable
+2c0cc88+18. It resolves the space through Action+1a8, then at be237d invokes
+c72380 once with RCX=Action+28, RDX=output16, R8=original frame,
+R9=resolved space, and stack argument5 equal to that same space. Argument6 is
+null and argument7 is float zero. The result is converted to a Value and
+assigned by cc6710 at be23aa; the observed Value caller is be23af.
+
+c72380 evaluates safety radius at c727d8 from descriptor+d8, optional exclusion
+reference at c72821 from+130, and invokes the position candidate evaluator:
+  call c72900 / return c72905 when the two native spaces are identical;
+  call c72845 / return c7284a otherwise, followed by an additional transform.
+Both use RCX=descriptor, RDX=local output, R8=frame and a nonnull R9 reference.
+The selected be237d caller passes the same space twice, supporting c72905 as
+the initial narrow diagnostic path. c7284a is understood but initially refused.
+
+After candidate generation, c72380 can evaluate direction/angle/flags and
+reservation data and invokes835b80 at c72e84 or786d10 at c72f89. Further
+reservation/reference work can follow.786d10 can search a containing space,
+call835b80, or take another path which consumes two direction draws before a
+collision query. This can account structurally for additional RNG consumption,
+but the actual World016 branch is unobserved. Five Action43 steps alone cannot
+prove 'three candidate draws plus two harmless avoidance draws'.
+
+Readable Linux counterparts, corroborated by direct instruction/call structure,
+are de5640 -> d05ae0 -> d04a50, with safe-position helpers1155360/1d36d90.
+The candidate calls return at d05cd1/d0653e. The Linux candidate uses native
+sincosf/acosf/sinf, whereas Windows uses its pinned packed/scalar math helpers.
+These transferred functions do not have verified exported names in our cache;
+the pairing is a structurally checked mapping, not a claim of matching source
+or numeric results. World016 itself is two Windows games. No Linux process
+receipt for this selected path exists, and earlier trig portability concerns
+are not resolved by this investigation.
+
+Proposed smallest next evidence
+
+Add an explicit default-off read-only GetSafePos diagnostic, independent of
+the current CreatePosition schema2 and World agent's selected patrol RNG work.
+Use the existing four interception sites only; do not reserve another site or
+enable any RNG intervention for this scope. Select exactly saved80d54,
+move.idle v4, slot51, stored PC52, GetSafePos stage1, vtable2c0cc88 and Execute
+be2320, first eligible pre-admission occurrence. A second selected occurrence,
+foreign nested call, absent final Value, unsupported branch, STOP or exception
+must remain explicit failed/incomplete evidence, not silently ignored.
+
+The outer callback receives the actual descriptor/output/frame/reference,
+caller and directly captured incoming return-address slot T. Require:
+  descriptor == current observed Action node+28; frame == parent frame;
+  actual return == c72905; nonnull original reference and output;
+  [T+260] == be2382; [T+278] == frame; [T+288] == reference;
+  output == T+c8; T mod16 ==8, checked TIB bounds and pointer overflow.
+
+These offsets follow the unhooked c72380 frame: incoming S, seven pushes,
+sub220, RBP=S-128, candidate call entry T=S-260 and local output RBP-70.
+The parent return is the real be2320 continuation, not a guessed address in
+the DLL. Capture T directly in the existing noinline entry wrapper before
+calling helpers. The new observer must prove this with an owned executable
+wrapper->trampoline->native-frame-like caller chain before relying on it.
+
+Copy the exact original arguments, branch tags, checked reference identity,
+bounded live Action/node/frame/program-header/slot guard, phase clocks and FP
+controls. At the actual radius call, copy the already-evaluated base output,
+range descriptor and the actual radius result. At the existing sampler call,
+copy its actual RNG source, span/distribution/parameter, evaluated numeric
+minimum/difference Values, native result and before/after RNG. Reuse the
+independently proven direct sampler-entry T relationship; never evaluate an
+expression/getter again. Require one witnessed sampled numeric range for this
+first implementation; other forms are unsupported, not interpreted as zero.
+Copy the nested candidate output after its normal original return. None of
+the callbacks may write native state, invoke getters, acquire engine references
+or change FP state. Inner/output/stack reads are normal-return only.
+
+Retain a separate event pool/cursor/status and independent wire prefix. Proposed
+hard cap is4 records,512 guarded reads and16KiB copied native bytes per record,
+with expected selected count1. Measure the actual positive-path budget; refuse
+overflow rather than omit guards. Double-capture all borrowed identity/branch/
+stack witnesses, retain native call counts and unexpected-path failures, and
+document that byte-identical ABA is not detected. All abnormal-finally work
+touches only retained observer state; missing later Lua drain stays incomplete.
+
+Minimal shared plumbing is default-NULL sidecar callbacks for outer begin,
+normal return and finally, plus radius/sampler before/after/finally. Retain the
+callback table/cookie for each active invocation so STOP cannot remove cleanup.
+Use a separate observer TLS scope even when the direct Position event is null.
+Preserve the existing original calls and World RNG finally order exactly:
+World's retained RNG finish, then private sidecar finish, then wp_outer_finish.
+No observer lock crosses an original call. Direct Position admission, counters,
+raw schema2 and its existing Action30 seed selector must remain unchanged.
+World has confirmed its WIP callback boundary and no GetSafePos ownership.
+Implementation must start from its reviewed frozen checkpoint or a root-approved
+additive integration, not edit its active tree.
+
+The parser joins a complete parent Action and the unique valid Value9 assignment
+by local invocation/owner/frame/lifetime and native be23af caller, not by an
+assumed event number. It preserves all enclosing validation failures. Emit
+candidate_payload_equal_final_value as an explicit16-byte comparison, with both
+payloads. Equality is an observation; inequality is valid evidence of downstream
+processing, not a reason to reject the receipt. Do not apply the direct
+CreatePosition output==Value/RNG-adjacency rule to this stage1 path.
+
+If the candidates differ and match their respective final payloads, the first
+measured target difference is already at candidate evaluation. If candidates
+match but final outputs differ, the next required evidence is actual evaluated
+safe-position arguments/results and query/reservation state at the existing
+callee calls. If both differ, capture those downstream inputs before attributing
+the final result exclusively to RNG. No whole-Action seed or deterministic
+GetSafePos remedy is authorized by this proposal.
+
+Required implementation/review tests
+
+Actual-image full pins/call/CFG checks; owned incoming-T chain with full opaque
+return/nonvolatile preservation; exact and wrong parent/descriptor/frame/space/
+output/slot cases; normal and actual foreign exceptions at all original calls;
+STOP during each bracket; changed identities, inaccessible/boundary pages,
+capacity/read-budget overflow; no native writes or repeated originals.
+Parser joins must reject invalid/duplicate/missing parent/Value receipts but
+accept unequal candidate/final payloads as unequal diagnostic data. Include
+same-session Lua reattachment without resetting events/cursors and fail closed
+on changed session/config, sticky failure, STOP, foreign callbacks/patch debt.
+Replay World014/015/016 unchanged, retaining64/56/56 errors respectively. Both
+legacy direct Position and the reviewed patrol scope need integration checks.
+
+Private evidence and reproducibility
+
+Author tree: X4-Multiplayer-lockstep-third-wait-composition.
+Raw: .local/native-lockstep/world-motion-016/{client1,client2}/engine-output.log.
+Frozen readers: .local/native-lockstep/world-motion-source-016/tools/dev/.
+Private audit: .local/native-lockstep/ship80d4f/audit.py and audit.json. It reparses
+the raw trace, checks the exact Action/Value/queue joins above, verifies ten full
+native roots and ten call targets, and writes sanitized pin metadata separately.
+Snapshot extraction and local assembly remain in that same private directory.
+Audit SHA256:2d0162df82e5c79a7a8cefffe21404e16d8283ac4c8db063a346afc776c3eef1.
+No proprietary excerpts or raw game data accompany this report.

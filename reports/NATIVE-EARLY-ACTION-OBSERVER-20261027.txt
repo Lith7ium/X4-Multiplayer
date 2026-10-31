@@ -1,0 +1,103 @@
+SELECTED EARLY ACTION OBSERVER - SOURCE CANDIDATE
+27 October 2026
+
+Problem and bounded scope
+The saved-Wait experiment008 aligned the two selected restored deadlines and
+their initial command timing. Whole-world roots still first differ at frame2.
+The observed AddOrderTransform target vectors already differ at manager enqueue,
+then survive dispatch/pending append and are consumed by Agent. Publication PCs
+are not evidence of which earlier action sampled those targets.
+
+This opt-in source adds a read-only bracket at the EXISTING b58ca0 action
+dispatch. No new patch site, thunk, engine call, seed, deadline or state write is
+added. The default-NULL callback encloses the existing original-once dispatch
+chain; NPC/fixture trigger and RNG gates retain their prior phase3 eligibility.
+No native game was launched for this source change.
+
+Proposed selection, subject to integrated artifact review
+  saved pilot80d54: move.idle version4
+  saved pilot9d3a4: order.fight.patrol version10, move.seekenemies version7
+The manifest permits at most two saved owners/eight owner-script entries and is
+bound by the overlay builder to the immutable snapshot SHA, exact saved entity
+presence and script patch versions. Later-called programs need not be active in
+the persisted stack. No native PC is guessed from XML source position.
+
+Native guards and output
+Explicit world_action_trace_config requires early world trace, queue provenance,
+NPC diagnostics, UI configuration before loading, owned existing dispatch bytes,
+and all literal pins. Exact retries retain the same manifest; STOP cannot reopen
+configuration. No live thunk-page protection change occurs.
+
+Selected calls require gate boot2/tick0 on the configured UI thread, not main,
+TLS view1, elapsed <=120s, finite stable native clocks with TLS/game/saved equal,
+and observed flags app26/VBI1 or app20/VBI0. This labels pre-admission context,
+not execution inside GameClass::Load. Both actual raw flag/clock samples remain.
+
+The raw native CURRENT global must equal ExecState AND the existing live NPC TLS
+bracket must independently match that ExecState/lifetime. Context tag66, context
+type, saved owner mapping, script descriptor/version/name, bounded program vector
+(<=4096), native PC-1 node identity, vtable/function and program shape are read
+twice before and after original. Output PC may change normally; input slot stays
+the identity being revalidated. No engine getter or expression is evaluated.
+
+Each complete event records raw RNG before/after, PC/flags, type/Execute RVA,
+chance input, saved owner/script/version, local pointers/runtime lifetimes,
+phase samples and explicit parent/child relationships. Unknown classes remain
+raw metadata; RNG-changing unknown classes and unobserved nested calls are
+counted, not reclassified as known sampling. Unselected nesting forms a barrier.
+Comparisons use per-saved-owner causal sequences; thread IDs and cross-thread
+global reservation order are not portable comparison keys.
+
+All admitted calls count under the same admission/STOP lock, including unsupported
+ones. No lock spans original. Events publish only when complete, with a 2048-event
+cap, explicit dropped/unknown/foreign/thread/open/restore_open counters and STOP
+overlap errors. The resident callback forwards late calls once after closure.
+Three rows/event are independently parsed; worst-case rows plus log prefix fit
+below2048 bytes. Main validation includes paired diagnostics and rejects a claimed
+pass when selected traces differ. Existing world/queue/Wait failures are retained.
+
+Pinned action audit and limits
+GetSafePosAction: vtable2c0cc88, Execute be2320/226.
+CreatePositionAction: vtable2c0cdd0, Execute be0ba0/280.
+SetValueAction: vtable2c0fb30, Execute b77830/12, tail c5af30/3800.
+Additional exact roots: c72380/3552, c6f7b0/1181, cc6710/1403,
+10631b0/472, 1066ba0/613, 1063750/3437, 106d5b1/40.
+Literal SHA256 values are in lockstep_world_action_pins.h. Full b58bb0/303 is
+reconstructed only from verified owned entry/dispatch replacements; foreign
+changes refuse. The shared native phase pin set remains required.
+
+GetSafePos evaluates into a stack-local result and assigns through cc6710;
+CreatePosition similarly creates/assigns a temporary Value; SetValue tailcalls
+its expression implementation. These evaluated Values are NOT read here:
+value_coverage=0. The b58c6f chance draw precedes this dispatch bracket and is
+NOT observed: chance_coverage=0. RNG before/after is inclusive of any nested
+execution; neither a changed RNG nor a known action class proves one draw or
+that the output target was caused solely by that draw. Full program hashes and
+action RVAs are Windows-local metadata, not cross-platform semantic identities.
+Normal return is tested. Engine exception cleanup is not claimed; open scopes
+remain incomplete if an exception bypasses the end observer.
+
+Validation
+Full native gate C harness with pinned actual Windows image: PASS, including
+all preexisting ABI/transport tests. New tests verify literal roots/vtable slots,
+foreign patch rejection, exact configuration retry/STOP, existing dispatch chain
+original-once and unchanged arguments, natural mock RNG effect only from original,
+selected/foreign nesting, unknown identity, changed version/lifetime/currentExec,
+wrong Execute, phase changes, output PC movement, overflow, bounded rows and
+controlled worker/STOP overlap. Actual Execute game functions are not run by
+these synthetic tests. The independent parser accepts the production C export.
+381 focused native-gate Python/Lua tests PASS, including manifest/snapshot bounds,
+parser mutation cases, independent nested relations, local-pointer-neutral
+comparison and main-validator preservation of old strict failures.
+Independent review found the initial parser accepted over-wide native fields,
+out-of-image unknown-action RVAs and whitespace-padded oversized rows. The
+follow-up enforces field-specific16/32/64-bit widths, exact image bounds and
+consistent aligned module base, plus event/STOP byte caps with the fixed log
+prefix. Regression mutants now fail capture and cannot yield a claimed pass.
+
+Integration ownership
+Additive gate/nested-action and builder/probe/validator sections only. Separate
+world_action headers/parser/tests do not change Wait RNG policy, player takeover,
+typed queue receipts or raw world identity. NPC's separate third-pilot Wait
+observation should be merged additively by the parent. Any next native pair needs
+review of its integrated frozen artifact; this report grants no run approval.

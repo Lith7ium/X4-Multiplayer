@@ -1,3 +1,15 @@
+Version 7.6.0 — 26 October 2026 — INTERNAL development test build
+- Fix NPC replica flicker on guests: fast replicas written every frame, moving NPCs
+  prioritised in UMOVE publication, relay forwards unsent samples first, adaptive
+  interpolation delay for sparse samples, no snap-back to stale baselines.
+- Remote player motion modes (NMODE: normal/boost/travel/highway) with pose-only
+  replicas at speed and a stable render clock.
+- Diagnostics on by default in internal packages: per-frame Lua cost (FRAMECOST),
+  relay round-trip/jitter (NETRTT), NPC targeting (NPCDIAG), NPC replica motion
+  (NPC_DIAG) and remote player motion (MOTION_DIAG).
+- Development rule: features are on by default and log FEATURE ... DISABLED when
+  they switch themselves off.
+
 Version 7.5.0 — 25 October 2026 — INTERNAL human-test candidate
 - Enable host-native NPC health/death and acknowledged cumulative guest hits,
   including guest sectors remote from the host. Supported free-flying S/M targets

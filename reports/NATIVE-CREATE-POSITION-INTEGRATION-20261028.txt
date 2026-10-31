@@ -1,0 +1,92 @@
+CREATEPOSITION DIAGNOSTIC - COMBINED SOURCE INTEGRATION
+28 October 2026
+
+Scope
+-----
+Integrate the accepted read-only post-evaluation CreatePosition diagnostic into
+the current Windows source without changing its capture or acceptance rules.
+This is source and offline validation only. No game, installation, deployment,
+native capture or package freeze was performed.
+
+Exact inputs and resulting source
+--------------------------------
+Base: e0f6437aee7771700a9bef2c3c07b52bb63d99a4.
+Accepted implementation 957d132ec475b8d770c6aafd498e2d24e5f53d9b
+  applied as c1b8e42.
+Accepted review fixes f783d7b0d4af9bea84cacabe264b9b376c9a6f25
+  applied as c0a11dd.
+Accepted independent report aeff178bd79e666e253cad5a7e32460f1f2f4589
+  applied report-only as 2b3426c.
+The combined executable source tested here is 2b3426c.
+
+Conflict-resolution diff
+------------------------
+Empty: all three local cherry-picks applied automatically by three-way merge.
+There were no conflict markers or manual resolutions. CONTINUE-HERE.txt is
+unchanged. No root worktree was edited.
+
+The three new native headers, C/assembly fixture, Python test, parser and actual
+C-export checker are byte-identical to accepted f783d7b. The second patch has an
+identical range-diff. The first patch's range-diff contains only surrounding base
+context: diagnostic-getup replaces older agreed-getup guards and the validator's
+existing GetUp bootstrap-plan import remains present. Those base changes were
+preserved, not resolved back to the implementation's older context.
+
+Shared integration changes
+--------------------------
+The gate includes the new headers after the existing Values/Find dependencies,
+exports four Lua methods and restores Position before Find, Values and Action.
+The four already reserved recipes occupy 3776..3967; the recipe test changes
+42 to 46. No existing recipe or reservation changes.
+
+The build adds the owned-memory C/assembly fixture and actual-export checker.
+The overlay adds only an explicit default-off world-position flag and its
+Action/Values prerequisites. Lua configures Position after Action/Values, retains
+the native cursor across UI reload, drains bounded rows and reports status on
+both stop paths. The validator adds only the Position join and result field;
+parent Action/Values failures and global unknown coverage remain strict.
+
+The newer GetUp diagnostic, Euler import correction, construction RNG and
+explicit construction UI acknowledgments remain unchanged. No common fixture,
+contract, RNG seed, game output or selected Find implementation changes.
+
+Validation of the combined source
+---------------------------------
+Full build_native_gate.py --test --native-image completed with exit 0 against
+the pinned executable read-only. All test executables use owned memory or local
+loopback peers; no native X4 process is involved. Selected totals:
+  - CreatePosition: 5,357 production checks; actual 5,176-byte C export accepted;
+    225 altered exports rejected, four coherent class differences retained,
+    oversized untrimmed row refused.
+  - Construction RNG: 1,820 checks; GetUp claim core: 527 checks;
+    GetUp diagnostic transport: 15 cases, including actual LuaJIT parsing.
+  - Windows Euler wrapper: 83,206 checks; World Nav V2: 1,449 checks.
+  - Existing gate, Find, transition, creation forwarders, actor unwind, origin,
+    XML helpers and portable codecs/transport also passed the complete driver.
+
+Full test_native*.py discovery ran 700 tests successfully on Windows with five
+Linux-only subprocess tests skipped. All five were then run and passed under
+WSL Ubuntu using actual owned subprocesses and loopback sockets. They did not
+use SSH, a VPS or a game. The first Windows discovery invocation omitted tools/
+from PYTHONPATH, producing six import errors; that failed log is retained. The
+corrected environment passed without source changes or suppressed tests.
+
+Private test logs remain under .local/native-lockstep/build/ as
+position-integration-c.log, position-integration-python.log,
+position-integration-python-final.log and position-integration-linux-skips.log.
+git diff --check passes. The accepted ABI and production review reports remain
+the source of detailed lifetime, STOP, exception and bounded-read evidence.
+
+Independent review and limits
+-----------------------------
+The independent narrow integration-delta and lock-order review accepted frozen
+2b3426c, reusing the accepted ABI/production proofs. It verified the eight exact
+feature files and seven shared files, preserved GetUp/Euler/construction logic,
+nonoverlapping thunk ranges and 80 focused integration Python/Lua tests in a
+separate archive. The finish path releases portable_wire_lock before wp_lock;
+Position takes no reverse transport/GetUp/rotation/creation lock and holds no
+own lock across native originals. No integration source blocker was found.
+This source review is not a future owned native capture.
+The observer remains default off. Partial guards require completed enclosing
+Action and downstream Value joins; enclosing exception limitations, borrowed
+lifetime/ABA limits and endpoint-only direction evidence remain unchanged.

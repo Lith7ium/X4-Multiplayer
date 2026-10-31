@@ -1,0 +1,218 @@
+NATIVE CONSTRUCTION: EARLY IDENTITY AND NAVIGATION CREATION
+27 October 2026 | Static proposal only; no new native run or engine change
+
+Finding
+-------
+The current deferred Lua enrollment is too late, but the measured first startup
+range is too early for the current full binder: build-012 observes a ShipExtraLarge
+and true owner while ship+200 is NULL. Navigation construction subsequently uses
+native TLS randomness and publishes an Agent before attaching the controller to
+the ship. A future design needs an early creation identity separate from readiness.
+Moving the existing full binder, resetting banks, or accepting late updates would
+not establish that design. Build-012 remains a strict failure with 41 errors.
+
+The evidence below is from the exact Windows image SHA-256
+19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+Raw assembly, decompilation, pointers and verifier outputs remain private. This
+report is an original interpretation, not redistributed engine source. Function
+names are explanatory labels; exact addresses, bytes and observed relationships
+are the evidence. Indirect transitive calls have not all been audited.
+
+Audited creation order
+---------------------
+1. The exact MD action calls Generate at ba1b86, return ba1b8b, with the explicit
+   owner argument zero. Generate calls InitializeShip at c8452c, return c84531.
+   Its owner-expression branch calls SetOwner at c821cb before pilot setup at
+   c8224a, return c8224f. The alternate explicit-owner branch calls pilot setup
+   at c820dd before SetOwner at c820f6; it is a different, excluded ordering.
+   The existing fixture already supplies MD seed 19221. That alone says nothing
+   about the TLS random state used by the later native navigation constructor.
+2. The pilot path reaches the already measured startup range at caller 1066dc6.
+   Native startup executes while ship+200 is absent. Full binding requires that
+   pointer and its Agent relationship, and cannot be performed here unchanged.
+3. Loadout setup follows pilot setup. A conditional call at c8262e can request a
+   navigation controller through 6e0160. Other indirect paths may create it first;
+   the conditional site is not proved to be this fixture's actual creator.
+4. On the fresh-controller path, 6e0160 calls ea4a00 at 6e02c4, return 6e02c9.
+   That constructor calls the complete initializer ea8cf0 at ea4b59. The initializer
+   establishes controller+28=ship and computes parameter blocks twice through
+   ea1e80 before eac530 allocates the Agent. This all precedes ship+200 attachment.
+5. eac530 calls Agent constructor e85360 at eac5fa, return eac5ff. It then copies
+   parameters and inserts the Agent into the path manager's runtime map and list.
+   It publishes Agent at controller+40 and Agent+ad0 at controller+30. These
+   operations occur inside a native critical section; its release precedes return
+   to ea8cf0. A worker lifetime/exclusion guarantee after release is not established.
+6. ea8cf0 performs event/listener operations and path-manager calls after Agent
+   creation. Its return is not equivalent to absence of native effects. Finally,
+   6e0160 invokes ship virtual+19e8 at 6e02db. Exact Small/ExtraLarge slots target
+   6cd8b0, which calls the setter 745e00 at 6cd8b9, return 6cd8be.
+
+Earliest completed-call relationship candidate
+---------------------------------------------
+The direct store at 745fd9 installs controller at ship+200. On the specifically
+verified fresh path, the following controller+118 call targets ea8c90 and returns
+without initialization when controller+28 already equals the ship. Both subsequent
+ship+1420 calls target 745d60; exact NavigationController+150 returns true directly,
+so its parent fallback is not taken. The remaining setter work changes native
+component flags. Thus return 6cd8be is an audited completed-call point at which a
+PASSIVE reader can check the full ship/controller/Agent relationship, provided
+the old controller was absent and all exact types/owners still match.
+
+This is not a full-enrollment proposal. Agent publication, random choices and
+immediate/deferred event effects already precede it. Existing full binding waits
+for Gravidar, registers native state and recomputes parameters; moving those calls
+under an incompletely audited constructor stack could deadlock or repeat effects.
+No native lock is to be acquired across an original engine call by the observer.
+
+Two distinct TLS-random effects before readiness
+-----------------------------------------------
+The Agent constructor calls Random::FloatState (14ddc90) at e8552c with bound 0.5.
+It writes Agent+ac0 = TLS simulation time + 0.5 + returned float at e8554b, before
+storing ship at Agent+ef0. The native RNG implementation updates the 64-bit state
+passed by pointer; this call passes TLS+318. Agent+ac0 is absent from the current
+45-byte SHIP_RAW_MOTION timing body, so equal raw motion does not test this timer.
+
+The complete navigation initializer has a second conditional effect. If its
+immediate type-0x20f event send returns false, ea90dc calls Random::FloatState with
+bound 2.0. At ea9105 it posts a native event with due time TLS simulation time +
+8.0 + returned float. This happens before ship+200 attachment and outside the
+Agent constructor. A scope covering only e85360 would miss the posted event.
+Neither effect has yet been observed directly in the two native construction
+instances, so their actual timer values or divergence are not claimed here.
+
+The Agent constructor initializes both physical navigation banks. e89b30 selects
+parameter banks using global read/write indices and copies the newer timestamped
+bank, then another parameter copy targets the write bank. The later ship binder
+cannot retroactively make those choices or already-posted events deterministic.
+
+Proposed next observation, requiring separate source/hook review
+--------------------------------------------------------------
+Keep the MD action order, strict late-update guard, all current receipts, bank
+values and acceptance rules unchanged. Add a bounded read-only creation trace;
+do not seed, prepare, publish actor_components, call transform getters or retry.
+
+Establish the pre-object link from the native phase-1 LEAVE receipt: exact Boundary
+name/caller, exactly one unbound reservation, canonical handle/macro/owner/tick,
+same native thread and no intervening phase-2 entry. The first exact Generate call
+from ba1b86 may claim that token once. Its entry has no ship/owner/Agent assertion;
+the stable identity is the reservation plus an observer-owned invocation ordinal.
+Do not derive identity from a runtime pointer or treat all same-macro creations
+as the fixture. Nested, repeated, wrong-thread or ambiguous candidate creations
+must be retained as unsupported evidence and fail the diagnostic.
+
+The exact Generate/InitializeShip/pilot chain then supplies the borrowed ship
+reference. At the pilot call boundary, capture native type/runtime/macro/true-owner
+and controller presence twice, without calling a helper that initializes state.
+At Generate return, its returned reference, the earlier reference and later exact
+Builder payload must all join. This link starts before native ownership and Agent
+exist, and is confirmed rather than guessed after they exist. A passive pointer
+reread is not a lifetime lease; address reuse, disappearance or changed runtime
+must fail, including same-address reuse with a new runtime ID.
+
+Capture these nested enter/return points, all joined to that creation invocation:
+- Existing startup range entry/return, retaining script, range, mode, result,
+  native thread, TLS clock/view/RNG and the immutable first-origin joins.
+- Complete ea8cf0 entry/return, including its actual native caller, owner argument,
+  prior-controller argument, native flags, raw selectors and relationship reads.
+- Agent constructor entry/return from eac5fa: incoming allocation is merely an
+  address until original return; only then read its initialized owner, both raw
+  bank records and exact Agent+ac0 bits. Never read uninitialized fields as proof.
+- The exact two Random::FloatState callsites: pointer identity, input/output RNG
+  words, bound and float-result bits. Invoke each original once. Capture XMM0
+  without recomputation or conversion, and retain the native thread/clock.
+- The actual ea9105 PostEvent argument: owner/event identity and due-time bits,
+  correlated with the conditional random call. Calculating a predicted due time
+  is insufficient evidence that the native event was posted. Record the immediate
+  event branch result as well; absence must have a bounded branch explanation.
+- Setter return 6cd8be (after complete navigation initialization), then Generate:
+  exact ship+200 -> controller+28/+30/+40 -> Agent+ef0 relationships, selector
+  pairs, raw clocks and the two timer/effect receipts. Record native publication
+  separately from later MD/Lua callback acknowledgement.
+
+Use one reserved builder, at most 128 records and eight nested scopes for this
+first diagnostic. Unsupported additional constructors must be reported, not
+silently omitted. Every observation needs a shared ordinal, invocation/parent ID, enter/leave pair,
+thread, TLS pointer equality/read mask, clock bit pattern, actual caller, status
+and original result where meaningful. Raw pointers stay local. Bound capacity and
+nesting; preserve the first failure; no replacement by a later successful sample.
+No engine string construction, callback evaluation or initializing getters may
+be added inside these calls. Bounded raw reads/copies must have explicit read masks.
+The existing first-update trace does not cover every native write, so unsupported
+worker access or an unjoined constructor is a coverage failure, not harmlessness.
+
+ABI and restoration conditions
+------------------------------
+Generate uses RCX/RDX/R8/R9 plus six stack arguments at the exact MD site; the
+out-reference and returned RAX reference must be preserved. Pilot setup uses four
+register arguments plus three qword stack arguments and returns an out-reference.
+Agent construction takes allocation/ship/transform/velocity in four registers.
+The navigation initializer also reads stack flags; do not infer its ABI from a
+three-argument decompiler prototype or drop unused-looking argument registers.
+Random::FloatState uses RCX for the state pointer, XMM1 for its float bound and
+XMM0 for the result. PostEvent's due time is its actual XMM2 argument, with native
+flags/stack argument preserved. Exact compiled wrapper/owned-callsite tests are
+required before any patch; no trampoline space or new option bit is reserved here.
+
+Capture admission and STOP must serialize without a lock around originals. Once
+admitted, each original still runs once even if capture fails or STOP is requested
+synchronously. Preserve its result, finish the paired record, and expose open,
+restore-open, overflow, ownership and capture failures. A held original/thunk
+cannot execute from a page made non-executable during unrelated patch preparation.
+Only owned hook words and observer storage may be restored. Do not roll back a
+created object, timer, event or consumed native randomness, and never replay an
+earlier native effect after partial failure. Default-off must leave all paths
+unchanged. Native admission is a separate later decision.
+
+Navigation +c8 covariance finding and limits
+------------------------------------------
+The differing byte in build-012 is timing offset 12: NavigationController+c8,
+a 32-bit physical-bank refresh cache, not a duration. Fresh constructors set it
+to sentinel 2; the copy constructor preserves it. The audited complete refresh
+routine ea2a20 runs its effects only when TLS time > controller+c0 AND global
+read index 38f4ee4 != controller+c8. It writes c0=time and c8=the current read
+index before transition/arrival processing. It may consume a pending waypoint
+notification, so dropping this state entirely would be wrong.
+
+Build-012 has (read,write,c8)=(1,0,0) versus (0,1,1). Both therefore represent a
+cache different from the current read bank in this predicate. A simultaneous swap
+of physical banks, both global selectors and a valid cached index preserves the
+predicate; sentinel 2 must remain a sentinel. This is a concrete representation
+covariance candidate, separate from the early-enrollment failure and the timer
+risks. It is not permission to change selectors or normalize current acceptance.
+
+The bounded scan covered named NavigationController methods and native routine
+ranges in ea0000..eaa000, plus the complete known constructor/copy/refresh roots.
+All identified direct accesses to this controller field in those roots are the
+constructor writes, copy and refresh compare/store described above. An apparent
+OnUpdateEngineParameters +c8 access is through controller+10, hence physical+d8;
+the ea1e80 +c8 read is through a selected Agent bank, not the controller. These
+were excluded by base-pointer provenance, not by matching an offset alone.
+This is not a whole-image proof against every indirect alias, serialization,
+bulk copy or scheduler use. A canonical comparison still needs that broader
+coverage, the coupled field/bank mapping and a native covariance test. Raw schema,
+strict failure count and unsupported sector pose stay unchanged in this proposal.
+
+Verification and exact pin inventory
+-----------------------------------
+An independent private verifier checked the exact image, 22 explicit byte ranges,
+14 direct CALL targets and six Small/XL/Navigation vtable slots. No gameplay test
+is implied. PDATA can split a function into unwind fragments: the refresh pin
+below deliberately covers all 537 bytes, not merely its 96-byte first fragment.
+Additional candidate callsite/ABI and transitive dependencies must be pinned in
+an implementation review. Principal full ranges (RVA / length / SHA-256):
+ba1890 / 3012 / eac00a81382d825a10008bc4f48960df8b77ff6e59b012779142655381bd51c6
+c841b0 / 1090 / ed86616b763698739cd1635d6de0e430f804971eb10f63e9c1ae78e856b7cb5e
+c82060 / 3073 / fbfd2881e3e95f5225c74c2646046cf2ca3b7f27f9c9f3f77fb3e37becdf78ba
+c7d4c0 / 674 / 2db9de7694668281ec0229ff0ba597508b6dc6852a07297103b0ebe3589a7966
+6e0160 / 420 / 9b441ecf2bc85e16441f507cb8fed2de86b36a7a7fe3e9132c81ad224f281471
+6cd8b0 / 39 / 9317be9e33cdf30695ab01f4dfb062d85b836a872a3019c103cf9279c4ff2a32
+745e00 / 711 / acd257ef830505bca734583af1fbb2460f8bb09d2bb07d323cbe4596856343b2
+ea4a00 / 375 / c55b28f9e7b1f10a740d2436077b498e29a6940031da6d5d0c04afeeb8fba117
+ea8cf0 / 1332 / 8d94c7bcd214c10c531b48f7bcd8f3ddb87b49025a437416d0a9123c429a0615
+ea8c90 / 82 / f398a9c934b25e63d643b0aa32f03920fab915d98e98ff58fec1e79fc90050a9
+eac530 / 582 / 7b02058e82f6d8acf92e189f5982eae449af06dc045fcb41be1d182ea374267c
+e85360 / 1368 / c565989a8232aecf63974a4ae52a53edcaae07c632a0d8c5cb3e5b540f8f4a7e
+14ddc90 / 120 / 584854a7bdbf956043c7756157888674152bd0ffc0a307c00f29537332e8780e
+ea2a20 / 537 / d301bea94b279ddce92ced403bafdd17a90ed2eb83c5cc5944cf2ae600fc4a4f
+ea4c00 / 654 / 5094ca3adf5fe63c6a9f6cd6e98020e405c4ed5f461469ce935973fd7a9afaf1
+ea4e90 / 925 / 866c1a72a063e9f56e225683d74d234b724b7e3c696bbb1bcc4e8b90282d4f50

@@ -15,4 +15,13 @@ hybrid of local simulation plus hash-checked resynchronization can replace full
 replication of distant NPCs. Instrumentation is a tool for that research, . Windows and Linux builds use
 different compilers; do not assume identical floating-point results across them.
 
+Observers never end a session. A hook that only watches may fill a table, fail a
+read or see an exception pass: it stops recording and counts (OBSERVERS_STOP) or
+names the fault (INTERRUPT_FAULT_ROW, FLIGHT_FAULT_ROW), and the game goes on. A table
+that finds a game object by address checks its identity too: heap addresses are
+reused per process, so a bare match is true on one client only. What decides a result
+is a key, and a key that cannot decide alike on every client stops the gate. With
+native_gate_play_mode no observer records anything, no row is drained and no world
+page is written; the keys, the per-tick digest and the world capture stay.
+
 Instrumentation changes are reviewed as their own PRs

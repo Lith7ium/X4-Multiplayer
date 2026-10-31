@@ -10,3 +10,15 @@ respective rights holders. This project grants no rights to those materials.
 Separately licensed dependencies retain their own licenses and notices; see
 LICENSING.md and tools/distribution/THIRD-PARTY.txt. Preserve the license and required
 notices when sharing this project's source or binaries, including modified copies.
+
+Jolt Physics 5.5.0, Copyright 2021 Jorrit Rouwe, MIT License: built from the official
+source tag for the portable physics module and its offline tests. License and pin:
+third_party/JoltPhysics-5.5.0/LICENSE and PIN.txt.
+
+Third-party source included in this repository: src/native/portable_math/musl/
+is derived from the math library of musl libc (MIT license; parts Copyright (C)
+1993 Sun Microsystems under the fdlibm permission notice, parts Copyright (c)
+2018 Arm Limited under the MIT license). Those notices are reproduced in
+src/native/portable_math/musl/LICENSE-musl.txt and must accompany copies of that
+source and binaries built from it (the Windows gate DLL and the Linux portable
+math preload library).

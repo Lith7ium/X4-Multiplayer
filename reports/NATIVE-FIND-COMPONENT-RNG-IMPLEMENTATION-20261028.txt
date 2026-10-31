@@ -1,0 +1,132 @@
+SELECTED FINDCOMPONENT RNG EXPERIMENT - SOURCE IMPLEMENTATION
+28 October 2026 | Offline verification only; no new native game
+
+World010 proved that equal ordered candidates can produce different native
+component choices from different incoming RNG states. This implementation adds
+one explicit, default-off experiment at the existing d2ab50 observer callback.
+It does not add a hook, replace a result, change the candidate list, or claim
+whole-world lockstep. The prior 68 strict failures remain valid evidence.
+
+EXACT SCOPE
+
+The only supported selection is saved pilot9d3a4, saved order3cdb,
+order.fight.patrol version10, Action slot129/PC130, pre-admission phase2/tick0,
+ordinal0. All hexadecimal IDs are explicitly marked here; saved script38361
+is DECIMAL snapshot metadata. The native Action type/Execute/caller, 234-node
+program shape, declaration modes, optional NULL component, clocks, UI thread,
+current ExecState ownership and four ordered saved candidates are exact guards.
+The program hash describes vtable shape, not complete semantic script identity.
+
+The existing selected Wait restore supplies a separate import anchor. Its
+original saved time_text6.31667, version10, native slot121/PC122 and saved order
+map must resolve to the same context/order pair before and after original.
+Read-only registry decoding verifies the generation, occupancy, current object,
+order state and reverse context link. It never uses the Universe component map
+for order IDs and never invokes a native getter, lookup or refcount operation.
+The immutable anchor is checked again before and after the selected helper.
+Seven full native function pins and exact RTTI/vtable checks cover this addition;
+the previously reviewed Wait/Action/Values pins remain required prerequisites.
+
+CONFIGURATION AND KEY
+
+The source JSON remains inert: enabled:false and PROPOSED_ONLY_NOT_CONFIGURED.
+Only an explicit --world-find-rng-manifest switch emits activation text. The
+builder requires the exact snapshot and unchanged Wait/Wait-policy/Action input
+digests from the reviewed proposal. Native configuration independently requires
+the same two Wait seeds plus the third natural-observation selection. No Lua
+number carries the seed; all 64-bit wire values use lossless hexadecimal text.
+
+Canonical key serialization is 179 bytes: NUL-terminated domain, raw snapshot
+digest, saved pilot/order, length-prefixed ASCII script, version, native slot/PC,
+phase, tick, ordinal, decimal saved script ID, XML blocking index, original
+length-prefixed time text, native Wait slot/PC. Integers are little endian with
+the exact widths documented in the proposal. No pointer, runtime ID, thread,
+physical bank, incoming RNG or candidate contents enter the key.
+
+SHA256: 080994d92a20d8658e7e391ea47ffdef7afe3ca8175ecabcb6fe34b7ba4020bc
+Seed:   65d8202ad9940908 (first eight digest bytes interpreted little endian)
+Step:   22403ede5ea8c4dd; modulo4=1, expected saved component29.
+
+ORIGINAL CALL AND CLEANUP
+
+Final eligibility and the one seed write are serialized against STOP. No lock
+spans original. Every path invokes original once and preserves all four native
+arguments and full RAX. A refused scope does not restore the caller RNG. A
+completed seed store records ownership even if its readback fails; only that
+ownership permits restoration of the verified TLS location.
+
+Production __try/__finally clears this scope and restores the saved caller RNG
+on normal return and native exception, if the current TLS pointer and writable
+location remain valid. It performs no borrowed command/action/object reads on
+abnormal return. A restoration fault is contained while the original exception
+propagates. Lost TLS ownership refuses a stale write and remains a fatal receipt.
+STOP overlap, duplicate use, nesting, missing assignment, changed candidates or
+postcondition failure remain errors even when caller RNG restoration succeeds.
+
+This scope removes one selected natural draw from the continuing caller stream.
+Upstream draws, later position sampling and nonselected calls remain natural.
+Existing enclosing Action/Values wrappers still lack full exception cleanup;
+their open/failure evidence remains strict. This implementation only guarantees
+its own tested scope cleanup, not engine exception recovery or a playable pass.
+
+EVIDENCE
+
+Append-only WORLD_FIND_EVENT/IDENTITY/STOP records preserve original caller RNG,
+scoped seed/step, restored caller state, raw return, selected saved result and
+three immutable local lifetime tuples. The strict parser checks native widths,
+row bounds/order, complete accounting and joins to the original Wait, Action,
+candidate input/output and nested Value assignment. It rejects claimed success
+without one valid, equal paired selected result. The result explicitly reports
+global_capture_valid=false and global_rng_parity=false. Existing main-validator
+errors are retained without exclusions or tolerances.
+
+OFFLINE VERIFICATION
+
+Full native gate build/test suite passed with the pinned Zig compiler and actual
+Windows image. The new production C harness verifies seven full pins and tamper
+refusal, actual five-byte helper-prefix replay, four-argument/full-RAX ABI, native
+RNG arithmetic, independent key vectors, original once, default-off/natural
+paths, upstream/later natural draws, order generation/backlink/map mutation,
+immutable duplicate anchors, changed inputs, overflow and single use.
+
+Controlled tests include selected-to-foreign-to-selected recursion, a nested
+production Wait scope, STOP inside original, concurrent configuration/STOP,
+real Windows exceptions before/after the draw, foreign/inaccessible TLS during
+cleanup, and explicit enclosing-observer failures after abnormal return.
+No game engine function was executed by these owned-memory tests.
+
+The focused native Python/LuaJIT suite passed 420 tests. Nine new tests cover
+independent serialization, manifest/type/precision mutations, strict evidence
+joins, local-versus-global claims, field/line bounds, unchanged old failures,
+configuration ordering/retry and append-only export before STOP. The tighter
+STOP-line bound was then rechecked by the focused Find test module.
+
+Independent review identified an evidence-only issue: raw readers can return a
+record while also reporting its validation errors. The follow-up preserves each
+record's own validation result separately from aggregate coverage failures and
+requires valid selected Action, Wait, candidate and assignment records. Exact
+thread/PC/phase/Action/argument/component joins and distinct player slots1/2 are
+also required. The review counterexamples and per-record versus aggregate
+coverage tests now pass; the full focused Python/LuaJIT suite passes422 tests.
+This correction changes no native C source, seed, scope or original-call path.
+
+A second review found that exact UI retries acknowledged failed Find state.
+The separate retry correction shares the exact three-Wait dependency predicate
+with first installation and refuses own failure/debt, changed key/shape, detached
+or replaced callbacks and closed dependencies. It takes no parent observer lock
+and does not treat unrelated aggregate unknown coverage as a valid session.
+Healthy phase1/2/3 retries remain read-only acknowledgments, before or after the
+single successful use. No late first installation, counter reset or reseed is
+permitted. The actual-image production C harness passes these cases, including
+a naturally produced failed receipt, immutable successful receipts, wrong-thread
+and changed-manifest refusal. Synthetic program-shape testing remains explicitly
+separate from retaining the exact production shape during retry checks.
+
+NEXT REVIEW BOUNDARY
+
+Send this source for independent review before root integration, a frozen DLL,
+an exact overlay/config diff and separately authorized live testing. No game,
+installed profile, snapshot, existing evidence or released runner was modified.
+The unselected third Wait, extra930fc/93101 command batch, unsupported Values,
+unknown saved owners and physical-bank timing issue remain separate unresolved
+work. No result normalization or broad RNG seeding is included.

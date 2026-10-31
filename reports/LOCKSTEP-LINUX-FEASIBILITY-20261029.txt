@@ -1,0 +1,386 @@
+LOCKSTEP ON LINUX: FEASIBILITY - 29 OCTOBER 2026
+Offline static analysis | branch contrib/ferrite-lockstep-linux from 3bb7360
+
+SCOPE
+Can the lockstep gate (src/native/engine, Windows X4.exe only) run on the Linux
+build, either as Linux clients or as a Linux dedicated server, and stay in step
+with Windows clients? No game, lane, relay or remote machine was started or
+contacted. Both executables were only read. Addresses are Windows RVAs or Linux
+ELF VAs of X4 9.00 only. This report gives no measured result for a Linux
+lockstep run.
+
+VERDICT
+1. Mixed Windows + native Linux X4 in one lockstep session: NOT FEASIBLE without
+   rewriting the engine's floating-point paths. The two executables come from
+   different compilers with different floating-point settings and different math
+   libraries. The differences are spread through the simulation code, so no
+   bounded set of hooks can close them. Frame zero already diverged natively
+   (LINUX-WINDOWS-ROTATION-IMPORT-20261027.txt).
+2. Linux-only sessions, all peers on the same Linux binary: FEASIBLE IN
+   PRINCIPLE, with major work. Every gate hook has to be ported (620 sites).
+   The C library's math functions (libm) and CPU features must also be the same
+   on every peer. None of this has been measured yet.
+3. A dedicated server for Windows clients today: run the lockstep relay
+   (tools/dev/native_gate_relay.py, Python, no X4) on Linux. That works without
+   engine hooks. A full-simulation server peer for Windows clients has to run
+   the Windows binary. One untested option is the Windows X4.exe with the
+   existing gate DLL under Wine/Proton on the Linux host.
+
+BUILDS (identical game version)
+Windows X4.exe 55,412,768 B, SHA-256 19750a65...6891, PE timestamp 0x6a1eaded,
+linker 14.29 (MSVC, Visual Studio 2019 16.11), static CRT (no CRT DLL import).
+Linux X4 60,459,280 B, SHA-256 113f73d7...045f20, ELF ET_EXEC (fixed base
+0x400000), GNU build ID 77cf7ac0...b711d. .comment: GCC 14.2.0 (Steam Runtime 3
+toolchain), a few objects GCC 10.3.0. Both embed in-game build 611726 (Linux VA
+0xaf1bb2, Windows e.g. RVA 0x8f31b). Steam build 23660954 on both. The local
+copies match the pins in lockstep_gate.c and x4mp-agent/src/pinned.rs.
+
+PRIOR LINUX WORK (summary)
+- x4mp-agent (Rust, LD_PRELOAD, merged from contrib/ferrite-linux-preload): pins
+  the exact Linux build by size, SHA-256, build ID and 26 site hashes. It adds
+  a per-frame observer in VBI slot 13 on the MoveWorker thread, a fixed-step
+  scheduler (FrameTick dt retargeted to 1/60, 1/30 or 1/20) and a render
+  decision patch that keeps the render-list flip (SIM-DECOUPLE-SCHEDULER.txt).
+  This is the headless dedicated-server base: Xvfb, lavapipe and
+  VK_LAYER_X4MP_discard.
+- contrib/lockstep-linux-static (10 commits after a53668b): read-only
+  Windows/Linux comparisons. Results: equal RNG integer code (U64State
+  0x14ddb30 / 0x1a48590); the pathing budget, try-lock and production pointer
+  ties exist on both builds; the saved-decimal parser differs; the Euler import
+  arithmetic differs; Linux Wait layouts are mapped.
+- contrib/linux-rotation-v2, contrib/linux-server-compat,
+  contrib/lockstep-linux-euler-plumbing and contrib/linux-collision-freeze007
+  (30-51 unmerged commits each): an opt-in Linux "portable fixture" mode.
+  It has 12 fixture ships, a shared Euler v2 import evaluator, a Lua readiness
+  bridge (x4mp-load-probe .so), SSH coordination and Linux-first launch gates.
+  Native mixed attempts Mixed001-006 ran on 27-28 Oct. mixed002 reached frame
+  zero and refused with 120 differing rotation coefficients. Later attempts
+  refused at startup or import: mixed003 and mixed004 at startup, Euler005 on
+  Windows after 63 imports, mixed006 on Linux (rotation_movement_reused).
+  Mixed007 is only prepared. No mixed run has got past frame zero.
+- origin/contrib/astra-linux-hook-map: 17 hand-identified Linux anchors (attention,
+  SetVelocity, GameClient::Move, WaitAndSwapBuffers candidate). It warns that
+  vtable slots differ between the builds (e.g. Windows slot 703 vs Linux slot 712).
+- x4-re data/xfer/pairs.tsv (25 Oct): 20,887 Windows<->Linux function pairs,
+  matched through strings, call graph, vtables and constants. Measured precision
+  is about 98-99% at "high". The Linux .dynsym has 25,162 defined functions, but
+  they are third-party libraries (Jolt 2,601, SPIRV, glslang, OpenSSL, SLikeNet,
+  FCollada, Recast) and the 2,402 FFI exports. There are no Egosoft engine names.
+- Existing dedicated server (dedicated-server-wsl.md, SIM-DECOUPLE-SCHEDULER.txt,
+  NATIVE-VPS-COORDINATOR-20261027.txt): a Rust supervisor runs headless Linux
+  X4 as the full authority under Xvfb, lavapipe and the discard layer. It needs
+  about 33 ms per simulation step and is simulation-bound. It serves the
+  non-lockstep hybrid sync. It has never run the lockstep gate.
+  NATIVE-VPS-COORDINATOR only moved the lockstep coordinator to Linux over SSH,
+  with no Linux X4 simulation.
+- DETERMINISM-PLAN.md (x4-re, 25 Oct) already lists Windows/Linux floating
+  point as D10 "unfixable". This report adds the binary evidence.
+
+1. MAPPING WINDOWS RVAS TO LINUX ADDRESSES
+
+New tool: tools/dev/lockstep_linux_map.py (tests: tests/test_lockstep_linux_map.py).
+- It extracts every gate pin, i.e. each hash_ok(image+X,len,sha) and each
+  {X,len,"sha"} table row, plus every image+X reference. It evaluates the macros
+  and verifies each pin against X4.exe.
+- It finds the Windows function of each site through .pdata (chained unwind
+  entries folded to their root).
+- It takes the Linux function from two sources. The first is
+  tools/dev/lockstep_linux_known_pairs.json: 30 function, 3 negative, 11 site
+  and 9 data pairs from earlier reports. The second is x4-re pairs.tsv. A
+  candidate that a known pair contradicts is dropped. A Windows function that
+  is inlined on Linux is reported as such.
+- With --disasm (capstone) it anchors call sites by call ordinal, votes data
+  addresses through paired functions and compares floating-point profiles.
+Committed result: reports/LOCKSTEP-LINUX-MAP-20261029.tsv. The table holds
+addresses, lengths and confidence only, no bytes. Inputs were gate 3bb7360 and
+pairs.tsv SHA-256 e71fb650...5a08.
+
+Inventory: 538 pins and 845 references give 620 distinct sites. All 431 pinned
+sites match the Windows executable. 410 sites are code in 305 Windows functions,
+189 are data and 21 sit in MSVC leaf functions without an unwind entry.
+
+Function mapping (305 functions): 20 known (17 verified, 3 inferred), 134 high,
+35 medium, 19 low, 97 none. 189 functions (62%) have a medium-or-better
+candidate. All candidate Linux addresses are FDE starts.
+Site mapping (410 code sites): 213 have a Linux address. 204 of them are
+function entries, 8 are call anchors and 1 is a known site. 174 are patch sites
+inside a function that need manual work. 19 call a target with no mapping, and
+4 have call counts that differ between the builds.
+Data (189 sites): 5 known, 18 vote high, 56 vote medium, 4 low, 106 none.
+
+Grading against the known pairs:
+- pairs.tsv: 22 agree (15 high, 7 medium) and 7 are missing. 1 low-confidence
+  pair is wrong (0x41a910 -> 0x1116ed0, already flagged in the static
+  comparison). 2 high-confidence pairs map a Windows function that Linux inlines
+  onto its Linux container (0x761720, 0x14ddc90). An entry hook on those needs
+  the caller on Linux.
+- Call anchors: all 5 known call sites agree (3 high, 2 medium). This includes
+  the gate's main-loop FrameTick call 0x12ae9d2 -> 0x72fb16. Non-call sites
+  (compares, stores, branches) cannot be anchored this way.
+- Data votes: 7 of 9 known globals agree (1 high, 6 medium), 1 gets no vote and
+  1 low-confidence vote is wrong. Treat votes as leads. A struct read through a
+  base register on one side gives no usable vote.
+
+Per family (sites | distinct functions | functions with no candidate |
+code sites with a Linux address | data with a good candidate):
+  frame_gate         69 | 29 |  6 | 20/43 | 16/26
+  tls_rng            23 | 14 |  5 |  8/17 |  3/6
+  gravidar           23 | 10 |  4 |  4/14 |  5/9
+  pathing            72 | 48 | 26 | 23/60 |  8/12
+  events             26 | 15 |  3 | 11/23 |  2/3
+  md                 14 |  9 |  0 |  9/13 |  1/1
+  script_rng        137 | 34 | 11 | 23/44 | 19/93
+  bullets_physics    34 | 19 |  7 | 12/26 |  7/8
+  nav                34 | 15 |  1 | 14/21 |  9/13
+  attention          16 | 13 |  4 |  9/15 |  1/1
+  created_ids        46 | 28 |  6 | 22/30 | 10/16
+  pilot_player      118 | 62 | 15 | 45/71 | 20/47
+  npc                40 | 26 |  5 | 20/35 |  3/5
+  world_queue        89 | 60 | 13 | 46/64 | 15/25
+  rotation_portable  47 | 17 |  2 | 17/25 | 17/22
+  infrastructure     38 | 21 | 11 |  9/24 |  8/14
+(A site used by several families counts in each.)
+
+An address is only the first step of a port. On Linux the following also
+differ for each hook:
+- Struct layouts. Examples: navigation-state pointer +0x28 vs +0x30; Agent bank
+  base +0xaf0 vs +0xad0; Wait listeners +0x28 vs +0x30; TimerBase fields +8
+  (pthread mutex 0x28 bytes vs CRITICAL_SECTION 0x30); std::string uses data
+  pointer +0, length +8 (libstdc++) instead of the MSVC layout. The gate uses
+  about 150 distinct field offsets.
+- The ABI. The 56 thunk recipes and their MSVC prologue prefixes assume MS x64:
+  RCX/RDX/R8/R9, shadow space, XMM6-15 callee-saved, no red zone. On System V
+  (RDI/RSI/RDX/RCX/R8/R9, all XMM caller-saved) a patch in the middle of a
+  function must skip the 128-byte red zone first.
+- Vtable slots. Itanium has two destructor slots and a different overload
+  order.
+- TLS. Windows reads TLS slot 0 +0x318 (RNG) and +0x300 (CurTime) through
+  NtCurrentTeb, in 36 modules. Linux uses local-exec static TLS at fixed FS
+  offsets: RNG FS:-0x2720, CurTime FS:-0x2728, previous time FS:-0x2628, view
+  selector FS:-0x2620. Linux is easier here: the offsets are fixed and readable
+  from any hook running on the engine thread.
+- Unwinding. Windows thunks register RtlAddFunctionTable. Linux X4 uses C++
+  exceptions (.gcc_except_table is 0x9448a bytes), so thunks need FDEs
+  (__register_frame), or exceptions must never cross them.
+- Win32 primitives (SRWLock, Interlocked*, VirtualProtect, BCrypt SHA,
+  Toolhelp thread lists, ReadProcessMemory safe reads) map directly to POSIX,
+  GCC atomics, mprotect, an own SHA-256, /proc/self/task and process_vm_readv.
+
+Effort per family. Estimates are for one experienced agent in focused
+reverse-engineering days and exclude native test time. S is 1-3 days, M is 4-8
+days, L is 2-4 weeks.
+- frame_gate (FrameTick hook, fixed dt, main loop, VBI, TimerBase): S-M. Most of
+  it already exists in x4mp-agent, and the known pairs cover the core. Wire v2/v3
+  to the relay is platform-neutral.
+- tls_rng and per-thread game time: S. The seeding function (0x14dd110 ->
+  0x1a47fe0), the RNG code and the TLS offsets are all known.
+- gravidar (time sync, load pass, sector order): M. 4 of 10 functions are
+  unmapped, and the Linux Gravidar and sector-list layouts are needed.
+- pathing (path/travel determinism, inline job execution, agent hooks): L.
+  26 of 48 functions have no candidate; most are MSVC job and lambda thunks.
+- events (event order, find order): M.
+- md (resume delays, timed checks, registry): S-M. All functions have a
+  candidate. The MD cue-tree walk needs the libstdc++ string and tree layouts.
+- script_rng (per-script streams, AI wait, region, world find/position): L.
+  The context, ExecState, descriptor and string layouts differ
+  (LINUX-SCOPED-WAIT-COMPATIBILITY-20261027.txt), and 74 of its 93 data pins
+  need resolving.
+- bullets_physics (bullet cadence, contact, damage): M.
+- nav (nav cadence, world nav): S-M.
+- attention and view points: M. Vtable slot indices differ.
+- created_ids and registry: M.
+- pilot_player (inputs, device, orders, getup): L. Linux input is SDL, so the
+  device sampler needs a new source.
+- npc: M. world_queue: L. rotation_portable: S, mostly done in Rust already.
+- infrastructure (thunk page, unwind, world hash fields): M.
+- Census tooling on a Linux pair, two Linux X4 instances on one machine: M.
+Sum: roughly 25-35 agent-weeks of serial work to reach the current Windows
+stack, before Linux-specific divergence sources are found and fixed. For
+comparison, the Windows gate took about 250 commits in four days with several
+parallel agents and a local native test PC. On Linux the native loop is remote
+and has so far been the bottleneck.
+
+2. DETERMINISM ACROSS PLATFORMS: EVIDENCE
+
+Native evidence (earlier reports):
+- Euler import at load. Windows evaluates sine and cosine with the static CRT's
+  packed sine adapter 0x1750253 (it adds pi/2 for the cosine lanes). Linux calls
+  glibc sincosf. At mixed002 frame zero, 120 basis coefficients on 12 fixture
+  ships differed; exact instruction emulation reproduces all 432 of them.
+- Saved decimals. Windows 0x14c3090 uses scale *= 0.1, Linux 0x1a3b1a0 uses
+  scale /= 10.0. 2,262 of 38,448 saved AI times in snapshot 005 import 1 ULP
+  apart, and 338 of 2,000 adversarial rotation strings differ.
+
+Binary evidence (new, both executables, all 82,571 / 99,494 unwind ranges):
+- Compiler and settings. Windows has 1,810 divisions in 12,093 high-confidence
+  paired functions; Linux has 2,895 (-37% on Windows). The mapper paired 1,606
+  functions (known, high or medium) that use division, square root, rcp/rsqrt
+  or float/double conversion. Only 704 of them (44%) have the same operation
+  counts on both builds. 508 have fewer divisions on Windows, which matches
+  MSVC reciprocal substitution (/fp:fast-like) and agrees with the *0.1
+  parser. Equal counts do not prove equal results, so 44% is an upper bound on
+  identical arithmetic.
+- Instruction set. Linux engine code uses SSE4.1 in many places (roundss/sd
+  480, insertps 889, blendps/blendvps 1,243, dpps 16). Windows engine code is
+  SSE2 baseline. Neither build lets the compiler emit FMA: the Linux binary has
+  0 FMA instructions, and the Windows binary's 171 are all inside the static
+  CRT.
+- Math library. Linux makes 1,848 calls to glibc transcendental functions from
+  537 functions, nearly all engine code: atan2f 490, sincosf 274, powf 249,
+  asinf 173, pow 167, logf 91, sinf 81 and others. Windows calls its static
+  MSVC CRT instead. Call-site co-occurrence in paired functions suggests these
+  counterparts (leads, not verified): sine/cosine 0x1a19480, cosf 0x1a19b80,
+  atan2f 0x1a1a398, powf 0x1a1a790, tanf 0x1a240d0, expf 0x1b43ed0, logf
+  0x1b44940, log10 0x1a38060 and pow 0x1a1e840, plus the packed sine/cosine
+  adapter 0x1750210 behind dispatch 0x17501f0. Each contains an FMA3 code path
+  behind a CPU-feature check, confirmed at 0x1a19484 (cmp/jne) and at
+  0x17501f0 (dispatch level 2 and above). The two libraries give different
+  results in general. Windows results can also depend on CPU features.
+- Floating-point environment. Windows 0x14dd0e0, called from GameClient::Init
+  0x1223ce0, sets MXCSR bit 15 (flush-to-zero) after seeding the thread RNG.
+  The Linux binary contains no ldmxcsr, fesetenv or fesetround at all. Which
+  Windows simulation threads inherit FTZ depends on thread creation order and
+  OS rules, and must be measured.
+- Approximate reciprocals. Both builds use rcpss/rsqrtss (Windows 1,289 in 415
+  functions, Linux 1,186 in 382), and not in the same places. Bullet::UpdateFlight
+  0xd4f240 uses 2 rsqrtss and 2 rcpss on Windows but none on Linux.
+  LinearFlightControlModel 0xeb27c0 uses 8 on Windows and 4 on Linux, and also
+  differs in atan2f/asinf calls (Windows 8 CRT, Linux 12+6 glibc). Of the gate's
+  208 profiled function pairs, 33 differ in these counts, including the flight
+  control models, Agent_UpdatePathing, Weapon::Fire helpers and
+  PlayerController. These instructions are vendor-specific: only their error
+  bound is architectural, so Intel and AMD can return different bits.
+- Jolt physics. Linux exports VerifyJoltVersionIDInternal 0x1b0aab0, which
+  compares against 0x400050500: Jolt 5.5.0 with feature word 0x400. By Jolt's
+  public Core.h bit order that word means ObjectStream only, which matches the
+  exported ObjectStream symbols. So JPH_CROSS_PLATFORM_DETERMINISTIC and double
+  precision are off. Without that option Jolt promises determinism only for the
+  same build on the same platform. No equivalent constant was found in the
+  Windows binary (the check is probably folded away). Jolt's exported functions
+  make no libm calls and contain no rsqrt or dpps. Its inline vector code,
+  however, is compiled into engine functions under two different instruction
+  sets.
+- Standard library. Linux links libstdc++ statically: std::_Hash_bytes (Murmur)
+  has 45 call sites, while MSVC std::hash uses FNV-1a, and the bucket policies
+  differ. Unordered-container iteration order and std::sort tie order therefore
+  differ between the builds. This is a risk class; it was not measured here.
+
+Conclusion: Windows and native Linux X4 run different arithmetic in the
+simulation core (flight models, bullets, pathing, import), not only in a few
+library calls. Making them bit-identical would mean replacing compiler-generated
+code throughout the engine; hooks cannot do that. A mixed session is therefore
+only possible with state authority (the hybrid sync) rather than lockstep.
+
+Linux-only determinism needs, in addition to the gate port:
+- The same libm on every peer. X4 links the host glibc libm.so.6, and the VPS
+  runs X4 directly with glibc 2.42 while WSL has 2.39. Recent glibc releases
+  replaced several binary32 functions (e.g. atan2f, asinf, tanf) with
+  correctly-rounded CORE-MATH versions; verify which, per pinned version. glibc
+  also picks FMA or SSE2 variants of sin, exp and pow at run time (ifunc).
+  Option: the preload agent interposes the roughly 30 libm symbols with one
+  vendored correctly-rounded implementation. This covers every call: all
+  1,848 counted call sites are direct calls to PLT stubs, which the dynamic
+  linker binds. Results then no longer depend on glibc version or CPU.
+  Option: require an identical glibc hash and the same CPU feature set on all
+  peers.
+- The same CPU vendor class for the rcp/rsqrt paths, unless those are patched.
+- Equivalents of all Windows divergence fixes, plus any Linux-only sources
+  (pthread try-locks, the glibc allocator's address order behind pointer ties,
+  SDL input). Expect a census cycle like 27-29 Oct.
+
+Cross-machine note for Windows. Every lockstep result so far ran two clients
+on one PC (AMD Zen 5). The CRT's FMA3 dispatch and the vendor-specific
+rcp/rsqrt mean that Windows-to-Windows lockstep between an Intel and an AMD
+machine is not established either. This also applies to a Wine-based server.
+It is the cheapest next native check.
+
+3. HOOKING MECHANISM ON LINUX
+- Loading: LD_PRELOAD for hooks that must exist before or during load (the
+  x4mp-agent pattern, guarded by X4MP_AGENT=1 and the exact build pin). The
+  Lua bridge uses package.loadlib with a .so. Linux X4 links
+  libluajit-5.1.so.2 dynamically, so package.loadlib works in the unprotected
+  UI: transport.lua loads x4lan_net.so, and native_portable_linux*.lua loads
+  x4mp_load_probe.so, which has run natively.
+- Pinning: the main image is ET_EXEC at fixed VAs with no relocation. Use the
+  same SHA-256 site pins as on Windows (pinned.rs style), refuse on mismatch,
+  and keep the restore paths.
+- Patching: mprotect plus 8/16-byte compare-exchange (cmpxchg16b), the same
+  approach as Windows. x86 needs no instruction-cache flush.
+- Thunks: regenerate the recipes for System V and GCC prologues (push-based,
+  often without a frame pointer). Respect the red zone. Register FDEs for
+  thunks that exceptions may unwind through. Call-site patches (call rel32
+  retargeted) port most easily, and the tool already anchors them. Entry
+  detours need prologue relocation per function.
+- Recommended structure: keep one platform-neutral C core (relay wire, keying,
+  ordering, census rows) and move the engine-facing tables (sites, field
+  offsets, TLS accessors, thunk recipes) behind a per-platform header, built
+  with zig as x86_64-linux-gnu .so. Alternatively extend the Rust x4mp-agent.
+  Either way there must be one owner of FrameTick/dt patches per process: the
+  Linux scheduler and a Linux gate must not both patch 0x2025260.
+
+4. WHAT A LOCKSTEP "DEDICATED SERVER" IS
+In lockstep every peer simulates the whole universe. The relay only orders
+inputs, releases ticks and compares digests. There are two server forms:
+(a) Relay only. No X4, Python stdlib, runs on Linux now. Simulation speed is
+    set by the slowest client.
+(b) Full-simulation headless peer that also relays. It provides persistence
+    and save, join snapshots for late or absent players, majority arbitration
+    with three or more peers, and keeps the world alive when players leave.
+    It must be bit-identical with the clients, so it must use the same binary
+    and platform. For Linux-only sessions it is native Linux X4 under
+    Xvfb/lavapipe with the discard layer and the no-render patch (exists). For
+    Windows clients it is X4.exe plus the gate DLL under Wine/Proton
+    (hypothesis, untested) or a Windows host.
+Constraints for (b):
+- Speed. Lockstep runs at the slowest peer's tick time. With the full stack
+  the Windows clients already need 27-32 ms per tick, about 0.55x real time at
+  1/60 s. The VPS needed about 33 ms per step without any gate work, and inline
+  pathing adds 15-25 ms. Expect the VPS to slow the whole session; it needs a
+  measurement.
+- Camera. The server has no meaningful camera, so the camera-independent gate
+  modes are mandatory: bullet_cadence=every, nav_cadence=far,
+  view_points=players. The server must not add an attention source that the
+  clients lack. Decide whether the server owns an in-world avatar.
+- Headless. "disable_rendering" is not a proven GPU-free mode (earlier
+  finding). The working recipe is Xvfb, lavapipe, the discard layer and the
+  agent decision patch.
+
+RECOMMENDED NEXT STEPS
+1. Decide the target (coordinator or user): (A) Linux-only lockstep, (B) a
+   full-simulation Linux server for Windows clients via Wine/Proton, (C) relay
+   only on Linux now. Stop the mixed portable-fixture line for lockstep. It
+   remains useful only as diagnostics for the hybrid sync.
+2. Before more Linux investment: one cross-machine Windows-Windows census pair,
+   ideally an Intel and an AMD machine. It tests CRT dispatch and rcp/rsqrt.
+   (B) rests on the same question.
+3. If (B): one bounded native probe on the laptop, not the VPS. Load snapshot
+   005 into Wine/Proton X4.exe with the gate in observe mode next to a native
+   Windows client, and compare ticks 0-60. First check offline Wine's MXCSR
+   state at thread start, RtlAddFunctionTable, and TEB TLS slot layout.
+4. If (A): create the platform layer and port in this order: frame gate, wire,
+   TLS RNG, census tooling for two Linux instances, Gravidar/events/script RNG/
+   MD, pathing. Use reports/LOCKSTEP-LINUX-MAP-20261029.tsv as the work list:
+   check each candidate, then pin it. Decide on libm interposition first, since
+   it changes Linux results relative to stock X4.
+5. Grow tools/dev/lockstep_linux_known_pairs.json with every hand-verified port
+   site, so the mapper's grading stays honest.
+
+DECISIONS NEEDED
+- Target A, B or C (above), and whether mixed lockstep is dropped as a goal.
+- Linux-only: may peers interpose libm with a vendored correctly-rounded
+  library? That needs a license check, and it changes Linux results relative
+  to stock. The alternative is a hard requirement of an identical glibc and
+  CPU feature set.
+- Permission to install or run Wine/Proton and an X4.exe copy on a Linux
+  machine (another machine's installation; owner authorization).
+- Whether a server peer owns an avatar or attention source.
+
+REPRODUCTION
+python tools/dev/lockstep_linux_map.py --windows <X4.exe> --linux <X4> \
+  --pairs <x4-re>/data/xfer/pairs.tsv --disasm --tsv map.tsv --json map.json
+(capstone only for --disasm; the executables are verified by size and SHA-256
+and only read.) Unit tests: python tests/test_lockstep_linux_map.py (synthetic
+PE/ELF, no game files). The full tools/dev/check.py on this Windows host:
+1,887 tests, the 13 new ones pass. 2 failures and 38 errors are in unrelated
+symlink and Linux-native tests that need a Linux host; 37 are skipped.
+Scratch analyses (instruction census, CRT/libm pairing) are not committed.

@@ -1,5 +1,10 @@
 from pathlib import Path
 import xml.etree.ElementTree as E
+# DO NOT regenerate x4lan_bubble.xml from this script without reconciling first: it
+# already drifted (see commit cd0e8e2), and the N-player changes were applied to the
+# committed MD by hand only: PrepareShips count/ownIndex/$ordered/extras and
+# PreparedExtra.<k>, Arena per-ship lists and ship loop, $weapons3..7 + Shots3..7 with
+# the ExtraShot library, the XShip publication and the ApplyExtra cue.
 # Legacy configs copy the local loadout onto the proxy. With a shared ship spec,
 # PrepareShips has already equipped both ships identically before Arena setup.
 # PrepareShips requires the configured weapon count exactly. A weapon slot may stay
@@ -96,7 +101,7 @@ xml='''<?xml version="1.0" encoding="utf-8"?>
     <do_else><raise_lua_event name="'X4LAN_Bubble.Result'" param="'%s|REJECTED'.[$args.$request]"/></do_else>
    </do_elseif>
    <do_elseif value="$args.$verb == 'TRADE' and $ship.distanceto.{Arena.$station} lt 10km and Arena.$station.cargo.{ware.energycells}.count ge 30 and ($ship.cargo.{ware.energycells}.max - $ship.cargo.{ware.energycells}.count) ge 30">
-    <set_value name="Arena.$busy" exact="true"/><set_value name="Arena.$docking.{$slot}" exact="true"/>
+    <set_value name="Arena.$busy" exact="true"/><set_value name="Arena.$docking.{$slot}" exact="true"/><do_if value="$ship.owner != faction.player"><set_owner object="$ship" faction="faction.player"/></do_if>
     <start_script object="Arena.$donor.pilot" name="'x4lan.bubble.trade'">
      <param name="ship" value="$ship"/><param name="station" value="Arena.$station"/><param name="request" value="$args.$request"/><param name="slot" value="$slot"/>
     </start_script>
@@ -121,7 +126,7 @@ xml='''<?xml version="1.0" encoding="utf-8"?>
     </do_if>
     <do_if value="$v.{11 + $i} == 0 and Arena.$drops.{$i}.exists"><destroy_object object="Arena.$drops.{$i}" explosion="false"/></do_if>
     <do_if value="$v.{13 + $i} == 1 and not $ship.dock">
-     <do_if value="not $ship.assigneddock"><request_docking ship="$ship" container="Arena.$station" requiretrading="true" queuedresult="$queued" grantedresult="$granted"/></do_if>
+     <do_if value="$ship.owner != faction.player"><set_owner object="$ship" faction="faction.player"/></do_if><do_if value="not $ship.assigneddock"><request_docking ship="$ship" container="Arena.$station" requiretrading="true" queuedresult="$queued" grantedresult="$granted"/></do_if>
      <do_if value="$ship.assigneddock"><dock ship="$ship"/></do_if>
     </do_if>
    </do_all>

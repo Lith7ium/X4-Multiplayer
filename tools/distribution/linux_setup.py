@@ -14,13 +14,28 @@ import sys
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent
+# Default test profile. package.json test_profile selects a client's isolated profile
+# (45841 for the server and player 2, 45839+K for player K), so clients can share a PC.
 PROFILE = '45841'
+TEST_PROFILES = tuple(str(45841 + i) for i in range(8))
 # Preserve resolution/graphics/input; exclusive fullscreen stalls unfocused X4.
 TEST_SETTINGS = {'autosave': 'false', 'uisafemode': 'false',
                  'fullscreen': 'false', 'borderless': 'true'}
 
 GAME_ARGS = ['-applaunch', '392160', '-personalfolderid', PROFILE, '-module', 'custom_creative',
              '-skipintro', '-debug', 'scripts', '-logfile', 'x4lan-debug.txt', '-nocputhrottle', '-noworkshopsync']
+
+def package_profile():
+    path = ROOT / 'package.json'
+    package = json.loads(path.read_text(encoding='utf-8-sig')) if path.is_file() else {}
+    profile = str(package.get('test_profile', PROFILE))
+    if profile not in TEST_PROFILES: raise RuntimeError('Unsupported isolated test profile in package.json.')
+    return profile
+
+def game_args():
+    args = list(GAME_ARGS)
+    args[args.index('-personalfolderid') + 1] = package_profile()
+    return args
 
 def package_version():
     path = ROOT / 'VERSION.txt'
@@ -84,7 +99,7 @@ def ensure_closed():
         except (FileNotFoundError,PermissionError,ProcessLookupError):pass
 
 def assert_test_profile(profile: Path):
-    if profile.name!=PROFILE or profile.is_symlink():raise RuntimeError('Unexpected test profile path.')
+    if profile.name!=package_profile() or profile.is_symlink():raise RuntimeError('Unexpected test profile path.')
     for item in (profile/'save', profile/'config.xml', profile/'config.x4lan.tmp'):
         if item.is_symlink():raise RuntimeError('Refusing to modify a linked test profile item: '+str(item))
     if any((profile/'save').glob('*.xml*')):raise RuntimeError('The test profile contains saves. Back them up separately and use an empty test profile. They will not be changed.')
@@ -109,6 +124,7 @@ def configure_profile(profile: Path, backup: Path):
 def install(args):
     ensure_closed()
     package=json.loads((ROOT/'package.json').read_text())
+    package_profile()  # Refuse an unsupported profile before any discovery or copy.
     found=discover(Path.home())
     if args.game:
         kind=args.steam_kind or 'native'
@@ -126,10 +142,10 @@ def install(args):
         else:kind,steamroot,game=found[0]
     check_game(game,package['steam_build'])
     if kind=='flatpak':
-        profile=Path.home()/'.var/app/com.valvesoftware.Steam/.config/EgoSoft/X4'/PROFILE
+        profile=Path.home()/'.var/app/com.valvesoftware.Steam/.config/EgoSoft/X4'/package_profile()
         steam=['flatpak','run','com.valvesoftware.Steam']
     else:
-        profile=Path(os.environ.get('XDG_CONFIG_HOME',str(Path.home()/'.config')))/'EgoSoft/X4'/PROFILE
+        profile=Path(os.environ.get('XDG_CONFIG_HOME',str(Path.home()/'.config')))/'EgoSoft/X4'/package_profile()
         steam=['steam']
     if not shutil.which(steam[0]):raise RuntimeError('Steam launcher not found: '+steam[0])
     target=game/'extensions/x4_lan_lab'
@@ -164,7 +180,7 @@ def start():
     if log.exists():
         (ROOT/'logs').mkdir(exist_ok=True)
         shutil.copy2(log,ROOT/'logs'/('x4-previous-'+datetime.now().strftime('%Y%m%d-%H%M%S')+'.txt'))
-    subprocess.run(state['steam']+GAME_ARGS,check=True)
+    subprocess.run(state['steam']+game_args(),check=True)
     print('Steam is starting a new creative sandbox. Do not load an existing game.')
 
 def server(console=False):

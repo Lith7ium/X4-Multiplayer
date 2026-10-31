@@ -1,0 +1,126 @@
+X4 MULTIPLAYER — GUEST NPC REPLICA FLICKER AT HIGH SPEED / IN HIGHWAYS
+25 October 2026; branch contrib/ferrite-npc-flicker (from origin/main be94436); source analysis,
+synthetic tests only. Nothing was run in X4. Not proven fixed until the native plan below passes.
+
+EVIDENCE AVAILABLE
+- Human report (reports/PLAYTEST-7.5.0-20261025.txt): flicker/map jumps at high speed, confirmed
+  "in the highway" by a second player; gone when the players were close in normal space.
+- The private .local/evidence-223-withheld evidence is not on this PC (searched all X4Mods
+  worktrees and the WSL home); per that report it holds no guest log and no failed-state capture
+  for the second test anyway. No log-based confirmation was possible. The CAPTURE/COMMITTED
+  object counts and NPC_DIAG rows (below) are what the next test must supply.
+- Note: the human report files the highway flicker under player POSITION JUMPS; the remote
+  player path is handled separately on contrib/ferrite-proxy-motion. This branch covers NPC
+  replicas (universe_game.lua), which share motion.lua and the same failure physics.
+
+ROOT CAUSES (source analysis; confidence in brackets)
+R1 Pose-only replicas written on a cadence below the frame rate [high, highway-specific].
+   Replicas have AI off and no native velocity; the engine holds a replica still between two
+   SetObjectSectorPos calls. The guest visited 128 replicas per frame round robin with a 15 ms
+   floor per replica: with >128 replicas, or above ~66 fps, a replica stood still for one or more
+   frames and then jumped. At 100-300 m/s that is 2-10 m (invisible); at highway speed (km/s) it
+   is 50-200 m per skipped frame against a smoothly moving camera: strobing/flicker.
+R2 Sample starvation in dense sectors [high for dense sectors, amplified by speed].
+   Host and relay each send 32 UMOVE per 50 ms tick (640/s) round robin over EVERY captured NPC,
+   including docked and parked ships. Per-object spacing = N/640 s (N=300: 0.47 s; N=500:
+   0.78 s). Above 0.5 s the guest predicted 0.35 s, froze, then snapped forward on the next
+   sample; above 0.75 s every sample reset the track and the host sent zero velocity
+   (M.velocity's stale bound), so replicas hopped sample to sample. The relay's own blind
+   round robin added up to N/640 s of jitter per sample. Freeze time x speed = jump size:
+   km-scale in a highway.
+R3 Baseline pose snap-back [medium]. Each committed baseline (every ~2 s plus transfer) reset a
+   replica's track when its last UMOVE was older than 0.75 s (always true under R2) and rendered
+   the baseline pose, captured seconds earlier: a backward jump, then forward on the next UMOVE.
+R4 Local NPC pop-in [low-medium, not highway-specific]. Guest-engine NPCs arriving in the
+   sector (highways and gates are where they enter) stayed visible up to 5 s plus scan time
+   before suppression removed them.
+Checked and NOT supported by the source:
+- Coordinate frames: capture uses GetObjectPositionInSector and the guest writes
+  SetObjectSectorPos, both sector frame; zone/temp-zone parenting never enters the replica
+  path, and no velocity fence exists for NPC replicas (unlike the player path, proxy-motion H2).
+- Identity churn: IDs are stable across baselines (macro/owner/code/sector unchanged); replicas
+  are only recreated on ID change, sector change of the guest, or engine-side removal.
+- npc_combat hide path: only for host-confirmed deaths; not a toggle.
+
+CHANGES
+extension/x4_lan_lab/ui/universe_game.lua
+- Host publication: still (<1 m/s incl. rotation) objects every 2 s, slow (<20 m/s) every
+  0.5 s, movers always due; due time lives on the stable identity, so re-captures do not burst.
+  Velocity estimated over gaps up to 2.5 s.
+- Guest motion (UMOVE tracks only; legacy UPOS unchanged): track gap tolerance 2.5 s, clock
+  offset retained across resets with drift leak, discontinuity allowance uses the sampled
+  velocity up to 50 km/s, interpolation delay = clamp(1.1 x observed gap + 0.05, 0.15, 0.6) s,
+  horizon = clamp(gap + 0.25, 0.35, 1.0) s, reached through motion.lua's bounded-rate clock.
+  In normal sparse-free scenes (gap <= 0.09 s) delay/horizon stay 0.15/0.35 as before.
+- Guest render: replicas rendered at >= 150 m/s are written every frame (up to 256, rotating
+  if more); the 128-visit/15 ms round robin remains for the rest.
+- Baseline accept: keeps a live UMOVE track; the baseline pose replaces it only after 3 s
+  without motion (packet-loss recovery preserved).
+- Local NPC suppression every 2 s instead of 5 s; its log line only when it removed something
+  (or every 30 s).
+- Loud fallbacks: FEATURE npc_replicas DISABLED reason=baseline_stale (render pause after 15 s
+  without a baseline; FEATURE_RESUMED npc_replicas when one arrives), FEATURE world_sync
+  DISABLED reason=adapter_stopped, FEATURE npc_motion_diagnostics DISABLED reason=invalid_value.
+- Native velocity is deliberately NOT applied to NPC replicas: at highway speed the engine's
+  steering brakes a set velocity and temp-zone changes revoke it (proxy-motion static
+  findings); per-frame pose writes are the safer fix. Normal-flight NPC velocity (target speed
+  readout, lead aim) remains open work.
+extension/x4_lan_lab/ui/motion.lua: adopts contrib/ferrite-proxy-motion's motion.lua verbatim
+  (M.clock, M.renderAt, retainClock/leak/mode, resets) plus optional per-track stale, cap and
+  lastReset, and an optional stale bound for M.velocity. Defaults unchanged.
+x4lan/universe.py (relay): samples not yet forwarded to the guest go first, oldest arrival
+  first; the remaining budget repeats latest samples round robin as before.
+config.lua: inert npc_motion_diagnostics = false. distribution/session_launcher.py: internal
+  packages generate npc_motion_diagnostics = 1 (dev features/diagnostics on by default).
+
+DIAGNOSTIC: npc_motion_diagnostics (seconds per row, true = 1 s; false/absent = nothing computed)
+ [X4LAN] UNIVERSE NPC_DIAG role=guest dt=<s> sector=<macro> replicas=<n> hot=<n>
+   baseline_age=<s> [field=value ...]
+ [X4LAN] UNIVERSE NPC_DIAG role=host dt=<s> sector=<wanted> published=<n> [field=value ...]
+ Fields (only non-zero printed, counts per row interval): creates, respawns (replica object
+ vanished on the guest and was spawned again), removes, hides/shows (npc_combat dead-state
+ hide transitions), suppressed (local NPCs removed), commits (baselines), samples (UMOVE
+ accepted), reset_gap, reset_jump (track resets by reason), baseline_snap (live track replaced
+ by a baseline pose), writes, hot_writes (per-frame fast writes), jumps (applied step > 100 m +
+ 2 x speed x dt), max_jump (m), max_gap (s, largest sample spacing), max_delay (s), paused
+ (frames without render, baseline stale); host: sent, sent_fast, sent_slow, sent_still.
+ No lease, token or player name is logged.
+
+TESTS (synthetic engine doubles, LuaJIT via lupa; Windows run)
+- test_motion: 3 km/s with one sample per 0.6 s / 0.9 s: default track freezes > 30 frames
+  and snaps > 300 m; NPC track: no frozen or backward frame, no reset, steps < 62.5 m.
+- test_universe_adapter.NpcFlickerTests: highway replica with 0.6 s samples across 2 km zone
+  changes written every frame, no freeze/backward/reset; 200 replicas at 3 km/s all written
+  every frame; older baseline pose does not snap a moving replica back, recovery after 3 s
+  silence still applies; diagnostics inert by default and counting creates/respawns/
+  reset_jump/jumps/suppressed when enabled; host gives 30 movers among 300 NPCs >= 15
+  samples/s while still ships get <= 1 per 2 s (was 2.1/s each); FEATURE fallback lines.
+  All six fail against the original universe_game.lua (four are the flicker reproductions).
+- test_universe: relay forwards each fresh sample once before repeats.
+- Full runs: WSL Ubuntu-24.04 dev/check.py on af9c73a: 649 tests, 648 pass, 1 known unrelated
+  failure (test_world_launcher retry_retains_evidence, WSL mtime race, same as proxy-motion and
+  8a56415 baselines). Windows unittest discover: 649 run, the identical 35 Windows-environment
+  failures/errors as origin/main (636 run), no new failure; all 13 new tests pass.
+
+NATIVE VERIFICATION PLAN (disposable 45841 world; matched internal packages from this branch;
+npc_motion_diagnostics = 1 in BOTH generated configs, the default for internal packages)
+ 1 Normal flight in a busy sector (host and guest together), 3 min: no visible change; guest
+   NPC_DIAG max_delay ~0.15-0.3, reset_* ~0, baseline_snap 0, jumps 0, respawns 0.
+ 2 Guest enters a local highway with NPC traffic, rides it 60 s, exits; repeat with the host
+   in the same highway. Success: no flicker seen; NPC_DIAG during the ride hot>0 and
+   hot_writes ~ hot x fps, jumps 0 (or isolated), reset_jump 0, baseline_snap 0,
+   max_gap < 1.0 and max_delay <= 0.6, respawns 0, paused 0.
+ 3 Dense core sector (note COMMITTED objects=): host NPC_DIAG sent_fast dominates sent_still;
+   guest max_gap well below the old N/640 s.
+ 4 Superhighway/gate to another sector: one repopulation (removes, creates, suppressed burst),
+   then steady rows; no recurring creates/removes.
+ 5 Regressions: radar, ordinary cargo, Cooperative Trial, npc_combat kill/hit counting.
+ If flicker persists, the row at that second decides: jumps/max_jump -> motion; respawns ->
+ guest engine destroying replicas; suppressed every row -> local NPC churn; paused -> baseline
+ delivery; none of them -> observer-side rendering/attention (proxy-motion H4).
+
+LIMITS
+- No native run, no failed-state log. Thresholds (150 m/s hot, 2 s/0.5 s heartbeat, 0.6 s max
+  delay, 256 hot writes/frame) are engineering estimates. Engine cost of 256 writes/frame is
+  unmeasured. Up to 0.6 s extra visual lag of NPCs in sparse-sample scenes.
+- The guest still renders nothing while its own sector context is 0 (superhighway).

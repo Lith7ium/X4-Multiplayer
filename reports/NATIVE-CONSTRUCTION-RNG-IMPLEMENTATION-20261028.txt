@@ -1,0 +1,156 @@
+CONSTRUCTION A/B RNG IMPLEMENTATION — SOURCE-ONLY EXPERIMENT
+28 October 2026
+
+Status
+------
+Implements the opt-in proposal in NATIVE-CONSTRUCTION-RNG-PROPOSAL-20261028.txt,
+on the accepted twelve-writer exception-restoration prerequisite. No game was
+launched, no overlay was staged, and no save or installation was changed.
+The existing late-update refusal, registry binder, actor arrays, native timers,
+controller selectors and authority model are unchanged. Construction remains
+incomplete. This is an internal fixture command, authority 0, not a player lease.
+
+Configuration and initial agreement
+-----------------------------------
+Natural observation remains the default. The new composer option is
+--creation-rng-epoch N, requiring construction plus creation trace schema2.
+The two explicit config fields are native_gate_creation_rng_schema=1 and
+native_gate_creation_rng_manifest. The fixed ordered ASCII grammar is:
+
+CREATION_RNG_1;epoch=N;handle=0000000500000003;reserved_tick=5;sequence=3;authority=0;world_seed=276944566;macro=ship_arg_xl_builder_01_a_macro;owner=player;snapshot=7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8;plan=ed86c6c938e57dd0cc15046bf49ed814f0e7b4833241f04010e016179924585c;policy=AB;schema=1
+
+N is canonical decimal 1..4294967295. All other bytes are fixed. Extra fields,
+different order, leading zeros, whitespace, embedded NULs and unsupported modes
+are refused. The epoch1 manifest is 319 bytes. Appending it, with a separator,
+to the existing exact snapshot/12-saved-actor bootstrap yields 624 bytes and SHA:
+a18716e46b5bb2e320ad8551515acd59a1d0eb2344f4b3871e9cd052d74f3201
+
+Lua computes this preimage before gate.boot. C independently reconstructs its
+closed grammar and hashes those exact bytes against the initial_state_digest
+actually stored by boot. Configuration occurs only before load, phase0/tick0;
+an exact healthy immutable acknowledgement is allowed after configuration.
+The composer verifies the original source manifest, exact MD source digest,
+plan semantics and capabilities before writing a new sibling directory.
+GetUp has its separate helper; mixed construction/GetUp modes are refused.
+
+Unsigned64 keys retain the proposal's exact domain, epoch, handle, reserved tick,
+sequence, world seed, macro/owner FNV and eight SHA words. C, Python and LuaJIT
+agree on epoch1/2/max and the proposal's changed handle/tick vectors. Neither
+execution delay, clock, native pointer, runtime identity nor caller RNG enters
+the key. Epoch1 A=8b34a17d4ae84a2f, B=5311c417920e6e36.
+
+Production boundaries and obligations
+------------------------------------
+The existing Generate and Navigation forwards delegate to typed executors with
+the captured native return caller. No hook, prefix, thunk slot or native ABI is
+added. A is the single Generate c841b0 call from ba1b8b. B is the separate
+Navigation ea8cf0 call from ea4b5e. Before each write, admission verifies the
+immutable Boundary1/reservation execution tick, selected handle, UI thread,
+full reconstructed owned pins, current observer record, no open RNG scope,
+and supported composition. The exact tick may be 5 or 6; its reservation is 5.
+
+B additionally requires successful restored A, native A closure, the same
+object/runtime/macro/true owner, and the exact prior Static controller both in
+the captured identity and still published on the object immediately before
+seeding. This repairs a possible gap between otherwise individually stable
+samples. Neither stage enrolls an actor or suppresses a pending-update receipt.
+
+At most two resident scopes exist, one per A/B, and at most one is active.
+Attempts are consumed once; refusal does not retry or skip the native original.
+The caller RNG, thread, TLS pointer, simulation clock and writable mapping are
+captured before the first write. Two data/mapping checks bracket admission and
+restoration. The exact same owning TLS block must still be selected on exit.
+Changed pointers, clock, view, allocation/region/protection or unreadable memory
+are retained as restoration failures; no replacement TLS block is written.
+These checks do not establish an allocator lease or exclude arbitrary hidden
+concurrent free/reuse. Native execution evidence is still required.
+
+The original runs once with its full arguments. Normal return samples precede
+restoration. __finally attempts to restore the captured caller word on normal
+return, STOP overlap and foreign SEH while preserving LastError, subject to the
+unchanged owning TLS, execution context and mapping checks above. Clock/view are
+conservative context-continuity guards, not proven RNG-stream identity. If either
+changes, restoration debt remains; there is no later restoration retry.
+Abnormal cleanup uses
+resident state only, does not inspect dead native outrefs, and lets the original
+exception propagate. All twelve enabled actor writers already restore their
+own nested stream; a caught inner exception remains a sticky failure even if
+the native parent proceeds with a sibling and returns normally.
+
+STOP closes RNG admission under creation_lock before finish clears active.
+The first RNG write uses that same lock. No lock spans an original call.
+An admitted scope owns its cleanup even after STOP, while STOP records its open
+obligation. Restoration debt prevents overall restored status. A missing A/B,
+duplicate attempt, child failure or partial trace cannot become success.
+
+Supported composition is exactly accepted016 mask 0x84fffffffffff and its twelve
+actor RNG writers. The implementation refuses optional NPC47/48/49, dock44/45,
+solver50/request52 and Lua-configured Wait/Find/early-action/value/player,
+transition/origin/GetUp/rotation modes. This is not a claim that those writers
+are generally incompatible; their nested composition is outside this review.
+No seed flags or draw-count policies are disabled or replaced.
+
+Evidence
+--------
+Lua checks the C canonical manifest/key receipt. A protected drain closure is
+published before C configuration or logging can fail; a failed header/part log
+resumes without repeating successful parts or configuration. The normal-frame
+and abort paths drain bounded records and retain explicit drain errors.
+
+CREATION_RNG has two parts per scope. It records key/scoped end, caller/restored
+word, native trace/command joins, ownership/mapping, original/normal/closed flags,
+STOP overlap and twelve before/after child-failure counters in fixed writer
+order: flight, AI, Agent, ship, weapon, navigation, shape, bullet, death,
+attention, Gravidar, interrupt. Local pointers stay outside peer canonical data.
+
+Independent validation requires complete schema2 A/B records AND all mandatory
+MD/first-origin/identity joins. It checks every scope, key, argument boundary,
+thread/clock/TLS/caller/restored relation and child vector. Peer comparison
+also requires B's Agent entry and observed Float/query/return chain to join its
+admitted seed; an unexpected intervening draw remains a coverage failure. It
+retains every observed FloatState input/output, native timer and PostEvent due
+time, plus exact physical initial banks/selectors/c0/c8/d0. Raw bytes are not
+relabeled sector coordinates or normalized. Unresolved references or physical
+bank differences remain visible; whole-RNG, sector-pose and enrollment support
+are still false. Synthetic parser fixtures prove rejection logic, not native
+determinism or that a logged key alone caused every native draw.
+
+Verification
+------------
+test_lockstep_creation_rng.c is a loaded test DLL. Its loader TLS index must be
+nonzero: the owned synthetic native TLS occupies slot0, while compiler-local
+observer state uses the DLL's distinct slot, matching the production separation.
+An earlier single-executable attempt aliased these slots and was replaced; it
+is not used as evidence. Exact original X4 bytes are read into owned private
+memory for full pins; no game instruction, native constructor or event queue is
+executed. Typed synthetic originals exercise the actual production executors.
+
+The harness passes 1,679 always-on CHECKs at -O2, real foreign RaiseException, original
+argument/result/LastError checks, both A/B paths, full production x4gate_stop,
+caught actor-child exception plus sibling, STOP-versus-first-write scheduling,
+all 53 mask-bit changes, optional writer refusal, malformed manifests, duplicate
+attempts, stale handle/tick/owner/runtime/prior-controller, changed TLS/clock,
+inaccessible/read-only mappings and same-region replacement pointers.
+Maximum formatted rows remain bounded below the Lua log limit.
+
+Twelve private omission mutants each fail an active CHECK: wrong restored word,
+wrong seeded word, wrong domain, missing unwind restore, omitted child failure,
+missing handle join, missing current Static publication join, missing owning TLS
+join, omitted full pin check, omitted early STOP serialization, duplicate native
+original, and omitted initial digest binding. Mutant builds only suppress the
+unused-helper warning introduced by removing a call; production builds retain
+all warnings as errors. The fixture's inaccessible-memory cases do not prove
+an unobservable native allocation cannot be freed and reused at the same address.
+
+Run the normal build script with --test --native-image and the pinned compiler.
+It builds/runs the loaded RNG harness in a child Python process as well as the
+existing actual-image ABI/unwind/restoration, twelve-writer, transport and other
+native tests. Python/Lua coverage is in tests/test_native_creation_rng.py and
+the existing native test suites: 657 tests, 652 passing and five platform skips.
+All actual-image/native suites pass. Private build/test outputs are not committed.
+
+Historical validation is read-only: build012, build014, build015 and build016
+retain their exact 41/43/43/41 error arrays and evidence_valid=false. The new
+schema cannot reinterpret old traces as an intervention. No constructor success,
+PvP/cooperative ownership, building completion or native deterministic outcome
+is claimed by this source-only work.

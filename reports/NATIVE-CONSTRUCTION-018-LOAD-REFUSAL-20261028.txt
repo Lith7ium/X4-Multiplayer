@@ -1,0 +1,94 @@
+Construction018: provisional registry configuration refused during load
+28 October 2026
+
+Result
+------
+The one authorized two-native-client attempt failed before any constructor,
+selected RNG scope or raw builder motion observation. It does not provide new
+station-building, timer, physical-bank, enrollment or lockstep evidence.
+No retry, gameplay intervention, normalization or guard change occurred.
+
+Inputs
+------
+Frozen source/native build: 227d53e149f11f4841ccf79592df62857697b2cd.
+DLL SHA256: c99c5de151869e20277ec4889a7bbf8d4f71078467180d837a7d7512ce4c3ce2.
+Overlay manifest: 871ffa38c819a38c441079208cd2b004a1cffba8682c2077b63beecefbe687ce.
+The seventeen payloads reproduced from frozen source. Relative to Construction017,
+eleven payloads were unchanged, five changed and the registry evidence Lua module
+was added. Configuration added ACK schema1 and registry_creation schema1.
+Snapshot, station MD/actions, unarmed builder fixture, epoch1, option mask
+0x84fffffffffff and A/B keys were unchanged. Bounds were two clients, 120 ticks,
+260 seconds of runtime and 900 seconds of admission. Current released lane policy
+has no RAM floor; its process-capacity and ownership protections remained enabled.
+Source, build inputs, executable/helper closure and all four existing released
+Python caches were independently verified before the run. Existing cache bodies
+matched code compiled from the pinned released sources.
+
+Native observations
+-------------------
+Both clients emitted the same ordered lifecycle:
+  initial REGISTRY_CREATION_CONFIG
+  initial CREATION_RNG_CONFIG and ACK ordinal1, phase0
+  ARMED
+  LOAD_REQUEST
+  ERROR: native_registry_creation.lua:48, provisional registry configuration refused
+  REGISTRY_CREATION_STOP
+  CREATION_TRACE_STOP
+  ABORT, restored1, tick0
+
+Both registry footers retained configured1, closing1, sequence0, identities0,
+operations0 and failures0. Both trace footers retained count0 and first_error8.
+No constructor record, selected A/B RNG record or raw-motion record was captured.
+The exact native boot phase at the refusal was not logged. The emitted ACK is
+the initial phase0 acknowledgment, not evidence of a successful post-load attach.
+
+Source diagnosis
+----------------
+registry_creation_configure requires !boot_phase before its already-configured
+branch, both under creation_lock and under registry_creation_lock. The successful
+production lua_load_requested call sets boot_phase from0 to1; boot_next advances
+only1->2->3. Thus this phase predicate necessarily refuses a saved-game UI
+reattachment after LOAD_REQUEST. Other predicates were not individually logged,
+so this is a sufficient cause, not a claim that all other checks passed.
+
+creation_rng_configure independently has the same unconditional phase0 predicate
+before its already-started ACK branch. Fixing only registry configuration would
+leave the second refusal. Existing C ACK text and Lua/Python readers also require
+phase0, so removing the native check would produce untruthful evidence.
+
+The accepted reattachment tests recreated Lua state but did not cross the native
+Load transition; phase1 was deliberately a negative case. A new versioned contract
+must distinguish phase0 initial installation from immutable, owned, zero-activity
+reattachment after Load. Production lua_load_requested/boot_next and two separate
+Lua VMs must be exercised together, with original identity, ownership, activity,
+failure, STOP and restoration-debt refusals preserved. No source repair is part
+of this report.
+
+The first Lua configuration refusal precedes finish. Native RNG stop requires two
+completed scopes; aborting with zero scopes can produce CRNG_SCOPE/trace error8.
+It is not a native constructor failure. The reloaded Lua VM fails before creating
+its RNG draining closure, explaining why no RNG STOP line is emitted even though
+native finish invokes the stop path.
+
+Cleanup and reader limitations
+------------------------------
+Released runner result: fail_pattern, exit5. Both games did not close gracefully
+while loading. After approximately30 seconds the runner used its owned forced
+termination fallback; each game exited1. The relay was terminated by the runner.
+No manual termination was performed. Both lane installations and owned snapshot
+slots were restored; archived snapshots matched the pristine input. Both lanes
+were idle/unlocked afterward and no owned process remained. Graceful cleanup
+failed; restored ownership state must not be described as a graceful exit.
+
+The sealed frozen strict reader ran once after cleanup. It raised FileNotFoundError
+at validate_native_gate.py:1124 because the terminated relay had not produced
+native-barrier.json. Its stdout, stderr and exact invocation are retained. No
+barrier file or validation.json was invented. Therefore a whole-session ordered
+validation-error array is unavailable for018; the native failure and reader
+execution failure remain separate retained evidence.
+
+Before this attempt, 64 focused tests passed and frozen-reader replay preserved
+the exact historical012/014/015/016/017 error arrays:41/43/43/41/44. Those tests and
+old records are unchanged; they did not predict or validate this Load transition.
+Private raw logs, process identities, cleanup proof and artifact receipts remain
+under the task's ignored local directory. No private game data is included here.

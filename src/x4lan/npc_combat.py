@@ -19,8 +19,13 @@ class NpcCombat:
         self.descriptors = {}
         self.states = {}
         self.claims = {}
-        self.cursor = 0
         self.next_send = 0
+        # entity -> NHP seq last forwarded to the current guest lease. Only a new host
+        # sequence is forwarded: the host repeats every NPC with a new sequence at least
+        # every KEEPALIVE seconds (npc_combat_game.lua), which recovers a lost datagram
+        # and feeds a late joiner. Repeating an unchanged sequence cannot refresh a guest.
+        self.forwarded = {}
+        self.forwarded_lease = None
 
     def committed(self, baseline):
         # Absence suspends admission, it is not a destruction event.
@@ -112,14 +117,18 @@ class NpcCombat:
             return []
         result = []
         interest = s.interest
-        states = [r for r in self.states.values() if now-r['at'] < FRESH and interest and
+        if self.forwarded_lease != guest.lease:
+            self.forwarded, self.forwarded_lease = {}, guest.lease
+        states = [(k, r) for k, r in self.states.items() if now-r['at'] < FRESH and interest and
                   interest[0] == guest.lease and interest[2] == r['descriptor'][0]]
-        # The modulo is applied before indexing, including after a fleet shrinks.
-        budget = min(len(states), max(32, min(256, (len(states)+9)//10)))
-        for i in range(budget):
-            fields = states[(self.cursor+i) % len(states)]['fields']
-            result.append((guest.address, ('NHP|1|'+guest.lease+'|'+'|'.join(fields)).encode()))
-        self.cursor += budget
+        self.forwarded = {k: v for k, v in self.forwarded.items() if k in self.states}
+        # New sequences only, oldest arrival first, within the former per-tick budget.
+        fresh = sorted((kv for kv in states if self.forwarded.get(kv[0]) != kv[1]['seq']),
+                       key=lambda kv: kv[1]['at'])
+        budget = min(len(fresh), max(32, min(256, (len(states)+9)//10)))
+        for entity, r in fresh[:budget]:
+            self.forwarded[entity] = r['seq']
+            result.append((guest.address, ('NHP|1|'+guest.lease+'|'+'|'.join(r['fields'])).encode()))
         for key, claim in list(self.claims.items()):
             lease, entity, gen, shooter, sg = key
             if lease != guest.lease or not self.pilot(shooter, sg):

@@ -6,12 +6,13 @@ Format: MAJOR.MINOR.PATCH, for example 5.0.1.
 - PATCH: fixes, defaults, documentation and packaging improvements.
 Every published update gets a higher version, including launcher-only fixes.
 
-Current development candidate: 7.5.0 (NPC combat and shared kill contracts)
-Includes reviewed installer fixes and enables the bounded NPC/mission paths.
+Current development candidate: 7.6.0 (NPC flicker fix, motion modes, diagnostics)
+Internal test build; 7.5.0 remains the last delivered human-test candidate.
 Read reports/RELEASE-CHECKS.txt for acceptance status; full-universe work remains open.
 Install the new matched Windows/Linux packages, including the new host server.
 
 Historical mapping:
+7.6.0 = NPC replica flicker fix, remote motion modes and on-by-default diagnostics.
 7.5.0 = cross-sector NPC damage, shared native kill contracts and installer fixes.
 7.4.1 = visible Linux desktop starters and actionable missing-input errors.
 7.4.0 = actual-hit damage/projectile visuals, saved docking and completed-story preset.
@@ -31,11 +32,11 @@ Historical mapping:
 Earlier archives keep their original names as historical test snapshots.
 
 Where to see the version:
-- ZIP and extracted folder names: X4-LAN-7.5.0-Linux / Windows11.
+- ZIP and extracted folder names: X4-LAN-7.6.0-Linux / Windows11.
 - VERSION.txt and package.json inside each package.
 - Launcher output, server dashboard/status log and installed mod display name.
 
-Use both archives from the same release folder. For 7.5.0, the host creates a fresh
+Use both archives from the same release folder. For 7.6.0, the host creates a fresh
 session key and shares JOIN-SESSION.json privately with its guest. Both must use
 the same version and session invitation. Archives themselves contain no keys.
 Exception: the 5.0.2 Windows launcher-only update preserves the existing pair.

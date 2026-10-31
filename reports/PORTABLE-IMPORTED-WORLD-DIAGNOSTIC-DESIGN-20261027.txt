@@ -1,0 +1,293 @@
+IMPORTED-WORLD CROSS-PLATFORM DIAGNOSTICS - FIELD MAP AND OFFLINE CONTRACT
+27 October 2026
+
+Scope
+-----
+Source audit: Windows345a780; Linuxd9eb06e. This defines additional read-only
+diagnostic domains. It does not change x4-portable-fixture-v1, its12-actor frame,
+strict comparison, permit rules, selected gameplay scenario or existing hashes.
+No new hook, engine memory write, native artifact or game run is part of this
+proposal. Tools/schema/parser/offline adapter work can proceed independently;
+native capture integration requires a separately reviewed ownership boundary.
+
+Current sources
+---------------
+Windows src/native/engine/lockstep_world_identity.h retains successful imported
+runtime-to-saved mappings. lockstep_world_hash.h sorts that inventory and hashes
+four domains. tools/dev/native_world_evidence.py independently reconstructs the
+roots and decodes selected Windows details. The current native index holds up to
+524288 entries; duplicate saved identities fail the sorted census. The portable
+adapter additionally retains a saved-to-runtime inverse and rejects aliases.
+
+Linux src/rust/x4mp-agent/src/import_identity.rs copies the native import tree
+before its final clear and validates ordered saved IDs and unique resolved runtime
+IDs. load_observer_live.rs retains that copy and exports X4IMP1 records through
+owned output after capture. The map allows explicit unresolved runtime0 entries.
+Its1048576-entry bound differs from Windows. It is not available by polling the
+native tree after Load, and its records alone do not prove later live presence.
+
+Current portable semantic encoders are lockstep_portable_state.h,
+lockstep_portable_windows.h and Linux portable_fixture.rs. The shared schema is
+src/native/engine/portable_fixture_v1.json; tools/dev/native_portable.py provides
+an independent encoder/decoder. Supported native actor layouts are specifically
+ShipSmall with NavigationController. Existing fixture expectations also require
+the selected macro/true-owner pair and one of the twelve fixture slots.
+
+Why the Windows world roots cannot be portable roots
+--------------------------------------------------
+WORLD_IMPORTED_1 appends native class RVA, flags and parent to EVERY domain.
+Motion also hashes controller RVAs and Windows-specific dock/getter encodings.
+Timing includes attention, refresh cursor/gates and native bank timing bytes.
+Some detail fallbacks intentionally retain opaque bytes for Windows diagnosis.
+Those values cannot be copied into a cross-platform contract. Existing roots
+remain useful and unchanged for their original Windows-to-Windows comparison.
+
+Proven layout intersection
+--------------------------
+Addresses below are exact-build evidence, not portable identities. Windows values
+are image-relative RVAs; Linux values are absolute ELF virtual addresses.
+
+Semantic field                   Windows                     Linux
+saved identity import           79f720 wrapper               before-clear tree3e1cac0
+runtime ID verification          object+8                    object+8/full generation
+registry global                 6cf1500                    3daa860
+ShipSmall class                 2b7feb8                    3d21748
+Macro class                     2ba5430                    3ae6860
+macro object/name                object+60 / macro+20        same offsets
+macro getter slot/target         vtable+90 / efb10           vtable+98 / a38880
+true-owner getter slot/target    vtable+1620 /352b10         vtable+1668 /a37ac0
+true-owner faction/name          object+348 / faction+10     object+340 / faction+10
+parent component                 object+70                   object+70
+stored hull binary64             object+280                  object+278
+navigation object                object+200                  object+200
+Navigation class                2c51158                    3b697e8
+navigation transform getter      vtable+30 /ea5a70           vtable+30 /141d270
+controller owner                 controller+28               controller+20
+bank storage                     controller+30               controller+28
+Agent pointer                    controller+40               controller+38
+Agent bank/owner offsets          +ad0 /+ef0                  +af0 /+f10
+active/other selector globals    38f4ee4 /2f4b6f4           3e4fea8 /3d8e254
+bank stride                     1a0                        1a0
+local position / basis xyz       bank+0,+10,+20,+30          same; first12bytes/vector
+reference fields                 bank+b0 /+b8                same; saved-ID translation
+
+Windows strings use MSVC length/capacity+10/+18 and inline storage when cap<16.
+Linux strings use pointer/length+0/+8. Both approved decoders bound identifiers
+to63 ASCII characters and require a terminator. They never call native getters.
+Physical bank selectors are local lifetime/hold guards; only active/other role
+ordering is comparable. Padding lanes, addresses and runtime IDs stay outside
+canonical bytes. Float bits, including signed zero, remain exact; nonfinite
+state refuses instead of being normalized.
+
+The static mapping owner independently confirmed that generic-component
+parent/type ancestry and per-object timing have NOT been established beyond
+this approved decoder. Do not generalize the table to arbitrary classes merely
+because an offset is plausible. Shields, velocities, navigation flags, AI, RNG,
+weapons, cargo, economy, missions and new-object semantic identities remain open.
+
+Pins and lifetime limits
+------------------------
+Windows executableSHA19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+Linux executableSHA113f73d74570084f6ce18a659b365009eccf579fb66dbabb5dad2b1718045f20,
+buildID77cf7ac0ff32d88ffd3db7eb6ea2e025aecb711d. Neither address set is reusable
+for another executable. The reviewed artifacts separately bind their own code.
+
+Windows import full160-byte pin is in world_identity_install; registry lookup
+ced70/32 and navigation getter/update ea5a70/25,ea5a90/2025 are pinned in the
+portable configuration. Class/getter identities are checked again during reads.
+Linux import-tree layout evidence names10c8140,ce4fd0,11e0b30; resolver layout
+namesa68df0 and checks live bits, generation and full object+8 ID. These semantic
+decoder constants are not a claim that every named function has a separate
+runtime full-function pin. Existing build verification and approved load-call,
+final-clear, completion and scheduler pins remain prerequisites. A future wider
+adapter must enumerate its exact relied-on spans and owned-patch reconstruction.
+
+Double reads detect changes but do not create ownership. Each live record needs
+the existing joined main pre-FrameTick boundary, current registry resolution,
+bidirectional saved identity, supported class/controller and retained owner links,
+followed by revalidation. Unresolved import, expired runtime generation, failed
+read and unstable lifetime are distinct results. A failed read is not destruction.
+Before-clear import census and post-join state are separate capture stages.
+
+Proposed additional diagnostic contract
+--------------------------------------
+Use a separately versioned imported-world diagnostic stream with a header binding
+snapshot/content digest, exact ordered saved-ID inventory digest/count, capture
+stage, tick/receipt boundary and game-time bits. Platform build/layout proofs and
+physical selectors are local provenance, not canonical state. Compare state only
+at the same proven stage/tick. Keep the strict portable frame as independent input.
+
+The inventory is a fixed declared cohort from the immutable import capture; it
+must not silently shrink to the currently supported classes or twelve fixtures.
+Records are strictly saved-ID ordered. Bound the initial common cohort to524288
+entries, rows to4096 bytes, identifiers to63bytes and reported differences to128;
+excess input is an explicit refusal. Native allocation/capture time still needs
+measurement and review; these bounds are not a performance claim.
+
+Every inventory ID gets one identity/capture result plus all five domain results:
+1. Entity: verified imported/live identity; supported semantic class, macro and
+   true owner when known. Generic live identity does not imply class coverage.
+2. Topology: saved parent ID only for supported layouts. Native null is explicit;
+   an unmapped nonzero parent is unresolved_reference, not canonical zero.
+3. Motion: active/other local position and three basis vectors, plus separately
+   named ref_b0/ref_b8 saved IDs, only under the Navigation lifetime contract.
+4. Health: stored hull binary64 only. Shield coverage stays unsupported.
+5. Timing: explicit unsupported_layout for per-object timing in the initial
+   intersection. Global game time belongs to the capture header; real/unpaused
+   clocks are local hold guards, not substitutes for per-object timing coverage.
+
+Each domain records supported field coverage and a bounded status from a closed
+set: supported, unsupported_class, unsupported_layout, unresolved_import,
+unresolved_runtime, missing_import, unresolved_reference, ambiguous_identity,
+read_failed, changed_during_capture, not_captured. Unknown state carries no
+invented value or raw native byte blob.
+An actual missing imported object requires distinct registry-lifetime evidence;
+it cannot be inferred from any generic read error or a zero import-map value.
+
+Hash each typed domain record with schema/domain separation, savedID and explicit
+coverage/status. Sort savedID+rowSHA pairs into separate domain roots. Preserve
+the corresponding typed records for bounded per-ID first-field differences.
+Report inventory and per-status census, supported counts, known-value differences,
+coverage differences and missing IDs. Matching unsupported markers may yield
+matching diagnostic roots but NEVER semantic equality or complete coverage.
+Zero comparable records yields unknown, not success. Sparse deltas require a
+complete initial inventory/root and an explicit terminator; otherwise refuse.
+
+Offline implementation and review sequence
+------------------------------------------
+First implement the closed schema, pure streaming encoder/parser and comparator
+under tools/dev with independent encoding goldens. No runtime import from the
+game adapter. A pure X4IMP1 reader can validate Linux saved/runtime uniqueness
+and preserve unresolved entries without claiming current presence. A separate
+adapter can consume already validated portable actor rows for their supported
+subset, marking every other cohort record not_captured. It must not fabricate
+broader state coverage from those twelve rows.
+
+Tests must cover IDs beyond12, shuffled/duplicate/missing identities, aliasing,
+null versus unresolved references, finite exact float bits/signedzero, changed
+bank roles, every domain/field/status mutation, all-unsupported and empty subsets,
+snapshot/stage/tick mismatches, truncated records/terminators and bounded output.
+No diagnostic result may set session_pass or bypass an existing strict failure.
+
+Only after that contract is reviewed should native adapters reuse the existing
+import copies and joined-main reads for a broader selected ShipSmall cohort.
+Unknown classes remain in the inventory. Adding generic topology, shields,
+velocities or per-object timing requires additional exact Linux and Windows
+field/owner proof. No full-world gameplay parity follows from either12 fixtures
+or equality of this deliberately partial imported-world diagnostic.
+
+Implemented offline contract
+----------------------------
+tools/dev/native_world_portable.py implements x4-imported-world-diag-v1.
+tools/dev/native_world_portable_adapter.py provides the retained X4IMP1 reader
+and an adapter from the unchanged, independently validated strict portable frame.
+No runtime, C, Rust, gate, transport, permission or protocol source changed.
+
+The stream is ASCII JSON Lines: exactly one {"header":...}, one {"row":...} per
+declared saved ID in increasing numeric order, then one {"footer":...} and EOF.
+Each complete line, including its newline, is bounded to4096bytes. Duplicate
+JSON keys, unknown fields, oversized/deep malformed input, premature EOF, extra
+rows and missing/repeated terminators refuse. The encoder writes the footer only
+after the entire declared inventory; an exception leaves an invalid partial file.
+The CLI exclusively creates a fresh output path and never replaces old evidence.
+
+Header fields: schema, source, snapshot_sha256, content_sha256, cohort_sha256,
+cohort_count, stage, tick, game_bits. stage is exactly joined_main_pre_tick;
+other capture stages refuse. tick is u64, game_bits is a finite nonnegative
+binary64 encoded as16lowercase hexadecimal digits. source is windows/linux/offline
+and is local provenance, excluded from canonical root context. All other header
+fields must agree before comparison. The adapter binds content_sha256 to the
+existing strict frame's exact contract digest, including snapshot/stock/fixture
+content. Parsing cannot independently prove that a producer owned this boundary.
+
+Each row contains saved (nonzero full u64 as16lowercase hex), identity and domains.
+The complete identity status set is live, unresolved_import, unresolved_runtime,
+missing_import, ambiguous_identity, read_failed, changed_during_capture,
+not_captured. Non-live identity requires all five domain statuses to match it;
+no semantic payload is accepted. A live but unclassified object can retain
+unsupported_class without inferred parent, hull or transform fields. Every
+domain result has exactly status/value; any unsupported status requires null.
+Supported fields require a supported entity class, specifically ship_small.
+
+Exact supported domain payload keys:
+  entity: class, macro, owner (existing portable identifier restrictions).
+  topology: parent_saved (full saved ID, native null is0000000000000000).
+  motion: controller=navigation, active, other; each bank has transform (12finite
+    binary32 hex words, position followed by three basis vectors) and references
+    (two full saved IDs, native+b0 then+b8). Physical selectors are not encoded.
+  health: stored_hull_bits (finite nonnegative binary64 hex, signed zero retained).
+  timing: no supported payload in this version; supported timing refuses.
+Nonzero semantic references must belong to the fixed cohort; a producer lacking
+that translation must use unresolved_reference rather than guessing null.
+
+Canonical JSON J sorts object keys, has compact separators, escapes non-ASCII
+and rejects NaN/Infinity. Valid typed payloads contain no JSON floating numbers.
+The following hash prefixes include one literal zero byte where written \0:
+  cohort = SHA256("X4WDIAG1-COHORT\0" + each savedID as little-endian u64).
+  row[D] = SHA256("X4WDIAG1-ROW\0" + ASCII(D) + "\0" + savedID_LE +
+                  J({identity: row.identity, result: row.domains[D]})).
+  root[D] = SHA256("X4WDIAG1-ROOT\0" + ASCII(D) + "\0" + J(header without source)
+                   + each savedID_LE + binary row[D] digest in cohort order).
+The footer contains exact row count, all five roots, every identity-status count,
+and every domain-status count including zeros. The reader reconstructs each byte
+domain and compares the full footer; advertised roots are not trusted.
+
+compare() consumes both complete streams before returning stream_valid. This
+means syntax/cohort/roots are valid, NOT native capture or session acceptance.
+Per-domain counts separately retain comparable supported rows, known value
+differences and coverage differences. semantic_equal is true only when the entire
+cohort is supported and equal for that domain, false for a known semantic value
+difference, otherwise null. supported_subset_equal is null when there are zero
+comparable rows. root_equal and coverage_equal remain distinct diagnostic facts.
+Per-ID differences include identity/status or the first differing supported
+field and exact values; output truncation never stops validation of later rows.
+There is no session_pass/permit result or runtime import of this implementation.
+
+X4IMP1 records bind the complete retained import inventory, not live world state.
+The reader accepts exactly the8-byte magic X4IMP1\0\0, little-endian u64 count,
+then count pairs of saved/runtime u64 and EOF. It rejects zero, duplicate or
+unordered saved IDs, aliased nonzero runtime IDs, truncation and excess counts.
+Runtime0 remains unresolved_import. All64identity bits are retained. The common
+bound is524288; a larger Linux inventory explicitly refuses this version.
+
+The adapter never filters the declared inventory to supported actors. It refuses
+a cohort that drops any supplied import record; any declared ID missing from the
+local map gets missing_import. Selected strict-frame actors require a unique
+nonzero imported mapping. Every other mapped object gets not_captured, because
+the historical import alone cannot prove its current registry generation or
+class. Parent/reference IDs can therefore name explicitly uncaptured cohort
+members without pretending those members have captured semantic fields.
+The current actual export adapter is X4IMP1 from Linux; no Windows full-runtime
+map or broader native memory sampler is fabricated by this offline change.
+
+Validation and retained-baseline limits
+--------------------------------------
+Synthetic tests use26IDs, including full-width high saved/runtime IDs. Independent
+root reconstruction plus literal fixed-vector digests bind the wire grammar.
+Mutants cover every transform/reference field, entity identifiers, parent/hull,
+signed zeros, role swaps, incomplete/unknown classes, all identity statuses,
+null versus unresolved references, duplicates, aliases, missing/extra rows,
+header/census/root tampering, truncated/oversized/deep records and bounded first
+differences. Separate complete/partial domain tests prevent an unsupported domain
+from inheriting success from another. The adapter's actual CLI is tested with
+fresh-output protection and preservation of original strict-frame bytes/refusals.
+Focused schema, strict-frame, validator, Windows identity/adapter and UDP tests:
+54passed and82subtests passed. These are offline tests, not native game evidence.
+
+An offline pass used existing mixed-native-002 Linux retained data, not a game
+launch:521929 imported IDs, with no unresolved import-map entries. It encoded and
+fully reread a165460582-byte diagnostic stream. Entity/topology/motion/health each
+have exactly12 supported rows;521917 rows remain not_captured in each domain.
+Timing has zero supported rows,12 unsupported_layout and521917 not_captured.
+The cohort digest is4ecf00ecf79c7ea0460359afac3209f4895a1b5189401e696c61d47fd4280c4e.
+The retained strict contract digest is
+516ef8728fad1e9c99da5e3fa864d5d05366525ba7576c5256b2e9926b10bd50.
+
+This is a single Linux source census/adapter check, not broader cross-platform
+state evidence. The original portable_state_mismatch at frame0, no issued permits
+and missing final acceptance attestations remain unchanged. Raw IDs/logs/streams
+stay private. No benchmark, extra native state coverage or all-game success is
+inferred. A future native expansion still needs separately proved registry/class
+lifetime, exact field pins and joined-boundary capture before it can mark more
+rows supported. Existing Windows-only hashes and strict portable comparison
+remain independent and unchanged.

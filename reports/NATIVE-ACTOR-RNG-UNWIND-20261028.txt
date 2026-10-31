@@ -1,0 +1,124 @@
+ACTOR RNG: RESTORE BORROWED STREAMS THROUGH FOREIGN EXCEPTIONS
+28 October 2026 | Source and owned-memory tests; no game or staging
+
+Scope and result
+----------------
+The twelve actor RNG writers enabled in retained construction 016 now restore
+their borrowed RNG word through Windows exception unwind. This is a prerequisite
+for proposal 1881319, not implementation or approval of construction RNG seeding.
+It is based on accepted observer cleanup 834f2d5 and fresh AI TLS correction
+74ced4a. The independent writer audit is 66f6f11, with its assertion-enabled
+witness correction d2f0ee9. No historical run is reclassified.
+
+The supported scope of this change is the twelve existing writer helpers selected
+by construction 016's mask 0x84fffffffffff: Flight, AI, Agent, Ship, Weapon, Nav,
+Shape, Bullet, Death, Attention, Gravidar unit and interrupt range. Existing
+selection, seeds, domains, keys, ordinal/call policies, hooks, native arguments
+and initial-state effects remain. Source configs remain inert. The persistent
+frame seed and local steering-initialization RNG are not borrowed actor streams
+and are not changed.
+
+Each helper establishes a local restore obligation before its first seed write.
+Its __finally restores the exact captured address and caller word, independent
+of subsequent STOP or mutable seed options. Normal after-samples still occur
+only after the original returns. Abnormal completion increments the helper's
+sticky failure counter; it does not manufacture a return or after-sample. Outer
+observers may also record their own abnormal boundary, as before. There is no
+one-cause/one-global-failure-count claim.
+
+Weapon's finally additionally restores its previous context pointer, actor and
+slot. Range restores RNG before its normal origin/pilot closure, preserving the
+accepted interrupt-current/origin abnormal cleanup. AI still selects fresh TLS
+at the exact ai_current_rng call immediately before ai_execute. Gravidar's
+publication bracket restores the previous publication flag on normal and abnormal
+completion; its completed-frame count still advances only after its original
+returns. Restoring a pre-existing flag preserves a parent bracket; it is not a
+proof of arbitrary concurrent publication safety or native worker quiescence.
+
+All new cleanup preserves LastError and lets the original foreign exception
+continue unchanged. It invokes no native transform, RNG, event or identity getter.
+Native initialization writes already performed before an exception are not
+rolled back. No registry binding, late-update allowance, timer normalization,
+native constructor behavior or construction schema was changed.
+
+Verification
+------------
+test_lockstep_actor_unwind.c includes the production gate and actual helper
+bodies. It explicitly undefines NDEBUG before assert.h. Synthetic originals have
+the original signatures and assert every GP/stack/float/double/byte argument;
+range checks the complete uintptr_t return. These are owned-memory tests and
+real Windows RaiseException/SEH, not engine execution.
+
+For every writer the suite checks normal completion, foreign exception propagation,
+STOP plus changed seed options during the original, disabled seeds, and a missing
+RNG where that helper's contract permits it. Gravidar's selected helper requires
+nonnull TLS; its guarded inactive route is tested separately. The native-style
+parent catches a throwing child, checks its restored stream and context, invokes
+a sibling, and can itself throw or return. Both inner and outer exceptions,
+exception code/flags/parameters, original-once, normal/abnormal LastError, failure
+retention and absence of successful after-samples are checked. This specifically
+tests restoration before a native catch handler continues, rather than only
+restoration at the eventual outermost return. First-pass exception filters still
+run according to ordinary Windows SEH ordering before unwind.
+
+All twelve inactive production routers are also called with typed synthetic
+originals in private executable buffers: no seed is written, the original runs
+once, and its foreign exception is preserved. Gravidar publication tests cover
+normal/throwing originals, STOP, previous flag values and refusal before original.
+The test is registered in tools/dev/build_native_gate.py --test.
+
+The new helper's --normal output was compared byte-for-byte with the identical
+test compiled against an immutable 74ced4a source archive. All twelve seed-before,
+sample-after, caller word, original count, range return and LastError rows match.
+The twelve captured seed words are explicit regression goldens in the test.
+
+Seventeen deliberate mutations were compiled separately in private source copies.
+All fail an active assertion: normal-only RNG restoration in each of twelve
+writers; normal-only restoration of each of the three weapon fields; normal-only
+Gravidar publication cleanup; and rechecking Ship's mutable seed flag in cleanup.
+The production test itself fails when cleanup is absent, independently of the
+earlier audit witness. That earlier -O2/NDEBUG-disabled witness was invalidated
+by its author and replaced in d2f0ee9; it is not used as this fix's passing proof.
+
+The full native build/tests pass, including pinned-image hook/ABI/unwind,
+observer exception, STOP/restoration, transport and rotation checks. The native
+image is read only, SHA256:
+19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+The Python/Lua suite reports 596 tests: 591 pass, five Linux-only subprocess tests
+skip on Windows; no missing-LuaJIT skips. Read-only historical validation preserves
+the exact complete error arrays: construction 012=41, 014=43, 015=43 and 016=41.
+All four evidence_valid results remain false. Construction 016 still stops at
+reason 75 with its unchanged late-binding failure and incomplete construction.
+
+Reproduce from a checkout:
+  python -B tools/dev/build_native_gate.py --zig <zig-path> --test
+      --native-image <private-pinned-X4.exe>
+  PYTHONPATH=tools;src;tests
+  python -B -m unittest discover -v -s tests -p test_native*.py
+The new standalone test also accepts a writer index 0..11 or --normal.
+Private comparison archives, mutation executables/logs, full build/test output
+and unchanged historical validation are retained under .local/actor-unwind/.
+They are not committed or packaged.
+
+Limits and next prerequisite
+---------------------------
+Restoration addresses belong to the synchronous invocation. The TLS-replacement
+test keeps both owned allocations alive, changes the visible TLS[0], and proves
+cleanup restores the selected address without writing the replacement block.
+It does not prove arbitrary native TLS lifetime safety, recovery from a freed
+TLS block, or same-owner admission for a future constructor writer. Those remain
+explicit A/B admission/lifetime and sticky-failure obligations before seeding.
+
+Solver bit 50 and request bit 52 are off in 016. Their optional Flight/Agent
+scope state, including excluded nested markers, is not closed by this change.
+NPC 47/48/49, docking 44/45, player, Wait and Find RNG composition is also outside
+this supported constructor combination. Existing construction diagnostics refuse
+NPC 47/48/49; future constructor RNG must independently bind its supported option
+set and reject unreviewed combinations. No new mode is enabled here.
+
+All enabled actor wrappers have unwind cleanup, but this does not establish which
+ones are reachable under each native constructor, whole-constructor RNG coverage,
+global worker exclusion, or successful construction enrollment. Future A/B
+success must retain child abnormal/ownership/cleanup failures even when a native
+parent catches an exception and returns normally. No game process, overlay,
+installation, save, original binary or historical capture was changed.

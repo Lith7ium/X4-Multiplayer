@@ -97,8 +97,12 @@ class ShipSpecContractTests(unittest.TestCase):
             for name, suffix in (('automated', 'tests'), ('release', 'checks')):
                 (source / 'reports' / f'{name}-{release}-{suffix}.txt').write_text(
                     'Unit-test fixture only; no release acceptance.\n')
-            with patch.object(build_packages, 'SOURCE', source):
+            diet = Path(temp) / 'framediet-fixture.dll'
+            diet.write_bytes(b'frame diet assembly fixture, not a game module')
+            with patch.object(build_packages, 'SOURCE', source), patch.object(
+                    build_packages, 'build_framediet', return_value=diet) as compile_diet:
                 folders = build_packages.build(Path(temp) / 'pair')
+            compile_diet.assert_called_once_with(None)
             configs = [(f / 'extension/x4_lan_lab/ui/config.lua').read_text() for f in folders]
             for config in configs:
                 self.assertIn('ship_macro = "%s",' % build_packages.SHIP_MACRO, config)
@@ -106,6 +110,16 @@ class ShipSpecContractTests(unittest.TestCase):
                 self.assertIn('ship_weapons = %d,' % build_packages.SHIP_WEAPONS, config)
             for folder in folders:
                 self.assertTrue((folder / 'extension/x4_lan_lab/libraries/loadouts.xml').is_file())
+                diet_module = folder / 'extension/x4_lan_lab/native/x4lan_framediet_64.dll'
+                if folder.name.endswith('Windows11'):
+                    self.assertEqual(diet_module.read_bytes(), diet.read_bytes())
+                else:
+                    self.assertFalse(diet_module.exists())
+            with patch.object(build_packages, 'SOURCE', source), patch.object(
+                    build_packages, 'build_framediet', side_effect=RuntimeError('frame diet compiler failed')):
+                with self.assertRaisesRegex(RuntimeError, 'frame diet compiler failed'):
+                    build_packages.build(Path(temp) / 'incomplete-diet')
+            self.assertFalse((Path(temp) / 'incomplete-diet').exists())
 
     def test_md_prepares_both_ships_and_refuses_without_substitute(self):
         root = ET.parse(EXT / 'md/x4lan_bubble.xml').getroot()
@@ -118,8 +132,8 @@ class ShipSpecContractTests(unittest.TestCase):
         prepare = root.find("./cues/cue[@name='PrepareShips']")
         self.assertIsNotNone(prepare)
         text = ET.tostring(prepare, encoding='unicode')
-        self.assertEqual(text.count('<create_ship'), 2)
-        self.assertEqual(text.count('<loadout loadout="$loadout"'), 2)
+        self.assertEqual(text.count('<create_ship'), 3)              # own, peer, extras (N-player)
+        self.assertEqual(text.count('<loadout loadout="$loadout"'), 3)
         self.assertIn('ware.software_dockmk2', text)
         # Exact configured count; an empty slot is accepted only without missile storage.
         self.assertIn('$candidate.weapons.operational.count != $args.$weapons', text)

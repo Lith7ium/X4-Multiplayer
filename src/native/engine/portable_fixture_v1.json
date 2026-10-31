@@ -1,0 +1,64 @@
+{
+  "id": "x4-portable-fixture-v1",
+  "endian": "little",
+  "actors": 12,
+  "coverage_mask": 31,
+  "row_prefix": "X4P1ROW\\0",
+  "row_fields": [
+    "saved:u64",
+    "fixture_slot:u16",
+    "present:u8=1",
+    "class:u8=1",
+    "controller:u8=1",
+    "coverage:u32=31",
+    "macro:u8_length+ascii",
+    "owner:u8_length+ascii",
+    "parent_saved:u64",
+    "hull_bits:u64",
+    "active:12xf32_bits+ref_b0_saved:u64+ref_b8_saved:u64",
+    "other:12xf32_bits+ref_b0_saved:u64+ref_b8_saved:u64"
+  ],
+  "frame_prefix": "X4P1FRM\\0",
+  "frame_fields": [
+    "contract:32bytes",
+    "tick:u64",
+    "game_bits:u64",
+    "calls:u64",
+    "returns:u64",
+    "receipt_tick:u64",
+    "slot1_command:u32=0",
+    "slot2_command:u32=0",
+    "actor_count:u16=12",
+    "rows:savedID_sorted(u16_length+row_bytes)"
+  ],
+  "bank_roles": [
+    "active_read_selector",
+    "other_selector"
+  ],
+  "capture": "main_pre_FrameTick_after_join_before_permit",
+  "transform_domain": "native_local_transform_position_then_three_basis_vectors",
+  "step": [
+    1,
+    60
+  ],
+  "coverage": [
+    "identity",
+    "topology",
+    "stored_hull",
+    "navigation_transform",
+    "navigation_references"
+  ],
+  "unsupported": [
+    "shields",
+    "velocities",
+    "navigation_flags",
+    "ai",
+    "rng",
+    "weapons",
+    "cargo",
+    "economy",
+    "missions",
+    "new_or_destroyed_objects",
+    "other_components"
+  ]
+}

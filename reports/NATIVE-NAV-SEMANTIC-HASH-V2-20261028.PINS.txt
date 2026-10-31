@@ -1,0 +1,33 @@
+Read-only Nav V2 layout/consumer pins, Windows x64
+EXE SHA256 19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891
+EXE file bytes 55412768; image size 06fa9000
+RVA       bytes  SHA256
+00ea2a20    537  d301bea94b279ddce92ced403bafdd17a90ed2eb83c5cc5944cf2ae600fc4a4f
+00ea35e0   1319  55ee34c5ef450f0f308b7c55a920eb84e65c03d6c5f8c84b0079d914eaec691c
+00ea4e90    925  866c1a72a063e9f56e225683d74d234b724b7e3c696bbb1bcc4e8b90282d4f50
+00ea4a00    375  c55b28f9e7b1f10a740d2436077b498e29a6940031da6d5d0c04afeeb8fba117
+00ea4c08    646  3bb6417ac6b4c5a53fb99185b685b514f7d431f64ea1bacfd035c9957e6e9ea7
+00eac530    582  7b02058e82f6d8acf92e189f5982eae449af06dc045fcb41be1d182ea374267c
+00eac380    421  f2175c1111b65cb926d637d544d2ab5b3c20626de01588df983387c797935865
+00e85368   1360  4ffffa48ec9049508f62919f72914d5c88149a1e4a1f291a3b9fd0433a2e2e32
+00e8f250  10613  ae0d8b729a39a75f83b1c3d783585f587de1cc2e5eff846620f2f0c482504f52
+00eac170    123  8487d9a8922f92b790f68759933ac3011a10746f828a634ffc5fcb68ab24bd36
+
+Transfer ea4c00 and Agent ctor e85360 first8 bytes are checked separately:
+original exact prefix, or exact E9 to existing resident dispatch2848/3360 with
+the trailing3 bytes preserved and corresponding immutable thunk bytes verified.
+No new patch site or thunk is introduced. Excluded prefixes are not wildcarded.
+
+Key instructions in the exact file (not invoked by the observer):
+ea2a5b/ea2a63 TLS-time comparison/return; ea2a69/ea2a6f read-selector/cursor compare.
+ea2a9c..ea2aa2 choose controller+50 + selector*16; ea2ab3 writes cursor;
+ea2ab9 calls ea35e0. ea2b84 ETA reset; ea2c18 notification flag update.
+ea3601 pending runtime ID load; ea361d ced70 lookup; ea3ae5 leading-qword clear.
+eac6dd/eac6e5 Agent output; eac705/eac714 bank pointer output;
+eac73b/eac742/eac74a pending pointer output Agent+ed0.
+e856d8..e856e7 constructor pending-array zero loop; e856f1 Agent owner store.
+e915d0 write-selector load; e915db second-qword clear; e91640/e9164e compare/increment.
+eac1d9/eac1df physical selector stores. Exact alias and lifetime guards are in
+lockstep_world_nav.h; full pin checks and original/owned-prefix checks are in
+lockstep_world_hash.h and lockstep_gate.c. The general exact-image gate check and
+existing pure registry lookup/dock-state pins remain required independently.

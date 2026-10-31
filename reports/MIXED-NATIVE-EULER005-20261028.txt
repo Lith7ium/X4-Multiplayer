@@ -1,0 +1,90 @@
+MIXED NATIVE EULER005: REFUSED BEFORE PORTABLE FRAME ZERO
+28 October 2026 | one authorized attempt, both owned games cleaned
+
+This attempt failed. Windows completed native snapshot Load but its v2 rotation
+adapter refused an input after63 accepted navigation lifetimes. No portable
+HELLO or state frame reached the coordinator, and no permit was issued. Linux
+was concurrently running but remained before its owned preload request when
+Windows failed. This run proves neither a successful Linux v2 import nor shared
+initial state or cross-platform simulation lockstep.
+
+Frozen participants and preparation
+- Windows sourcefc9f6bc, native SHA256
+  9162c515ba9510966ed6809946de07f0adf9aa5579413e5e5a1a00869abc97dc.
+- Linux runtime99e6c96, native SHA256
+  d7198847e232d541ee147742d1e48cbf96deabe919362a7560fbc55dbc18e648,
+  separate bridge122b18db5e146d9d8be80f30eb666b37c42bc0c4c31abdc3625be1b935b78f4a.
+- Contract77b19d6f, descriptor27c9bd76, exact snapshot78163510. Full hashes and
+  complete source/bundle closure are in LINUX-EULER-V2-FREEZE-20261028.txt.
+- Root enabled only launch_ready, pending and source_only in the reviewed plan;
+  active plan SHA2567bd5c916e47ef77bc527de40913b191f2710939b8a137d9efa850c8635593d80.
+  The earlier disabled plan and all prior mixed004 evidence remain unchanged.
+- The same Linux supervisor fully hashed all127 stock files,28,439,019,682 bytes,
+  before Windows/coordinator startup. Its PREPARED receipt binds the exact
+  request/review/stock hashes and retained process generation. Preparation ran
+  from approximately19:48 to19:55 UTC within its independent1800-second bound.
+- Released Windows lane5d5a680 admitted one owned b3/profile45853 participant.
+  Native startup/runtime limits remained600/120 seconds with a12-tick target.
+
+Primary Windows result
+The fresh MENU, LOAD_REQUEST and LOADED markers bind the exact run, snapshot
+and new contract. LOADED reported saved game time7.083. The final native math
+receipt records phase5/failure6, corresponding to ROTATION_E_INPUT, with one
+original Load call/return, load_true1, load_false0 and load_abnormal0.
+Both selected roles record10006 calls/returns, but only63 Euler writes and63
+navigation class calls/returns/writes; player class counters are zero.
+lifetimes=paired=63. The receipt reports stopped, no open scopes, restored1,
+restore_error0 and complete0. It does not identify which underlying passive
+reader predicate failed. Do not substitute a guessed count or accept the tail
+totals as completed per-class coverage.
+
+The native portable receipt reports frames0, issued0, completed0 and reason74;
+it is a failure receipt, with terminal_restored0/closed0. The released Windows
+session exited5 after matching the explicit failure. Native math restoration
+fields are diagnostic evidence, not an independently successful portable end.
+
+Linux and transport result
+The exact Linux game was PIDFD-claimed with the reviewed agent mapping. Its log
+contains the expected native VERIFIED record. Two later build refusals carry
+their own foreign PID/start identities and small executable sizes; the new
+strict parser records them as attributed helper diagnostics. No ambiguity was
+silently ignored. The game then waited for owned_preload_request; its collected
+world-marker map is empty, with no Load or rotation installation receipt.
+
+The coordinator exited when the failing Windows session closed its owned server.
+The independent Linux probe refused coordinator_exited_before_terminal_binding.
+Controller EOF then cancelled the exact same preparing supervisor, which
+disarmed and cleaned its owned game/Xvfb/probe. The probe's final diagnostic drain
+could not reread the now-exited process; rotation_import_verified remains false.
+Do not infer complete independent native restoration from process exit alone.
+
+The final remote coordinator has no HELLO, no frames, released=-1 and failure
+evidence_persistence_failed. The local durable bridge report is absent. This is
+a separate teardown/evidence failure. The source persist callback combines a
+local atomic report write and subsequent SSH checkpoint emission, so the label
+does not by itself distinguish disk failure from a closed output pipe. It is
+not a state-hash divergence: no paired state was available to compare.
+
+The controller and independent combined validator correctly fail. Additional
+missing acceptance evidence is retained: the cancelled launcher did not embed
+the separately collected probe, did not attest the post-handoff stock-success
+field, and lacks a durable matching local bridge report. The full initial stock
+verification and final retained-stock identity check are present; missing fields
+were not filled from assumptions or transformed into success.
+
+Cleanup and retained evidence
+Windows X4 closed gracefully with exit0 after the test failure; released lane
+restoration and staged snapshot restoration are true, with no native identity
+errors. A fresh released status shows no X4 and all owned lane locks released.
+Linux launcher reports native/Xvfb PIDFD exits, independent probe exit and
+unchanged Steam identity. A separate read-only remote check at19:58:52 UTC finds
+the exact supervisor, coordinator, native game and Xvfb generations absent,
+no X4, and no process arguments rooted in the owned test namespace. Steam and
+the prior004 archive hash still match.
+
+Raw evidence is private under .local/mixed-native-005: controller-result.json,
+combined-validation.json, coordinator.json, Windows run/native logs and collected
+Linux claim/probe/launcher/native logs. Remote-final-cleanup.json records the
+independent final process check. No retry or guard relaxation was performed.
+Further work needs the concrete Windows input-predicate diagnosis and separately
+reviewed corrections; this failed attempt remains immutable.

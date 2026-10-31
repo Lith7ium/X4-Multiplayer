@@ -1,0 +1,97 @@
+NATIVE CONTACT ORDER INVESTIGATION - 27 OCTOBER 2026
+
+Strict ordered contact equality remains required. Matching per-frame contact
+multisets do not establish equivalence: the native callback accumulates floating
+point contact positions into component/part keyed maps.
+
+Existing native evidence narrows two failures to active-list ordering:
+- Co-op repeat 015: all 33,548 contact records match as per-frame multisets.
+  Callback groups first swap at tick 7364, ordinal 12503. Actor 2's main Jolt
+  active index changes from 2 to 25 between the frame-end samples at 7350 and
+  7380 on client 1, but stays 2 on client 2. Actor 1 stays at index 3. The
+  callback group reversal follows this relative active-list order.
+- PvP repeat 002: all 32,328 contact records match as per-frame multisets.
+  At tick 16560, actor 7's main active index becomes 25 on client 1 and 13 on
+  client 2; actor 1 remains 18. This is also the first callback group reversal.
+- Diagonal-route co-op repeat 013 is distinct: its first order mismatch at
+  17922 swaps physical/sensor dock body groups while ship active indices remain
+  equal in the surrounding samples. This traversal cause remains unresolved.
+
+The local Jolt BodyIDs match in matching contact records from all five inspected
+pairs (co-op 013, 015, 016, 017 and PvP 002). Different allocation IDs are therefore
+not an explanation established by these traces. No holder-reuse or geometry
+cause is inferred from this ordering evidence.
+
+New read-only CONTACT_ORDER records capture each callback's active/island index,
+canonical scene, object/broadphase layer, body/motion type and flags. They form a
+separate complete trace; CONTACT content and strict ordered comparison remain
+unchanged. Static bodies report inactive indices. Unknown/duplicate scenes and
+invalid type values fail the observer. The existing exact-build/full-function
+pin, original-call-once behavior and owned restoration remain in force.
+
+The property diagnostic brackets the native Destructible body-property update. Its
+callee can deactivate and then reactivate a body, which removes/reappends the
+body in Jolt's active list. CONTACT_PROPERTIES records the original call's
+before/after body indices, motion types, collision groups and native caller
+RVAs. This path is a candidate, not a proven cause of the recorded mismatches.
+The entry and its body updater are pinned in full, with owned CAS restoration;
+the original function runs once with unchanged arguments.
+
+Jolt's ordinary active-body removal moves the last body down into the removed
+slot. Removing a different body therefore cannot alone move actor 2 from index
+2 to 25. Its own removal/reappend, another list mutation or different sampling
+phases remain possibilities; the property observer covers only one candidate.
+
+SHAPE_LIFETIME records body/record/holder transitions directly at shape calls,
+including calls after actor death. Previous sampled SHAPE output skips dead
+actors, so it cannot explain why co-op 013 counted two initializations versus
+one for actor 10's main body and actor 12's second body. The new trace includes
+the existing holder-seen decision and actual initialization result. Local
+addresses and BodyIDs in these lifecycle records are diagnostics, not portable
+identities.
+
+The second diagnostic pair establishes an address-dependent initialization
+decision at tick 3428. Actor 10's main body is replaced on both clients, with
+BodyID 0080001d becoming 0100001e. Client 1 reuses the previous holder address
+and skips initialization; client 2 receives a different holder address and
+initializes. Both native pre-call deadlines are identical at that point.
+Actor 9 also reuses a holder address and skips initialization on both clients.
+No physical divergence has been attributed to this initialization discrepancy.
+
+All 32 property-update records in that pair agree between clients, including
+their native caller stacks and before/after body data. None came from the
+candidate navigation caller. The historical active-list permutation therefore
+still requires a reproducing pair; these observations do not prove its cause.
+
+The holder constructor assigns a native UniverseID at holder+8. The initializer
+now remembers (address, native ID), so a recycled address with a new lifetime
+initializes again. Every referencing role remembers the shared holder key;
+replacing one role does not make another role's live holder look new. The native
+ID remains local bookkeeping and is absent from seeds and portable state hashes.
+Full constructor and ID-assignment pins protect this layout assumption. Missing
+IDs fail the observer while retaining the original call. There is no new hook
+site, no geometry replacement and no callback-order normalization.
+
+The third pair exercises the corrected cache directly: at tick 3428 both
+clients recycle actor 10's holder address with a different native ID, and both
+record seen=0 and initialized=1. The new IDs differ between clients and remain
+local. Each client performs 38 initializations across 38 lifetime transitions,
+versus 36 and 37 initializations in the preceding pointer-only pair. Each makes
+539,916 native shape calls, restores its hook and reports zero shape failures.
+All 33,548 ordered contacts and their traversal metadata match between clients.
+The complete contact sequence also matches the preceding pair, so this run
+establishes the cache correction without a demonstrated physical change.
+All 32 property-update records and caller stacks still match. Independent
+validation reports session_pass=true and evidence_valid=true with no errors
+through 18,000 fixture frames; damage, interrupt steps and checked state match.
+
+Validation: native C checks and 80 Python/LuaJIT checks pass, including a reused
+address/new ID, shared same-ID roles, replacement of one shared role, invalid ID,
+original-call-once and unchanged RNG-domain cases. Both diagnostic pairs before
+the cache fix independently passed 18,000 fixture frames: all 33,548 ordered
+contacts, damage, interrupt steps and checked state match in each pair. Their
+traversal traces differ only in island indices for 18 callbacks at ticks
+11987..11995. This establishes that this island-index difference alone need not
+permute callbacks. Historical contact ordering and diagonal departure remain
+unresolved.
+None of these fixture results establishes full-world lockstep acceptance.

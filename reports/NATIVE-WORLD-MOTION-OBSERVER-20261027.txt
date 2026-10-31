@@ -1,0 +1,641 @@
+READ-ONLY IMPORTED-WORLD MOTION OBSERVER
+
+Purpose
+-------
+The previous world-prebind-006 and -007 experiments matched every imported-world
+root at frame 1. Frame 2 differed only in motion, including saved ship 9d39b.
+Both clients had the same physical buffer phase during the compared scans.
+That evidence requires locating an actual input or update difference, rather
+than relabeling buffers or correcting the final transform.
+
+This optional observer traces the existing native Ship::Move, navigation Move,
+Agent update, steering update, and spline update wrappers for selected imported
+saved identities. It adds no patch site and calls no native getter. The complete
+pinned Windows EXE_SHA validates the layouts; each existing wrapper retains its
+own installation signature. Only navigation controllers with validated raw
+owner/agent relationships and recognized steering/spline/linear models are covered.
+The observer does not register, seed, refresh, initialize, or move watched ships.
+Fixed fixture actors are refused by the trace API.
+
+Configuration
+-------------
+Use --world-trace-ticks 12 with --world-identities, --world-hash-stride 1,
+--serial-pathing and one or more --world-hash-watch SAVED_ID values. The builder
+enables the existing diagnostic hooks. Existing fixture interventions, if
+separately selected, still affect only their fixture actors.
+
+First-frame world capture retains the exact resolved object/runtime identity
+for each watch. Arm follows that capture, takes one read-only baseline, and
+records native calls from frame 2 through the requested final frame (2..12).
+There are at most 64 watches and 2048 events. No event buffer is reused while a
+native callback could retain it; memory remains allocated until process exit.
+
+Evidence
+--------
+Each event reserves its own record atomically. Thread-local parent tokens retain
+nesting. Records become visible only after complete publication. Both entry and
+exit validate the raw object/runtime/controller/agent lifetime. The original
+call still runs exactly once if any observation fails.
+
+Before/after snapshots record TLS RNG/time/view, cheap/player/dt/time arguments,
+both physical navigation banks, all three parameter buffers, Agent+4e0..ad0,
+the active model, the steering/spline slot argument, controller refresh fields,
+Agent+ac0 timer/+ac8 setup byte, and the manager's budget/completion fields.
+Every snapshot includes active/other selectors before and after its raw reads.
+Model/timer evidence does not establish which field causes the divergence.
+In particular, the consumer of the constructor-randomized +ac0 timer remains
+unproven. Raw blocks contain pointers and padding and are not portable hashes.
+
+WORLD_TRACE_EVENT, WORLD_TRACE_STATE, WORLD_TRACE_DATA and WORLD_TRACE_STOP are
+append-only supplemental records. The existing WORLD_IMPORTED_1 hashes and
+their object coverage are unchanged. A missing event/phase/block/stop record,
+read or lifetime failure, unsupported model, changing bank phase, bad parent,
+overflow or unmatched entry/exit fails trace coverage. Same-object updates
+overlapping on different threads are retained as unsupported causal alignment.
+An unexercised hook remains visible in the coverage counts, never a success
+claim for that hook. Native paths outside these five wrappers remain unobserved.
+
+Use tools/dev/compare_native_world_trace.py LEFT_LOG RIGHT_LOG --out RESULT.
+Matching uses saved identity, tick, hook, occurrence and nested parent identity;
+process/thread IDs and cross-object global order are not comparison keys.
+Interpreted scalar/vector differences are separate from raw local differences.
+Runtime references and vector padding are retained only as raw diagnostics.
+The regular gate validator also rejects incomplete/failed configured traces.
+
+Validation before any native run
+--------------------------------
+The Windows C harness checks read-only snapshots, nested publication, concurrent
+worker reservations, raw bank labels, lifetime failures, missing TLS, the early
+tick limit, and overflow. Python tests cover incomplete/tampered evidence,
+thread-independent causal matching, concurrent-owner rejection, separate input
+and output differences, and raw-pointer/padding separation. LuaJIT checks that
+arming follows capture and that append-only records are drained exactly once.
+No live-game success is claimed by these tests.
+
+First owned native observation
+-----------------------------
+world-motion-001 stopped during frame-1 arming and restored both clients. All
+four watched ships used vtable RVA2c4f610, so the original observer refused that
+unsupported model at stage4. Each client retained four complete failed baseline
+records, no overflow and no unmatched call. This is failed coverage, not a
+gameplay pass or evidence that the model class itself differs between clients.
+
+PE RTTI identifies U::Path::LinearFlightControlModel. Selection e87cf0 allocates
+0x270 bytes before constructor eb1a10; vtable+70 points at Update eb27c0. The
+existing Agent e8f250 wrapper encloses this model update (model load e90189,
+vtable slot load e90193). Supporting its exact 0x270 raw extent requires no new
+hook. The arm check pins four complete contiguous function bodies:
+e87cf0 /1124 c9d5c8e4b36b4814dc9bf479faa0c8921aeaf4904465cb827f4f4a0634779f5b
+eb1a10 /735  6692d3e753b9a9d481c7321f77aae910a1213c4826d562c21e0fdffdae64078d
+eb27c0 /5212 7920e6e4ff99bf0d0c348eeab202b0a21f5e9d69c4005ba75d302eac7ea0c8a4
+e8f250 /10613 ae0d8b729a39a75f83b1c3d783585f587de1cc2e5eff846620f2f0c482504f52
+The decoder names uncertain Linear fields by offset. Known initialized vectors,
+times, flags and scalar fields are compared separately from pointer/padding
+bytes. A guard-page test verifies that Linear capture never reads past0x270.
+
+The partial frame-1 snapshots already show different Agent+ac0 timer values for
+all four watches, while the interpreted navigation vectors/modes/times, three
+parameter limit/stamp sets and controller refresh fields match. For saved9d39b
+the timers were8.064979936361313 and7.637342646151781. These are unequal inputs
+outside current world hashes; the consumer and causal effect remain unproven.
+Unsupported-model diagnostics and incomplete coverage remain in original logs.
+
+Second owned native observation and queue extension
+--------------------------------------------------
+world-motion-002 completed cleanup with both clients stopped/restored at frame2.
+Independent trace validation has no errors: each client captured4baselines and
+one Agent update per watched ship, with no other watched hook calls. Native
+cheap flags, dt, time, view and physical bank phases match. Full imported-world
+roots match at frame1; frame2 motion alone differs for saved80d4f and9d39b. All
+521929 imported identities and32607 unknown-motion classifications are retained.
+
+Those two ships enter Agent with matching interpreted banks and Linear model
+fields, then leave with different target vectors and transforms. The TLS RNG
+differs across clients but is unchanged by every watched Agent call. The +ac0
+constructor timer also differs and remains unchanged. Neither observation
+justifies reseeding. This narrows the motion effect to the native Agent update.
+
+Agent e8fbce..e8fc9f consumes pending commands before the model update. Its main
+vector header is+6a8/+6b0/+6b8, pending+6c0/+6c8/+6d0, and records have stride0x90.
+Consumer e8d850 reads record+10 as a UniverseID, +18 as a resource pointer,
+and +20..+50 as four transform vectors. The observer copies at most16 records
+per queue and phase, validates pointer/count/capacity arithmetic, copies contents
+twice, compares headers, then rechecks both headers before continuing. Any
+instability, excessive count, unsupported vtable or unmapped nonzero UniverseID
+fails coverage. Raw pointer values remain local diagnostics; vtable RVAs and
+saved identity references are exported separately. No native accessor is called.
+
+Schema2 adds bounded raw queue/reference blocks and count/capacity metadata.
+The independent parser retains schema1 support for earlier evidence. Comparison
+includes empty/count changes, canonical target identities, defined transform
+vectors, operation+64, consumed flags and deadline+80; capacities and unknown
+padding/pointers are excluded from semantic matching. Additional complete pins:
+e8dfc0 /4180 3ceb3030f466a8d7346de9359a97b67e0fc1098593d0ed14188b434527b2306c
+e8d850 /1892 e32a6ed0c9172b1d4c28fdc3880a0b1aff3b7678e96e9d47fa0c0b765f6efa79
+Tests reject unstable copies/headers, invalid arithmetic, overflow and unknown
+references, and verify saved-ID normalization and queue-empty transitions.
+
+Third owned observation: first unequal movement command
+------------------------------------------------------
+world-motion-003 waited for normal28GB pair admission, then stopped/restored both
+clients at frame2. Schema2 independently validates with no errors:4baselines+
+4Agent calls,216rows/client, zero observer failures/drops/unmatched entries and
+no unknown queue references. Full-world roots match at frame1. Frame2 differs
+only in motion for saved930fc,931fa,9d39b; the first two are outside the watch set.
+Bank phases match: frame1 current1/other0, frame2 current0/other1. No hashes or
+identities were excluded, and the moving set of affected ships is retained.
+
+At the frame1 baseline,9d39b already has one unequal pending command. The main
+queue is empty. TypeRVA2c4f578, operation1 and deadline-1 match, but:
+client1 reference428af, position(1916.01953125,-805.921875,3358.453125)
+client2 reference2b, position(-1558.5625,-1884.3778076171875,-3438.171875)
+These exact unequal records persist into the frame2 Agent input. Agent consumes
+them, empties pending, and leaves one main command with operation2. The distinct
+target reference/position persists and the Linear target vectors and physical
+bank0 transforms then differ. Native RNG does not advance during either call.
+
+The referenced saved objects are zones, not different encodings of one ID:
+428af is tempzone QTM-296;2b is zone002_cluster_43_sector001_macro DEE-812.
+Both belong to Teladi sector26/cluster22. The saved destroyer has default Patrol
+order3cdb and a saved targetpoint in428af at(44093.996,-144.58,-2059.078), removal
+time8.31667. Neither observed pending position equals that saved targetpoint.
+The observed command producer is therefore still unresolved: the current trace
+starts after frame1 and cannot distinguish load reconstruction from first-frame
+AI/order production. It does prove unequal movement inputs before frame2; it
+does not establish nondeterministic Linear arithmetic or justify reseeding.
+
+Private evidence (relative to this worktree; not committed):
+.local/native-lockstep/world-motion-003/result.json
+.local/native-lockstep/world-motion-003/client1/engine-output.log
+.local/native-lockstep/world-motion-003/client2/engine-output.log
+.local/native-lockstep/world-motion-003/world-difference.json
+.local/native-lockstep/world-motion-003/world-trace-difference.json
+.local/native-lockstep/world-motion-003/destroyer-command-sequence.json
+.local/native-lockstep/world-motion-003/source-targets.json
+Earlier world-motion-001/-002 artifacts and frozen overlays remain unchanged.
+
+Optional earlier producer observer
+----------------------------------
+--world-trace-early adds an explicit bounded saved-ID manifest before LoadGame.
+Exact retries after UI reload are idempotent; different/duplicate/zero IDs or
+late new configuration are refused. The existing identity-import callback only
+retains watched object/runtime values and rejects duplicate lifetimes. It does
+not inspect controllers or Agents while imports may be incomplete.
+
+At the existing postload gate boundary, before the first admitted FrameTick,
+the observer validates each imported identity, owner/controller/Agent lifetime
+and supported model. It captures a tick0 "loaded" snapshot. The existing
+path_release wrapper also records snapshots before release and after the joined
+pathing pass. The existing AI-run fallback brackets only watched unregistered
+owners, retaining script name, instruction index before/after, native caller,
+boot phase, thread role, TLS RNG/time/view and queue/model snapshots. Original
+native calls remain exactly once. No new hook site, getter or simulation write
+is introduced. Fixture and dynamic registry callbacks remain separate.
+
+The complete ExecState::Run body at b58bb0 is303bytes, SHA
+7509510d2582f326fb87c58a23b715d1f7499577bf681c67377347314e3aa759.
+This pin runs inside ai_install before optional owned NPC entry/action patches;
+the early manifest requires the successful owned-install flag. It does not
+rehash patched bytes or accept foreign patches. The observed caller must be the
+existing AIDirector return site106e3fb. ExecState+18 is an instruction index.
+
+Schema3 retains schemas1/2 for historical evidence and adds explicit early
+coverage and producer metadata. Early mode requires each loaded baseline and
+each before/after pathing boundary through the observed final tick. Missing
+imports/binding/phase records, unsupported contexts or unstable snapshots fail
+coverage; it cannot silently fall back to the later frame1 baseline. An AI hook
+with no calls remains unexercised rather than a claim of producer coverage.
+The loaded baseline is after loading, not a claim to observe every import-time
+mutation. If already unequal there, a further import producer boundary is needed.
+
+Fourth owned observation: pending input changes after the first path pass
+------------------------------------------------------------------------
+world-motion-004 used immutable overlay004b at source0d60b26. Both owned lanes
+stopped and restored at frame2; the runner closed them after81.375seconds.
+The exact DLL SHA256 was
+f26525f52f544dcbf7a46becd5123dc629f84fa5cabb370a5ad0e4609081c034
+and overlay manifest SHA256 was
+9befd279acbf8d872a3469660433631e597fff3e67be915fb09cb8ea7923bc84.
+The small final source fix permits an exact read-only manifest retry during a
+loading UI reload; new configuration retains its own thread/phase/pin guards.
+The C harness exercises the real Lua wrapper for exact, changed and new retries.
+
+Both schema3 traces independently validate with no errors:28events/756rows,
+4loaded snapshots,8path-before,8path-after,4UI baselines and4Agent calls each.
+All4imports/binds succeeded; no failed reads, dropped or unmatched events.
+No watched AI calls were observed. This is missing producer attribution, not
+evidence that no AI ran. The selected-owner AIDirector bracket is not universal.
+
+For9d39b, loaded tick0 and both first path boundaries contain matching pending
+commands: saved reference428af, position(44093.99609375,-144.5800018310547,
+-2059.077880859375), operation2, deadline8.31667. This is the saved target.
+The main queue remains empty. At the first UI baseline the pending commands are:
+client1 reference29, position(1558.9921875,-26.531005859375,-1899.9296875)
+client2 reference428af, position(-26598.33203125,-482.953125,-2366.609375)
+Both now have operation1 and deadline-1. These unequal inputs persist through
+the second path-before boundary into Agent2. Agent consumes them without
+advancing its observed RNG, moves each into the main queue as operation2, and
+leaves different Linear targets and active-bank transforms. In this run the
+raw trace identifies the changed physical bank as1; the full-world detail label
+bank0 means its first serialized bank, which is active/current, not physical0.
+
+This identifies the first appearance of unequal inputs in the Agent pending
+queue: after the first joined path pass and before the first UI report. It does
+not establish when the underlying decision was made. An already unequal order
+could be waiting in the separate manager queue and applied during the late join.
+The observed loaded Agent queue matches the save, but the manager queue was not
+captured. No caller/script attribution, queue replacement, transform correction
+or RNG reset is justified. Direct native enqueue producers, late dispatch and
+actual ExecState owner lineage require the next static audit.
+
+Full-world reconstruction still retains521929imported IDs,426799present objects
+and32607unknown-motion objects. All domains match at frame1. Frame2 differs only
+in motion for9d39b; topology,health,timing and inventory all match. This further
+change in the affected set is retained rather than hidden by narrowed hashing.
+
+Private evidence, relative to this worktree:
+.local/native-lockstep/world-motion-004/result.json
+.local/native-lockstep/world-motion-004/client1/engine-output.log
+.local/native-lockstep/world-motion-004/client2/engine-output.log
+.local/native-lockstep/world-motion-004/world-difference.json
+.local/native-lockstep/world-motion-004/world-trace-difference.json
+.local/native-lockstep/world-motion-004/destroyer-command-sequence.json
+
+Manager transfer / pending append observer (implementation, not yet live)
+------------------------------------------------------------------------
+The direct audit identifies AddTargetPointToPathOrder, native vtable2c513d8.
+Constructor eadf30 allocates0xb0 bytes, copies the0x90 target record to+10 and
+stores an optional related owner ID at+a0. Manager eacd40 takes(manager,
+recipient runtime ID,command pointer), queues ownership under its+90 lock,
+and may return after another consumer already deleted the command. The observer
+therefore copies only before calling original and never reads the command after
+the ownership transfer. Recipient object/runtime lifetime is checked separately.
+
+Consumer eace40 swaps the manager+b8 queue into a local list, resolves each
+recipient to an Agent, calls command vtable+8, then deletes the command. The
+AddTargetPoint dispatcher e98000 tailcalls Agent append e89e40. The observer
+brackets this append, retaining the input record and existing full Agent trace.
+An observer-owned generation token links command+10 to the prior enqueue;
+outstanding reuse, duplicate dispatch, changed payload and missing enqueue are
+explicit failures. Tokens, pointers, native context IDs and threads are local
+diagnostics. Cross-client comparison uses saved recipient and per-recipient
+enqueue sequence, with known payload fields and canonical saved references.
+
+--world-queue-trace is default off and requires --world-trace-early. The probe
+calls a separate world_queue_trace_config API after the early manifest, before
+LoadGame. It uses no additional floating-point option bit. The approved entries
+are eacd40 and e89e40, with five-byte replay trampolines and eight-byte CAS that
+preserves the upper three bytes. Thunk offsets2560..2687 are reserved. Complete
+pins cover both entries, construction/copy/dispatch/consumer and AI layouts.
+Failed second installation rolls back the first; foreign patches are retained.
+
+The native CURRENT ExecState snapshot is only diagnostic without a matching
+live local NPC TLS guard. The optional world_queue_owner_matches callback is
+null in this isolated tree. Root can wire the reviewed pure NPC guard; thread ID
+or TLS view alone never establishes execution ownership. AI names, PCs and saved
+source entity are decoded read-only and revalidated. MD naming and unknown Values
+remain explicitly unsupported; missing current, unbracketed, unreadable and
+changed contexts are separate statuses. The independent queue parser reports
+provenance coverage errors separately while retaining valid input comparisons.
+The first imported recipient mapping starts selective enqueue coverage; earlier
+global enqueue calls are counted but are not claimed observed watched producers.
+
+New C tests exercise the exact pinned entry prologues through both actual
+Windows-ABI detour/trampoline paths, original-once behavior, a source page made
+unreadable immediately after enqueue, generation reuse/retirement, overflow,
+foreign restoration and second-site rollback. Python tests cover malformed or
+incomplete traces, generation linkage, active pointer reuse, semantic versus raw
+fields, missing Agent brackets and unproven ownership. Lua tests cover preload
+configuration/reload and append-only queue export. No native pair has yet tested
+these new queue entries; a frozen reviewed build is required before one runs.
+
+Review correction before the next native run: capture admission and restoration
+now share the observer lock. Every admitted enqueue/append, including unselected
+calls, increments an open-scope count before capture. Restore closes admission,
+records any open scopes and restores hooks without waiting for engine calls.
+Trampolines/storage remain resident. Export retains open/peak/restore_open, and
+any restoration overlap fails completeness even after the scope finishes. A
+controlled worker test pauses after admission before event reservation, restores
+with unchanged event counters, then proves the later event cannot hide overlap.
+
+The standalone C harness accepts an optional pinned X4.exe path. It verifies the
+complete executable digest, resolves both PE entries, verifies their full body
+digests and feeds actual entry bytes to the prefix-validating emitter. The ABI
+harness executes those copied five-byte prefixes through detour/replay with
+test continuations; native game bodies are not executed outside X4. This check
+passed against the pinned image, along with the ordinary C harness and165focused
+Python/Lua tests. Frozen overlay005 predates this correction and must not launch.
+
+Fifth owned observation: pre-admission manager input, later Agent publication
+------------------------------------------------------------------------
+world-motion-005 used approved immutable overlay005b at source0093a37:
+DLL7a7096d1fb925833f956c343e7839b1324e0184a18c6c9a58c84870449552088
+manifest55037f2200ed25920ea05b5aa6f55696f277df146cbf908f2cab008d75352f7f.
+Both lanes stopped/restored at frame2 and closed after82.281seconds. No gameplay
+pass is claimed. The strict validator is false, retaining early-stop gameplay
+coverage failures, unexercised/unsupported queue evidence and source ownership
+failures. No state, RNG or timer correction was introduced.
+
+Client1 records zero selected queue events and keeps the saved pending target
+through its first UI baseline. This is unexercised selected queue coverage, not
+universal proof that no earlier decision exists. Client2 records five manager
+enqueues during boot_phase2, tick0, TLS time7.083, TLS view1, on the local UI
+thread109192 (ui1). These events contain no native loading flag or Load-function
+bracket. boot_phase2 says the gate has not observed its completed-load boundary;
+it does not establish that the native Load function is still running. Main gate
+admission later checks both its loading argument and native table+130. An AI/MD
+tail after native loading but before that next boundary remains possible.
+Both clients report
+preimport_calls0, peak4, open0, restore_open0, installed0/restored1; the observer
+recorded no admitted manager calls before all four selected imports completed.
+Its selective coverage still begins only when those runtime mappings exist.
+
+Every client2 enqueue targets saved9d39b and snapshots native CURRENT as tag66,
+script move.seekenemies, PC48, source saved9d3a4. The saved ship's aipilot post
+does point to9d3a4, under cockpit9d39d. However source_status1 remains explicitly
+unbracketed: this isolated build has no live NPC TLS owner callback. Readable
+name/PC/entity and thread agreement do not establish enclosing execution.
+
+The first four order types are unsupported by the current payload reader and
+retain error8 rather than fabricated payloads. Static PE RTTI identifies them:
+2c513b8 AbortPathOrder, caller109d117, dispatcher e98040
+2c51518 SetRequireFinalRotationOrder, caller6e1a25, dispatcher e980c0
+2c514f8 SetRequireFinalPositionOrder, caller6e1aa5, dispatcher e980d0
+2c51538 SetRollResetOrder, caller6e19a5, dispatcher e980b0.
+Their values and dispatches are not yet captured or interpreted. Before the
+later observed append, the previous pending queue has become empty; the exact
+clearing operation has not been directly bracketed.
+
+Enqueue5 is a fully read AddTargetPointToPathOrder from caller6e073c, with saved
+reference28, position(26378.75,832.900634765625,14613.9296875), operation1 and
+deadline-1. Its immutable local token5 links to append6 at tick1, boot_phase3,
+time7.099666666666667, caller eacf66. That append's before/after Agent snapshots
+show empty pending becoming exactly this new record. The source bytes and
+recipient lifetime match through the transfer. Both clients' loaded and first
+path-after Agent snapshots had still contained the identical saved target in
+428af. Client1 retains that saved input; client2 applies its earlier manager
+input after the first joined path pass and then consumes it in Agent2.
+
+This demonstrates a pre-admission manager input on one client that is published
+later into the Agent queue. It corrects any inference that late Agent appearance
+proves a late decision. Existing selected-owner ai_run and NPC ownership guards
+require boot_phase3, explaining their lack of pre-admission attribution coverage.
+The next audit is read-only early AI/interrupt eligibility, native loading state
+and clocks,
+plus verified payloads for the four observed order types. No unchanged repeat or
+RNG intervention is justified by these observations.
+
+Full imported-world roots independently reconstruct with no errors: all domains
+match at frame1; frame2 differs only in motion for931fa and9d39b. All521929imported
+IDs,426799present and32607unknown-motion objects remain included. Motion traces
+validate independently: client1 has28events/756rows, client2 has29events/783rows
+including one pending append. Queue completeness is explicitly rejected because
+client1 has no selected activity and client2 has four unsupported commands;
+all five source attributions remain incomplete. No restoration overlap occurred.
+
+Private evidence, relative to this worktree:
+.local/native-lockstep/world-motion-005/result.json
+.local/native-lockstep/world-motion-005/client1/engine-output.log
+.local/native-lockstep/world-motion-005/client2/engine-output.log
+.local/native-lockstep/world-motion-005/world-difference.json
+.local/native-lockstep/world-motion-005/world-trace-difference.json
+.local/native-lockstep/world-motion-005/world-queue-difference.json
+.local/native-lockstep/world-motion-005/destroyer-command-sequence.json
+.local/native-lockstep/world-motion-005/queue-sequence-summary.json
+.local/native-lockstep/world-motion-005/validation.json
+
+Read-only pre-admission eligibility and native indicators
+-------------------------------------------------------
+The queue observer now exports schema2 with stable double-read samples of native
+app flags6adf9fc, VBI pointer6cf1570/loading DWORD+130, TLS time/view, global game
+and real clocks, and saved playtime3d19790. Unreadable, changing, nonfinite or
+unsupported samples remain explicit failures. Raw table address, local main-thread
+identity, wall elapsed and global real time remain diagnostics; they are not
+synchronized simulation values. Schema1 evidence remains readable unchanged.
+
+The pure world_queue_early_eligible callback requires the explicitly configured
+queue/early observer, open active admission, boot_phase2/tick0, its existing UI
+thread, TLS view1, a supported stable sample and monotonic boot elapsed<=120000ms.
+It accepts either native loading-indicator value: eligibility labels the bounded
+pre-admission interval, not execution inside native Load. Root can wire the
+separately reviewed NPC callback after both headers. This isolated tree does not
+contain that NPC observer and therefore still cannot claim enclosing ownership.
+No fixture AI, interrupt, trigger, pilot or RNG behavioral guard is widened.
+
+Static Windows proof: ab1100 calls Load9ee7a0 atab1a82. Its completion helper
+ac2c70 is called afterward (success atab1af1, failure atab1a93), signals completion
+through6cf1578+1e0, waits semaphore3d79150, then clears VBI+130 atac2d28. Main
+FrameTick clears app bit2 atfa3238 before posting that semaphore. GameClient
+122b360 subsequently tails universe update9fdef0, which calls AI106d250 at9fe093.
+This is compatible with a post-Load AI tail before gate admission; it does not
+prove where the native005 events ran. The saved snapshot's playtime7.083 equals
+the five observed enqueue TLS times. No real/native-global clock was captured
+in005, so those values cannot be reconstructed retrospectively.
+
+Full contiguous layout pins added (no new patch site):
+fa2d70/2127 5a966bc940eec10249ced85daf2751984ee5f1a2bfd28889d812831b221519be
+ac2a50/522 2202cc0f6f274b684ad3535ea62549911d5f751778bf014b9120ba9aaa66746b
+ac2c70/446 a2c4f27ac6dacdce5a58800b74dc3708db0cf10bdf03f1dabbed4760f99813a7
+9ee7a0/9772 38df90e5d9385e30279abbccfdb9f12f4789fe61cc2bed4632dc007cc2f54f9c
+14b8dc0/89 4d33bf40118fbb8789b8d3d92695100f42b704fd820bc0891148dc6d1a969347
+14b8e20/101 e416f11fb3a8d1f3d6c4e40995a2f57582064bd6e68539f636f96c2f3b6c3020
+FrameTick pinning reconstructs only the verified owned fixed-dt word atfa3302
+in a local buffer. Foreign words or any other byte change fail closed.
+
+Validation: C harness and166 focused Python/Lua tests pass. Actual pinned-image
+mode additionally checks all six phase pins and owned/foreign branch cases, plus
+the existing queue emitter/ABI tests. Synthetic phase tests cover native flag0/1,
+changing/unreadable/NaN samples, wrong phase/thread/view/tick, timeout and closed
+admission. No native repeat has run with this extension.
+
+Typed manager dispatch and exact nested append
+---------------------------------------------
+The reviewed dispatch call site eacf60 now has a default-off observer under the
+existing world_queue_trace_config. Its original eight bytes are
+488b01ff5008488b. An aligned eight-byte CAS changes the first six to FF15 rel32,
+an indirect CALL through the resident pointer at thunk2720; the upper two bytes
+are preserved. The native return stays eacf66, including restoration during an
+in-flight call. No saved return address is edited. The resident forwarder at
+thunk2688 makes a proper ABI CALL to [command vtable+8], reserving0x28 bytes of
+stack space and returning normally. Its exact native-callee return is thunk2698.
+The15-byte function has a resident RUNTIME_FUNCTION and8-byte UNWIND_INFO at2704
+registered before hooks publish. Registration failure refuses installation;
+retries do not duplicate registration. Runtime restoration never deletes that
+table or the forwarding storage while calls may still be in flight.
+Unknown inputs still call the native dispatch once. Native command destruction
+at eacf77 follows the wrapper, so dispatch input can be rechecked on return.
+Enqueue retains its stricter no-read-after-ownership-transfer rule.
+
+Four additional command layouts are now bounded reads at enqueue and dispatch:
+AbortPathOrder2c513b8 allocates0x10; qword+8 is an optional related owner ID.
+SetRollReset2c51538, SetRequireFinalRotation2c51518 and
+SetRequireFinalPosition2c514f8 each allocate0x10 and consume byte+8 into Agent
+f76/f77/f78 respectively. Unsupported values/references stay failures. Their
+raw16-byte headers remain local diagnostics; vtable addresses and unused padding
+are not comparison keys. AddTarget keeps its existing0xb0/0x90-record layout.
+
+Dispatch claims an immutable enqueue generation by command pointer and runtime
+recipient, then records full Agent queue/model snapshots and raw f33/f70..f7b
+bytes before and after. Agent snapshots still require the validated postload
+binding. An earlier dispatch is explicitly incomplete, not an excuse to read an
+unvalidated model. The new world-trace kind is "order". A nested AddTarget append
+must match the live thread-local dispatch's command, Agent, runtime, token and
+record exactly, and return to precisely thunk2698. An unrelated caller in the
+same DLL is refused. Its raw caller is
+retained with explicit owned-dispatch attribution. Denied or unselected nested
+dispatches install a barrier; they cannot borrow an outer generation. Only the
+dispatch retires the command lifetime after its original returns.
+
+Schema3 links enqueue -> dispatch -> optional nested append, verifies intervals,
+source bytes and Agent trace parents, and rejects duplicate/missing dispatch or
+append provenance. Skipped recipient resolution leaves its generation outstanding
+and explicitly incomplete. A zero live manager+b8 list is never treated as an
+empty pipeline: eace40 detaches that list before execution. Unknown command types,
+other Agent queue writers and earlier pre-import activity remain coverage limits.
+The early NPC callback proves only an observed enclosing execution; this change
+does not enumerate every selected-owner AI call or establish why it was scheduled.
+
+Additional complete-function pins:
+ea17a0/201 c7e5c22502b78acc05a12b166b00c5517a912c3e37a9681427c1a416e2a2143f
+6e1940/117 7aed6fcc09f036f63d30c9a911cd5ed6ac2d29196f941e43d83ac6672b15bb9c
+6e19c0/117 e6dcc2456175a5644c6ae5c3199aa82828362c56694f697a3c236347302054e2
+6e1a40/117 8fdae13e962b99704cf27a1182e27f416d2cd1274d04bfcceee36e8e0325e471
+e98040/55 8918662a034aeabfdc63810686cfd906f906d8d41581e9141fcb79d79d59c764
+e980b0/11 a1acc045188cbd2be1b9461a03c2e4f4bc10aab8ee9e90992d983e6e559c3d04
+e980c0/11 091619c74c9e3f6a05ea5577e8456e30c24de25f8d527632cd5bd6fc2c57a8f3
+e980d0/11 11294c3dfd93488ff2aa33caad79a92019de81142a348f6a8739eaa62af9e3b8
+e89f10/382 122cfef79d4d41f3c350c46f35d352019dca1bd58cbe93e2f8a4511318beb99f
+Existing full consumer eace40/785 remains pinned before installing the new site.
+
+Validation: C tests and169 focused Python/Lua tests pass. Actual-image mode checks
+the exact consumer/call-site bytes and emitted ABI, including restore inside the
+original with successful continuation at eacf66. Tests retain small-command guard
+pages, unknown-original-once, related-owner/value refusal, detached/skipped input,
+retirement/reuse, changed recipient lifetime, exact nested append and foreign
+scope barriers, overflow, rollback at either later site, foreign restoration and
+the controlled worker/admission race. No native pair has run with this extension.
+RtlLookupFunctionEntry and actual RtlVirtualUnwind tests reconstruct the parent's
+RIP/RSP at both the forwarder's call and return, and the virtual callee reports
+the exact2698 return. This checks native stack metadata, not full engine C++
+exception cleanup or automatic retirement of interrupted observer scopes.
+The actual queue formatter's maximal integer widths,95-character name and full
+hex fields produce1645 characters,1666 including the Lua log prefix and newline.
+Its buffer is2048 bytes and short-buffer truncation is explicitly rejected.
+Static Lua DebugError b0d100/243 forwards the full string through14b9a30/73 to
+logger14b9770/691. That logger supplies0x2000 bytes to its formatter at14b984d and
+terminates byte1fff at14b9864; the queue row is below that native formatter bound.
+Re-reading native005 still yields client1 unexercised, client2 four unsupported
+commands and five unbracketed source failures; historical evidence was not changed.
+
+Native006: proven early AI origins and typed command effects
+----------------------------------------------------------
+One reviewed two-game run used the integrated source cf5736f, including the NPC
+early-ownership callback, with the previous four watches/stride1/12-tick bound.
+The only configuration additions were the diagnostic --npc-diag expansion. No
+NPC RNG/deadline/pilot intervention was enabled. The committed source archive's
+322 files remained unchanged before and after the run. All11 overlay payloads
+matched its manifest, with no extras:
+DLL487af84e77f4b9aa6f237694485c2a0eb324779740644ff86140333fa72c3fe3
+manifest5148eb453952e3074fec126eb2c5d7f8b14778da48fc66fd7d86e9c4459ac081.
+
+The released runner stopped at the strict tick2 mismatch after83.797 seconds.
+Both owned games exited gracefully with exit0, STOP completed2/restored1, and
+both lanes and staged snapshots were restored. The staged/collected snapshot
+hash remained7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+This is a failed gameplay run, not a lockstep pass. The independent full battle
+validator remains false, retaining early-stop/unexercised feature requirements,
+NPC diagnostics coverage failures, and the insufficient hold/engagement evidence.
+
+The bounded queue and world-motion parsers separately report errors[] on both
+clients; queue provenance_errors[] also holds on both. Client1 records22 queue
+events:10 enqueues,10 typed dispatches,2 exact nested appends. Client2 records11:
+5 enqueues,5 dispatches,1 append. Both have failures/dropped/outstanding/open/
+restore_open/preimport_calls0 and installed0/restored1; peak admission counts
+are6 and3. World traces contain40 events/1080 rows and34 events/918 rows, with
+all four imports/loaded baselines captured and no unmatched events.
+
+Every selected enqueue occurs at boot_phase2/tick0 with early_eligible1,
+source_status2 and a validated enclosing NPC execution. TLS time, global game
+time and saved playtime all equal7.083. Native app flags are0x20 (the synchronous
+loading bit is clear), VBI loading is0, and view/UI indicators are1. Global real
+time differs5.267604933333338 versus5.305898933333334; it remains a local diagnostic.
+These are observed pre-admission executions with loading indicators clear.
+Neither flags nor this bracket alone prove their exact position relative to
+the native Load function. The success-completion return/caller chain provides
+a concrete earlier boundary for further review.
+
+Both clients emit the same five typed operations for destroyer9d39b from pilot
+9d3a4, script move.seekenemies, PC48: AbortPath, RequireFinalRotation0,
+RequireFinalPosition0, RollReset1, AddTargetPoint. Their first four command
+semantics match; the sampled enqueue RNG differs. AddTarget already differs at
+the manager enqueue, before ownership transfer:
+ client1 reference28, xyz(1044.3203125,1621.2529296875,-143.328125),
+         RNGdeb2a529116c984a;
+ client2 reference428af, xyz(2081.1328125,-1328.001953125,23643.09375),
+         RNGc91e25aad976130b.
+Both targets use operation1 and deadline-1. Reference28 is a normal zone and
+428af a temporary zone in the same saved sector. The RNG sample is at enqueue;
+it does not identify the earlier draw that selected the target or justify a
+late reseed. Constructor timer differences remain raw input evidence as before.
+
+The typed dispatch now proves the previously missing clear-and-replace sequence.
+The loaded and first path-after destroyer snapshots retain the equal saved
+pending target. At tick1, AbortPath clears pending1->0 on both clients; the
+three boolean operations leave the captured flag bytes unchanged; AddTarget
+and its exact nested append change pending0->1 with the corresponding enqueue
+payload. All command generations retire once. Baseline1 retains those unequal
+pending inputs, then Agent2 consumes pending1->0/main0->1 and changes motion.
+The raw f33/f70..f7b bytes remain01000000000101010000000000 across these dispatches.
+
+Only client1 also emits the same five-operation pattern for trader80d4f from
+pilot80d54, move.idle PC67. Its AddTarget uses reference95,
+xyz(32815.6171875,913.5528564453125,-5846.2861328125), operation1/deadline-1,
+with enqueue RNG e82c61a4f7c289e2. Its pending queue is empty at loaded/path1after,
+becomes1 at the observed AddTarget dispatch, then is consumed by Agent2. Client2
+has no selected enqueue/dispatch for that trader and its pending queue remains
+empty. This proves differing observed command production, not absence of every
+possible AI execution on client2; the observer does not enumerate all AI calls.
+
+Full imported-world roots match at frame1. At frame2 only motion differs, for
+80d4f,931fa,9d39b; topology,health,timing and inventory match. Both retain521929
+imported IDs,426799 present objects and32607 unknown-motion objects. No hash or
+object was excluded. The affected set still changes between runs. Ship931fa is
+outside the four selected traces, so its exact writer remains unobserved here.
+Raw physical bank selectors have the same phase on both: loaded/path1after
+read1/write0, baseline1/Agent2/path2after read0/write1. The observed Agent2 updates
+bank1 on both; no phase relabeling explains the different commands or motion.
+
+The pristine saved AI stack for pilot80d54 is orders.base -> order.trade.routine
+-> move.idle(label start,time6.91667,index5). Pilot9d3a4 is saved in orders.base
+-> order.fight.patrol(label find_endzone,time6.31667,index1), with no saved
+move.seekenemies frame. These saved values are equal because both imported the
+identical snapshot. Their XML time/index to native wake-deadline mapping is not
+yet proven. In particular, saved script time must not be called context+190's
+due time. Native scheduling flags, timer-tree state and source context before
+execution were not captured by006.
+
+The next control design must address the load-success boundary before the
+caller's same-iteration MD/AI continuation, rather than correcting targets at
+dispatch. Windows success completion returns atab1af6, before module+70 is set
+atab1b1e and before caller continuation. A proposed paired native admission there
+must use coordinator readiness configured before Load; waiting for later Lua/UI
+readiness would deadlock the still-running worker/main join. This boundary can
+exclude that later tail, but earlier Load/completion callbacks may already have
+modified scheduling or RNG. Matching initial scheduler/clock state and identifying
+the wake/decision source remain required; no new hold/hook or repeat is approved
+or implemented by this report.
+
+Private raw and independently reconstructed evidence:
+.local/native-lockstep/world-motion-006/result.json
+.local/native-lockstep/world-motion-006/client1/engine-output.log
+.local/native-lockstep/world-motion-006/client2/engine-output.log
+.local/native-lockstep/world-motion-006/world-difference.json
+.local/native-lockstep/world-motion-006/world-trace-difference.json
+.local/native-lockstep/world-motion-006/world-queue-difference.json
+.local/native-lockstep/world-motion-006/queue-sequence-summary.json
+.local/native-lockstep/world-motion-006/causal-queue-chain.json
+.local/native-lockstep/world-motion-006/saved-ai-state.json
+.local/native-lockstep/world-motion-006/source-pilot-target.json
+.local/native-lockstep/world-motion-006/validation.json
+.local/native-lockstep/world-motion-freeze-006.json
+.local/native-lockstep/world-motion-artifact-audit-006.json

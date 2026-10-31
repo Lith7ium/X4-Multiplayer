@@ -1,0 +1,449 @@
+Portable mixed-native baseline — implementation in progress
+
+This is preparation for actual Linux X4 and Windows X4 sharing one bounded
+zero-command fixture. No mixed native gameplay result exists yet. The prior
+Windows/VPS relay and Linux clock/no-op results retain their separate scopes.
+
+The closed x4-portable-fixture-v1 schema covers exactly twelve saved ShipSmall
+objects: original fixture slot, saved identity, macro, true owner, parent saved
+identity, stored hull bits, and active/other local navigation transforms and
+saved references at b0/b8. Four xyz vectors contain position then three basis
+vectors; padding and platform addresses never enter the shared bytes. Both banks
+are role-relative; the other bank is not claimed to be the previous frame.
+Shields, velocities, navigation flags, AI, RNG, weapons, cargo, economy, missions,
+new/destroyed objects and other components are explicitly unsupported.
+
+All fields retain exact IEEE bits, including negative zero. A complete frame
+binds the contract digest, completed tick, native game time, original calls and
+returns, and two ordered zero-command receipts. Counts must equal the completed
+tick at the joined main pre-FrameTick boundary. Platform diagnostic hashes and
+real-time epochs remain separate. An early load observer result cannot be used
+as this boundary's tick zero.
+
+Canonical schema SHA256:
+57edd192fe98d5daa46df95e7d84d17a76976a51776cf06fcf9e4e5e8e5dde3e
+The independently compiled C/Python golden frame is 2574 bytes, SHA256:
+db6ab18fbd97cf15cf996673f3356f38a1a3531a2803172fe9546be53be351c4
+Windows Zig0.15.2 and WSL GCC produced identical bytes. These are synthetic
+serialization checks, not engine parity evidence.
+
+The generated private fixture contract is:
+f66b841dbef811d245eb584a0586401ef80361847ad17d941dfeb3cd5dc0592b
+It binds the exact owned save SHA256
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8
+and the independently full-byte-verified common stock-content manifest
+f589af25b4170053314d1271e18d6499b5c7a313ccad0bdaacb1aabdaea4a5ac.
+The common files are the existing saved battle MD fixture and a minimal snapshot
+loader. The loader requires disposable profile45841 and its exact private save
+path, a native installation acknowledgement, and exactly one save_009 entry.
+It never spawns actors, issues orders or changes clocks. Linux's separate adapter
+waits on the pure x4mp_load_observer_ready accessor before requesting LoadGame.
+Participant binaries/adapters and process identities require separate evidence.
+
+The Windows exporter is default-off. It adds no patch site or option bit: it
+uses the existing saved-ID import observation and joined main gate. A bounded
+inverse index rejects ambiguous saved identities; full runtime IDs, registry
+lookups, exact class/controller pins, true-owner strings and controller lifetime
+are checked. Native transform getters are verified as code pins but never called.
+Two immediate samples and stable bank selectors must agree before immutable
+canonical bytes are published. Unknown references, missing actors, stale objects,
+nonfinite values and nonzero commands refuse the experiment. Existing diagnostic
+hashes are preserved. The Lua API exports only immutable captured bytes/status.
+
+The prototype loopback coordinator pins the two declared platform/artifact
+identities and contract, persists matching state before any permit, rejects
+changed duplicates/future frames and requires both peers to remain unchanged
+through a deliberate hold. Terminal acceptance requires original-call/return
+counts and restoration acknowledgements from both. It explicitly does not verify
+native process identity; an owning runner must do that independently. There is
+no implicit fallback from a native participant to a synthetic peer.
+
+Validation: eighteen Python/LuaJIT checks, including real UDP subprocess tests of
+durable admission, a three-second hold, terminal receipts and changed waiting
+state refusal. Existing Windows refusal/CAS/restoration tests and a new Windows
+semantic-decoder test pass with warnings as errors. The latter uses owned
+synthetic memory to verify no input bytes change, exact bank-role mapping,
+padding exclusion, owner checks, stale IDs, ambiguous identities, bad references,
+nonfinite hulls and controller lifetime. No game was launched for these checks.
+
+Remaining work at that checkpoint: native portable protocol transport/terminal
+drain, an owning simultaneous runner, and Linux's actual saved-world boundary
+and semantic adapter. The Windows transport update below supersedes that part.
+The Linux read-only import observer is separately reviewed; it cannot hold the
+simulation or establish parity by itself. Every live test requires exact reviewed
+artifacts and owned process/profile/Steam isolation. Private generated manifests,
+binary builds and raw evidence remain outside Git under .local.
+
+Windows native transport update (27 October)
+
+An explicit portable_transport configuration now sends NGP directly from the
+existing joined main barrier. It requires Windows slot1, the exact world-identity
+option alone, the closed twelve-ship contract and zero commands. Legacy NGSTATE2
+remains the default. There is no new engine hook or Lua-driven frame permit.
+
+The participant sends immutable captured bytes, with a separate SHA256 diagnostic,
+and repeats HELLO/STATE while waiting. Every retransmission and accepted GO or
+STOP first rereads the actual native sample and game/real clocks. A change refuses
+admission. Stale and foreign messages cannot grant; future grants and nonzero
+commands fail. Artifact declarations still require independent runner verification.
+
+The boot watchdog and first captured-frame wait use the explicit bounded startup
+allowance; later frames retain the shorter runtime timeout. The coordinator's
+absolute startup budget continues until first GO, even if one game loads earlier.
+Repeated HELLO messages cannot extend that budget.
+
+Cancellation and continuation claims share a lock. If cancellation wins, the
+suspended continuation waits for the restoration attempt to finish before it is
+counted or called. If the continuation claim wins, later cancellation may overlap
+it. No lock spans the original native function, which can synchronously reenter
+stop. Restoration completion does not conceal ownership failure: the failure
+remains explicit and cannot produce a successful terminal receipt.
+
+Every exit from the joined gate uses the same original-call/return accounting.
+Successful STOP requires all requested frames, one final outside-admission
+continuation, matching call/return counts, restored main/dt/import hooks and zero
+failures. The socket stays open only for bounded DONE retransmission and exact
+CLOSED acknowledgement. Cleanup exchanges socket ownership once. Failed partial
+Lua setup and common-loader update errors request native cancellation.
+The common loader accepts only Linux's private45841 or the released Windows
+disposable lanes45850/51/53..58, with an exact configured save path and matching
+profile suffix. Windows45841/42 remain protected. The source bytes are common
+across platforms; the runner supplies the separately verified owned profile.
+
+The transport test compiles the production gate and reader against owned memory
+and uses actual loopback UDP. It covers state/clock mutation, stale/future/nonzero
+permits, cancellation during native rereading, both stop/continuation orderings,
+startup versus runtime timeout, terminal packet loss, count mismatch and three
+restoration ownership failures. A production Python coordinator separately checks
+the emitted bytes and terminal exchange. These remain synthetic-engine tests.
+Actual-image refusal/CAS/forwarding checks and focused Python/Lua tests also pass.
+No mixed-platform native gameplay or independent player-input acceptance follows.
+
+The optional cancel addition changes the common loader digest. Future native
+bundles must regenerate and verify their contract from the reviewed common files;
+the earlier frozen observer bundles and contract above remain immutable evidence.
+
+Owned Windows participant wrapper (offline validation)
+
+native_portable_lane.py uses the released runner in memory, following the existing
+native_gate_lane.py snapshot wrapper. The reviewed released runner only supports
+2..3 local clients. The new wrapper pins its exact bytes, lanecore bytes and the
+complete SessionRun.validate AST, and changes just that lower bound from2 to1.
+Its own validation then requires exactly one Windows client. All released queue,
+RAM, protected-profile, launch, endpoint audit and cleanup methods remain intact;
+the released files are never edited. Five Windows and WSL checks pass, including
+reversing the one AST constant and comparing the entire original validator.
+
+The wrapper requires at least14GB, fresh output, menu start, profile repinning,
+the exact portable SSH server command and closed-success trigger, and the existing
+narrow owned-SSH network policy. It rejects extra extension/Lua injections. After
+the real Run.prepare it must compare the complete installed extension against the
+shared and participant manifests, including unchanged loader/MD bytes, before
+staging the owned snapshot and generating private settings. Settings bind the
+actual lane profile/save path, contract, native DLL hash, session token and port.
+The existing SnapshotSlot archive-before-removal and released process cleanup are
+retained. Actual Run.prepare/native acceptance remains pending the future bundle
+and participant review; offline checks are not that evidence.
+
+The future common bundle additionally needs an inert md/x4lan.xml because the
+released base validator requires that filename. Both platforms must receive the
+same file and new contract; the existing frozen observer bundle stays unchanged.
+
+Review hardening rechecks the staged snapshot digest against the contract after
+queued admission, before enabling settings. The final Run.start_x4 wrapper then
+rechecks the complete shared/participant tree with the exact generated settings,
+the staged snapshot/slot, disabled autostart tree, profile config/content/input
+files and declared Windows executable. This runs after the released launch lock,
+admission and instance checks, then calls the original launch exactly once only
+if all bytes still match. Seven Windows and WSL wrapper tests pass, including
+mutations during a modeled startup wait and archive-before-removal cleanup of a
+changed queued snapshot. No native launch was used for these checks.
+
+The inert Windows bundle builder also scans the complete copied base after all
+writes before publishing its manifests. A regression adding an undeclared MD file
+between the initial source scan and copy now refuses the output; the later runner
+check remains independent. Three Windows and WSL bundle checks pass.
+
+Owned mixed-host transport (offline validation)
+
+tools/dev/native_portable_ssh.py runs one PortableBarrier on Linux. Windows
+slot1 reaches it through an owned, strict OpenSSH subprocess; Linux slot2 uses
+that same process's ephemeral loopback UDP socket. The bridge never grants a
+tick locally. The existing strict SSH command keeps host verification, port22,
+no multiplexing/proxies/forwarding/agent forwarding/local commands. The released
+lane's separate explicit owned-SSH audit is still required by the native runner.
+
+Remote full-source hashes, PID/start and endpoint are checked before readiness.
+Each grant/restoration acknowledgment follows a fsynced remote checkpoint and
+a matching locally persisted checkpoint. Input EOF, malformed routing, source
+mismatch, stderr, early exit, persistence failure and bounded deadlines refuse
+completion. Failure can stop a peer but cannot grant it a tick. A successful
+bridge closes its socket and SSH process before reporting done; optional30s
+inert retention exists solely for cleanup by the owning released runner.
+
+Eight transport tests pass under WSL, including actual child processes and UDP:
+Windows-slot forwarding plus direct Linux-slot delivery share one coordinator,
+a deliberately dropped first grant is retransmitted, the hold and both terminal
+restoration receipts complete, and failures persist/stop without granting. Four
+portable unit cases pass on Windows; four Linux process cases are explicitly
+skipped there. All these peers are synthetic. This is not evidence of native
+Linux/Windows simulation equality or production SSH deployment.
+
+A subsequent bounded test exercised this transport over the actual authorized
+VPS using two explicitly synthetic peers, one on Windows and one on Linux. Four
+permits and five matching declared-state frames completed through the same Linux
+coordinator. The deliberately dropped first Windows grant was recovered, the
+measured hold was0.592253s, and both terminal restoration declarations received
+CLOSED. Exact source provenance matched; SSH exited0 with no stderr. No native
+X4 process was started, and no production service was changed. This adds real
+cross-host transport evidence only; simulated declarations are not native game
+or restoration evidence.
+
+Current mixed-native preparation
+
+The future common baseline002 has contract SHA256
+17c17125cc4752f0cc85a5d539e53619faf62c448fbc2b13d74a04b375c36103.
+It retains the schema, snapshot, stock content and twelve actors above. It adds
+the inert MD file and the reviewed common loader with explicit OS-specific
+profile allowlists. Its exact common-loader SHA256 is
+244cbe2a786ed2445640e23d1f5b081a53c94ff127fb0fce92de9ead232f9fb1.
+The observer-only baseline001 and its evidence remain unchanged.
+
+An inert Windows bundle was generated from the reviewed native66cb6cd DLL,
+525824bytes, SHA256
+36a7f67b75c842076cbd91bde0ec8c1df0b8cdd398b00ab65a387400a1a6dbef,
+and reviewed c49d8f5 adapter. The actual released check_base_lab accepts its
+complete nine-file base. Actual released repin_profile on private copies for all
+eight permitted Windows profiles changes zero files, preserving every shared
+byte. This is not actual Run.prepare, native loaded-module identity, or a mixed
+game execution. Linux's joined-main portable binding still requires review.
+
+Final protocol evidence now retains one immutable release observation for each
+slot separately from the bounded first256 diagnostic hold samples. Saturating
+that list cannot lose the exact two observations that authorized a hold release.
+The admission predicate and wire format remain unchanged. The independent
+validate_native_portable module re-encodes every frame, compares exact fields,
+clock increments and zero-command receipts, checks original-once terminal
+counts, and requires both immutable observations after the expected hold. Its
+SSH check separately requires exact remote source, clean closure and a nonempty
+released-runner audit attributing the permitted endpoint to the owned SSH child.
+Both checks explicitly retain native_processes_verified=false; neither alone
+can establish a passing native pair.
+
+Twenty-nine focused tests pass under WSL, including child-process/real-UDP
+transport cases. Windows passes the same set with four explicit Linux-only
+process skips. Mutation cases reject claimed success containing changed state,
+clocks, receipts, missing peers, changed artifact identity, incomplete hold proof,
+SSH stderr or wrong process/endpoint attribution. The earlier actual VPS
+synthetic run remains evidence for its original pinned coordinator source.
+
+Windows terminal observation (offline validation)
+
+The common loader now invokes an optional backend observer from its existing
+onUpdate callback, including after a loader error. It adds no readiness condition
+or game getter. The Windows observer reads native portable_status afresh and emits
+at most one bounded PORTABLE_NATIVE TERMINAL row. Run, slot, contract, snapshot
+and declared agent digest bind the row to the owning runner's expected artifacts;
+the runner must independently associate the log with its actual PID/start and
+loaded DLL. A logged digest is not proof of the loaded module.
+
+Success requires native closed=1, draining=0, terminal restoration, zero failures,
+reason1, exact configured limit and completed/issued ticks, and frames/calls/returns
+equal to limit+1. Active or draining status is not a terminal receipt. An inactive
+native refusal produces failure even at frame0 or with portable failures=0;
+its counters can still describe an unfinished exit and never establish completion.
+Nil or malformed status cannot become a synthetic receipt. ERROR and CANCEL
+remain fatal. The new optional seam changes the shared loader digest, requiring
+new common manifests on both platforms.
+
+The native status accessor adds active/reason/issued/completed. After native stop,
+it can read only owned diagnostic state from the loaded UI thread without adopting
+that thread or granting generic control authority. This covers the frame0 case
+where issued remains0 and ordinary UI adoption is intentionally unavailable.
+Closure is published after the final original return and CLOSED acknowledgment;
+Lua may observe it on a subsequent update after the main hook has been restored.
+If X4 exits, reloads the adapter after stop, or supplies no such update, no success
+row is invented: the owning runner must refuse missing terminal evidence.
+
+Production C transport tests exercise status from a distinct real test thread
+through successful closure, frame0/clock/ownership refusals, cancellation and
+startup timeout; UI ownership remains unchanged and stop authority is refused.
+LuaJIT tests cover delayed/nil/draining status, exact counts, duplicate suppression,
+malformed data, unchanged load admission and observation after cancellation.
+These are synthetic-engine/real-loopback checks, not a native game result.
+
+The Windows wrapper now adds independent process/module identity evidence. Before
+the released launch it hashes the exact EXE and DLL through read-only handles
+that deny write/delete sharing, retaining them until owned exit. It duplicates
+the released runner's existing process handle, checks PID/creation time and
+image path, and requires membership of that runner's existing kill-on-close job.
+Process creation must follow acquisition of both artifact leases. During normal
+released polling it checks the actual loaded DLL path and PE image size, rejecting
+foreign same-name modules, changed identities or disappearance. It does not open
+processes by PID, write memory, launch or stop processes itself.
+
+Normal collection records signaled exit on the same process handle before closing
+the artifact leases and allowing released restoration. Missing module/job/exit
+evidence or any identity error makes the wrapper's session finish fail even if
+the original pass trigger matched. Original queue, launch, poll, collect, restore,
+job cleanup and failure reasons remain in place. Five real Windows nongame child
+tests pass, including wrong PID/job/path, absent module, premature exit checks,
+retrospective attachment refusal and actual write/delete denial while leased.
+Eight wrapper tests pass on Windows and WSL; those five Windows handle tests are
+explicitly skipped under WSL. No X4 game was started for this validation.
+
+Failure-path review also requires lease release before restoration when launch
+created no process, or the released runner's original process handle proves exit
+even though independent attachment/collection failed. Such failures remain fatal;
+they cannot create native acceptance. Collection's finally path handles an
+original collection exception too. A live or unknown process keeps its leases
+and refuses restoration; final owned-job cleanup remains the released runner's
+responsibility. Seven modeled failure paths now cover Popen/early-start errors,
+pre-attachment failure, collection/identity errors and live/unknown exit state.
+The combined wrapper/identity suite passes14 Windows tests and9 WSL tests with
+five explicit Windows-only skips.
+
+Common baseline003 and Linux runner preparation
+
+The accepted terminal observer seam changes the common loader bytes. The frozen
+baseline003 contract is
+516ef8728fad1e9c99da5e3fa864d5d05366525ba7576c5256b2e9926b10bd50,
+with raw loader SHA256
+bb105a63558ad63b99404573c235a168e93147fbb40194959f1820a67e373547.
+These are the explicitly reviewed CRLF source bytes, not a silently normalized
+Git blob. Snapshot, stock, schema, actors and MD files are unchanged. Actual
+released copying/repinning for all eight Windows profiles preserves all three
+shared files. Final Windows DLL/bundle and Linux native artifact review remain
+pending; baseline002 and observer baseline001 remain archived unchanged.
+
+linux_native_portable_run.py is a separate native participant launcher, retaining
+the reviewed namespace/Steam/PIDFD helpers without changing the old observer
+launcher. It requires a complete frozen payload manifest and explicit review
+digest, exact003 content/snapshot, private root-owned configuration,600s startup
+and120s runtime caps, and14GB again immediately before native launch. The one
+declared Linux coordinator must have the exact source hashes, interpreter and
+command, PID/start/UID, and actual owned loopback UDP socket. The new native mode
+excludes legacy observer/admission/user scheduler environment. Only a new private
+profile, Xvfb, extension namespace and owned native process can be controlled.
+
+The launcher source is preparatory: the independent portable probe and reviewed
+Linux native/bridge artifacts are still required before its complete manifest can
+be assembled or any game launched. No synthetic participant satisfies it. Four
+preflight tests pass in WSL, including a real owned nongame UDP process and PIDFD;
+Windows passes three with that Linux-only test skipped. Four actual LuaJIT tests
+also pass for the separate minimal Linux adapter: it only calls the verified
+readiness bridge, requires an exact boolean and snapshot, and refuses wrong mode,
+profile/schema, unavailable bridge or protected UI. It never issues permits or
+reads frame state through Lua.
+
+Independent Linux native probe prepared
+
+linux_portable_probe.py now binds the fresh claim to the actual PIDFD/start/UID,
+full pinned executable, reviewed agent and mapped readiness bridge. Before the
+owned preload request it discovers the game's unique connected UDP socket and
+records its inode, descriptors and exact source/destination. Subsequent peer2
+reports must resolve to that same socket/process generation. Generic lifecycle
+rows require exactly one VERIFIED native PID; a foreign verified process is a
+hard refusal, including a line observed before the claim arrived.
+
+The coordinator PIDFD remains retained throughout admission. Repeated identity,
+command, UID and owned socket checks bracket report reads. A complete report is
+validated while that exact coordinator is alive, then copied immutably; only
+after this cutoff may its normal exit be accepted. Later report-file replacement
+or port reuse cannot supply evidence. Actual nongame process tests cover socket
+replacement, exit before terminal, and legitimate exit after terminal.
+
+Acceptance additionally requires exact native terminal counts, both load and
+portable restoration status, all seven original code regions and cleared slots,
+the twelve imported generation-checked identities, and bounded independent
+three-clock samples matching the held wire frame. The loaded padding baseline
+is explicitly native-owned before installation, followed by an independent
+final read; it is not misrepresented as an external pre-arm observation. Full
+coordinator/zero-receipt validation is reused. This probe does not claim Windows
+process identity, SSH completion or native pair acceptance by itself.
+
+The frozen Windows003 bundle now uses reviewed DLL9c5161fb1bd664c262b23fae9bc9e4a18206c3b4cbe6295b79975a3a38246d71.
+Actual released base checks and all eight profile repin inventories preserve its
+nine files. Real Run.prepare and a simultaneous native launch remain pending the
+complete reviewed Linux bundle and combined evidence validation. No native game
+was launched by these probe tests.
+
+First actual simultaneous native attempt: failed before Linux load
+
+Mixed001 used frozen common003, Windows7902 DLL9c5161fb and Linux agent a6b3e79a
+with bridge ff5f0f3e. Windows b3 run20261027-213924-b3-vps-windows-test-65116
+owned X4 PID12020 and Linux caseportable-native-329ddd9f owned X4 PID2544175,
+start88395849. Both native processes existed simultaneously. Windows loaded the
+shared snapshot at game7.083; Linux refused immediately after exact executable
+verification with ready_request_configuration, before MENU, request publication,
+observer installation or loading. There was no successful mixed-state comparison
+or admitted simulation tick. This attempt is a strict FAIL.
+
+The exact cause is the ReadyGate mode allowlist: its shared constructor accepted
+only the older clock-admission and load-observer names and omitted the new
+portable-fixture12-zero-v1 mode. A separate Linux source correction and newly
+pinned agent/bridge are required; the failed artifacts and evidence stay frozen.
+The Windows released runner closed only its owned b3 instance. Both platforms
+completed owned-process cleanup; Windows snapshot/lane restoration and artifact
+lease closure passed, Linux PIDFD/Xvfb/probe cleanup passed, existing Steam was
+unchanged, and the production service remained stopped in its preexisting failed
+state. The Windows final native receipt was a failure with issued/completed0.
+
+The attempt also exposed a diagnostic gap in Windows UDP ownership collection.
+An actual owned nongame socket using the same socket()+connect()+send() sequence
+proves that GetExtendedUdpTable reports a 0.0.0.0 binding while the loopback
+receiver sees source127.0.0.1 with the same port. Evidence now preserves the real
+wildcard binding and joins it to the received source only through the retained
+native PID/creation identity and repeated port observations. It does not pretend
+the Windows table proves a remote destination or socket inode. Ambiguous matches
+refuse. The existing released SSH/network audit remains unchanged. Nineteen
+Windows tests pass, including the real owned send/receive case; WSL passes the
+thirteen portable tests with six Windows process tests explicitly skipped.
+
+Second actual simultaneous attempt: initial rotation mismatch isolated
+
+Before mixed002, the actual SSH regression was extended from4 to12 ticks. It
+exposed integer tick-key versus JSON string-key sorting at tick10. The remote
+coordinator now normalizes the JSON representation before durable write, digest
+and emission. The unchanged receipt-before-permit requirement remains. The real
+subprocess/UDP regression now completes13 frames and13 returns on both sides;
+an explicit JSON roundtrip checksum regression also passes. The superseded002
+review remains archived; reviewed002b carries this transport correction.
+
+Mixed002 used exact Windows DLL9c5161fb, corrected Linux agentd23c564c and bridge
+df0f2121, common003 and reviewed002b. Actual Windows b3 PID106708 and Linux
+PID2545889/start88590691 reached the joined main boundary simultaneously. The
+coordinator received both canonical frame0 records and refused before any grant:
+released=-1. Both game clocks are exactly401c54fdf3b645a2 (7.083). All twelve
+saved identities, semantic classes/controllers, macros, true owners, parent
+identities, stored hull, local positions and navigation references match.
+
+Exactly120 fields differ: twelve actors times two role-relative banks times five
+rotation coefficients, transform indices3,5,7,9,11. The largest absolute
+coefficient difference is1.1920928955078125e-7. These are real different bits,
+including near-unit values and near-zero rotation terms, not a hashing error.
+No tolerance, rounding or float normalization has been introduced. Windows's
+canonical frame root is f79920c8961414c7f7574d0161b589b658a2970cfe7245b61463a66485b20496;
+Linux's is4b5c926d2478d6440a8f7df04acd1a9fd1b980603c60c3379c700e2c4f43e3fc.
+Tracing the native rotation import/normalization path is the next diagnostic
+task; this result does not yet identify the responsible native function.
+
+Linux's additional diagnostic SHA uses the same frame with32 zero contract
+bytes, by explicit native design. Recomputing that separate domain exactly
+matches its sent3a8f243205944229d7479c10e20e91bca917232d90c5fa3672265c5894fc090d.
+The actual canonical frame root above includes the contract and is the value
+used for comparison. These two differently scoped digests must not be confused.
+
+This is a strict FAIL, with zero granted lockstep ticks. Linux terminal drain
+records one original call/return after restoration, terminal_ack1, no held-state
+or clock changes, and no restore error. All seven code regions and both cadence
+slots were independently read back as original. The completed load map contains
+521929 sorted entries, zero unresolved identities, and all twelve fixture IDs.
+Both native processes and the isolated Xvfb exited under their owned runners;
+Windows mapped-DLL/job/creation identity,117 UDP ownership observations, snapshot
+and lane restoration, and artifact lease closure passed. Existing Steam and the
+stopped production service remain unchanged. Final post-failure endpoint and
+padding observations were not acceptance evidence; no complete-session pass is
+claimed. The raw before-grant frames, first-difference list, native lifecycle logs,
+import map and cleanup records remain private in mixed-native-002.
+

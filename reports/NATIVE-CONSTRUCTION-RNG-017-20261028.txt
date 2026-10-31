@@ -1,0 +1,108 @@
+CONSTRUCTION 017: MATCHED CONSTRUCTOR DRAWS, STRICT FAILURE RETAINED
+28 October 2026
+
+Result
+------
+The single authorized two-native-client experiment completed with the existing
+late-bind refusal. Both clients stopped after tick5 with reason75 and restored1.
+Station construction did not complete and the registry did not enroll the builder.
+The frozen validator reports evidence_valid=false with 44 errors. This report
+does not deduplicate its logs, change its result or treat the RNG observations as
+proof of lockstep, independent player authority, or complete constructor coverage.
+
+The causal intervention did produce the intended bounded result: both selected
+constructor scopes ran once, returned normally, restored their own caller RNG,
+and produced matching observed draws and native timer values. Physical bank
+differences and opposite selectors remain visible and unnormalized.
+
+Exact inputs and lifecycle
+--------------------------
+Source56fe2b3 / buildb09ac92; epoch1, accepted options0x84fffffffffff; unchanged
+construction016 fixture, snapshot, MD, actions, late-update and identity guards.
+Overlay018 manifest:
+61817351977bb8b186a3646d601c703340bbd28607737c7d3db1a3654a5a6aad
+DLL SHA256:
+c446d52514720dcf8d8226ad608a8e45e5a9a3e5fc439644e323216b1d93e117
+Command SHA256:
+303330a473a8e4684953ee4c4757785cb5779a275f2edbb326189bc368939f2a
+
+The released runner admitted one pair on b1/b2 with the approved 120-tick,
+260-second run and 900-second admission bounds. It started at 19:18:39 UTC and
+finished after79.5 seconds with fail_pattern/exit5. Both owned game processes
+closed gracefully with exit0. Both lane and snapshot restorations succeeded;
+the two archived snapshots match the exact source hash. Owned save-slot files
+were absent, both lanes idle, and no owned game/wrapper/relay process remained.
+There was no retry or manual intervention. Private PID/start/profile evidence,
+the exact command, source inventory, raw logs and cleanup proof remain in the
+own worktree under .local/creation-rng/build-017 and its preparation directory.
+
+Observed A/B behavior
+--------------------
+Both clients retained59 creation records with valid separate A and B closures.
+Mandatory MD, first-origin and identity evidence has no parser errors. The
+creation trace reports no dropped/open/restore-failed record. Each RNG scope
+reports admitted1/original1/normal1/closed1/restored1/error0/stop_overlap0.
+Both RNG footers have count2/active0/attempted3/failures0/restore_failures0 and
+restore_open0. All twelve child-writer failure counters remain zero.
+
+                    Initial scoped RNG    Final scoped RNG
+A Generate          8b34a17d4ae84a2f       f5741c26508e55bc
+B Navigation        5311c417920e6e36       ed266598d7bbc22e
+
+Each client restored its own original caller word, which differed between the
+clients. All21 observed FloatState records match, including19 TLS-backed draws
+and2 non-TLS draws. Native Agent timer:8.153086067914963 on both. Native posted
+event due time:16.868417413711548 on both. The native query returned false on
+both. The observed native clock bits are401cbb645a1cac08 on both; clocks and
+timer fields were not overwritten. This is bounded observed draw agreement,
+not an assertion that every native random consumer was intercepted.
+
+The first covered startup update still precedes the deferred Builder callback.
+Client1: phase1 order9, A10..110, Builder event117, firstAI129, B130..141,
+callback145. Client2: phase1 order12, A13..113, Builder event120, firstAI132,
+B133..144, callback148. The original registry late_update refusal is intact.
+
+Remaining raw differences
+-------------------------
+The four raw groups are physical navigation banks0/1 at Agent+0xad0/+0xc70,
+then physical parameter banks0/1 at Agent+0/+0x1a0; each group is416 bytes.
+They are copied as raw local diagnostic bytes, without pointer normalization,
+bank exchange, padding removal or reinterpretation as sector coordinates.
+
+Boundary                   Differing bytes by group    Read/write p1 vs p2
+Navigation return          2,2,230,223                  1/0 vs0/1
+Agent return               2,2,24,23                    1/0 vs0/1
+Builder callback           4,4,2,2                      0/1 vs1/0
+
+At Builder callback, controller+c8 is1 on client1 and0 on client2. The exact
+offset/value differences and raw hashes are retained privately for independent
+field attribution. Equal constructor timers do not explain or waive those raw
+differences. Allocation-local references, physical phase and unspecified bytes
+must be distinguished through the pinned read/write paths before a comparison
+can claim a stronger semantic interpretation. Sector pose remains unsupported.
+
+Diagnostic acknowledgement failure
+----------------------------------
+Each native log contains two identical CREATION_RNG_CONFIG acknowledgements,
+each followed by ARMED for the same client. Both occur before the save's first
+and second load passes, reservation, constructor activity or RNG scope rows.
+The loaded C configuration supports a healthy immutable reattachment, while
+the Lua module has a new local header-emitted flag after UI reinitialization.
+The frozen parser requires exactly one acknowledgement and therefore rejects
+these logs. The44 strict errors include two such per-client receipt errors and
+their dependent peer RNG-evidence error; the prior native failure classes remain.
+
+The original frozen validation SHA256 is:
+8ffe64040235586216f98151a68d4d99c6c0ba566addf002aac667fed1fd9e79
+It is retained unchanged. A future source correction must prove identical
+manifest/key/schema/bootstrap and same native boot identity before activity;
+it must refuse conflicting acknowledgements, post-activity reattachment and
+mixed boots rather than broadly dropping duplicate lines. That correction is
+separate from this run and cannot turn the existing native refusal into success.
+
+Next gates
+----------
+Independent raw field attribution and a reviewed acknowledgement contract can
+improve diagnosis. Safe early identity/operational registry admission remains
+separate work. There is no successful station build, cancellation lifecycle,
+shared-faction ownership, or two-player construction authority claim here.

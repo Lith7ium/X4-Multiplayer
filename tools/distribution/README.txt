@@ -6,7 +6,7 @@ Both packages include the server and a private Python runtime. No Python install
 or download is needed. Open 00-START-HERE.html for detailed instructions.
 Extract Linux's .tar.xz (or equivalent Small.7z) or Windows' .zip completely before running any action.
 
-WHAT CHANGED IN 7.5.0
+WHAT CHANGED IN 7.6.0 (see CHANGELOG.txt; 7.5.0 notes follow)
 - Enable host-authoritative NPC shield/hull damage and death for free-flying S/M
   targets, including when the guest is in a different sector from the host.
 - Enable shared native matching-ship kill contracts: either role can accept,
@@ -56,6 +56,11 @@ GUEST
 2. Run 01-INSTALL, choose G, select that invitation in the file dialog if it is not already beside the starter.
 3. Run 04-TEST-CONNECTION, then 05-START-X4. The launcher downloads and checks
    the shared world, then X4 loads it automatically. Do not choose another save.
+
+DEDICATED-SERVER SETS (only when DEDICATED-SERVER.md is in this folder)
+01-INSTALL does not ask for a role. The Linux package is the server; every client
+package (Windows11[-GuestK] or Linux-Client[K]) is a client and follows GUEST above.
+Each client slot has a Windows and a Linux package; use the one for your OS.
 
 The numbers identify actions; guests skip HOST-only actions 02 and 03.
 Windows: double-click the numbered .cmd files. Linux: execute the matching .sh

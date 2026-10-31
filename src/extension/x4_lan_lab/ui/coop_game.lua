@@ -10,6 +10,11 @@
 --  fire2=true: FIRE2 only, from startup; the NAV counter never triggers fire. Without the
 --   weapon-group API remote fire is disabled with a FIRE2_UNAVAILABLE diagnostic (no fallback).
 -- The first FIRE2 of an owner epoch is a baseline and never replays earlier shots.
+-- NMODE (entity|epoch|navSeq|sourceTime|mode) accompanies every NAV2 with the same seq and
+-- source time; mode is normal|boost|travel|highway. It is a separate optional message:
+-- relays/clients without it drop it, and receivers without it infer a 'fast' mode from the
+-- sampled speed. Outside 'normal' the replica is driven by pose only (no native velocity),
+-- with a mode-specific interpolation delay reached through a bounded-rate render clock.
 -- A local pause stops fire and drops queued edges. On resume, every FIRE2 frame whose source
 -- time is not newer than the resume cutoff (NAV2 source clock) is adopted without playing.
 local cfg=X4LAN_CONFIG;local A=X4LAN_BUBBLE_API
@@ -25,10 +30,40 @@ if fire2Mode and not fire2Ready then
  DebugError('[X4LAN] FIRE2_UNAVAILABLE: weapon-group API missing; remote fire disabled (no NAV fallback in fire2 mode)')
 end
 local M=assert(X4LAN_MOTION,'motion buffer missing')
-local c={ships={},sectors={},resolving={},owners={},epochs={},pilots={},remote={},seq={0,0},shots={0,0},docks={0,0},revision=-1,crewSeq=0,metricSeq=0,metrics={n=0,sum=0,max=0},
- fire2={},fire2Seq={0,0},triggerShots={{0,0},{0,0}},velocity={},velocityGeneration=0}
+-- One shared ship per client (A.roster): 1/2 in a two-player session, 1..N-1 (at
+-- least 2) in a dedicated N-player session. Every remote ship has its own motion
+-- track, FIRE2 queue and velocity fence; dock attachment stays on ships 1/2.
+local R=A.roster or {players=2,ships=2,fixture=2}
+local c={ships={},sectors={},resolving={},owners={},epochs={},pilots={},remote={},seq={},shots={},docks={},revision=-1,crewSeq=0,metricSeq=0,metrics={n=0,sum=0,max=0},
+ fire2={},fire2Seq={},triggerShots={},velocity={},velocityGeneration=0,modes={},fences={},count=R.ships}
+for i=1,c.count do c.seq[i],c.shots[i],c.docks[i],c.fire2Seq[i],c.triggerShots[i],c.fences[i]=0,0,0,0,{0,0},0 end
 A.coop=c
+-- Correction blend time constant (s) and the velocity hold over refresh gaps (s).
+local BLEND,VELOCITY_HOLD=.1,.25
+-- Frame slip: at the next frame the engine pose differs from the last written sector pose
+-- by more than SLIP_MIN m (or SLIP_SPEED s of rendered speed). SetObjectSectorPos converts
+-- the pose into the ship's current zone and only then re-parents it to the zone at the
+-- target, so a ship whose parent is not that zone lands offset by the difference of the
+-- two zone origins; the engine then files the misplaced ship back into the wrong zone and
+-- every later write repeats the offset (tens of km, parent toggling each frame). A second
+-- write in the same frame starts from the target zone and lands exactly; a slip that
+-- survives SLIP_WARP s is moved with the MD warp, at most once per second.
+local SLIP_MIN,SLIP_SPEED,SLIP_WARP=5000,2,1
+local function admittedSlot(slot)
+ local n=tonumber(tostring(slot):match('^p([1-8])$'));return n and n<=R.players
+end
 local function log(v) DebugError('[X4LAN] '..v) end
+-- Rate-limited drop diagnostics for remote weapon visuals: one REMOTE_FIRE_DROP row per
+-- (kind, reason) at most every 5 s, with the number of drops since the last row.
+c.drops={}
+function c.dropped(kind,entity,reason,now)
+ local key=kind..'|'..reason;local d=c.drops[key] or {n=0,next=0};c.drops[key]=d;d.n=d.n+1
+ now=now or GetCurRealTime()
+ if now>=d.next then
+  log(string.format('REMOTE_FIRE_DROP kind=%s ship=%s reason=%s count=%d',kind,tostring(entity),reason,d.n))
+  d.n=0;d.next=now+5
+ end
+end
 local function integer(v,limit)
  local n=tonumber(v);if not n or n~=n or n<0 or n%1~=0 or n>(limit or 2147483647) then return nil end;return n
 end
@@ -36,16 +71,25 @@ local function numeric(v,bound)
  local n=tonumber(v);if not n or n~=n or math.abs(n)>bound then return nil end;return n
 end
 local function send(p) if s.client and s.client.lease then s.transport:send(p) end end
+-- Rate-limited: one COOP_FRAME_SLIP row at most every 5 s, with the repairs since the last.
+local slipLog={n=0,next=0}
+local function logSlip(i,slip,action,now)
+ slipLog.n=slipLog.n+1
+ if now>=slipLog.next then
+  log(string.format('COOP_FRAME_SLIP ship=%d slip=%.0f action=%s count=%d',i,slip,action,slipLog.n))
+  slipLog.n=0;slipLog.next=now+5
+ end
+end
 local function clearVelocity(i)
  local v=c.velocity[i]
  if not v then return end
- c.velocityGeneration=c.velocityGeneration+1
+ c.velocityGeneration=c.velocityGeneration+1;c.fences[i]=c.fences[i]+1
  AddUITriggeredEvent('X4LAN_Coop','VelocityFence',{ship=i,generation=c.velocityGeneration,
   session=v.session,epoch=v.epoch,enabled=false})
  c.velocity[i]=nil
 end
 function c.stopVelocity(discardTracks)
- for i=1,2 do clearVelocity(i) end
+ for i=1,c.count do clearVelocity(i) end
  if discardTracks then c.remote={} end
 end
 local function applyVelocity(i,sector,linear,now)
@@ -58,6 +102,7 @@ local function applyVelocity(i,sector,linear,now)
  if not v then
   c.velocityGeneration=c.velocityGeneration+1
   v={generation=c.velocityGeneration,session=session,epoch=c.epochs[i],sector=sector,parent=parent,sequence=0};c.velocity[i]=v
+  c.fences[i]=c.fences[i]+1
   AddUITriggeredEvent('X4LAN_Coop','VelocityFence',{ship=i,generation=v.generation,session=session,epoch=v.epoch,enabled=true})
  end
  local changed=not v.linear
@@ -65,13 +110,28 @@ local function applyVelocity(i,sector,linear,now)
  -- Changed vectors, especially the packet-loss freeze, never wait for a timer.
  if changed or now>=(v.next or 0) then
   v.next=now+.1;v.sequence=v.sequence+1;v.linear={linear[1],linear[2],linear[3]}
-  local dockStamp,dockAge
-  if cfg.coop_docks and c.attachmentWindow then dockStamp,dockAge=c.attachmentWindow(i,now) end
+  local dockStamp,dockAge;local attached=cfg.coop_docks and i<=2
+  if attached and c.attachmentWindow then dockStamp,dockAge=c.attachmentWindow(i,now) end
   AddUITriggeredEvent('X4LAN_Coop','Velocity',{ship=i,generation=v.generation,session=v.session,epoch=v.epoch,
    sequence=v.sequence,sector=A.id(sector),parent=A.id(parent),x=linear[1],y=linear[2],z=linear[3],expires=GetCurTime()+.3,
-   dockGeneration=cfg.coop_docks and c.attachmentGeneration and c.attachmentGeneration(i) or nil,dockStamp=dockStamp,dockAge=dockAge})
+   dockGeneration=attached and c.attachmentGeneration and c.attachmentGeneration(i) or nil,dockStamp=dockStamp,dockAge=dockAge})
  end
 end
+-- Local motion mode of an owned ship. Only the piloted ship exposes boost/travel state.
+-- A highway context equal to the sector is not a highway (engine doubles return one id).
+local function localMode(ship,sector)
+ local highway=C.GetContextByClass(ship,'highway',false)
+ if highway~=0 and highway~=sector then return 'highway' end
+ if C.GetPlayerControlledShipID()~=ship then return 'normal' end
+ local boosting,travel
+ if GetPlayerSpeed then
+  local ok,_,_,_,b,t=pcall(GetPlayerSpeed);if ok then boosting,travel=b,t end
+ end
+ if travel==true or (travel==nil and GetPlayerActivity and GetPlayerActivity()=='travel') then return 'travel' end
+ if boosting==true then return 'boost' end
+ return 'normal'
+end
+c.localMode=localMode
 local function stopFire2(i)
  local q=c.fire2[i]
  if q and (q.on[1] or q.on[2]) then AddUITriggeredEvent('X4LAN_Coop','Fire2',{ship=i,epoch=q.epoch,primary=false,secondary=false,primaryShots=0,secondaryShots=0,primaryGroup=q.groups[1],secondaryGroup=q.groups[2]}) end
@@ -83,7 +143,7 @@ local function pauseBoundary(now)
  if A.paused() then c.wasPaused=true;return true end
  if c.wasPaused then
   c.wasPaused=false;c.resumeAt=now;c.resumeCutoffs=c.resumeCutoffs or {}
-  for i=1,2 do
+  for i=1,c.count do
    local r=c.remote[i];local old=c.resumeCutoffs[i]
    local floor=old and old.epoch==c.epochs[i] and old.cutoff or nil
    local cutoff=r and r.track and r.track.offset and now-r.track.offset or nil
@@ -115,7 +175,7 @@ function c.stopFire()
  for i in pairs(c.fire2) do stopFire2(i) end
 end
 function c.entity(object)
- for i=1,2 do if c.ships[i] and object==c.ships[i] then return i end end
+ for i=1,c.count do if c.ships[i] and object==c.ships[i] then return i end end
  return 0
 end
 function c.sectorId(name)
@@ -131,7 +191,14 @@ function c.sectorId(name)
 end
 function c.prepare(now)
  if not c.setup then
-  c.setup=true;local own=cfg.slot=='p1' and 1 or 2;c.ships[own]=s.ship;c.ships[3-own]=s.proxy
+  if s.ships then for i=1,c.count do c.ships[i]=s.ships[i] end
+  else
+   local own=R.own or (cfg.slot=='p1' and 1 or 2)
+   assert(c.count==2 and (own==1 or own==2),'invalid local ship mapping')
+   c.ships[own]=s.ship;c.ships[3-own]=s.proxy
+  end
+  for i=1,c.count do assert(c.ships[i],'shared ship '..i..' missing') end
+  c.setup=true
   AddUITriggeredEvent('X4LAN_Coop','Setup')
  end
  local m=c.metrics
@@ -141,15 +208,14 @@ end
 function c.receive(f,now)
  pauseBoundary(now) -- Client packets arrive before coop.frame, including NAV2.
  if f[1]=='AUTH' then
-  if #f~=10 then return true end
+  if #f~=4+3*c.count then return true end
   local revision=integer(f[4]);if not revision or revision<c.revision then return true end
   local owners,epochs,pilots={},{},{}
-  for i=1,2 do
+  for i=1,c.count do
    local index=2+i*3;owners[i],epochs[i],pilots[i]=f[index],integer(f[index+1]),f[index+2]
-   if (owners[i]~='p1' and owners[i]~='p2') or not epochs[i] or epochs[i]<1 or
-      (pilots[i]~='0' and pilots[i]~=owners[i]) then return true end
+   if not admittedSlot(owners[i]) or not epochs[i] or epochs[i]<1 or (pilots[i]~='0' and pilots[i]~=owners[i]) then return true end
   end
-  for i=1,2 do
+  for i=1,c.count do
    if c.epochs[i]~=epochs[i] or c.owners[i]~=owners[i] then
     clearVelocity(i)
     if c.remote[i] and c.remote[i].firing then AddUITriggeredEvent('X4LAN_Coop','Fire',{ship=i,on=false}) end
@@ -163,7 +229,7 @@ function c.receive(f,now)
  elseif f[1]=='NAV' or f[1]=='NAV2' then
   local modern=f[1]=='NAV2'
   if #f~=(modern and 23 or 16) then return true end
-  local entity,epoch,seq=integer(f[5],2),integer(f[6]),integer(f[7]);local name=f[8]
+  local entity,epoch,seq=integer(f[5],c.count),integer(f[6]),integer(f[7]);local name=f[8]
   if not entity or entity<1 or not epoch or not seq or not name:match('^[%w_.-]+_macro$') or #name>96 then return true end
   if c.owners[entity]==cfg.slot or c.epochs[entity]~=epoch then return true end
   local p={};for i=1,6 do p[i]=numeric(f[i+8],i<=3 and 50000000 or 2*math.pi);if not p[i] then return true end end
@@ -172,11 +238,15 @@ function c.receive(f,now)
   if r and seq<=r.seq then return true end
   if not r or r.sector~=name then
    clearVelocity(entity)
-   r={samples={},fire=fire,sector=name};c.remote[entity]=r
+   -- Same source process, same real-time clock: a sector change keeps its offset.
+   local clock=r and r.track and r.sourceLease==f[4] and r.track.offset or nil
+   r={samples={},fire=fire,sector=name,clock=clock,motion=r and r.sourceLease==f[4] and r.motion or {}};c.remote[entity]=r
   end
   if modern then
    local velocity={};for i=1,6 do velocity[i]=tonumber(f[17+i]) end
-   local track=r.track or {}
+   local track=r.track or {retainClock=true,leak=M.leak,offset=r.clock,adaptive=true}
+   local declared=c.modes[entity];declared=declared and declared.epoch==epoch and declared.lease==f[4] and now-declared.at<=M.stale and declared.mode or nil
+   track.mode=declared
    if not M.push(track,tonumber(f[17]),p,velocity,now) then return true end
    r.track=track
    resumeCutoff(entity) -- Latch an unknown mapping at its first valid NAV2 baseline.
@@ -186,14 +256,24 @@ function c.receive(f,now)
   if fire>r.fire and not fire2Mode then r.fireDeadline=now+.35 end;r.fire=fire
   r.samples[#r.samples+1]={time=now,pose=p};while #r.samples>5 do table.remove(r.samples,1) end
   return true
+ elseif f[1]=='NMODE' then
+  if #f~=9 then return true end
+  local entity,epoch,seq,time,mode=integer(f[5],c.count),integer(f[6]),integer(f[7]),numeric(f[8],1e12),f[9]
+  if not entity or entity<1 or not epoch or not seq or not time or time<0 or not M.modes[mode] then return true end
+  if c.owners[entity]==cfg.slot or c.epochs[entity]~=epoch then return true end
+  local old=c.modes[entity]
+  if old and old.epoch==epoch and old.lease==f[4] and seq<=old.seq then return true end
+  c.modes[entity]={epoch=epoch,lease=f[4],seq=seq,time=time,mode=mode,at=now}
+  return true
  elseif f[1]=='FIRE2' then
   if #f~=12 then return true end
-  local entity,epoch,seq=integer(f[5],2),integer(f[6]),integer(f[7])
+  local entity,epoch,seq=integer(f[5],c.count),integer(f[6]),integer(f[7])
   local time=numeric(f[8],1e12);local groups={integer(f[9],4),integer(f[10],4)};local shots={integer(f[11]),integer(f[12])}
-  if not entity or entity<1 or not epoch or not seq or not time or time<0 then return true end
-  if not groups[1] or groups[1]<1 or not groups[2] or groups[2]<1 or not shots[1] or not shots[2] then return true end
-  if not fire2Ready then return true end
-  if c.owners[entity]==cfg.slot or c.epochs[entity]~=epoch then return true end
+  if not entity or entity<1 or not epoch or not seq or not time or time<0 then c.dropped('FIRE2',f[5],'malformed',now);return true end
+  if not groups[1] or groups[1]<1 or not groups[2] or groups[2]<1 or not shots[1] or not shots[2] then c.dropped('FIRE2',entity,'malformed',now);return true end
+  if not fire2Ready then c.dropped('FIRE2',entity,'weapon-group-api-missing',now);return true end
+  if c.owners[entity]==cfg.slot then c.dropped('FIRE2',entity,'own-ship',now);return true end
+  if c.epochs[entity]~=epoch then c.dropped('FIRE2',entity,'epoch '..tostring(c.epochs[entity])..'~='..epoch,now);return true end
   local q=c.fire2[entity]
   if not q or q.epoch~=epoch then
    -- Baseline: adopt the counters without replaying them.
@@ -215,7 +295,7 @@ function c.receive(f,now)
   local seq=#f==5 and integer(f[4]) or nil
   if seq and seq<=(c.crewSeq or 0) and seq>(c.deniedSeq or -1) then
    c.deniedSeq=seq
-   local entity=integer(f[5],2)
+   local entity=integer(f[5],c.count)
    if entity and entity>0 and c.entity(C.GetPlayerControlledShipID())==entity and c.pilots[entity]~=cfg.slot then
     AddUITriggeredEvent('X4LAN_Coop','LeaveControls',entity)
     log('pilot request denied: the ship is occupied, trading or destroyed')
@@ -230,9 +310,21 @@ function c.receive(f,now)
  end
  return false
 end
-local function render(r,now)
+local function declaredMode(i,r)
+ local m=c.modes[i]
+ if m and m.epoch==c.epochs[i] and m.lease==r.sourceLease and r.at and math.abs(r.at-m.at)<=M.stale then return m.mode end
+ return nil
+end
+local function render(r,now,i)
  if not r or #r.samples==0 then return nil end
- if r.track then return M.render(r.track,now) end
+ if r.track then
+  local track=r.track;local last=track.samples and track.samples[#track.samples]
+  local mode,profile=M.classify(r.motion,declaredMode(i,r),last and M.speed(last.velocity) or 0,now)
+  track.adaptive=true
+  r.mode=mode;r.delay=M.delayFor(track,profile.delay);r.target=M.clock(track,now,r.delay)
+  -- A widened delay also widens the prediction horizon (bounded at 1 s).
+  return M.renderAt(track,r.target,math.max(profile.horizon,math.min(1,r.delay)))
+ end
  if now-r.at>.75 then return nil end
  local target=now-.1;local a,b=r.samples[1],r.samples[#r.samples]
  for i=2,#r.samples do if r.samples[i].time>=target then b=r.samples[i];break end;a=r.samples[i] end
@@ -246,7 +338,15 @@ end
 -- Play FIRE2 trigger evidence back at the same source time as the rendered NAV2 pose.
 local function fire2Frame(i,r,ship,now)
  -- Observed-projectile mode never aims/fires a native replay gun.
- if cfg.projectile_visuals then stopFire2(i);return end
+ if cfg.projectile_visuals or (cfg.shot_visual and i>2) then
+  -- Projectile and harmless-shot visuals exist for ships 1/2 only: remote fire of ships
+  -- 3.. is not drawn in those modes (fail closed, logged once per ship).
+  if i>2 and c.fire2[i] and not (c.fireLimitLogged or {})[i] then
+   c.fireLimitLogged=c.fireLimitLogged or {};c.fireLimitLogged[i]=true
+   log('FIRE_VISUAL_LIMIT ship='..i..': remote fire is not drawn for ships beyond 2 in projectile/shot visual mode')
+  end
+  stopFire2(i);return
+ end
  local q=c.fire2[i]
  if not q then return end
  local visualGen=A.health and A.health.valid[i]
@@ -255,7 +355,7 @@ local function fire2Frame(i,r,ship,now)
   -- Freshness: stop even if motion keeps rendering a frozen prediction.
   stopFire2(i);return
  end
- local target=(r and r.track and r.track.offset) and now-r.track.offset-M.delay or math.huge
+ local target=(r and r.track and r.track.offset) and (r.target or now-r.track.offset-M.delay) or math.huge
  local cutoff=resumeCutoff(i)
  local keep={};local grant={0,0};local reset={false,false};local changed=false
  q.budgetUntil=q.budgetUntil or {0,0};q.group=q.group or {q.groups[1],q.groups[2]}
@@ -300,6 +400,46 @@ local function publishMetrics(now)
   c.metrics={n=0,sum=0,max=0}
  end
 end
+-- Opt-in (cfg.motion_diagnostics = seconds between rows, or true for 0.5 s): requested
+-- vs actual replica motion. Inert and unallocated by default; no session data is logged.
+local diagnose
+if cfg.motion_diagnostics then
+ local interval=tonumber(cfg.motion_diagnostics) or .5;local d={}
+ local function dist(a,b) return math.sqrt((a[1]-b[1])^2+(a[2]-b[2])^2+(a[3]-b[3])^2) end
+ diagnose=function(i,r,ship,p,linear,changed,now)
+  local a=C.GetObjectPositionInSector(ship);local actual={a.x,a.y,a.z}
+  local q=d[i] or {};d[i]=q
+  -- drift: how far the engine moved the replica away from the last requested pose.
+  local drift=r.applied and dist(actual,r.applied) or 0
+  q.maxDrift=math.max(q.maxDrift or 0,drift);q.frames=(q.frames or 0)+1;q.writes=(q.writes or 0)+(changed and 1 or 0)
+  q.maxError=math.max(q.maxError or 0,dist(p,actual))
+  if now<(q.next or 0) then return end
+  q.next=now+interval
+  local own=C.GetPlayerContainerID();local range=-1
+  if own~=0 and C.GetContextByClass(own,'sector',false)==C.GetContextByClass(ship,'sector',false) then
+   local o=C.GetObjectPositionInSector(own);range=dist({o.x,o.y,o.z},actual)
+  end
+  local m=c.modes[i];local track=r.track or {}
+  -- request/drift are per-frame travel (speed * frame time) when native velocity runs;
+  -- error is the real target error before this frame's write.
+  log(string.format('MOTION_DIAG ship=%d mode=%s declared=%s speed=%.1f request=%.2f drift=%.2f maxDrift=%.2f error=%.2f maxError=%.2f range=%.0f writes=%d/%d fences=%d resets=%d lag=%.3f delay=%.3f excess=%.3f drainMax=%d velocity=%s',
+   i,r.mode or 'legacy',m and m.mode or 'none',linear and M.speed(linear) or 0,r.applied and dist(p,r.applied) or 0,drift,q.maxDrift,
+   dist(p,actual),q.maxError or 0,range,q.writes,q.frames,c.fences[i],track.resets or 0,(track.lag or 0)-(track.offset or 0),
+   r.delay or 0,track.excess or 0,s.client and s.client.drainedMax or 0,c.velocity[i] and 'native' or 'off'))
+  q.maxDrift,q.frames,q.writes,q.maxError=0,0,0,0
+  if s.client then s.client.drainedMax=0 end
+ end
+end
+-- MD warp of a remote replica into the received sector pose, at most once per second.
+local function warp(i,r,sector,value,now)
+ if now<(r.nextWarp or 0) then return false end
+ r.nextWarp=now+1;value.ship=i;value.sector=A.id(sector)
+ if cfg.coop_docks and i<=2 then
+  value.dockGeneration=c.attachmentGeneration and c.attachmentGeneration(i)
+  if c.attachmentWindow then value.dockStamp,value.dockAge=c.attachmentWindow(i,now) end
+ end
+ AddUITriggeredEvent('X4LAN_Coop','SectorMove',value);return true
+end
 function c.frame(now)
  if not c.ready or not s.client or not s.client.lease then c.stopVelocity(false);return end
  local controlled=c.entity(C.GetPlayerControlledShipID());local aboard=c.entity(C.GetPlayerContainerID());c.controlled=controlled
@@ -316,14 +456,14 @@ function c.frame(now)
  end
  if now>=(c.nextNav or 0) then
   c.nextNav=now+.05
-  for i=1,2 do
+  for i=1,c.count do
    local ship=c.ships[i]
    if c.owners[i]==cfg.slot and C.IsComponentOperational(ship) then
     local sector=C.GetContextByClass(ship,'sector',false)
     if sector~=0 then
      local name=GetComponentData(A.id(sector),'macro');c.sectors[name]=sector
      local p=C.GetObjectPositionInSector(ship);c.seq[i]=c.seq[i]+1
-     if cfg.coop_docks and c.publishDock then c.publishDock(i,c.seq[i],now) end
+     if cfg.coop_docks and i<=2 and c.publishDock then c.publishDock(i,c.seq[i],now) end
      local fields={'NAV2','1',s.client.lease,tostring(i),tostring(c.epochs[i]),tostring(c.seq[i]),name}
      for _,value in ipairs({p.x,p.y,p.z,p.yaw,p.pitch,p.roll}) do fields[#fields+1]=string.format('%.9g',value) end
      fields[#fields+1]=tostring(c.docks[i]);fields[#fields+1]=tostring(c.shots[i])
@@ -332,6 +472,7 @@ function c.frame(now)
      fields[#fields+1]=string.format('%.6f',now)
      for _,v in ipairs(velocity) do fields[#fields+1]=string.format('%.9g',v) end
      send(table.concat(fields,'|'))
+     send(string.format('NMODE|1|%s|%d|%d|%d|%.6f|%s',s.client.lease,i,c.epochs[i],c.seq[i],now,localMode(ship,sector)))
      -- FIRE2 shares NAV2's source time; a group outside 1-4 is never encoded.
      local primary,secondary=fire2Ready and getGroup(ship,true) or 0,fire2Ready and getGroup(ship,false) or 0
      if fire2Ready and primary>=1 and primary<=4 and secondary>=1 and secondary<=4 then
@@ -342,8 +483,8 @@ function c.frame(now)
    end
   end
  end
- for i=1,2 do
-  local r=c.remote[i];local ship=c.ships[i];local p,linear=render(r,now);local velocityApplied=false
+ for i=1,c.count do
+  local r=c.remote[i];local ship=c.ships[i];local p,linear=render(r,now,i);local velocityApplied=false
   if r and r.firing and (not p or now>(r.fireDeadline or 0)) then r.firing=false;AddUITriggeredEvent('X4LAN_Coop','Fire',{ship=i,on=false}) end
   if p and c.owners[i]~=cfg.slot and C.IsComponentOperational(ship) and C.GetPlayerControlledShipID()~=ship then
    if (r.fireDeadline or 0)>now and not r.firing then r.firing=true;AddUITriggeredEvent('X4LAN_Coop','Fire',{ship=i,on=true}) end
@@ -355,24 +496,27 @@ function c.frame(now)
    -- The legacy market index is zero at ordinary stations too. Recheck the
    -- actual native attachment before a synchronous pose write; a stale/free
    -- network sample must not pull a locally docked ship out of its parent.
-   local dockAllowed=not cfg.coop_docks or (c.dockPoseAllowed and c.dockPoseAllowed(i,r,now))
+   -- Dock attachment covers ships 1/2; ships 3.. follow the received pose only.
+   local dockAllowed=not cfg.coop_docks or i>2 or (c.dockPoseAllowed and c.dockPoseAllowed(i,r,now))
    if dockAllowed and sector and r.dock==0 and c.docks[i]==0 and GetComponentData(A.id(ship),'isdocked')~=true then
     local value={x=p[1],y=p[2],z=p[3],yaw=p[4]*180/math.pi,pitch=p[5]*180/math.pi,roll=p[6]*180/math.pi}
     if C.GetContextByClass(ship,'sector',false)~=sector then
-     if now>=(r.nextWarp or 0) then
-      r.nextWarp=now+1;value.ship=i;value.sector=A.id(sector)
-      if cfg.coop_docks then
-       value.dockGeneration=c.attachmentGeneration and c.attachmentGeneration(i)
-       if c.attachmentWindow then value.dockStamp,value.dockAge=c.attachmentWindow(i,now) end
-      end
-      AddUITriggeredEvent('X4LAN_Coop','SectorMove',value)
-     end
+     -- The last written pose belongs to the old sector frame; it is no slip reference.
+     if warp(i,r,sector,value,now) then r.applied=nil;r.slipSince=nil end
     elseif now>=(r.nextApply or 0) then
-     -- There are only two cooperative ships. Correct their native controller
+     -- One shared ship per client (at most seven). Correct their native controller
      -- drift on every render frame, including frame rates above 60 FPS.
      r.nextApply=now
      local changed=not r.applied
      if r.applied then for n=1,6 do if math.abs(p[n]-r.applied[n])>(n<=3 and .01 or .0001) then changed=true end end end
+     local slip=0
+     if r.applied then
+      local a=C.GetObjectPositionInSector(ship)
+      slip=math.sqrt((a.x-r.applied[1])^2+(a.y-r.applied[2])^2+(a.z-r.applied[3])^2)
+     end
+     if slip>math.max(SLIP_MIN,SLIP_SPEED*(linear and M.speed(linear) or 0)) then
+      changed=true;r.slipSince=r.slipSince or now
+     else slip=0;r.slipSince=nil end
      if not changed then
       -- The native controller/physics can move or turn a ship even when its
       -- received pose stays constant. Compare the actual engine pose before
@@ -384,14 +528,55 @@ function c.frame(now)
        if math.abs(n<=3 and delta or M.angle(delta))>(n<=3 and .01 or .0001) then changed=true;break end
       end
      end
-     if changed then C.SetObjectSectorPos(ship,sector,ffi.new('UIPosRot',value));r.applied=p end
-     if C.GetPlayerControlledShipID()~=ship and linear then
-      applyVelocity(i,sector,linear,now);velocityApplied=true
+     -- A late sample or clock slew makes the rendered target hop against its own
+     -- extrapolation (previous target + velocity * frame time). In normal flight a small
+     -- hop is absorbed into an offset that decays over ~BLEND s instead of being written
+     -- in one frame; large hops, pose-only modes and engine-drift repairs stay exact.
+     local written=p
+     local dt=math.max(0,now-(r.frameAt or now))
+     local steady=linear and r.lastLinear and M.speed(linear)>1 and
+      math.sqrt((linear[1]-r.lastLinear[1])^2+(linear[2]-r.lastLinear[2])^2+(linear[3]-r.lastLinear[3])^2)<=.1*M.speed(linear)
+     if c.velocity[i] and (r.mode or 'normal')=='normal' and r.lastTarget and steady and dt>0 and dt<=.25 then
+      local hop={}
+      for n=1,3 do hop[n]=p[n]-(r.lastTarget[n]+r.lastLinear[n]*dt) end
+      local size=math.sqrt(hop[1]^2+hop[2]^2+hop[3]^2);local speed=linear and M.speed(linear) or 0
+      local off=r.blend or {0,0,0};local decay=math.exp(-dt/BLEND)
+      if size>math.max(25,speed*.1) then off={0,0,0}
+      else for n=1,3 do off[n]=(off[n]-(size>.05 and hop[n] or 0))*decay end end
+      if math.abs(off[1])+math.abs(off[2])+math.abs(off[3])<.01 then off={0,0,0} end
+      r.blend=off
+      if off[1]~=0 or off[2]~=0 or off[3]~=0 then
+       written={p[1]+off[1],p[2]+off[2],p[3]+off[3],p[4],p[5],p[6]}
+       value.x,value.y,value.z=written[1],written[2],written[3];changed=true
+      end
+     else r.blend=nil end
+     r.lastTarget={p[1],p[2],p[3]};r.lastLinear=linear and {linear[1],linear[2],linear[3]} or nil;r.frameAt=now
+     if diagnose then diagnose(i,r,ship,p,linear,changed,now) end
+     if changed then
+      local pose=ffi.new('UIPosRot',value);C.SetObjectSectorPos(ship,sector,pose);r.applied=written
+      if slip>0 then
+       if now-r.slipSince>=SLIP_WARP and warp(i,r,sector,value,now) then r.slipSince=nil;logSlip(i,slip,'warp',now)
+       else C.SetObjectSectorPos(ship,sector,pose);logSlip(i,slip,'rewrite',now) end
+      end
+     end
+     -- Native velocity only in normal flight. At boost/travel/highway speed the free
+     -- replica's own flight model cannot hold the vector; the per-frame pose write is
+     -- authoritative (pathing SetOffsetOrder, see reports/PROXY-MOTION-20261025.txt).
+     if C.GetPlayerControlledShipID()~=ship and linear and (r.mode or 'normal')=='normal' then
+      applyVelocity(i,sector,linear,now);velocityApplied=true;r.velocityAt=now
      end
     end
    end
   end
-  if not velocityApplied then clearVelocity(i) end
+  -- A frame without a velocity refresh (dock pairing gap, skipped apply) keeps the
+  -- running native vector for VELOCITY_HOLD s; MD's 0.3 s deadline still bounds it.
+  -- Real boundaries (no pose, local pilot, dock, pose-only mode) fence at once.
+  if not velocityApplied then
+   local hold=p and r and r.velocityAt and now-r.velocityAt<=VELOCITY_HOLD and (r.mode or 'normal')=='normal'
+    and r.dock==0 and c.docks[i]==0 and c.owners[i]~=cfg.slot and C.GetPlayerControlledShipID()~=ship
+    and C.IsComponentOperational(ship) and not A.paused()
+   if not hold then clearVelocity(i) end
+  end
   -- Queue physical motion before replaying fire for this rendered pose.
   fire2Frame(i,r,ship,now)
  end
@@ -399,14 +584,14 @@ end
 RegisterEvent('X4LAN_Coop.Ready',function() c.ready=true;log('cooperative navigation ready') end)
 RegisterEvent('X4LAN_Coop.Docks',function(_,payload)
  local a,b=payload:match('^(%d)|(%d)$');if a and tonumber(a)<=2 and tonumber(b)<=2 then
-  c.docks={tonumber(a),tonumber(b)}
-  for i=1,2 do if c.docks[i]~=0 then clearVelocity(i) end end
+  c.docks[1],c.docks[2]=tonumber(a),tonumber(b)
+  for i=1,2 do if c.docks[i]~=0 then clearVelocity(i) end end -- market docks: ships 1/2
  end
 end)
 RegisterEvent('X4LAN_Coop.Shot',function(_,payload)
  -- Payload 'n' (legacy) or 'n|p' / 'n|s': the shot came from the active primary or secondary group.
- local entity,trigger=tostring(payload):match('^([12])|?([ps]?)$');local i=tonumber(entity)
- if i and c.owners[i]==cfg.slot then
+ local entity,trigger=tostring(payload):match('^(%d)|?([ps]?)$');local i=tonumber(entity)
+ if i and i>=1 and i<=c.count and c.owners[i]==cfg.slot then
   c.shots[i]=c.shots[i]+1
   local k=trigger=='s' and 2 or 1;c.triggerShots[i][k]=c.triggerShots[i][k]+1
  end

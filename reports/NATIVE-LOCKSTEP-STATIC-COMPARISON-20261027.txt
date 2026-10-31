@@ -1,0 +1,397 @@
+NATIVE LOCKSTEP: LINUX / WINDOWS STATIC COMPARISON
+27 October 2026 | Read-only analysis | Source baseline a53668b
+
+The strongest independent remaining candidate is ordinary world pathing outside
+the twelve registered fixture ships. Both engine builds reduce pathing work when
+a wall-clock budget expires. The current complete-agent hook overrides that flag
+only for registered actors. Matching fixture motion therefore does not establish
+matching motion or AI decisions for an NPC approaching the fixture.
+
+This is a causal candidate, not a demonstrated explanation of a native failure.
+No game was launched, no engine file was modified, and no hook was added here.
+Physics contact ordering and nested NPC communication are separate investigations.
+Addresses below are Windows RVAs or explicitly identified Linux ELF VAs.
+
+BUILD AND METHOD
+
+Windows: X4 9.00, Steam build 23660954, in-game build 611726, 55,412,768 bytes,
+SHA256 19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+The inspected PE timestamp is 0x6a1eaded and image size is 0x6fa9000.
+Linux: version.dat 900, Steam manifest build 23660954, 60,459,280 bytes,
+SHA256 113f73d74570084f6ce18a659b365009eccf579fb66dbabb5dad2b1718045f20,
+ELF ET_EXEC, GNU build ID 77cf7ac0ff32d88ffd3db7eb6ea2e025aecb711d.
+The Linux version formatter embeds 611726 at VA 0xaf1bb2. Both local Linux
+copies have the stated hash. No version mismatch was found.
+
+Existing labels, function matches, extracted scripts and prior analysis were
+used as navigation. Selected function bodies and data constants were then read
+directly from both binaries. No full decompilation was repeated. Extra Linux
+defined function symbols mostly identify third-party libraries, including Jolt;
+they do not supply Egosoft engine source names. Weak TLS initialization imports
+also retain useful engine names. An automatic function match is a hypothesis,
+especially when one compiler inlines a callee into a larger function.
+
+1. PATHING BUDGET: PROVEN MECHANISM, UNPROVEN CAUSE OF THE CURRENT FAILURE
+
+Windows batch loop 0xeaecc0 calls Agent update 0xe8f250 at 0xeaed6f. It compares
+elapsed QueryPerformanceCounter time with manager+0x218 at 0xeaedf4. Once the
+budget is exceeded, later agents receive cheap=1. The loop also records the next
+agent and changes the next pass's starting position. Thus a budget difference
+changes both current work and future ordering.
+
+Linux VA 0x13e32f0 contains the corresponding batch behavior. It calls Agent
+update 0x1444c70 at 0x13e33a2, obtains time through clock_gettime(4), compares
+against manager+0x3a8 at 0x13e3416, and changes the remaining agents' cheap flag.
+The clock API and layout differ; the causal scheduling mechanism agrees.
+
+Current source: lockstep_agent.h recognizes only twelve actor/agent identities.
+Unrecognized agents call the original update with the native cheap flag and
+native thread RNG. lockstep_gate.c joins pathing early, which removes overlap
+with the universe update but does not remove the batch's internal budget choice.
+
+Diagnostic: at this existing call site, collect bounded records keyed by saved
+world identity: tick, batch/ordinal, input cheap flag, actual cheap flag, input
+game-time bits, flight-model type, and before/after navigation-state hashes.
+Record the first world difference before an object enters fixture radar. Unknown
+new identities must be reported, rather than compared by runtime ID.
+
+If this precedes divergence, evaluate a deterministic budget policy for every
+participating world agent. Forcing full work is one experimental policy; a fixed
+per-tick work allocation is another. Either requires runtime cost measurements
+and coverage beyond fixtures. An early join alone is not that policy.
+
+2. PUBLICATION ORDER AND SKIPPED TRAFFIC WORK
+
+Windows pathing job wrapper 0xeaeb60 builds a private command list. After its
+batch returns, it splices that list into the global deferred-command queue under
+the queue lock at 0xeaebc1..0xeaec41. The splice contains no batch ordinal sort.
+Multiple batches can therefore publish in lock-acquisition order even when all
+are joined before the universe update. The current early join does not itself
+choose that order. Linux batch completion reaches the shared command-list helper
+at 0x13e34ed; its entire publication implementation was not re-verified here.
+
+Separately, Zone::Move 0x834950 uses TryEnterCriticalSection for the traffic
+sub-update. Linux 0x115af80 uses pthread_mutex_trylock at 0x115afaf; a busy result
+skips the branch. This is an independent timing input, not a timestep difference.
+
+Diagnostic: capture batch ordinal, canonical event source/target, event type,
+game time and publication ordinal at the splice; compare ordered and unordered
+event summaries. Record traffic try-lock outcomes per canonical zone and tick.
+A difference in publication order needs a fixed merge order; replacing the
+traffic try-lock with a blocking lock requires a separate deadlock/phase review.
+Neither change is implemented or claimed safe by this report.
+
+3. PRODUCTION TIES USE POINTERS
+
+Container::UpdateProduction 0x41a910 orders module events by due time and then
+module address. The equal-time pointer comparisons are at 0x41adff and 0x41aff3.
+The selected module is passed to ProductionModule::Step 0x761720 at 0x41af0e.
+Equal-time processing can therefore differ despite equal logical module state
+when relative allocation addresses differ. The practical risk is competing
+modules consuming shared inputs or making differently ordered random draws;
+this effect has not been demonstrated in the current fixture.
+
+Linux 0x184dfa0 is the larger UpdateProduction implementation, with the module
+step inlined. It has the matching update-time guard at container+0xa48 and
+pointer tie comparisons at 0x184fee0 and 0x184eb93. The corresponding Windows
+container timestamp is +0xa18. Both platforms retain pointer tie ordering.
+
+Two existing automatic mappings must not be used as equivalent boundaries:
+0x41a910 -> Linux 0x1116ed0 is incorrect (the latter is container/storage helper
+code, not this update). 0x761720 -> Linux 0x184dfa0 locates an inlined body inside
+the larger update, not an equivalent standalone module-step function.
+
+Diagnostic: when modules have equal due-time bits, log their saved identities,
+actual processing ordinal, due time, module state and shared input amounts.
+Compare per-container identity order without hashing addresses. If causally
+confirmed, replace only the equal-time tie with a stable module identity; retain
+event-time ordering and repeated-step semantics. Observe actual tie frequency
+before prioritizing this above the approaching-NPC pathing issue.
+
+4. RANDOM STREAMS AND A CORRECTION TO AN EARLIER DOCKING CLAIM
+
+Windows Random::U64State 0x14ddb30 and Linux 0x1a48590 implement the same integer
+state transition: a 64-bit multiply/add with constants 0x5851f42d4c957f2d and
+0x14057b7ef767814f, followed by rotation right by 30; that rotated value becomes
+the stored state. Integer output is reduced modulo the requested bound.
+
+Windows thread initialization 0x14dd110 uses time()+thread ID and stores two
+transitions at TLS+0x318. Linux seeding analogue 0x1a47fe0 uses time()+SDL thread
+ID when its seed argument is zero, accepts a nonzero explicit seed, and stores
+the same two transitions at FS:-0x2720. Equal generator code does not imply equal
+initial state or equal draw order. No compiler-related RNG arithmetic mismatch
+was found in these inspected integer routines.
+
+Current fixture bracketing leaves ordinary world agents and other worker streams
+outside its seed domains. Saved identity mapping does not by itself seed those
+streams or canonicalize creation order. Inspect initial world RNG-dependent
+fields and the earliest differing update before introducing broader reseeding.
+
+Earlier notes described docking noise as time plus runtime ID. The inspected
+DockMovementController branch does not support that description: Windows
+0xd6e810 derives its local random state from floor(start_time*100), reading
+controller+0x60; Linux 0x1758130 reads controller+0x50 and also scales by 100.
+No runtime ID enters this observed branch. Existing DOCKCTL records already
+include Windows start-time bits. Do not change docking identity on the old claim.
+
+MassTrafficBehavior 0x896cd0 / Linux 0x11ce450 does use int(time*10) plus a u32
+field at its state argument+0x110 before the same random transition. That field's
+writer was not traced here, so calling it a UniverseID remains unverified.
+
+5. READ-ONLY MD CUE NAMES FOR THE SEPARATE COMMUNICATION TRACE
+
+Windows formatter 0x1118b30 and Linux 0xf68ae0 independently corroborate:
+actual Cue base+0x160 -> naming definition; naming definition+0x150 -> module.
+The module name is the string at module+0x18. Helper 0x1110bf0 searches the module
+tree for a node with node+0x40 equal to the naming definition and returns the cue
+path string at node+0x20. Tree sentinel is module+0x60; initial node is the pointer
+at module+0x80; node links are parent+0, left+8, right+0x10. Use a bounded walk.
+
+Windows strings have length+0x10/capacity+0x18 and inline storage when capacity
+is below 16; Linux strings use data pointer+0 and length+8. If the module pointer
+is null, the formatter uses cue+0xc8 as a fallback name. If cue+0x170 is nonzero,
+it appends cue+8 as an instance ID. Exclude that runtime ID from portable names.
+The naming definition at +0x160 is distinct from the execution definition at
++0xf0. Reading these fields avoids invoking an allocating engine formatter.
+
+6. IMPORTED-WORLD HASH FIELD REVIEW
+
+This second pass checked the Windows field semantics in lockstep_world_hash.h.
+The reviewed source SHA256 is
+0c836c405357f3ee8e71d278448cdbf5e177825de7f76115407173bcb99ea14d.
+This is a field review, not a live concurrency or complete-world-state proof.
+
+The normalized 36-byte IsRealClass stub decoder matches Component (0x34e4e0)
+and Ship (0x7c84a0): each class occupies two bitmap bits, and either bit is a
+positive result. Class IDs 0x24, 0x4d and 0x49 identify Destructible, Positional
+and Object. Retaining the explicit unsupported-class flag is appropriate for
+other stub shapes. Component+0xd3 is a lifecycle byte: KillRecursive 0x3e5240
+writes 1 and later 2. It is not a binary health/alive indicator. Component+0x1ec
+is a four-byte attention level, read/written by 0x3d5660, which also emits
+attention-change events. Registry presence should be reported as presence.
+
+NavigationController+0x30 points to two state banks, each 0x1a0 bytes; global
+0x38f4ee4 selects the active bank. State+0xb0 and +0xb8 are 64-bit runtime
+references, not pointers. NavUpdate 0xea77f0 compares +0xb0 with the containing
+space ID; transform path 0xea5a90 resolves +0xb8 through the component registry.
+Hashing both banks in active/other order and mapping references to saved IDs is
+supported. An unmapped nonzero reference still collapses to zero plus a coverage
+flag, so equal roots with unknown references do not establish reference equality.
+
+Additional causal fields were verified and incorporated by the integration
+owner during review. State+0xcc is a u32: values 0x30/0x33 select a boolean
+compared with the main physics record filter. A mismatch calls owner vtable+0x1c50 at 0xea7bd3
+(return 0xea7bd9), whose ship target is physics reactivation routine 0x51bd40.
+That target consumes only the owner pointer; the comparison registers are not
+additional proven call arguments. State+0x15b
+is a byte used to change the main body's physics object layer at 0xea79cb.
+These can disagree while pose and velocity still agree. The deferred pathing
+queue as their upstream cause remains unproven.
+
+Controller+0xc0 is an eight-byte refresh time and +0xc8 a four-byte bank cursor.
+Their guard in 0xea2a20 consumes pending notifications: state+0x150 is an
+eight-byte waypoint time/ETA value, reset to -1.0 after posting an event;
++0x159 and +0x15a are one-byte arrived/notified flags. A second event sets
++0x15a to 1. These are behavioral notification state, not merely a pose cache.
+The separate randomized parameter deadline is controller+0xd0 (double), gated
+by controller+0xd8 (byte), as read/written in 0xea77f0. The reviewed hash includes
+all of these fields. The observation remains partial: other controller state,
+queued events and AI program state are not covered by these fields.
+
+Pure transform helpers 0x10ba20 and 0x46ff70 read four 16-byte pose vectors at
+controller+0x10 and +0x20 respectively. Reading xyz lanes directly avoids calling
+the helpers. Those are controller-local contributions. Positional transform
+0x7461c0 and base transform 0x3db640 can additionally apply a parent connection
+transform, including when the controller is null. Marking null-controller motion
+incomplete is correct; parent ID alone does not establish its pose. Navigation
+pose getters can also refresh notification state, so invoking them is unsuitable
+for this observer. Class/reference coverage and topology are appended to every
+hash domain; a topology mismatch can therefore change all four roots together.
+
+For a future identity/ownership domain, Object+0x348 is true Faction* and +0x350
+is optional cover Faction* (pure getters 0x352b10 and 0x352af0). Restrict this
+layout to real Object class 0x49. GetOwnerDetails 0xafdfd0 reads faction ID from
+std::string at faction+0x10: length+0x20, capacity+0x28, inline for capacity<16,
+otherwise the data pointer at +0x10. Hash bounded string bytes, with separate
+null and ownerless-sentinel markers; avoid localized display-name getters.
+Component+0x60 points to its macro. For verified U::Macro vtable 0x2ba5430,
+slot 18 points to pure 0xefb10 returning macro+0x20; 0x59e100 identifies this as
+the default-source name. Its std::string length/capacity are macro+0x30/+0x38.
+Validate the accessor/layout before reading other defaults-source types.
+
+7. SPEECH LIFECYCLE: AUDIO COMPLETION VERSUS FIXED-TICK DEADLINES
+
+A bounded follow-up for the separate NPC investigation found a presentation
+boundary in EntitySpeakData update 0x563d30. State 5 resolves its audio handle;
+when audio manager byte +0x78 is nonzero, audio-object state +0x128 equal to 11
+calls OnSpeakFinished 0x562590. Missing handles or the other manager branch use
+a deadline on TimerBase unpaused real time at 0x6b60e48. States 2/4 also use that
+clock. This is a concrete mechanism, but not yet the cause of the observed NPC
+cue lifecycle difference. A muted volume setting does not prove which branch
+runs; the manager flag and audio state must be observed.
+
+The clock distinction must not be overstated. Stock FrameTick 0xfa2d70 advances
+0x6b60e48 by a QPC-derived delta when not paused. The current lockstep timestep
+patch forces that same delta to 1/60, so this deadline does not remain a raw
+wall-clock deadline under the tested configuration. Initial clock offsets,
+pause progression and the independent audio-completion branch remain relevant.
+Do not suppress chatter or force completion based on this static finding.
+
+EntitySpeakData+8 is a uint64 Entity runtime ID; helper 0x58ccb0 resolves it and
+checks Entity class 0x2c. Entity+0x378 points to its speech data. Read-only fields
+for a lifecycle trace are state+0x10 (u32), audio handle+0x14 (u32), duration+0x18
+(double), start+0x20 (double), current line index+0x50 (u32) and flags+0x90..0x92.
+SpeakNextLine 0x561330 stores the unpaused clock into +0x20. Its explicit wait
+line converts milliseconds to seconds at +0x18; ordinary voice duration comes
+from 0x1263650 plus 0.08. Audio manager is the pointer at 0x6cf15b8; its +0x78
+byte controls the branch above. A read-only observer must not resolve handles
+by invoking engine functions.
+
+OnSpeakFinished builds distinct timer, line-finished and finished events. RTTI
+identifies vtables 0x2ba7670, 0x2ba7718 and 0x2ba76a8 respectively. The whole
+speech-finished event posts at 0x562aa1 with immediate flag 1 and a simulation
+TLS timestamp. Its entity ID is event+0x18; +0x20/+0x24 identify the speech;
++0x29 carries the interrupted flag. This can feed simulation events from an
+audio-state transition even though the simulation timestep is fixed. The next
+useful evidence is the earliest differing named MD lifecycle event correlated
+with these input fields, before selecting any behavior change.
+
+8. NAVIGATION INITIALIZATION AND LOAD INVARIANTS
+
+The fresh controller constructor 0xea4a00 and import constructor 0xea4e90 set
+controller+0xc0=-1.0, +0xc8=2, +0xd0=-1.0 and +0xd8=0. Copy/transfer constructor
+0xea4c00 preserves all four fields from the former controller. The import path
+is movement-controller factory 0xd67970 -> 0xea4e90 -> PathingManager 0xeac380
+-> Agent import 0xe86bb0. It does not restore the two controller times or refresh
+bank cursor from the save. The +0xd8 flag is subsequently derived from owner
+attention through vtable+0x1580. These bytes are initialized, not padding.
+
+Exact executable data initializes bank selectors 0x38f4ee4=0 and 0x2f4b6f4=1.
+A scan of their known code references found only the stores in WaitAndSwapBuffers
+0xeac170. After waiting and applying queued orders, it flips both as 1-index
+when the pathing timestep has sufficient nonzero magnitude. This preserves their
+opposite-bank relationship. A refresh cursor of 2 is an initial sentinel outside
+the two valid indices; the first eligible refresh replaces it with a bank index.
+
+Pathing Agent constructor 0xe85360 initializes both 0x1a0-byte state banks:
++0x150=-1.0 and the packed bytes +0x158 through +0x15b=0. Agent save 0xe85a00
+and import 0xe86bb0 explicitly preserve +0x159/+0x15a for both selected banks.
+Do not discard these flags as fresh initialization noise. No direct ETA+0x150
+serialization/import was found in those functions. Its setter 0xe84af0 is called
+by the linear and spline flight-control updates; the notification consumers
+0xea2a20 and 0xe8f020 reset it to -1.0 after delivering/queuing the notification.
+This supports a recomputed notification value rather than a restored deadline.
+
+The controller +0xc0/+0xc8 refresh cursor uses no RNG. RefreshFromPathingState
+0xea2a20 updates it only when TLS simulation time increased and the selected
+bank changed. A mismatch therefore records different refresh histories, including
+calls through transform/velocity getters; it is not itself proof of different
+movement. The guarded code can consume pending events, so its effect must be
+assessed together with the notification flags and event queue.
+
+The +0xd0 parameter-refresh deadline has a different source. Update 0xea77f0
+uses 0x3e3a60, whose diagnostics identify GetCachedDistanceSqToCamera. Below
+1,000 metres, the new deadline is the supplied current time with no RNG draw.
+Between 1,000 and 5,000 metres it is now+0.5+random_float(0.5); at 5,000 metres
+or farther it is now+1+random_float(1). Those calls use the thread's TLS+0x318
+stream. Different client camera bands can change both refresh frequency and
+random draw counts, even with an otherwise equal seed. The first enabled update
+replaces the fresh -1 deadline; earlier load/update history can therefore matter
+before the fixture starts. Record the camera-distance band with a differing
+deadline before selecting a deterministic scheduling change.
+
+The exact call at 0xea7953 passes owner component controller+0x28 in RCX and
+camera in RDX. Camera selection first uses the object at global 0x3d19900 plus
+0xb0 when both pointers exist, otherwise Universe global 0x3d198f8 plus 0x3d0,
+or null if neither exists. The exact type of the first global is not established.
+The consumed signature of 0x3e3a60 is float(Component*, Camera*), returned in
+XMM0; apparent extra argument registers are not consumed. Other direct callers
+are 0x3e40a0, 0x70bfc0, 0x73f623 and 0x8be450. This establishes camera-dependent
+refresh behavior; it does not identify the cause of all first-tick hash differences.
+
+Do not invoke that distance query as a read-only diagnostic. It takes temporary
+component references and its transform-cache fallback can refresh navigation.
+The normal helper chain includes 0x979ef0 / 0x3e0e70 -> 0x3dde10. If a selected
+cached transform pointer is null, 0x3dde10 calls component vtable+0x1440 at
+0x3de1e7, 0x3de379 or 0x3de5e0, supplying TLS simulation time. The exact Ship
+vtable maps that slot to 0x7461c0, which uses controller vtable+0x30. The navigation
+controller maps that slot to 0xea5a70 -> 0xea5a90 -> 0xea2a20. Consequently this
+conditional fallback can change the refresh cursor and consume pending arrival
+notifications. A fully cached path need not do so. Observe the existing call's
+result and context, or inspect bounded raw fields, instead of invoking getters.
+
+There is also a separate fresh load-time draw in Agent constructor 0xe85360 at
+0xe8552c: agent+0xac0 receives TLS simulation time+0.5+random_float(0.5). This
+field is outside the reviewed controller hash. Its writer is proven; its effect
+on a specific first-tick mismatch is not. Field-level preimages are required to
+distinguish refresh cursors, randomized deadlines, attention and saved flags.
+
+9. PATHING BANK PHASE ACROSS WORLD RESET AND IMPORT
+
+A second exact-PE reference pass found 266 references in 106 known functions to
+the two pathing selectors. The only direct stores are still 0xeac1d9 and 0xeac1df
+inside WaitAndSwapBuffers 0xeac170. No reference takes either selector's address
+with LEA. This is strong bounded static evidence, not a claim that every possible
+indirect or bulk write has been excluded. Initial executable values remain
+current=0 at 0x38f4ee4 and opposite=1 at 0x2f4b6f4.
+
+The ordinary UniverseFrameUpdate 0x9fdef0 calls the swap helper at 0x9fe29d,
+after MD/AI/timer processing and before physics. The helper waits for the pathing
+worker only when manager+0x88 is zero and its +0x84 state is 1 or 2, then marks
++0x88=1 and applies pending orders. It flips both selectors only when the absolute
+pathing timestep at manager+0x1f8 is at least 0.0001. The worker can suppress its
+pathing body using +0x208 yet still complete the pass; that flag does not itself
+prevent the later timestep-qualified bank flip.
+
+GameClass::Load 0x9ee7a0 calls the broader world-reset routine 0x9ec1d0 at
+0x9ee81b, before the import work. That reset first calls WaitAndSwapBuffers at
+0x9ec236, so a final outstanding old-world pass can flip the phase. Later, at
+0x9ecdb8, it calls 0xeac1f0: that routine waits the manager access guard, disables
+manager+0x80, destructs the agent-list entries and empties the list. Neither it
+nor manager constructor 0xeab9a0 resets the global selectors. The phase can thus
+survive the old world/menu and reset sequence rather than being selected by the
+save. The load routine later acquires the manager access guard at 0x9eee35,
+applies queued operations at 0x9eee46 and sets manager+0x89=1 at 0x9eee52.
+The entire safe mutation lifetime of that guard has not been established here.
+
+Agent import 0xe86bb0 follows the selectors, not hard-coded physical indices.
+At 0xe86cf9 it loads the saved current-state block into agent+0xad0 plus
+current*0x1a0. The separate saved child with tag 0x52f is loaded into the same
+base plus opposite*0x1a0, beginning at 0xe870e2. Save 0xe85a00 uses the same
+current/opposite relationship. The pending-notification flags are preserved
+separately: current +0x159/+0x15a writes at 0xe87012/0xe87037, opposite writes
+at 0xe873fd/0xe87422. No flag clearing or bank-content swap is needed to load
+the same semantic state under a different physical phase.
+
+The controller refresh cursor +0xc8 is a physical bank label, with sentinel 2
+before the first refresh. RefreshFromPathingState 0xea2a20 compares it with the
+current selector at 0xea2a6f and writes that selector at 0xea2ab3. Its refresh
+also requires strictly newer TLS simulation time and can consume notifications.
+When raw cursors differ solely because both equal their respective current
+selectors, an additional diagnostic comparing cursor relation (current,
+opposite, sentinel or invalid) is more meaningful than treating 0 versus 1 as
+independent simulation state. Preserve the raw values and both complete banks;
+this observation does not justify erasing a real refresh-history mismatch.
+
+Changing only the globals after import would relabel existing contents and
+change cursor eligibility. That is not a demonstrated alignment fix. A possible
+future phase choice would have to precede every new import, after old agents and
+outstanding work are gone, allowing native import to preserve both saved banks
+and their flags. No exact mutation contract, hook or behavior change is proposed
+by this report. The newer native capture with matching phase on both clients
+already separates its later divergence from this physical-label question.
+
+Private follow-up evidence: bank-refs.txt; win-9ee7a0.asm; win-9ec1d0.asm;
+win-9fdef0.asm; win-eac1f0.asm; win-eab9a0.asm; existing win-e85a00.asm and
+win-e86bb0.asm. Linux WaitAndSwapBuffers 0x13e3560 independently shows the same
+wait/apply/dt-qualified selector flip structure, using Linux-specific offsets.
+
+LIMITS AND NEXT CHECK
+
+These findings expose concrete mechanisms and observation points, not a proof
+of universal deterministic simulation. Static equivalence of these functions
+does not establish cross-platform floating-point equivalence, identical library
+configuration, identical initial world state, or deterministic new creation IDs.
+For the present two-Windows-client problem, first correlate canonical world
+state divergence with pathing cheap flags, RNG inputs and publication order.
+Production pointer ties provide a distinct economy diagnostic after that.

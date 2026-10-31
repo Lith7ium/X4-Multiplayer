@@ -1,0 +1,11 @@
+[package]
+name = "x4lan-net"
+description = "Rust port of src/native/net.c: the X4 LAN Lua 5.1 UDP module"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "x4lan_net"
+crate-type = ["cdylib", "rlib"]

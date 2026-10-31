@@ -52,10 +52,14 @@
        <do_if value="Session.$arena.$host"><include_actions ref="Read"/></do_if>
        <do_else>
         <set_object_min_hull object="$o" exact="0.000001"/>
+        <!-- The host sends a new sequence on every 10 Hz readback, changed or not. Write hull/shield
+             only when they differ by more than 0.5 points: every set_object_shield counts as a
+             change and re-shows the HUD shield bar, so rewriting the unchanged value on each NHP
+             made the bars of all bound replicas flash (same guard as the Bubble Apply). -->
         <do_if value="$a.$sequence gt $r.$seq">
          <set_value name="Session.$applying" exact="true"/>
-         <set_object_hull object="$o" exact="[0.000001,$a.$hull].max"/>
-         <set_object_shield object="$o" exact="$a.$shield"/>
+         <do_if value="($o.hullpercentage - $a.$hull) * ($o.hullpercentage - $a.$hull) gt 0.25"><set_object_hull object="$o" exact="[0.000001,$a.$hull].max"/></do_if>
+         <do_if value="($o.shieldpercentage - $a.$shield) * ($o.shieldpercentage - $a.$shield) gt 0.25"><set_object_shield object="$o" exact="$a.$shield"/></do_if>
          <set_value name="Session.$applying" exact="false"/><set_value name="$r.$seq" exact="$a.$sequence"/>
         </do_if>
         <set_value name="$me" exact="@Session.$capture.$capMe"/><set_value name="$sg" exact="0"/>

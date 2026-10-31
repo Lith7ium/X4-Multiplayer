@@ -1,0 +1,128 @@
+NATIVE SAVED WAIT RESTORATION - OBSERVED RUN 007
+27 October 2026
+
+Result and scope
+----------------
+One reviewed two-instance Windows diagnostic run observed both selected saved
+Wait restorations at the exact native importer return1069bfc. The whole-world
+lockstep test still failed at frame2. No state, deadline, queue or RNG correction
+was introduced for this observation, and no repeat was launched.
+
+The patrol pilot's restoration has valid individual evidence: identical saved
+start/range inputs produced different native deadlines from different incoming
+RNG states. The trader's available raw restoration also shows a useful deadline
+crossing, but its strict selection failed because the native imported saved time
+is one ULP above the manifest's Python-converted value on both clients. This
+failure remains recorded. The paired Wait capture is invalid, semantic equality
+is unknown, and no tolerance or exclusion has converted it into a pass.
+
+Frozen artifact and lifecycle
+-----------------------------
+Integrated source66cb6cdf4edbf742bfaa9abb89e3f6da2e5377fb, with immutable thunk
+emission before the initial RX seal. DLL SHA256:
+36a7f67b75c842076cbd91bde0ec8c1df0b8cdd398b00ab65a387400a1a6dbef
+Overlay manifest SHA256:
+14c1253cc1324264d6947be0fbb0e05be6165c8d90d448d24091196a59bd3f59
+All11 overlay files matched the manifest, with no extra files. All101 frozen
+build-source hashes were verified;245 clean native/tool files were copied for
+the independent builder and validators. The only configuration addition relative
+to006 was the two-entry saved Wait manifest. Five otherwise unchanged fixture
+files differed only in line endings. The probe added Wait configuration/export;
+its unrelated registry/pilot-origin branches were inactive in this run.
+
+The same pristine snapshot, four saved ship watches6d940/80d4f/92baa/9d39b,
+stride1, early world/queue observation, NPC provenance diagnostics and12-frame
+limit were retained. No NPC RNG/deadline/pilot or player-transition intervention
+was added. Released runner admission used timeout260s and wait900s. The run
+ended after80.828s on the first strict mismatch. Both owned games exited
+gracefully with exit0; both lane installations and staged snapshots were restored,
+the coordinator stopped, and subsequent status showed no X4 process or lane lock.
+This run covers the normal execution path. The separately documented existing
+parameter/attention/damage/solver exception-unwind limitations remain unresolved.
+
+Exact restoration observations
+------------------------------
+Each client recorded18,943 calls, all from the importer, and exactly two selected
+events/eight export rows. There were no unknown owners, foreign calls, dropped
+records, open calls or restore overlap; the hook was restored. Each client had
+one failure, belonging to the trader's saved-time mismatch. Both selected calls
+ran at gate boot2/tick0 on the UI thread, TLS view1, main-thread flag0, appflags
+0x26 and native VBI loading1. TLS/game/saved-world clock was7.083 throughout each
+call. These concrete native indicators do not independently establish an entire
+GameClass::Load function bracket.
+
+Saved pilot9d3a4, order.fight.patrol version10:
+  XML blocking index1 remains manifest metadata; native slot121/PC122 observed.
+  Saved start6.31667, bits4019444523f67f4e, matched the manifest exactly.
+  Constant uniform range0.001..1.0, no explicit seed/basis/timeout/listeners.
+  Before deadline-1, after reason2; individual event errors0 on both clients.
+  Client1 RNG fe144a641fb89280 ->801b073eb70cf501;
+    duration0.7153264412879947, resulting deadline7.031996441287995.
+  Client2 RNG91f8fe5d366322ac ->cc8fb62c8116385b;
+    duration0.504741025924683, resulting deadline6.821411025924683.
+  Both deadlines were already due at the shared load clock7.083.
+
+Saved pilot80d54, move.idle version4:
+  XML blocking index5 remains manifest metadata; native slot70/PC71 observed.
+  Native start6.916670000000001, bits401baaab8a5ce5b5, on both clients.
+  Expected manifest bits401baaab8a5ce5b4: one ULP lower. Native errors8 and
+  independent manifest-mismatch failures remain. This is not cross-client time
+  divergence; it is an unsupported manifest/native decimal conversion relation.
+  Available raw range0.1..0.5, no explicit seed/basis/timeout/listeners.
+  Before deadline-1, after reason2.
+  Client1 RNG e260d6f0c89425f1 ->6626eeb33b4b40b9;
+    duration0.19264680743217433, resulting deadline7.109316807432175.
+  Client2 RNG f4740eaae82856cf ->1029d2cb1dae0163;
+    duration0.14637454450130427, resulting deadline7.063044544501305.
+
+Each of the four observed RNG outputs matches one native generator step from
+its corresponding input. This is bounded consistency evidence, not a universal
+absence-of-nested-consumer assertion. Native identities and semantic expression
+inputs were stable within each bracket. Cross-process raw pointers and expression
+padding differ and are retained as local diagnostics, not interpreted semantics.
+
+Command chronology and world result
+----------------------------------
+The trader's raw deadlines fall on opposite sides of7.083. Client2's move.idle
+PC67 emits its five manager commands before first admission, boot2/tick0/time
+7.083. Client1 emits the same five-command pattern at boot3/tick2/time
+7.116333333333333, after its later deadline7.109316807432175. The commands have
+verified selected-owner provenance and distinct generated target positions.
+This observed timing aligns with the restored deadline crossing; the trader's
+saved-time selection failure remains a qualification of that causal evidence.
+
+The destroyer pilot runs move.seekenemies PC48 before admission on both clients.
+Its command target references differ: saved28 versus29, with different target
+positions and RNG inputs. Equalizing a Wait alone has not been shown to equalize
+this later target selection or the rest of AI execution.
+
+Each queue trace has10 enqueues,10 dispatches and2 exact nested appends; parser
+errors and provenance errors are empty, all commands retire, and no open,
+outstanding, dropped or pre-import selected call remains. The watched motion
+trace also parses without errors. No raw hashes are excluded or relabelled.
+
+All521,929 imported identities remain in the whole-world roots. Frame1 roots
+match; frame2 differs only in motion for saved80d4f and9d39b. Topology, health,
+timing and identity inventory remain equal. Reconstruction errors are empty;
+existing unknown-motion coverage remains32,607 on both clients. Full validation
+retains the frame2 failure, invalid Wait capture and short-run unexercised feature
+failures. This is evidence about divergence, not a passing game-feature test.
+
+Evidence and next boundary
+--------------------------
+Private artifacts in the world-motion worktree under.local/native-lockstep/:
+  world-motion-overlay-007/, world-motion-source-007/, world-motion-build-007/
+  world-motion-freeze-007.json, world-motion-artifact-audit-007.json
+  world-motion-007/result.json, validation.json, world-difference.json
+  world-motion-007/world-trace-difference.json, world-queue-difference.json
+  world-motion-007/world-wait-difference.json, wait-queue-sequence-summary.json
+  world-motion-007/client1/engine-output.log and client2/engine-output.log
+The raw Wait file retains all four parts of every event and the failed selectors.
+No raw logs, snapshot, local account details or binaries are committed here.
+
+First audit the exact native saved-number parser before changing manifest time
+encoding; an approximate match is not the proposed fix. A separately reviewed
+scoped deterministic Wait seed experiment can now be designed around observed
+importer/owner/script/version/expression identities, with caller TLS restoration
+and unchanged raw diagnostics. It has not been implemented or authorized by this
+report. Subsequent AI random target selection remains a separate observed source.

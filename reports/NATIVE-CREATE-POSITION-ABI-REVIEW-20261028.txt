@@ -1,0 +1,124 @@
+CreatePosition caller-stack and wrapper ABI: independent owned-code review
+28 October 2026
+
+Result and scope
+----------------
+The proposed sampler return-slot premise passes an executable, check-enabled
+Windows test. The four typed wrapper signatures and fixed parent-frame offsets
+are usable for the proposed read-only observer, subject to the guards below.
+This is approval of the ABI premise, not of a future production implementation.
+No X4 code was executed, game launched, game file changed or hook installed.
+
+Reviewed design: efcac3f1b7d4979fde539f3d7cea981d651590c5, reports/
+NATIVE-CREATE-POSITION-INPUT-{PLAN,PINS}-20261028 in the design branch.
+Independent static reads matched all 11 Windows function hashes, eight callsite
+targets/returns and aligned-word hashes, both entry prefixes and native unwind
+metadata. The image SHA256 was
+19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+
+Owned executable evidence
+-------------------------
+The test uses independently authored C wrappers and assembly callers, with the
+same frame operations and actual owned return labels. It does not call mapped
+engine functions or place invented native addresses on its stack. PE inspection
+separately establishes which native addresses correspond to the owned labels.
+
+Zig 0.15.2, x86_64-windows-gnu, -O2 -fms-extensions -DNDEBUG, compiled with
+-Wall -Wextra -Werror. A manual CHECK macro remains active under NDEBUG.
+The positive run passes 254 checks. Changing only the tested difference-Value
+offset from T+0x38 to T+0x40 fails 10 checks and exits 37. The unchanged correct
+case exits 0. This negative control demonstrates that the checks execute.
+
+Coverage includes:
+* Direct _AddressOfReturnAddress() capture in the noinline sampler wrapper,
+  matching a separately recorded actual caller RSP minus the CALL's eight bytes.
+* All five requested stack fields before and after normal original return.
+* All register arguments, the transform's fifth stack byte, exact binary64 time,
+  full 64-bit outer RAX and scalar binary32 XMM0 bits. Scalar cases include NaN
+  payloads, both signed zeroes, a subnormal, finite maximum and infinities.
+* Eight nonvolatile GPRs and XMM6 through XMM15 preserved across the full chain.
+* Original exactly once on normal, selected exception and foreign paths.
+* Real RaiseException propagation from each of the four owned originals through
+  wrapper __finally cleanup to the caller's exception filter. A foreign sampler
+  exception also propagates without claiming a selected scope.
+* Three live RtlVirtualUnwind reconstructions through the owned seven-push range
+  frame and its parent, checking RIP/RSP, saved GPRs and saved XMM6 values.
+
+Return-slot derivation and helper contract
+-----------------------------------------
+Let S be the native c58da0 entry RSP and T the incoming 14ddd10 return-address
+slot. The pinned c58da0 prologue saves its incoming RCX/RDX in home slots,
+pushes seven nonvolatile registers and subtracts 0x100. Its sampler CALL then
+pushes the return address: T = S - 0x140.
+
+The actual native range sampler receives RCX RNG pointer, XMM1 binary32 span,
+R8D distribution and R9D parameter. Its immediate return is c59951. The copied
+fields relative to T are:
+  +0x38  difference Value, 16 bytes (caller RSP+0x30)
+  +0x58  minimum Value, 16 bytes (caller RSP+0x50)
+  +0x140 parent return, required c59b2f
+  +0x148 original range descriptor, required outer descriptor+0x68
+  +0x150 original frame, required the selected Action frame
+The native instructions subtract the minimum into the difference Value, convert
+the difference to the span, call the sampler and then add the minimum. This is
+static field/consumption evidence, not proof that paired evaluated inputs match.
+
+Capture uintptr_t entry_return_slot directly inside the actual typed noinline
+sampler wrapper, before calling a helper. The helper must receive that value;
+capturing its own return slot or guessing from RBP is invalid. First require the
+exact selected radius scope and immediate native caller. Only then copy the
+bounded fields, with overflow/alignment/current-thread stack bounds and guarded
+reads. Require exact parent return, descriptor/frame and selected lifetime.
+Normal return must revalidate the same borrowed tuple. Abnormal finally must
+not read borrowed stack/object fields or issue a normal receipt.
+
+The outer c6f7b0 seven-byte replay computes RAX from the incoming RSP and saves
+RBX at its home slot. The sampler's five-byte replay saves RBP at incoming
+RSP+0x10. Neither prefix moves RSP. In particular, the outer trampoline must
+preserve the replayed RAX until native reentry; a continuation jump that uses
+RAX as scratch would invalidate the original prologue. The eventual production
+emitter still needs its own exact-byte/ABI checks.
+
+The transform wrapper is void(space, transform, double time, reference, byte),
+with time in XMM2 and the fifth byte at incoming RSP+0x28. The radius wrapper is
+float(range, frame, optional). The outer wrapper returns uintptr_t, preserving
+the full RAX output pointer. The sampler is float(rng, float span, uint32
+distribution, uint32 parameter). Scalar-result tests cover the defined low
+32 bits of XMM0; they do not promise undefined upper vector lanes.
+
+Limits and retained failures
+----------------------------
+These owned frames have real unwind metadata and real exception propagation.
+They do not execute the engine's C++ cleanup handlers. The existing enclosing
+Action/Values observer lacks finally cleanup; its incomplete/open failure must
+remain explicit if an exception propagates, even when these new private scopes
+drain correctly. There is no whole-engine exception-recovery claim.
+
+The harness proves calling convention and fixed-frame geometry. It does not
+prove production observer admission, STOP races, identity leases, nested scope
+selection, parsing or installation rollback. Those remain required production
+tests. Repeated reads alone do not rule out byte-identical ABA. No RNG, radius,
+position, clock, command or hash correction was introduced. The World013
+strict failure and unobserved CreatePosition inputs remain unchanged.
+
+Reproduction and private evidence
+--------------------------------
+Retained under .local/create-position-abi-review in the world-find-rng worktree:
+abi_review.c, abi_review.S, abi_review.exe, audit.py, audit.json, execution.json.
+audit.json contains the full image checks, native disassembly/unwind audit,
+source/executable hashes, compiler options and both executions. It stays private
+because it includes native image excerpts. Build the two owned source files
+with the pinned existing local Zig and the flags above, then run audit.py.
+The test executable/source and raw image excerpts are not published here.
+
+Frozen SHA256 receipts:
+  abi_review.c
+  20be85839bb6a50b7dda23f14f57c71b9624f9555d5c8327acdda50816906c22
+  abi_review.S
+  cf353fd916ac537c079920baf63ecc9409fa58680690cb6dc79bfe0dbc57ff9c
+  abi_review.exe (181248 bytes)
+  ee6d58a0be152ae9cf989b8c7d4f90360e4c2b54b77aa2856cfa79b7e27d5e5f
+  audit.py
+  ceb712218887c43d2b42c04d0178b9da991f8fec163fbc8e8f9d524f4e489240
+  audit.json
+  c7ee4bf55da09b13e715684786c635c9018cdb389efbc9e76721a4101a0455cf

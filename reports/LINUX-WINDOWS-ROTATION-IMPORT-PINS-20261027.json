@@ -1,0 +1,331 @@
+{
+  "schema": "x4-rotation-import-static-pins-v1",
+  "build": {
+    "version": "9.00",
+    "steam_build": "23660954",
+    "game_build": "611726",
+    "windows_sha256": "19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891",
+    "linux_sha256": "113f73d74570084f6ce18a659b365009eccf579fb66dbabb5dad2b1718045f20"
+  },
+  "functions": [
+    {
+      "platform": "win",
+      "address": "e86bb0",
+      "ranges": [
+        {
+          "start": "e86bb0",
+          "length": 4416,
+          "sha256": "f9058c5168d815dbde0ae41dc46a62c378907fdd513a8f7c5cee58c711923ba0"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "47f730",
+      "ranges": [
+        {
+          "start": "47f730",
+          "length": 320,
+          "sha256": "5b3553532f6688a3d0b37d6c966693463956bc50f1ac1fa8dfb9d38ad115a311"
+        },
+        {
+          "start": "47f870",
+          "length": 135,
+          "sha256": "b1f008ddab998f585c74afe8b5fb827a698653070cb418cf4cf3fc2cf83e92bc"
+        },
+        {
+          "start": "47f8f7",
+          "length": 16,
+          "sha256": "7a34a7e08b5a8ee43883cf839d8a8f77fad778047cd9d825c296134a25bbca7f"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "49cbb0",
+      "ranges": [
+        {
+          "start": "49cbb0",
+          "length": 555,
+          "sha256": "d47d33dc9251df096f60846c4ec43f75e1718d3233b1335d3c37f893efec251b"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "34bff0",
+      "ranges": [
+        {
+          "start": "34bff0",
+          "length": 485,
+          "sha256": "7cebb8c75484e9be4198b3f102a086e98a59577205550272a5644ceee5229b10"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "129150",
+      "ranges": [
+        {
+          "start": "129150",
+          "length": 143,
+          "sha256": "8d3b1f01b1534ccdc1cae5eb1802ebbb081232ffd4a0a9e650e31bc682e44f03"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "14c2bd0",
+      "ranges": [
+        {
+          "start": "14c2bd0",
+          "length": 1208,
+          "sha256": "dad25ab672216a403a8d765e4fb2f5875121939000480425c7dafa402f732af6"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "1750830",
+      "ranges": [
+        {
+          "start": "1750830",
+          "length": 2360,
+          "sha256": "64cac5f66d85199dae34b4adfa7b1c23ed9e26328bd1920d0e757ecd3ec4f04f"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "1751170",
+      "ranges": [
+        {
+          "start": "1751170",
+          "length": 1905,
+          "sha256": "b96d3ace3cc0115f6e32af2d03c529ff24253628090f71a3346fb4ea33f4aee5"
+        }
+      ]
+    },
+    {
+      "platform": "lin",
+      "address": "13e5d30",
+      "ranges": [
+        {
+          "start": "13e5d30",
+          "length": 7410,
+          "sha256": "4d78395b92b099d0e924d85d6cc4e8e43262df217f6494b314b0031ea2dad478"
+        }
+      ]
+    },
+    {
+      "platform": "lin",
+      "address": "d4d870",
+      "ranges": [
+        {
+          "start": "d4d870",
+          "length": 1170,
+          "sha256": "ff898eb61ad2b5420d16ebb19d78d9337646d1d2493eaf7a0504e833eaa9cc3c"
+        }
+      ]
+    },
+    {
+      "platform": "lin",
+      "address": "1e02200",
+      "ranges": [
+        {
+          "start": "1e02200",
+          "length": 468,
+          "sha256": "123d377dada29f78ff9ccac883e05ff23bd9d1ed6cd9ec2e09c70802cd36daa5"
+        }
+      ]
+    },
+    {
+      "platform": "lin",
+      "address": "1a3ac40",
+      "ranges": [
+        {
+          "start": "1a3ac40",
+          "length": 959,
+          "sha256": "3a744c573d199fa01c61981e393857514293c93b3e41ea42424585677b00fd82"
+        }
+      ]
+    }
+  ],
+  "spans": [
+    {
+      "platform": "win",
+      "address": "17501f0",
+      "length": 18,
+      "description": "CRT dispatch",
+      "sha256": "244f3c4a58f0a20ad5066c4860fbea20e760cd56b5b3debc66059e975159a9b6"
+    },
+    {
+      "platform": "win",
+      "address": "1750210",
+      "length": 67,
+      "description": "single-angle sine/cosine adapter",
+      "sha256": "755042c5b869f5435b67606a5382c172cb2d0c3502766c6f8b14be3215b1580e"
+    },
+    {
+      "platform": "win",
+      "address": "1750253",
+      "length": 13,
+      "description": "packed two-angle sine/cosine adapter",
+      "sha256": "f86f5fecbc91380930213754abf57383eb68bd497bc382a26fd22783994d2897"
+    },
+    {
+      "platform": "win",
+      "address": "e86d13",
+      "length": 5,
+      "description": "current-bank offset import call",
+      "sha256": "3ead4ac1ea4c010e34d0617880df333399d73e0744eb13da5bfe6a748f7de163"
+    },
+    {
+      "platform": "win",
+      "address": "e870fc",
+      "length": 5,
+      "description": "other-bank offset import call",
+      "sha256": "e27023a26bdb263bb8161f1e10aa49964ecab5d8dde49240545574301df7845a"
+    },
+    {
+      "platform": "win",
+      "address": "47f828",
+      "length": 5,
+      "description": "rotation import tail transfer",
+      "sha256": "764bcc20999c87f7247924aa31eb476acfb407eb1d95365e4b43490538c942bd"
+    },
+    {
+      "platform": "win",
+      "address": "49cc40",
+      "length": 5,
+      "description": "packed trig call",
+      "sha256": "9c1b5537ef196fb843bbb73d5aac936bda6cd08acfb8f0e24a60177cc2e1a2a9"
+    },
+    {
+      "platform": "win",
+      "address": "49cc68",
+      "length": 5,
+      "description": "roll trig call",
+      "sha256": "ae72bdb36ed4172bebf9623fd7e1c520abc0dec63048c10944963e728611f8b3"
+    },
+    {
+      "platform": "lin",
+      "address": "13e67fb",
+      "length": 5,
+      "description": "current-bank offset import call",
+      "sha256": "3b16e89bd4e692d6913161903af52f0ffe85fbd658b2e512b3d180ee3880a871"
+    },
+    {
+      "platform": "lin",
+      "address": "13e69f3",
+      "length": 5,
+      "description": "other-bank offset import call",
+      "sha256": "1681806c39996e06fc559f772c6677f5a4335a3aa1e8b1b37a889b2b97398e6c"
+    },
+    {
+      "platform": "lin",
+      "address": "d4dacf",
+      "length": 5,
+      "description": "rotation conversion tail transfer",
+      "sha256": "9a5da1003a32316ed768083188822bf1bfba18c51fa7f743eec4f7e66f9a8b04"
+    },
+    {
+      "platform": "lin",
+      "address": "1e0222c",
+      "length": 5,
+      "description": "roll sincosf call",
+      "sha256": "039864b5af971a973c2ae3f86ade5843dca22fcb6dd28c377fa167c9530afc54"
+    },
+    {
+      "platform": "lin",
+      "address": "1e02254",
+      "length": 5,
+      "description": "yaw sincosf call",
+      "sha256": "b2d6c94e742effba4df40e4370f37a64ffcc53e56b50f11826a5c946a8ad5e4d"
+    },
+    {
+      "platform": "lin",
+      "address": "1e0227c",
+      "length": 5,
+      "description": "pitch sincosf call",
+      "sha256": "f1b916c06ba09029dae8481ce31d59edb43e3c7bdb3ae41c2a691b14968ffb00"
+    }
+  ],
+  "emulation": {
+    "actual_rotation_scalars_matched": 432,
+    "actual_cross_platform_differences_reproduced": 120,
+    "windows_dispatch_values_tested": [
+      0,
+      2
+    ],
+    "linux_libm_provenance": "Separate nongame WSL glibc 2.39 and actual VPS host glibc 2.42 sincosf calls agree exactly; not traced game calls",
+    "evidence_is_offline": true,
+    "vps_libm_sha256": "ff06daa44363e14ff00c80e28d87a281447f23599bf47c72f4fef0028bc41795"
+  },
+  "xml_tag_entries": [
+    {
+      "platform": "win",
+      "name": "yaw",
+      "tag": "0x532",
+      "entry": "0x22d0e40",
+      "length": 16,
+      "sha256": "4869ab8d400e44dfa832b498ddd23826154a6d0f89932fd6d2ab71605ea30a57"
+    },
+    {
+      "platform": "win",
+      "name": "pitch",
+      "tag": "0x32e",
+      "entry": "0x22cee00",
+      "length": 16,
+      "sha256": "f06648c2c2dceb052dc63ba7d16b2e72f2e627541005b385bc46f9e325affb13"
+    },
+    {
+      "platform": "win",
+      "name": "roll",
+      "tag": "0x3e2",
+      "entry": "0x22cf940",
+      "length": 16,
+      "sha256": "e797e54a84766cd828e0b43e10333ae32a9ea7967f46f76fd94cd821801351ff"
+    },
+    {
+      "platform": "win",
+      "name": "rotation",
+      "tag": "0x3e7",
+      "entry": "0x22cf990",
+      "length": 16,
+      "sha256": "4c3b6d2580bc0c34fe3fb46ceb0acccc19f662d6479ae3900d52bbc3d7732b83"
+    },
+    {
+      "platform": "win",
+      "name": "offset",
+      "tag": "0x2dc",
+      "entry": "0x22ce8e0",
+      "length": 16,
+      "sha256": "d1cf6bd80e818cb71940fd047aca19efa79188b73a5796d2979721f49abe8ca6"
+    },
+    {
+      "platform": "win",
+      "name": "position",
+      "tag": "0x340",
+      "entry": "0x22cef20",
+      "length": 16,
+      "sha256": "8fa0564320c63de3d9779bb087919e80475696662884daa3ad6d873736417b3b"
+    },
+    {
+      "platform": "win",
+      "name": "read",
+      "tag": "0x382",
+      "entry": "0x22cf340",
+      "length": 16,
+      "sha256": "1c31321479db213951a625e108bd04547368043dfd050b86d12c1c9a18fa3361"
+    },
+    {
+      "platform": "win",
+      "name": "write",
+      "tag": "0x52f",
+      "entry": "0x22d0e10",
+      "length": 16,
+      "sha256": "8d80bf422461dfc1e7cafe686c0c8f1e3910e74962f881a80875e841ed244ad1"
+    }
+  ]
+}

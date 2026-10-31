@@ -1,0 +1,37 @@
+﻿GETSAFEPOS STACK-INTERVAL REVIEW CORRECTION - 28 OCTOBER 2026
+
+Follow-up to frozen f486014; the original checkpoint and review witnesses are
+preserved. No game, staging, hook/site, wire-layout, RNG or gameplay change.
+
+The independent reviewer changed both sampler TIB bounds in a real owned C
+export while retaining the outer caller's different interval. The original
+parser accepted this internally inconsistent capture. Both boundaries belong
+to the same admitted thread and native call chain; this diagnostic has no
+supported stack-switch or transient stack-interval-change scope.
+
+The native passive sampler now joins its captured StackLimit and StackBase to
+the outer entry witness after both normal sampler capture phases. A difference
+sets sticky WP_CHANGED. The independent parser requires the same pair to equal
+both outer caller witnesses. The original still runs exactly once on refusal.
+There is no new borrowed read, altered return value, or additional read budget.
+No compiler-specific distance between outer and sampler return slots is assumed.
+
+Six production-path cases corrupt only the retained private outer witness,
+independently at sampler entry and normal return, with lower-bound, upper-bound
+and combined interval changes. Each restores the witness before outer recheck,
+so the new join is the rejection point. All six preserve original calls and
+normal return accounting while retaining exactly WP_CHANGED and one failure.
+The OS TIB, native-shaped stack and original code are unchanged by those tests.
+
+Focused exact-image/owned-body C test:1,629 active checks PASS, O2/-DNDEBUG.
+Actual C export:164 guard mutants rejected, including three independently valid
+but different sampler intervals; both coherent class differences remain visible
+and candidate/final inequality remains valid diagnostic data. Positive capture
+cost remains159 reads /4,360 bytes. The combined passive/direct Position/Position
+RNG Python and actual LuaJIT tests pass35/35. Existing full-suite and historical
+results belong to f486014; they are not relabeled as a new full-suite run here.
+
+The implementation report also now states accurately that healthy reattachment
+acknowledges the unchanged retained binding while rechecking read-only installed
+patch bytes, thunk readiness and exact native pins. It does not install/reset,
+write native state, reseed or claim that all verification reads are DLL-local.

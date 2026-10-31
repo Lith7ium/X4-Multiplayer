@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Unshipped MD half of tools/dev/player_factions_session_probe.lua (install as md/x4lan_pf_session_probe.xml
+     in lane session runs only). Test fixtures in a disposable world: a per-client player name and, on
+     the authority (client 1), energy cells in shared ship 2 for client 2's drop/magnet check. -->
+<mdscript name="X4LAN_PFSessionProbe" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="Name" instantiate="true" namespace="this">
+   <conditions><event_ui_triggered screen="'X4LAN_PFSession'" control="'Name'"/></conditions>
+   <actions>
+    <set_object_name object="player.entity" name="event.param3"/>
+    <debug_text text="'[X4LAN] PFSESSION NAME_SET requested=%s entity=%s'.[event.param3,player.entity.name]"/>
+   </actions>
+  </cue>
+  <cue name="Seed" instantiate="true" namespace="this">
+   <conditions><event_ui_triggered screen="'X4LAN_PFSession'" control="'Seed'"/></conditions>
+   <actions>
+    <set_value name="$ship" exact="@md.X4LAN_Bubble.Arena.$ships.{2}"/>
+    <do_if value="$ship.isoperational">
+     <add_cargo object="$ship" ware="ware.energycells" exact="30"/>
+     <debug_text text="'[X4LAN] PFSESSION CARGO_SEEDED ship=%s owner=%s energycells=%s'.[$ship,$ship.owner.id,$ship.cargo.{ware.energycells}.count]"/>
+    </do_if>
+    <do_else><debug_text text="'[X4LAN] PFSESSION CARGO_SEED_FAILED'"/></do_else>
+   </actions>
+  </cue>
+ </cues>
+</mdscript>

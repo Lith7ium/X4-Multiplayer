@@ -1,0 +1,51 @@
+{
+  "image_sha256": "19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891",
+  "scope": "read-only constructor storage and role attribution; no patch or acceptance change",
+  "spans": [
+    {
+      "rva": "0x153730",
+      "length": 396,
+      "sha256": "86960136fc20a5e424af084da994fb294e68890779b860b698219e6546dc6e84"
+    },
+    {
+      "rva": "0xe84970",
+      "length": 339,
+      "sha256": "e7de06a26a4d967bd189b2635da0cee6f0b97eba01bc7c84a906ab248f65b9d1"
+    },
+    {
+      "rva": "0xe85360",
+      "length": 1368,
+      "sha256": "c565989a8232aecf63974a4ae52a53edcaae07c632a0d8c5cb3e5b540f8f4a7e"
+    },
+    {
+      "rva": "0xe89b30",
+      "length": 91,
+      "sha256": "a49968493477f6ec75b6cfb6e95712025c59ef9203e0d14792d5d1c009487144"
+    },
+    {
+      "rva": "0xeac530",
+      "length": 582,
+      "sha256": "7b02058e82f6d8acf92e189f5982eae449af06dc045fcb41be1d182ea374267c"
+    },
+    {
+      "rva": "0xea35e0",
+      "length": 1319,
+      "sha256": "55ee34c5ef450f0f308b7c55a920eb84e65c03d6c5f8c84b0079d914eaec691c"
+    },
+    {
+      "rva": "0xeac170",
+      "length": 123,
+      "sha256": "8487d9a8922f92b790f68759933ac3011a10746f828a634ffc5fcb68ab24bd36"
+    },
+    {
+      "rva": "0xea2a20",
+      "length": 537,
+      "sha256": "d301bea94b279ddce92ced403bafdd17a90ed2eb83c5cc5944cf2ae600fc4a4f"
+    },
+    {
+      "rva": "0xe8f250",
+      "length": 10613,
+      "sha256": "ae0d8b729a39a75f83b1c3d783585f587de1cc2e5eff846620f2f0c482504f52"
+    }
+  ]
+}

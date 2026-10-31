@@ -1,0 +1,176 @@
+CONSTRUCTION: PROVISIONAL IDENTITY AND PRE-READY OPERATION EVIDENCE
+28 October 2026
+
+Scope
+-----
+This source-only diagnostic records the evidence still missing for safe builder
+enrollment. It does not implement READY, publish an actor, initialize an engine
+object, change a timer, normalize a physical bank, or relax the late-update
+refusal. No game, installation, lane, snapshot or frozen overlay was changed.
+The accepted construction fixture, A/B RNG keys and policy remain unchanged.
+
+Early identity and operation evidence live in separate bounded resident storage.
+The existing actor arrays, Agent/flight/weapon caches, params flags, Gravidar
+deadlines, prepared ticks, registry binder and first-update dedup remain intact.
+All rows explicitly report publication=0 and ready=0. A relationship candidate
+is not a safe enrollment point, worker exclusion or a native lifetime lease.
+
+Explicit agreement
+------------------
+The opt-in config is native_gate_registry_creation_schema=1. It requires the
+reviewed construction schema2 trace, A/B RNG schema1 and ACK schema1. Its closed
+ASCII manifest is:
+REGISTRY_CREATION_1;handle=0000000500000003;policy=observe
+
+The bootstrap appends | followed by that manifest immediately after the existing
+|CREATION_RNG_ACK_1 suffix. At epoch1 the complete preimage is702 bytes, SHA256:
+91b30261372f883f52286bd23a19ccbabd2c03b60b7d6627de662c731af6bf85
+C, Lua and Python independently reconstruct/check this exact agreement. Native
+RNG configuration refuses the extended preimage until this observer is already
+configured with the matching immutable manifest/digest. Marker-only, conflicting,
+duplicate-field, reordered, unsupported-mode, late and STOP configurations refuse.
+The constructor key derivation, supported option mask and seed values do not
+include this diagnostic suffix and are unchanged.
+
+The new Lua configuration happens before RNG activation. Healthy pre-activity
+reattachment keeps all observer state and uses the existing bounded RNG ACK
+ordinal/boot identity; it does not reset any record. The parser requires one
+REGISTRY_CREATION_CONFIG before each matching RNG CONFIG/ACK pair. Existing
+unmarked histories retain their original grammar and errors.
+
+Identity observations
+---------------------
+There are at most four records: selected Pilot entry, Pilot return, Generate
+return and selected lazy-navigation setter return. Admission to this record set
+requires the exact selected creation handle, execution tick, UI thread, native
+call ancestry and resident creation record. Pilot's native return caller remains
+c8224f under the selected Initialize/Generate interval. Generate's separate outer
+out-reference is not equated with the initializer's local reference.
+
+Each attempt is reserved in observer storage before its added lookup. Creation
+and legacy pending records are copied under their own locks, then released.
+Native lookup and passive object reads run outside all three locks. Commit
+rechecks the immutable creation record, selected lifetime and observer closing
+state. Failure retains the attempted candidate, lookup status and explicit
+refusal rather than inventing an admitted identity or deleting the attempt.
+
+The lookup function is the exact184-byte ced70, SHA256:
+3209f7be0616de6d0ecc20ce3cfd82fd16d0524c09635d86995210598b0a5f36
+Its ABI is (registry map pointer, complete uint64 runtime, mode4) -> pointer.
+The pinned body performs registry reads, not allocation, reference acquisition,
+RNG or locks. Its limited native index/generation check is insufficient by
+itself: this observer also checks the object's complete ID, exact XL class,
+macro and true owner, repeats passive presence and native lookup, and checks
+the map pointer again. Pointer equality is not described as a lifetime lease.
+
+Only read ACCESS_VIOLATION at the four exact native load PCs ceda1, cedcb, cedd8,
+cedfc, with matching ExceptionAddress/context RIP and read operation0, becomes
+lookup-unsupported evidence. A recovered read fault performs no borrowed-object
+after-read. Write/execute faults, other PCs, native stack restore faults, C++ and
+other exceptions propagate through the existing constructor finally cleanup.
+The added observer runs inside the existing wrapper try, before the original.
+Abnormal closure touches resident records only, closes its exact record once,
+retains incomplete/error state and preserves LastError.
+
+The setter record independently reports its actual open selected operations,
+controller/Agent/slot relationships, and immutable native/creation joins. It is
+captured before the Builder callback closes B. Neither that callback nor a
+successful relationship read publishes an operational actor or resets state.
+
+Per-operation evidence
+----------------------
+Every selected observation from the existing17 registry families is appended
+before the legacy first-update dedup, with a separate local sequence. The old
+MD/first-update/origin ordinal is sampled only as an anchor; no new shared
+ordinal is allocated. Anchors do not prove that no intervening work occurred.
+
+Only observations in the four already-owned origin scopes (AI, range, context
+event, radar) can have an exact paired original boundary. They require owning
+thread, current live scope and a bounded passive entity/parent-chain join to
+the exact selected object/full ID. Each scope keeps up to16 separate resident
+indices; repeated observations cannot overwrite one note. Normal and abnormal
+closure run even through the legacy no-notes early-return path and after STOP.
+
+Other families, unmatched/foreign scopes and unsupported classifications remain
+explicitly unpaired. No surrounding AI call is reused to invent a Params/Nav
+exit. There are at most256 operations; overflow is sticky and counted. Workers,
+changed lifetime, failed capture, scope mismatch and STOP overlap are retained.
+Only the pinned startup orders.base range and pinned AIDirector caller receive
+their narrow classifications. Other paired sources remain unsupported evidence.
+Even complete paired rows do not authorize any RNG consumer or actor lookup.
+
+Operational arrays remain unavailable to all69 audited direct consumers and
+their caches. ai_actor is not widened. Preparation support, worker exclusion
+and lifetime-lease support remain explicitly0. Missing readiness is not hidden
+by a valid diagnostic capture or by matching constructor timers from build017.
+
+Evidence and verification
+-------------------------
+The Lua drain resumes per successful identity part and operation row and has an
+independent protected abort drain. Unknown records, drain errors, rows after the
+footer, missing parts and malformed enums/widths are rejected independently.
+The Python reader distinguishes valid retained capture, admitted provisional
+identity and relationship candidate; READY/publication always remain false.
+It joins exact constructor/native records, selected range arguments/results,
+immutable MD anchors, full IDs, presence rereads, local sequence and open counts.
+Unsupported/refused observations remain in the parsed result.
+
+The loaded production DLL harness has2,617 always-on CHECKs including the prior
+RNG baseline. It exercises absent/wrong/reused-ID/map-change lookups; STOP and
+unexpected exceptions; all17 families before dedup; exact four-source normal
+and caught-inner-SEH/sibling continuation; repeated observations; workers;
+foreign scope rejection; overflow; and a selected setter candidate while a
+parent original remains open. Actor arrays/caches remain unpublished.
+
+The owned mapped-image test executes all four actual ced70 load instructions
+with the exact native unwind metadata registered. A test-only breakpoint
+restores the original byte, supplies an invalid address register and resumes
+that native load. This is deterministic fault injection, not a claim that a
+live game naturally faults at each site. The adapter recovers, RBX remains
+preserved, and an invalid candidate pointer is not sampled after recovery. The
+native unwind entry is [ced70,cee28), metadata0105020005340100. Full constructor
+original-once/opaque ABI/real-SEH coverage also runs in the existing nine-forwarder
+suite; these synthetic tests do not establish live engine lifetime safety.
+
+Captured production C Lua returns are fed through two distinct LuaJIT VMs and
+the independent Python bootstrap/ACK reader. No Lua closure is retained across
+those VMs. Synthetic post-configuration trace data is explicitly separate.
+The focused Python/Lua tests also cover incomplete/contradictory identity,
+native scope/anchor/result mutations, lookup absence, reattachment identity,
+capability refusal before copying, source preservation and logger resumption.
+
+Seven independently compiled omission mutants fail active CHECKs with exit97:
+omitted per-operation capture; omitted abort close; missing second lookup;
+borrowing an unrelated scope; broad read-AV recovery; incomplete native ID
+validation; and missing STOP closure. The explicit force-fail control also
+exits97. Existing test assertions are not disabled by optimization.
+
+Full native actual-image/ABI/unwind/restoration/transport suites pass. Python
+native discovery finds697 tests:692 pass,5 pre-existing optional skips. An
+initial invocation without tools on PYTHONPATH had six import errors; the
+corrected full invocation above passes. Historical012/014/015/016/017 validation
+remains false with the identical ordered41/43/43/41/44 errors. Stored files were
+not rewritten. Raw physical-bank/timer comparison and late binding remain strict.
+
+A parser-only follow-up additionally requires an admitted Pilot entry to be the
+first local observer event and the sampled MD anchors to be nondecreasing in
+local-sequence order. Both values are captured under the same observer lock;
+this does not infer that adjacent anchors exclude other native work. A reordered
+operation mutant is refused even if its forged identity admission is cleared.
+All nine focused tests, loaded C rows/two-VM agreement and exact historical
+error-array comparisons pass after this follow-up; native source is unchanged.
+Independent review also replaced an allocation sized by the untrusted uint64
+sequence footer with bounded enumeration of the at-most516 captured events.
+A UINT64_MAX footer mutant is refused without creating a giant range/set.
+Further independent producer-consistency witnesses require an explicit native
+scope refusal for changed operation ticks, a lifetime/identity refusal for
+contradictory later identity/presence fields, and exact sequence accounting as
+retained events plus dropped events. Error-free contradictions are rejected;
+the corresponding explicit refusal remains valid captured negative evidence.
+All ten focused tests and the production C/two-VM agreement check pass after
+these parser-only corrections. No native code or old evidence was changed.
+
+No native test outcome is claimed for this new observer. Fresh registry
+visibility at Pilot, actual per-operation gaps and the setter's worker/preparation
+conditions still require independently reviewed input and a separately authorized
+live diagnostic. This change only supplies bounded evidence for that decision.

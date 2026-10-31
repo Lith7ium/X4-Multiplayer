@@ -1,0 +1,135 @@
+LINUX / WINDOWS SAVED ROTATION IMPORT - 2026-10-27
+
+Scope and result
+
+The first mixed-native baseline reached joined main frame zero on both pinned
+9.00 / Steam 23660954 / in-game 611726 executables. It refused before granting
+any simulation step. The only 120 cross-platform field differences were five
+basis coefficients in each of two navigation banks on twelve fixture ships.
+Saved identity, topology, stored hull, references, local position and encoded
+game clock matched. This report does not turn that failed comparison into a
+successful lockstep run.
+
+The exact executable rotation import instructions reproduce all 432 observed
+basis scalars (both platforms, twelve ships, two banks, nine coefficients).
+Consequently every one of the 120 unequal pairs is accounted for by the native
+Euler import computation. This is offline instruction execution plus observed
+frame-zero outputs, not a live trace of the earliest native store. Later load
+work was allowed by the agreed joined-main boundary; its possible execution is
+not erased by this finding.
+
+Inputs and field mapping
+
+The common snapshot supplies yaw=+90 degrees for one facing and yaw=-90 for the
+other, with pitch and roll absent. The same Euler rotation is present in both
+saved movement banks and the component offset. There is no saved quaternion for
+these fixtures. The native XML tag tables identify offset=0x2dc, position=0x340,
+read=0x382, rotation=0x3e7, roll=0x3e2, pitch=0x32e, write=0x52f, yaw=0x532.
+The accompanying JSON pins exact Windows table records and both code paths.
+
+Windows Agent import 0xe86bb0 calls offset reader 0x47f730 at 0xe86d13 and
+0xe870fc. The output is agent+0xad0+selected_bank*0x1a0. The offset reader imports
+position into output+0 and transfers rotation import to 0x49cbb0 at 0x47f828,
+with output+0x10. The rotation reader stores its three vectors at +0/+0x10/+0x20
+relative to that basis output. Its quaternion branch is separate and was not
+selected by these inputs.
+
+Linux Agent import 0x13e5d30 calls offset reader 0xd4d870 at 0x13e67fb and
+0x13e69f3. Its corresponding bank base is agent+0xaf0; stride is again 0x1a0.
+The offset reader imports position at +0, adds 0x10 for rotation, reads the same
+Euler attributes and tail-transfers to 0x1e02200 at 0xd4dacf. Its output is three
+vectors at +0/+0x10/+0x20. Thus the portable decoder's four xyz vectors at bank
++0/+0x10/+0x20/+0x30 agree with the actual import writers. Neither platform's
+portable reader converts or renormalizes those vectors.
+
+The first differing arithmetic
+
+Both parsers produce exact binary32 +90 or -90. Both multiply by the identical
+binary32 degrees-to-radians constant 0x3c8efa35. The resulting angles are exactly
+0x3fc90fdb and 0xbfc90fdb on both platforms. Missing pitch and roll become +0.
+The integer literals therefore do not exercise the separate saved-decimal-time
+rounding discrepancy documented in the Wait-import report.
+
+Windows XML rotation import 0x49cbb0 inlines the matrix calculation and calls
+packed adapter 0x1750253 at 0x49cc40. At 0x1750257 that adapter adds a binary32
+pi/2 constant to the lanes used for cosine, then evaluates packed sine. Thus
+cos(+pi/2) is obtained from sine(binary32 pi), while cos(-pi/2) is obtained from
+sine(+0). The packed sine approximation also returns 0x3f7fffff for its binary32
+pi/2 input, including the lane used for cos(pitch=0). These are native arithmetic
+results, not a decoder interpretation or a later quaternion normalization.
+
+Linux 0x1e02200 calls sincosf directly for roll, yaw and pitch at 0x1e0222c,
+0x1e02254 and 0x1e0227c. Its ABI is RDI=basis output, XMM0=pitch radians,
+XMM1=yaw radians, XMM2=roll radians. The standalone Windows 0x34bff0 has a
+different argument order: RCX=full transform, XMM1=yaw, XMM2=pitch, XMM3=roll;
+it uses the same packed helpers and writes basis at transform+0x10.
+
+For the two tested angles Linux sincosf yields sine +/-1 exactly and cosine
+0xb33bbd2e for either sign. The native Windows packed helper yields cosine
+0xb3bbbd2e for positive yaw and +0 for negative yaw; its sine magnitude is
+0x3f7fffff. The subsequent binary32 products explain both the 1-ULP and 2-ULP
+unit-vector coefficients and the final 0xb3bbbd2d term.
+
+Synthetic input, flattened basis output (hexadecimal IEEE binary32):
+
++90, Windows:
+ b3bbbd2e 00000000 bf7fffff | 00000000 3f7fffff 00000000 |
+ 3f7ffffe 00000000 b3bbbd2d
++90, Linux:
+ b33bbd2e 00000000 bf800000 | 00000000 3f800000 00000000 |
+ 3f800000 00000000 b33bbd2e
+-90, Windows:
+ 00000000 00000000 3f7fffff | 00000000 3f7fffff 00000000 |
+ bf7ffffe 00000000 00000000
+-90, Linux:
+ b33bbd2e 00000000 3f800000 | 00000000 3f800000 00000000 |
+ bf800000 00000000 b33bbd2e
+
+Reproduction and limits
+
+Private Unicorn execution starts at Windows 0x47f730 and Linux 0xd4d870 using
+synthetic native XML nodes containing only the tested yaw text. The native float
+parsers execute unchanged. The Windows mapped-image CRT ctype pointer is rebased
+into the emulator's image; no parser or trig result is substituted. Both native
+Windows CRT dispatch choices 0 and 2 produce the same final basis bits here.
+
+Linux's external sincosf is supplied with the three exact outputs independently
+measured in a nongame WSL glibc 2.39 call. The ELF integer/float parser, matrix
+instructions and output stores execute in the emulator. That explicit external
+function model is not a claim to have executed the VPS game's actual libm.
+The VPS owner subsequently measured the same three inputs in its host glibc
+2.42 libm. All output words match the WSL probe and the observed game basis.
+That is an actual host-library nongame call, not a traced game sincosf call.
+The pinned host libm is 1,096,120 bytes with SHA-256
+ff06daa44363e14ff00c80e28d87a281447f23599bf47c72f4fef0028bc41795; the
+probe joined the resolved symbol mapping to the file device/inode/path. The
+private VPS-tree result is .local/linux-admission/probe_vps_sincos.json.
+
+Private evidence in this worktree:
+ .local/linux-static/emulate_rotation_import.py
+ .local/linux-static/rotation-import-emulation.json
+ .local/linux-static/rotation-emulation-provenance.json
+ .local/linux-static/sincos_probe.py and sincos_probe.json
+ .local/linux-static/{win,lin}-<address>.asm
+
+The provenance file hashes the private reproduction inputs and outputs. Exact
+native code hashes and call-site ranges are in the accompanying sanitized JSON;
+raw executable bytes, disassembly, saves and process logs are not committed.
+Some unwind roots have multiple ranges; the JSON preserves them rather than
+pretending a discontiguous function is one contiguous span.
+
+The Linux diagnostic hash used a zero contract field by design; the coordinator
+hashed the actual canonical contract bytes. Rehashing in the same domain resolves
+that separate diagnostic-label difference. It does not explain away any of the
+120 actual rotation coefficient differences.
+
+Next correction boundary
+
+A future common evaluator must define the Euler-to-basis arithmetic on both
+platforms before these values are published by import. Hash tolerances, rounding
+only serialized output, copying the other peer's state, or editing a basis after
+frame zero would leave different native simulation inputs. No such change was
+made. A separate source-only design will specify a bounded shared evaluator,
+unsupported-input refusal, exact ABI/lifetime integration and offline compiler
+parity before proposing any native hook. Fixing this import path alone cannot
+establish parity for later rotations, physics, AI, RNG or other unsupported state.

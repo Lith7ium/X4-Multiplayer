@@ -1,0 +1,264 @@
+LINUX SAVED EULER IMPORT ADAPTER - SOURCE REVIEW
+28 October 2026
+
+STATUS
+Source and owned non-game tests only. No X4 process, VPS staging, installation or
+replacement of a frozen agent/bridge occurred. Previous mixed002 frame0 mismatch
+evidence remains unchanged. No corrected native load or lockstep is claimed.
+
+The adapter uses the already reviewed original integer evaluator on original XML
+input, after each selected native import runs once. It does not copy peer state,
+mask hashes, use epsilon comparisons, normalize floats or zero a basis.
+
+CAPABILITY
+Only portable-fixture12-euler-v1 can prepare the new patches. Exact requirements:
+descriptor 413da729cc58150f7f7d5136113537231d5fe3f231b2462263ecb12f611da589
+snapshot   7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8
+contract   d1e810d9180594338f64af4fe287834f618da24181e1f5b53d4924ff58717d82
+X4MP_PORTABLE_IMPORT_SHA256 and X4MP_PORTABLE_SNAPSHOT_SHA256 are explicit new-mode
+fields. Missing/wrong/legacy/disabled combinations refuse. Old zero-input mode
+keeps its old contract/result and rejects new import fields. Rust obtains constants
+and counts through the thin C bridge from unchanged portable_import_capability.h.
+portable_rotation.c/.h and rotation_xml_input.h are unchanged. No external math,
+engine bytes or third-party coefficients are embedded.
+
+EXACT NATIVE BOUNDARY
+Linux X4 9.00 (611726), Steam23660954,
+SHA113f73d74570084f6ce18a659b365009eccf579fb66dbabb5dad2b1718045f20.
+The existing full-image guard remains mandatory. Additional pins cover two aligned
+patch words, complete selector/argument paths, original XML reader and native Load.
+
+Read call13e67fb -> d4d870, return13e6800, aligned word13e67f0:
+7d83a6f33d57a4ee5a164216c1d528751055bf645099f51338479859299d3922
+Write call13e69f3 -> d4d870, return13e69f8, aligned word13e69f0:
+617d679204816da8bab0f415efacd2f260579ab3dfeca4945c468807818a42c3
+Only relative displacement bytes change through existing owned CAS16/sync-core
+primitives. Both ranges are reserved source-only in the canonical hook registry.
+
+The low RW-to-RX tail thunk has no stack frame. RDI/RSI remain exact; RDX receives
+the actual native return and RCX the actual Agent RBX. Read uses selector3e4fea8,
+write3d8e254. Selectors must be distinct0/1; actual bank must equal actual Agent
++af0+selector*1a0. Both selectors/relation are rechecked after original and per store.
+Installation is inside the existing owned parked-main observer boundary. Readiness
+stays0 until all observer/rotation patches are owned and installation was logged.
+The fresh private request binds mode/token/PID/start generation before arm.
+
+Existing native Load RAII creates/closes the sole rotation scope. Each correction
+requires one active Load original, raw calls/returns1/0, Loading phase, same owner
+TID, installed VBI table/client, loaded Ep1 module and nonzero serial. The pathing
+manager at3e0ced0 is bound at Load entry and remains unchanged. manager+199==1 is
+also required, but cannot authorize a write alone. The pinned Load path supplies
+native pathing exclusion around the selected synchronous calls. No agent mutex is
+held over either original engine function.
+
+Original offset reader runs once even on rejected observation, with exact arguments,
+through extern C-unwind outside catch_unwind. RAII spans post-original correction.
+Foreign exceptions traverse both scopes without retry/catch and cannot pass. The
+selected native callers do not consume incidental RAX from the void offset call.
+XML is bounded/owned before original and replay-checked after that same synchronous
+call; no queued pointer or component relookup. Replay detects sampled changes, not
+arbitrary ABA. Borrowed lifetime relies on the audited native reader/Load path.
+
+WRITES / FAILURE / COVERAGE
+The C bridge is read-only. Rust receives nine offset/before/candidate words, reads
+the complete1a0-byte post-original bank, writes xyz only at10/20/30, then verifies
+every byte against that bank with exactly nine substitutions. Position, fourth
+lanes, flags and references remain identical to original output. No getter runs.
+Absent orientation is KEEP_NATIVE; missing/empty Euler attrs remain distinguishable
+and evaluate to the specified +0. No other bank field is corrected.
+
+STOP is independent of the commit/restoration mutex. STOP between stores causes
+sticky failure and completed-store count. Nine words are not an atomic transaction;
+no safe engine-world rollback is claimed. Partial failure blocks import publication
+and frame0. Each role separately requires10008 calls/returns,10005 Euler,3 absent,
+90045 stores. Preallocated address tables reject repeated banks in either role.
+Per-role totals cannot hide swapped Euler/absent coverage. There is no retained
+cross-role Agent-set census or whole-Load selector invariant; each selected call
+proves its actual Agent/bank relation and selector stability. The manager is
+captured at entry and required unchanged, rather than assumed never replaceable.
+Normal true Load, closed scope and active0
+are mandatory; false/exceptional Load cannot pass despite a lingering loading flag.
+
+Math patches restore after Load return or failure/disarm, checking original words
+and RX permissions. Thunks remain for process lifetime, preventing cancellation
+from freeing in-flight code. Existing clear/map/success-completion lifecycle must
+also complete before handoff. Rotation failure blocks its publishable output too.
+
+RECEIPT CONTRACT
+Worker-only ROTATION rows start after installation. Waiting stays internal;
+emitted phases: Installed, Loading, Completed, Failed. Exactly33 fields:
+phase mode descriptor snapshot contract serial owner table client module manager
+installed load_calls load_returns load_true abnormal scope_open active
+read_calls read_returns read_euler read_absent read_words
+write_calls write_returns write_euler write_absent write_words
+cancelled failure restored restore_error publishable
+
+Initial Installed identity is zero until actual Load. Positive anchors then remain
+stable. Completed/publishable requires exact role counts, normal true Load, no
+failure/cancel, restored words and completed observer lifecycle. Cadence cannot
+combine an old open-scope snapshot with newer successful terminal predicates.
+No token/XML text is logged. table/client/owner join observer installation; module
+joins portable loaded Ep1; manager joins independent3e0ced0 reads. The external
+probe independently checks those joins and both words before request/after terminal.
+Ordinary NGP completion alone is insufficient. New positive result is
+passed_subset_euler_import; old passed_subset_zero_only stays unchanged.
+
+BOUNDS / TESTS / LIMITS
+Per-call scratch16KiB; shared math retains reviewed fixed-limb bounds. Two32768-u64
+duplicate tables allocate before arm. No allocation, queue, file or network I/O in
+selected correction path. Process memory access is bounded and short reads/writes
+refuse. Actual adapter overhead/native loaded behavior has not been measured.
+
+WSL Ubuntu24.04 existing Rust/C/C++ toolchains:
+- Full agent unit suite and seven scheduler simulations pass. Focused rotation
+  tests cover mode/request binding, role coverage, malformed XML/panicked reader,
+  every nonbasis byte, STOP0..9 and false/unwound/repeated/foreign Load scopes.
+- Exact-image checker passes25 existing sites plus admission/observer/portable/
+  scheduler and all six rotation pins. Strict Clippy with warnings denied passes.
+- Actual owned RX/CAS16 sites at offsets11/3 install/execute/restore with neighbors,
+  exact arguments, stack and SysV nonvolatiles preserved. Rejected wrapper roles
+  still call original once. Rust unwinds cannot execute post-original correction.
+- check_linux_rotation_unwind.py compiles production original-call helper and RX
+  thunk into a non-game C++/Rust harness. Both roles normal+foreign throw/catch:
+  original2, return1, scope-exit2, abnormal1, post-original1. This is ABI evidence,
+  not an X4 test. Private evidence remains under .local/rotation-runtime.
+
+Independent review and the local matched build are complete as recorded below.
+The disposable native pair remains pending exact bundle/command review. No matching
+frame0, gameplay lockstep or all-features coverage is claimed by this milestone.
+
+READINESS REVIEW FOLLOW-UP
+The exported readiness accessor now directly reads the rotation atomic failure
+latch. A failure after acknowledged installation revokes readiness immediately,
+before observer cadence cleanup. The actual exported function is tested in an
+isolated exact-test child: READY stays true, observer STOP/FAULTED stay false and
+Load calls stay0 while readiness changes1->0 solely from rotation failure. No
+prepare, patch or native memory read is involved.135 agent tests and strict Clippy
+pass. The original b65948b source-review commit remains preserved.
+
+PATCH CLEANUP REVIEW FOLLOW-UP
+The inherited CAS16 primitive now retains separate RX-protection and sync-core
+obligations after its own successful RWX transition. Seeing original bytes alone
+cannot discharge either obligation. Retried cleanup repairs the immutable original
+RX protection and synchronization even after a previous restore CAS succeeded.
+An observed RWX retry state never becomes the original protection baseline.
+
+CAS mismatch preserves foreign bytes while independently repairing our prior
+permission/sync obligations. A failure before any protection/CAS transition creates
+no invented obligation. Persistent/foreign-protection failures retain outstanding
+state and cannot report original_present/restored. First failure is sticky and
+blocks reinstall even if later cleanup succeeds. Earlier ignored inner restore
+errors no longer discard required cleanup state.
+
+Six pure-state tests cover these transitions. A separate actual owned executable
+page matrix exercises Patch install/restore bookkeeping across16 combinations:
+install/restore, RX/sync failure, transient/persistent failure, and foreign bytes.
+It checks installed/restored flags, actual RX state/bytes, ignored inner cleanup,
+retry completion and sticky reinstall refusal. A real same-page two-patch case
+proves the group cannot be called restored while either obligation remains.
+These tests use owned non-game mappings; no native X4 code or artifact changed.
+
+LOCAL MATCHED BUILD
+Independent review accepted b65948b, e0bf17d and50ef4e3. An immutable LF source
+export built the agent with cargo build -p x4mp-agent --release --offline using
+the existing WSL Rust/GCC toolchain. The readiness bridge changes only exact pins
+in27b1baa; its API and binding checks are unchanged. Final validation is143 agent
+tests,7 scheduler tests, strict Clippy,7 bridge tests,5 actual disabled-agent LuaJIT
+binding cases and the exact-image checker. None of these starts X4.
+
+Agent736032 bytes SHA256:
+e58005ac2b725451e903f3551687b5e7d94cd640f654984c150c943b582c8b17
+Bridge338480 bytes SHA256:
+713255b8ec3b63ab50c9d95f764a8dd88bf88481807dfed3fdfcd8f04e636116
+Readiness accessor is0x5c020/74 bytes. Source/artifact manifests and full command
+evidence stay private. Shared C math, XML helper and capability header are byte
+identical to the reviewed Windows source. The inert18-payload/26-file Linux bundle
+uses root17f101b LF launcher/probe/Lua/SSH helpers and exact common contractd1e810d9.
+Tar SHA256:
+eb9efd7fc01a8bbe26581587a42290d12d0dc6a0b887cd0458ae341570b8692e
+
+The private proposed controller passed syntax and print-only checks without
+creating a session or launching any process. User-removed RAM floors are absent;
+all other owned lane/profile/process/endpoint/cleanup checks remain.
+
+MIXED003 STARTUP REFUSAL
+After independent bundle/command approval, exact remote artifact-only preflight
+passed: five disabled-agent LuaJIT cases, three large-map prefixes, private-root
+and Steam identities, no X4, reviewed artifact hashes and127 stock-file stamps.
+This preflight explicitly did not claim full stock hashing; the actual launcher
+retains that requirement.
+
+The single approved attempt reached Windows MENU and LOAD_REQUEST, then a UI
+reload refused native Euler import configuration and emitted CANCEL restored=true.
+The released Windows session failed with its existing fail-on pattern. The remote
+coordinator received no HELLO, frame or terminal receipt and released no tick.
+Its final evidence_persistence_failed after teardown is a separate secondary
+failure. No portable-state or arithmetic comparison occurred.
+
+Linux remained in stock hashing and had created no native case or X4 process.
+The exact owned supervisor was cancelled via PIDFD after Windows definitively
+failed. Final remote inventory proves that supervisor and coordinator exited,
+no X4 exists and the original Steam identity is unchanged. Full stock hashing
+was incomplete; no Linux native Load/math/frame/restoration receipt is claimed.
+
+Windows ownership evidence binds the reviewed executable and frozen DLL to the
+same owned job/process generation. Process exit, lease closure, lane restoration
+and snapshot restoration pass. Independent native code restoration and complete
+math counts are absent; CANCEL's reported restored=true is diagnostic only.
+
+Frozen root17 protocol, terminal and combined validators were run against these
+actual files: all refuse acceptance, native_pair_verified=false. The controller's
+zero exit status does not override its recorded failing child exits. Private
+evidence remains .local/mixed-native-003. No automatic retry was made. This Linux
+candidate has not executed inside X4; gameplay lockstep remains unproved.
+
+MIXED004: PREPARATION PASSED, TWO DISTINCT STARTUP REFUSALS
+The reviewed fourth attempt used the unchanged Linux e58005ac agent and713255b8
+bridge, a fresh20-payload/29-file bundle, and Windows51b4826 DLL86a663ee. The
+common Euler capability/contract and snapshot stayed unchanged. Independent
+review accepted the same-supervisor preparation source and exact controller.
+The old003 bundle and evidence remain immutable.
+
+Artifact-only preflight passed all exact hashes,127 stock sizes/stamps, five
+actual disabled-agent LuaJIT binding/refusal cases, private namespace and Steam
+identity checks. The actual Linux supervisor then completed all127 full stock
+hashes before Windows or the coordinator started. Its PREPARED receipt and
+one-shot handoff bind the same PID/start generation, request, review and content
+manifest. Retained stock identity also passed after cleanup. The normal final
+pre-cleanup acceptance field is absent because the native probe failed early;
+post-cleanup evidence does not manufacture that missing acceptance field.
+
+Linux verified the exact X4 image, then two inherited-preload helper processes
+wrote executable-size refusals to the same agent log. Unlike earlier cases,
+both generic refusal lines arrived AFTER the native VERIFIED line. They carry
+no PID, so the existing conservative parser correctly refused with
+ambiguous_native_build_refusal. Adjacent START lines suggest helper origin but
+cannot prove attribution under concurrent writes. The owned request was never
+published; there was no observer install, Load, rotation receipt or frame0.
+The agent reported WAIT owned_preload_request and NOT_ARMED disarm_file_present.
+Independent drain failed native_vbi_not_ready; no code/padding restoration pass
+is inferred from this startup-only evidence.
+
+Windows progressed beyond the previous UI reattachment failure, reached LOADED,
+and independently refused Euler import coverage. Its terminal math diagnostic
+reports failure6, one normal successful Load call/return,10006 calls/returns for
+each role, zero Euler conversions, foreign210755, complete0 and restored1 with
+restore_error0. The native gate reports reason74, zero frames/issued/completed,
+and one original call/return. These are exact diagnostic counts, not a root-cause
+claim or independently verified patch restoration. This failure is distinct
+from Linux's log-attribution refusal.
+
+The coordinator received no participants/frames and released no tick. Its final
+evidence_persistence_failed and missing durable local bridge report are retained
+as secondary failure evidence. There is no state difference to compare. The
+frozen combined validator refuses valid/native_pair_verified; missing final
+preparation and transport attestations remain explicit. Controller004 correctly
+returns exit1 for Windows5/Linux1, fixing the old003 misleading zero exit.
+
+Owned Linux X4 and private Xvfb PIDFD cleanup passed; supervisor/coordinator/native
+generations are gone and Steam is unchanged. Windows exact image/DLL/job identity,
+process exit, artifact lease closure, lane restoration and snapshot restoration
+passed. Final inventories show no X4 on either host and free b3. No production,
+Steam, Workshop or normal save changes were made. Private raw evidence is retained
+under .local/mixed-native-004. No automatic retry was made; both causes require
+separate reviewed fixes before another native attempt.

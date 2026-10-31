@@ -1,0 +1,98 @@
+ORIGIN AND DIRECT TRANSITION EXCEPTION CLEANUP
+28 October 2026 | Owned synthetic execution; no native game
+
+The approved follow-up to2aaab98 adds __try/__finally around origin post/delivery,
+their outer native admission, and the three direct transfer/publication/activation
+wrappers. Production has no exception handler: the original Windows exception
+propagates. Normal return results and ABI remain unchanged. No locks span native
+originals. On abnormal termination, own TLS and admitted open counts are cleared
+once, failures and distinct unwind counters are retained, and no normal return or
+delivered-state2 is fabricated. Cleanup touches observer storage only. No event,
+old controller or after-state is read during abnormal cleanup. Existing STOP open
+counts remain nonzero evidence even after an admitted call unwinds and open falls
+back to zero. No hook, control writer or native action was added.
+
+Origin receipt schema2 adds native_unwinds/post_unwinds/delivery_unwinds. Ticket
+and edge rows also carry schema2, so mixed exports are refused. The config token
+remains version1: it selects identities and window, not receipt interpretation.
+The independent consumer accepts the earlier schema1 only as ordinary-return
+coverage and explicitly labels schema2 as origin-only exception cleanup. Any
+unwind remains failed evidence. The main validator also rejects paired origin
+receipt schema mismatch; local pointer/return equality is still not requested.
+
+Transition watch schema remains unchanged. Its footer explicitly adds
+exception_schema=1, direct_calls/direct_returns/direct_unwinds and
+queue_exception_cleanup=0. This extension covers only the three direct wrappers.
+Legacy footers are explicitly interpreted as ordinary-return coverage. The
+consumer refuses malformed/missing extension fields, nonzero unwinds or a claim
+that queue exception cleanup exists. Aborted events finish as diagnostic records
+with error64; their empty after-state is not a successful native result.
+
+The World queue wrappers still own independent enqueue/dispatch scopes, TLS and
+pending model-ticket lifetimes. Their exceptional path requires separate reviewed
+cleanup/abort callbacks. Those producers are unchanged in this commit. Do not
+infer full transition, whole-engine or general C++ exception coverage from this
+bounded result. A failure within observer cleanup or an invalid native call chain
+is also not repaired by the finally clauses.
+
+Tests and exact limits
+
+The actual-image C harness still verifies all original pins and native adapters.
+New Windows RaiseException tests run the patched callsite, immutable nearstub,
+fifth-argument adapter998700 and GetUpEvent forwarder152870 on owned memory. The
+synthetic original raises after making the event page inaccessible. Post failure,
+deferred delivery failure, immediate reentrant post-to-delivery failure and STOP
+while a throwing post is open all propagate the exact code once. They balance
+their own ordinary-return plus unwind accounting and retain incomplete tickets.
+STOP sees open1 before resume and restore_open1 after cleanup. Both main-thread
+and worker-thread TLS are checked.
+
+Synthetic non-leaf callsites register their own RUNTIME_FUNCTION entries. The
+post caller describes PUSH RDI, SUB RSP30 and saved RBX/RSI; the dispatch caller
+describes SUB RSP28. The production wrappers use compiler-generated unwind data;
+the production nearstub is a leaf tailjump and original engine callers keep their
+own pdata. A standalone RaiseException language probe alone was not used as proof.
+
+Direct transition tests raise from transfer/publication/activation originals,
+invalidate the old-controller page and verify no after-state, unchanged native
+exception, exact admission cleanup and restored enclosing TLS. A selected-to-
+excluded nested activation also unwinds cleanly. Pure origin tests count capture
+calls and prove PO_AFTER was not invoked after an exception; a native test catcher
+inside a parent delivery proves an inner other-receiver unwind restores the
+parent scope before normal parent continuation. Every such exception still leaves
+the observer failed. Existing full-RAX/double, nonvolatile, native-memory/RNG,
+normal original-once, configuration/STOP and foreign restoration tests pass.
+
+The production Lua formatters exported one real synthetic origin ticket and two
+edges. The independent consumer accepts their local origin receipts. It correctly
+rejects the combined evidence because this fixture has no installed/restored
+transition hooks: its actual sites/enabled fields are preserved, not rewritten to
+manufacture a positive session result. Raw exported addresses remain private.
+
+Validation: full actual-image native C suite, pure origin suite,30 production
+transport/boot cases and383 focused Python/Lua tests passed. Compilation used the
+existing build driver with private -fms-extensions injection; shared production
+flag ownership remains with the Windows rotation change. That flag is a required
+integration dependency. No staged overlay, game, GetUp, re-entry, release
+completion or independent-pilot claim is made.
+
+Lua integration follow-up
+
+Action-path review exposed that the closed Lua transition status parser still
+accepted only the legacy18/34 fields, despite the new C/Python exception extension.
+The follow-up consumes all five versioned fields together, keeps the same schema
+through configure/drain, refuses unsupported queue coverage and malformed numbers,
+and retains the raw STOP footer before refusing unwind or incomplete returns.
+Legacy footers retain ordinary-return behavior. Tests cover legacy/schema2 normal
+drain, missing/partial/unknown/malformed extensions, mode changes and failed STOP.
+The actual production C schema2 footer also passed LuaJIT configure/active drain
+with its original sites/enabled fields retained. This corrects a source integration
+blocker; no native launch had occurred with the incompatible parser.
+
+Independent review then found an equal-count substitution gap: a legacy base
+field could be replaced by an exception field without selecting the extension.
+The Lua parser now requires the exact base field set and either all five
+extension fields or none. Both schema1 and schema2 regressions replace every
+base field with each extension field at configure and drain, and omit every
+extension field individually. The independent Python parser already refused
+these malformed receipts; this closes the earlier Lua admission gap too.

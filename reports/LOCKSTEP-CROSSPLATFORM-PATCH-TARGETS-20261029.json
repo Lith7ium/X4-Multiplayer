@@ -1,0 +1,639 @@
+{
+ "schema": "x4-crossplatform-patch-targets-v1",
+ "math": {
+  "windows": [
+   {
+    "rva": "0x1750210",
+    "name": "sincosf",
+    "kind": "packed: xmm0=x -> xmm0=[sin x, cos x]; cos = sin(|x|+pi/2) unless |x| tiny",
+    "call_sites": 181,
+    "action": "replace whole entry, keep lane ABI: packed: xmm0=x -> xmm0=[sin x, cos x]; cos = sin(|x|+pi/2) unless |x| tiny"
+   },
+   {
+    "rva": "0x1750253",
+    "name": "sincosf",
+    "kind": "packed: xmm0=a, xmm1=b -> xmm0=[sin a, cos a, sin b, cos b]; cos = sin(x+pi/2)",
+    "call_sites": 101,
+    "action": "replace whole entry, keep lane ABI: packed: xmm0=a, xmm1=b -> xmm0=[sin a, cos a, sin b, cos b]; cos = sin(x+pi/2)"
+   },
+   {
+    "rva": "0x1a051ac",
+    "name": "round",
+    "kind": "exact",
+    "call_sites": 24,
+    "action": "keep (exact operation)"
+   },
+   {
+    "rva": "0x1a10798",
+    "name": "log2f",
+    "kind": "plain",
+    "call_sites": 0,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a10928",
+    "name": "log2f",
+    "kind": "thunk",
+    "call_sites": 6,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a11848",
+    "name": "exp2f",
+    "kind": "plain",
+    "call_sites": 17,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a19250",
+    "name": "acosf",
+    "kind": "plain",
+    "call_sites": 30,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a19480",
+    "name": "sinf",
+    "kind": "fma3",
+    "call_sites": 108,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a19b80",
+    "name": "cosf",
+    "kind": "fma3",
+    "call_sites": 98,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a1a080",
+    "name": "fmodf",
+    "kind": "exact",
+    "call_sites": 63,
+    "action": "keep (exact operation)"
+   },
+   {
+    "rva": "0x1a1a2cc",
+    "name": "sqrt",
+    "kind": "exact",
+    "call_sites": 35,
+    "action": "keep (exact operation)"
+   },
+   {
+    "rva": "0x1a1a398",
+    "name": "atan2f",
+    "kind": "plain",
+    "call_sites": 477,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a1a790",
+    "name": "powf",
+    "kind": "fma3",
+    "call_sites": 189,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a1c794",
+    "name": "roundf",
+    "kind": "exact",
+    "call_sites": 12,
+    "action": "keep (exact operation)"
+   },
+   {
+    "rva": "0x1a1e840",
+    "name": "pow",
+    "kind": "fma3",
+    "call_sites": 49,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a23e64",
+    "name": "atanf",
+    "kind": "plain",
+    "call_sites": 12,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a240d0",
+    "name": "tanf",
+    "kind": "fma3",
+    "call_sites": 34,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a24744",
+    "name": "log2",
+    "kind": "plain",
+    "call_sites": 2,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a250cc",
+    "name": "exp2",
+    "kind": "plain",
+    "call_sites": 1,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a251c0",
+    "name": "acos",
+    "kind": "plain",
+    "call_sites": 11,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a25460",
+    "name": "asin",
+    "kind": "plain",
+    "call_sites": 5,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a256e4",
+    "name": "atan",
+    "kind": "plain",
+    "call_sites": 2,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a258fc",
+    "name": "atan2",
+    "kind": "plain",
+    "call_sites": 4,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a260d0",
+    "name": "cos",
+    "kind": "fma3",
+    "call_sites": 42,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a26650",
+    "name": "exp",
+    "kind": "fma3",
+    "call_sites": 8,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a26a50",
+    "name": "log",
+    "kind": "fma3",
+    "call_sites": 6,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a26f80",
+    "name": "sin",
+    "kind": "fma3",
+    "call_sites": 50,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a274f0",
+    "name": "tan",
+    "kind": "fma3",
+    "call_sites": 1,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1a38060",
+    "name": "log10",
+    "kind": "fma3",
+    "call_sites": 7,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1b42f20",
+    "name": "sincos",
+    "kind": "packed: xmm0=x -> xmm0=[sin x, cos x] (binary64 lanes)",
+    "call_sites": 2,
+    "action": "replace whole entry, keep lane ABI: packed: xmm0=x -> xmm0=[sin x, cos x] (binary64 lanes)"
+   },
+   {
+    "rva": "0x1b43ce0",
+    "name": "asinf",
+    "kind": "plain",
+    "call_sites": 174,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1b43ed0",
+    "name": "expf",
+    "kind": "fma3",
+    "call_sites": 9,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1b44180",
+    "name": "fmod",
+    "kind": "exact",
+    "call_sites": 21,
+    "action": "keep (exact operation)"
+   },
+   {
+    "rva": "0x1b44460",
+    "name": "log10f",
+    "kind": "fma3",
+    "call_sites": 25,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1b44940",
+    "name": "logf",
+    "kind": "fma3",
+    "call_sites": 87,
+    "action": "replace whole entry (jmp to portable implementation; MS x64: args xmm0/xmm1, result xmm0)"
+   },
+   {
+    "rva": "0x1b44d38",
+    "name": "sqrtf",
+    "kind": "exact",
+    "call_sites": 9,
+    "action": "keep (exact operation)"
+   }
+  ],
+  "linux": [
+   {
+    "symbol": "acos",
+    "plt": "0x6592d8",
+    "got": "0x3d8b4f0",
+    "call_sites": 14,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "acosf",
+    "plt": "0x656570",
+    "got": "0x3d8c2b8",
+    "call_sites": 43,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "asin",
+    "plt": "0x6592e0",
+    "got": "0x3d8b5b8",
+    "call_sites": 3,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "asinf",
+    "plt": "0x6579c0",
+    "got": "0x3d8cce0",
+    "call_sites": 173,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "atan",
+    "plt": "0x6592c0",
+    "got": "0x3d8b2e0",
+    "call_sites": 2,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "atan2",
+    "plt": "0x6592f0",
+    "got": "0x3d8b888",
+    "call_sites": 14,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "atan2f",
+    "plt": "0x656fc0",
+    "got": "0x3d8c7e0",
+    "call_sites": 490,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "atanf",
+    "plt": "0x659130",
+    "got": "0x3d8d898",
+    "call_sites": 12,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "cos",
+    "plt": "0x659310",
+    "got": "0x3d8bad8",
+    "call_sites": 2,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "cosf",
+    "plt": "0x658ba0",
+    "got": "0x3d8d5d0",
+    "call_sites": 57,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "exp",
+    "plt": "0x6592a0",
+    "got": "0x3d8af10",
+    "call_sites": 10,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "exp2",
+    "plt": "0x6592c8",
+    "got": "0x3d8b440",
+    "call_sites": 1,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "exp2f",
+    "plt": "0x658c30",
+    "got": "0x3d8d618",
+    "call_sites": 2,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "expf",
+    "plt": "0x6588a0",
+    "got": "0x3d8d450",
+    "call_sites": 10,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "floor",
+    "plt": "0x656e50",
+    "got": "0x3d8c728",
+    "call_sites": 9,
+    "action": "keep (exact operation)"
+   },
+   {
+    "symbol": "floorf",
+    "plt": "0x658030",
+    "got": "0x3d8d018",
+    "call_sites": 6,
+    "action": "keep (exact operation)"
+   },
+   {
+    "symbol": "fmod",
+    "plt": "0x657630",
+    "got": "0x3d8cb18",
+    "call_sites": 22,
+    "action": "keep (exact operation)"
+   },
+   {
+    "symbol": "fmodf",
+    "plt": "0x659220",
+    "got": "0x3d8d910",
+    "call_sites": 73,
+    "action": "keep (exact operation)"
+   },
+   {
+    "symbol": "frexpf",
+    "plt": "0x656a90",
+    "got": "0x3d8c548",
+    "call_sites": 2,
+    "action": "keep (exact operation)"
+   },
+   {
+    "symbol": "log",
+    "plt": "0x6592a8",
+    "got": "0x3d8af40",
+    "call_sites": 7,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "log10",
+    "plt": "0x658990",
+    "got": "0x3d8d4c8",
+    "call_sites": 7,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "log10f",
+    "plt": "0x6591f0",
+    "got": "0x3d8d8f8",
+    "call_sites": 37,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "log2",
+    "plt": "0x659338",
+    "got": "0x3d8be78",
+    "call_sites": 2,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "log2f",
+    "plt": "0x657300",
+    "got": "0x3d8c980",
+    "call_sites": 4,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "logf",
+    "plt": "0x6576e0",
+    "got": "0x3d8cb70",
+    "call_sites": 91,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "pow",
+    "plt": "0x659318",
+    "got": "0x3d8bd08",
+    "call_sites": 167,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "powf",
+    "plt": "0x656910",
+    "got": "0x3d8c488",
+    "call_sites": 249,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "round",
+    "plt": "0x6569b0",
+    "got": "0x3d8c4d8",
+    "call_sites": 28,
+    "action": "keep (exact operation)"
+   },
+   {
+    "symbol": "roundf",
+    "plt": "0x657cf0",
+    "got": "0x3d8ce78",
+    "call_sites": 18,
+    "action": "keep (exact operation)"
+   },
+   {
+    "symbol": "sin",
+    "plt": "0x6592f8",
+    "got": "0x3d8b8c8",
+    "call_sites": 19,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "sincos",
+    "plt": "0x656900",
+    "got": "0x3d8c480",
+    "call_sites": 44,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "sincosf",
+    "plt": "0x656f30",
+    "got": "0x3d8c798",
+    "call_sites": 274,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "sinf",
+    "plt": "0x658520",
+    "got": "0x3d8d290",
+    "call_sites": 81,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "sqrt",
+    "plt": "0x6592b0",
+    "got": "0x3d8b028",
+    "call_sites": 60,
+    "action": "keep (exact operation)"
+   },
+   {
+    "symbol": "sqrtf",
+    "plt": "0x658f50",
+    "got": "0x3d8d7a8",
+    "call_sites": 227,
+    "action": "keep (exact operation)"
+   },
+   {
+    "symbol": "tan",
+    "plt": "0x659320",
+    "got": "0x3d8bd80",
+    "call_sites": 1,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   },
+   {
+    "symbol": "tanf",
+    "plt": "0x658ce0",
+    "got": "0x3d8d670",
+    "call_sites": 34,
+    "action": "interpose (LD_PRELOAD symbol or GOT slot)"
+   }
+  ],
+  "windows_dispatch_flags": {
+   "use_fma3_lib": "0x38edec0",
+   "crt_init_fma3": "0x1a310b0",
+   "isa_available": "0x2f3f220",
+   "isa_available_init": "0x17502c0",
+   "packed_sinf_kernel_dispatch": "0x17501f0",
+   "packed_sin_kernel_dispatch": "0x1b42f00"
+  }
+ },
+ "decimal_parsers": [
+  {
+   "windows": "0x14c3090",
+   "linux": "0x1a3b1a0",
+   "note": "binary64 decimal parser (Windows scale *= 0.1, Linux scale /= 10.0)",
+   "windows_call_sites": 89,
+   "windows_callers": 60,
+   "linux_call_sites": 274,
+   "linux_callers": 139
+  },
+  {
+   "windows": "0x14c2bd0",
+   "linux": "0x1a3ac40",
+   "note": "binary32-result decimal parser (same difference, then cvtsd2ss)",
+   "windows_call_sites": 230,
+   "windows_callers": 117,
+   "linux_call_sites": 806,
+   "linux_callers": 260
+  }
+ ],
+ "fp_environment": {
+  "windows_main_thread_ftz": {
+   "function": "0x14dd0e0",
+   "ldmxcsr": "0x14dd105",
+   "caller": "0x1223ce0 X4::GameClient::Init",
+   "call_site": "0x1225ee7",
+   "effect": "MXCSR |= 0x8000 (FTZ) on the main thread only"
+  },
+  "windows_thread_start_hook": {
+   "function": "0x96350 X4::ThreadStartHook",
+   "pointer": "0x38f9d58 g_ThreadStartHook",
+   "note": "calls Random::SeedThreadState 0x14dd110 and srand; no MXCSR write"
+  },
+  "linux_main_thread_seed_call": {
+   "function": "0xfcdbd0 (pair of X4::GameClient::Init)",
+   "call_site": "0xfcf8c8",
+   "callee": "0x1a47fe0 Random::SeedThreadState",
+   "note": "no MXCSR write anywhere in the ELF"
+  },
+  "linux_thread_start_hook": {
+   "function": "0x1029f80",
+   "note": "inlined seeding (time + SDL thread ID -> FS:-0x2720), srand, rpmalloc_thread_initialize; reached through a pointer; no MXCSR write"
+  }
+ },
+ "approx_instructions": {
+  "w": {
+   "instructions_by_domain": {
+    "sim": 1181,
+    "unknown": 121,
+    "nonsim": 35
+   },
+   "functions_by_domain": {
+    "sim": 372,
+    "unknown": 42,
+    "nonsim": 14
+   },
+   "by_mnemonic": {
+    "rsqrtss": 753,
+    "rcpss": 582,
+    "rsqrtps": 2
+   }
+  },
+  "l": {
+   "instructions_by_domain": {
+    "sim": 947,
+    "nonsim": 14,
+    "thirdparty": 33,
+    "unknown": 194
+   },
+   "functions_by_domain": {
+    "sim": 288,
+    "nonsim": 6,
+    "thirdparty": 12,
+    "unknown": 78
+   },
+   "by_mnemonic": {
+    "rsqrtss": 690,
+    "rcpss": 495,
+    "rsqrtps": 2,
+    "rcpps": 1
+   }
+  }
+ },
+ "qsort": {
+  "sites": 32,
+  "callers": [
+   "0x1de9f90",
+   "0x2282e90",
+   "0x229f7a0",
+   "0x2322590",
+   "0x2322680",
+   "0x23368d0",
+   "0x2337520",
+   "0x2347e00",
+   "0x2352dd0",
+   "0x2353340",
+   "0x246ef40",
+   "0x2476330",
+   "0x2488a20",
+   "0x249d5f0",
+   "0x249d6c0",
+   "0x249d790",
+   "0x249df90",
+   "0x251d450",
+   "0x26fa490",
+   "0x26fab10",
+   "0x2704e40",
+   "0x271b410"
+  ]
+ },
+ "windows_qsort_candidate": "0x1a111a0 (pair votes; MSVC CRT qsort shape)"
+}

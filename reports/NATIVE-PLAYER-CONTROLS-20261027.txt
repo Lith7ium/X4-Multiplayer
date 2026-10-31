@@ -1,0 +1,300 @@
+NATIVE PLAYER CONTROLS - 27 OCTOBER 2026
+
+Acceptance: no independent two-player native cockpit implementation exists.
+The current twelve-actor fixture exercises AI ships and native tactical orders.
+The new player diagnostic is an opt-in singleton experiment, not playable MP.
+
+NATIVE NEGATIVE EVIDENCE
+
+Two disposable native games loaded identical pristine snapshot bytes. Their
+saved player, occupied ship and actually controlled ship identities matched:
+both copies controlled the SAME saved ship. This is an observed limitation,
+not a method for representing two players.
+
+At shared UI tick 30, one client invoked the native cockpit flight-assist
+toggle export, the other the native travel-start export. Flight assist changed
+from enabled to disabled only on the first client. The travel call issued its
+native event but the same-tick activity remained none; this does not prove that
+travel became active. The appended singleton state caused an immediate mismatch
+at tick 30. Both gates stopped/restored at 30 with zero wait-clock movement.
+The released lane runner restored both disposable profiles and snapshot slots.
+
+Independent reconstruction verified all 62 declared hashes, both singleton
+contexts, exactly one local action per client and the mismatch boundary. A
+focused player evidence check is valid negative evidence; session_pass is false.
+The existing full validator remains evidence_valid=false because the intentionally
+short run did not exercise its configured spline, velocity and tactical-command
+checks. Those checks were not relaxed. Raw logs/saved IDs remain private.
+
+AGREED NATIVE ACTIVITY EVIDENCE
+
+A second disposable pair completed 900 ticks with independent full validation:
+evidence_valid=true, session_pass=true, no errors, all 901 states including the
+bootstrap matched. The same native singleton received each admitted player-1
+action exactly once in each process: assist off at 30, on at 60, travel start at
+90, and travel stop at 600. Native travel activity/flag became active at 92,
+remained active through 599, then returned to none at 600. Native speed reached
+395 m/s in both. Both gates, lanes and snapshot slots restored; both X4s closed.
+This proves bounded agreed native activity convergence on ONE saved player ship.
+It does not prove two independent native players or full-world determinism.
+
+DIRECT NATIVE THROTTLE EVIDENCE
+
+The third pair completed 1,200 ticks with independent full validation, no errors
+and all 1,201 declared states equal. Each copy called the SHA-pinned native
+PlayerController setter once at ticks 30, 150, 210 and 930. The first full-throttle
+interval accelerated from 0 to 202 m/s by tick 149. Travel became active at 182,
+stopped at 900 and reached a peak 804 m/s. After zero throttle at 930, speed fell
+from 587 to 3 m/s by 1,200. Native position changed by approximately 5.85 km.
+The seven raw axis values and six player pose fields matched at every sampled
+tick, together with the existing twelve-actor strict fixture. There were no
+transform writes, proxies or MD throttle orders. Both lane/snapshot slots restored.
+This is native flight convergence on one shared saved player ship, with the
+same independent-player and full-universe limitations stated above.
+
+NATIVE AUTHORITY REJECTION EVIDENCE
+
+Both logical slots proposed the same context-1 assist toggle at tick 29. Both
+native clients refused the entire admitted batch at boundary 30, before the
+authorized first action ran: zero action rows, assist remained enabled through
+29, and both ABORT records reported inactive/restored at 30. Both disposable
+profiles and snapshot slots restored; both games closed gracefully.
+
+The first run exposed a relay evidence gap: the time-based checkpoint retained
+only tick 10 before client-side refusal. The relay now atomically preserves any
+nonzero command proposals before sending admission replies. A real UDP subprocess
+test verifies this ordering. A native repeat retained every proposal through 29;
+independent reconstruction verified all 60 hashes, the admitted conflicting batch,
+zero native effects, canonical-state equality and restoration. Focused negative
+evidence is valid with no errors. session_pass remains false, and the normal full
+validator still refuses this aborted session. No missing proposals were inferred.
+
+NATIVE CONTROL FINDINGS
+
+The Lua live adapter previously queued only fixed-width tactical commands into
+Mission Director create_order actions. It did not capture keyboard, mouse, aim,
+continuous flight, cockpit button edges or independent native player state.
+
+Read-only exact-build analysis identifies PlayerController::SetControllerValueID
+at RVA d8fb60, called by the native input dispatcher at d95180. Several input
+channels, including throttle, write process-global state rather than only the
+controller instance. The MD playership throttle action reaches the same throttle
+state after checking the singleton. The PlayerController transform evaluator
+at d8a680 also consumes global state and caches results by game time.
+The native PlayerShootController trigger evaluator at 7e8bc0 reads global
+primary/secondary trigger bits and the singleton's activity; its 7e8e60 helper
+consults global input-system state. Merely giving two ships separate shoot
+controller objects would not isolate those firing inputs either.
+
+The native controller getter at 9fc550 resolves the single Universe player,
+occupied control post and controller chain. Switching one player pointer or
+calling the setter twice therefore does not establish two independent contexts.
+
+BOUNDED PLAYER-CONTEXT DEPENDENCY INVENTORY
+
+The following exact-build static findings identify shared state requiring
+isolation. This is a direct-function inventory, not a complete transitive graph.
+Indirect calls, event consumers and other threads still need observation.
+
+* Input update d95180 checks the controller's last update time at +f0, consumes
+  process input state, and updates that timestamp plus cached transforms. Its
+  device/mouse channels occupy parts of 2f4b720..2f4b7fe, with additional input
+  timers at 31c1fd8 and global mode flags. A second call at the same game time can
+  take the cached branch; copying only axes cannot reproduce independent input.
+  Before sampling, it resolves the singleton player's parent and requires that
+  component equal global 6b661e8; shared reentry guard 38f4db4 also blocks it.
+  Separate controller allocation alone cannot satisfy this native context check.
+* PlayerController slot 33, d97e80, selects desired throttle at 2f4b760 and writes
+  smoothed throttle at 2f4b764 using TLS game-time deltas. Sticky full throttle
+  retains time/value at 2f4b830/838. Feedback retains flags/timers around
+  2f4b848/850 and 2f4b858/860 and resolves the global occupied ship. Match-speed
+  state also has per-controller target/time fields. Config values are separate
+  from mutable player state; they must not be blindly copied with an address span.
+* Transform evaluator d8a680 reads a per-controller time-keyed cache rooted at
+  +2a0/+2a8, current/previous transforms, +f0 time and interpolation history near
+  +19330..19378. It also branches on global 2f4b7d8, 2f4b828 and 6b661d0. The
+  native slot 34 path d98e50 clears/rebuilds portions of that cache/history and
+  updates shared mode/effect state. A second context needs its own cache lifetime.
+* Shoot evaluation 7e8bc0 consumes four global trigger bits at 38f0728..72b and
+  singleton activity +6ab4. The controller owns held/group bytes +a0..a2, a
+  fractional firing accumulator +a4, and an additional timer +b0. Aim evaluation
+  7e8650 consults global aim modes 2f4b9c0/9c4, device mode, singleton target
+  +6c88 and aim data +6c60..6c80. Trigger input alone is not a firing context.
+
+The observer covers slot 33 and shoot slot 14 with full function pins,
+original-call-once wrappers and owned restoration. Enabling at the first admitted
+UI boundary explicitly leaves load-time and earlier updates unobserved. No global
+player pointer switching or second-context mutation is justified by this inventory.
+
+READ-ONLY NATIVE CONTEXT OBSERVER EVIDENCE
+
+The first observer pair repeated the 1,200-tick throttle/travel plan. Independent
+validation passed the existing declared state and every canonical observation:
+1,199 controller updates and 2,398 trigger evaluations per client, all on the
+adopted UI thread. Both hooks restored, profiles/snapshots restored and games
+closed gracefully. All 3,597 observations per client matched, including actor,
+owner, phase, native timing and before/after fields. OS thread IDs are recorded
+locally; their canonical role is compared between clients.
+
+The throttle set at boundary 30 first appears in the native update at 31. That
+call advances shared smoothed throttle from zero to 0.033333335; tick 60 reaches
+one. Across the test, 100 calls changed smoothed throttle and two changed the
+feedback timer. Native input-update time at controller +f0 lagged the observed
+update by exactly one simulation step, within floating-point representation.
+These are observed shared history fields that a second context must isolate.
+
+Both native weapon components resolved to the same controlled ship. Their 2,398
+evaluations all returned no-fire with idle trigger bits; this proves idle weapon
+evaluation coverage, not firing, ammo consumption, hit resolution or independent
+aim. The sampled transform-cache root stayed empty, so cache-hit behavior remains
+static evidence only. Multi-field reads are sequential observations, not atomic
+snapshots or proof that every caller/thread is covered.
+
+The trace is outside the existing wire digest, and the independent validator
+explicitly compares it and refuses session_pass on any difference or missing
+capture. Input capture and a second native player context remain absent. C tests
+cover original-call-once, capture overflow, exact refusal and foreign-owner
+restoration; 91 focused Python/Lua/UDP checks pass.
+
+NATIVE PLAYER FIRING BASELINE AND FAIL-CLOSED REPEAT
+
+The agreed-fire plan uses the native digital primary-fire callback, 7e8ef0,
+registered by the engine input system for action 18. It updates native trigger
+history through 9fedf0. Native SetSofttarget selects the existing fixture target;
+no AI shoot order, replacement gun, transform write or player RNG reseed is used.
+The callback, registration/history paths and selector have complete function pins.
+Ownership remains the same saved controlled ship and logical player 1 only.
+
+The first 900-tick pair exercised two press/release intervals at 90/270 and
+420/600. Native shoot evaluation first returned fire at tick 91. Each client
+recorded 720 positive evaluations, 36 actual projectiles from two saved native
+guns and five synchronous fixture main-shield damage effects of 36 each at
+ticks 166, 176 and 186. Target shield charge changed from 1188 to 1008 across
+those attributed effects. The 901 declared wire samples, 2697 player observer
+records and 82 creation/first-Move/hit/damage rows matched. However, total native
+player projectile Move counts were 1372 versus 1374. Independent validation
+therefore rejected session_pass despite the runner completing its bounded plan.
+This establishes actual native player firing/damage, not complete convergence.
+
+The repeat records every player projectile Move, including the native collision
+timing field before/after, and hashes the canonical event chain and counters into
+each shared tick. Saved gun plus per-gun spawn ordinal is the bounded projectile
+identity; pointers and process-local IDs only validate local lifetimes. The
+barrier now rejects tick 91: both guns create ordinal 1, but their native timing
+already differs before their first Move. The preceding 91 states match and every
+persisted digest independently recomputes. Both clients stop at 91 and release
+the owned held trigger exactly once. All hooks, lanes and staged snapshots
+restore; both games close. Normal evidence_valid/session_pass remain false.
+A separate negative audit verifies the expected rejection without weakening them.
+
+Static tracing finds a native launch-time random draw in weapon launch vfunc998,
+8185b0, before projectile creation and initialization. The raw timing difference
+is retained. A separate default-off RNG experiment needs independent review and
+tests; this baseline has no player RNG intervention or direct timer correction.
+The native target/aim-offset getter is observed, but physical mouse aiming and
+complete device-input capture remain absent. Damage attribution currently covers
+only the registered fixture main shields. The 95 focused Python/Lua/UDP checks
+and native C checks pass, including event-chain tampering, ownership prevalidation,
+original-once attribution and release after desync.
+
+DEFAULT-OFF PLAYER LAUNCH RNG EXPERIMENT: BOUNDED NATIVE VALIDATION
+
+The separate --player-weapon-rng option requires agreed-fire and adds no new
+hook site. It pins the complete native launch dispatcher, launch implementation,
+projectile initialization and collision update, including the weapon launch
+vtable slot. Unsupported launcher classes fail closed without skipping or
+duplicating their native call. The original gun Move remains exactly once.
+The explicit player launch domain is 504c5957504e3031, schema 1, with shared tick,
+saved controlled ship, saved gun and per-gun per-tick invocation ordinal. Each
+tuple field is separately mixed using the existing seed schema 2 implementation.
+Native caller RNG is saved and restored around that one call, including nested
+calls. Native player projectile Move remains unseeded to isolate launch effects.
+No native timer, projectile transform or damage value is written by the adapter.
+
+Every scoped call records its key, injected stream, native result, original-call
+count and caller restoration. Every created player projectile records all three
+native time fields at creation and after the enclosing gun call initializes it.
+Portable launch receipts include the seed/result and restoration validity;
+ambient caller RNG before/restored words are compared locally, because separate
+unrelated caller streams are not the agreed player stream. The receipt chain,
+schema and counters enter PLAYER_LAUNCH_1 in each shared tick hash. The independent
+validator recomputes the seed and chain, checks native initialization against the
+first projectile Move, and rejects incomplete, altered or unrestored receipts.
+
+Native executable tests cover nested scopes restoring their outer RNG exactly,
+unchanged unseeded behavior, seed tuple independence, initialization preimage and
+result capture, missing RNG, unsupported vtable and capture-capacity failure.
+Every tested failure still calls the original once. C checks and 101 focused
+Python/Lua/UDP checks pass, including actual Lua receipt hashing against the
+independent parser. After parent review, the 900-tick native repeat passed full
+independent validation with evidence_valid and session_pass true, no errors.
+All 901 wire samples, 2697 player context observations, 1420 projectile receipts
+and 1834 portable launch receipts per client match. Every one of the 36 actual
+projectiles has its three native initialization preimages/results captured; the
+initialized collision time equals its first Move preimage. Both clients execute
+1374 player projectile Moves and the same five 36-point shield effects at ticks
+166, 176 and 186. No later discrepancy occurs within this bounded run.
+
+All 1798 scoped native gun calls restore caller RNG exactly. Forty scopes
+consume native randomness; their resulting scoped states match. Ambient caller
+states differ on 786 corresponding calls, confirming why they are validated for
+local restoration rather than treated as the shared player stream. Native player
+bullet Move remains unseeded. Both planned trigger releases complete, so final
+held=0 and emergency cleanup count=0. All hooks, lanes and staged snapshots
+restore, and both games close gracefully. The unseeded negative runs remain
+preserved; this is a demonstrated launch-stream correction, not hash suppression
+or resumed simulation after a mismatch.
+
+This result covers one admitted native primary-fire/target-selection sequence
+in two copies of the same player context and two existing pulse guns. It does
+not establish independent players, physical keyboard/mouse input, arbitrary
+aiming, missiles/beams/turrets, point-blank initialization damage attribution,
+or complete universe/creation identity agreement.
+
+IMPLEMENTED SAFETY AND SHARED INPUT BOUNDARY
+
+The experimental agreed-singleton plan uses native gate wire version 2. A
+proposal made at tick N-1 is admitted for the UI boundary following simulation
+tick N. The resulting native simulation effect may begin at N+1; this delay is
+explicit. Each admitted batch validates both slots before any native action.
+Ticks must be contiguous and cannot be applied twice. Context 1 belongs only to
+logical player 1. Player 2 native actions are refused until an independent
+context is implemented. The saved player/container/occupied/controlled identities
+are bound and rechecked immediately before writes; transfer fails closed.
+
+Reserved native opcodes are 81 (assist toggle), 82 (travel start), 83 (travel
+stop), 84 (throttle), 85 (primary trigger edge), and 86 (native target selection).
+Byte 2 is context 01; byte 3 is zero except throttle (-1..1 as integer 0..200),
+trigger (0/1), or fixture-scoped target (1..12); byte 4 is reserved zero.
+The existing authenticated loopback barrier carries the canonical slot order.
+Tactical and singleton plans are exclusive until a shared dispatcher can validate
+all action families before any mutation. Management experiments reserve 40..4f.
+
+The throttle API calls the complete SHA-pinned native setter once after validating
+the current player controller, saved actor, owner, shared tick and finite bounds.
+It patches no code and creates no proxy. Raw native axis bits and player position
+are sampled for the throttle experiment. This still does not capture every
+device input, weapon/aim state or every player-controller cache.
+The throttle path has native convergence evidence above plus C/Lua refusal and
+once-only tests. A separate conflict plan submits both players against context 1
+and rejects the entire batch before even the authorized first action runs, as
+verified above. The current C check and 90 focused Python/Lua/UDP checks pass.
+
+REMAINING REQUIREMENTS
+
+True independent native contexts need isolation or generalization of global
+input channels, player entities/control posts, controller history and cached
+transforms, activity/target/camera/aim, weapon groups and held-button edges,
+autopilot/docking, inventory/account/faction authority and player-dependent MD/AI.
+Player-specific radar/attention behavior also depends on the native singleton.
+Complete input records need shared epoch/tick, owner/context, monotonic sequence,
+stable actor/target identities, exact axis values and button edges, with duplicate,
+late, conflicting or unsupported actions rejected before effects.
+
+Any desync remains a stop. No hash suppression or unproven resume/repair is added.
+Full-world divergence and identities for newly created objects remain separate
+open requirements. Actual native player firing/damage is observed above, with a
+projectile initialization desync retained and rejected and a separately tested
+launch RNG scope that corrects this bounded sequence. Native keyboard/mouse,
+independent aim/fire/boost, independent docking and two independent player
+entities are not accepted by these diagnostics.

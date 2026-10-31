@@ -1,0 +1,370 @@
+{
+ "schema": "x4-crt-vs-glibc-v1",
+ "n": 20000,
+ "windows_path": "SSE2 (__use_fma3_lib=0)",
+ "glibc": "ldd (Ubuntu GLIBC 2.39-0ubuntu8.9) 2.39\nfce00b6f25f459cf4ae0b7fae4257909a1a8a86f9149e7c029a5d617baf1ccd0  /usr/lib/gcc/x86_64-linux-gnu/13/../../../x86_64-linux-gnu/libm.so.6",
+ "functions": {
+  "sinf": {
+   "windows_entry": "0x1a19480",
+   "default": {
+    "n": 22000,
+    "differ": 276,
+    "percent": 1.255,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 22000,
+    "differ": 276,
+    "percent": 1.255,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "cosf": {
+   "windows_entry": "0x1a19b80",
+   "default": {
+    "n": 22000,
+    "differ": 291,
+    "percent": 1.323,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 22000,
+    "differ": 291,
+    "percent": 1.323,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "tanf": {
+   "windows_entry": "0x1a240d0",
+   "default": {
+    "n": 20000,
+    "differ": 750,
+    "percent": 3.75,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 750,
+    "percent": 3.75,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "asinf": {
+   "windows_entry": "0x1b43ce0",
+   "default": {
+    "n": 20000,
+    "differ": 759,
+    "percent": 3.795,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 759,
+    "percent": 3.795,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "acosf": {
+   "windows_entry": "0x1a19250",
+   "default": {
+    "n": 20000,
+    "differ": 1562,
+    "percent": 7.81,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 1562,
+    "percent": 7.81,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "atanf": {
+   "windows_entry": "0x1a23e64",
+   "default": {
+    "n": 20000,
+    "differ": 1275,
+    "percent": 6.375,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 1275,
+    "percent": 6.375,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "atan2f": {
+   "windows_entry": "0x1a1a398",
+   "default": {
+    "n": 20000,
+    "differ": 3166,
+    "percent": 15.83,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 3166,
+    "percent": 15.83,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "expf": {
+   "windows_entry": "0x1b43ed0",
+   "default": {
+    "n": 20000,
+    "differ": 7,
+    "percent": 0.035,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 7,
+    "percent": 0.035,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "logf": {
+   "windows_entry": "0x1b44940",
+   "default": {
+    "n": 20000,
+    "differ": 22,
+    "percent": 0.11,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 22,
+    "percent": 0.11,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "log10f": {
+   "windows_entry": "0x1b44460",
+   "default": {
+    "n": 20000,
+    "differ": 1252,
+    "percent": 6.26,
+    "max_ulp": 2
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 1252,
+    "percent": 6.26,
+    "max_ulp": 2
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "powf": {
+   "windows_entry": "0x1a1a790",
+   "default": {
+    "n": 20000,
+    "differ": 12,
+    "percent": 0.06,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 12,
+    "percent": 0.06,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "fmodf": {
+   "windows_entry": "0x1a1a080",
+   "default": {
+    "n": 20000,
+    "differ": 0,
+    "percent": 0.0,
+    "max_ulp": 0
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 0,
+    "percent": 0.0,
+    "max_ulp": 0
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "sincosf": {
+   "windows_entry": "0x1750210",
+   "default.sin": {
+    "n": 22000,
+    "differ": 5468,
+    "percent": 24.855,
+    "max_ulp": 2
+   },
+   "default.cos": {
+    "n": 22000,
+    "differ": 17832,
+    "percent": 81.055,
+    "max_ulp": 89566
+   },
+   "nofma.sin": {
+    "n": 22000,
+    "differ": 5468,
+    "percent": 24.855,
+    "max_ulp": 2
+   },
+   "nofma.cos": {
+    "n": 22000,
+    "differ": 17832,
+    "percent": 81.055,
+    "max_ulp": 89566
+   },
+   "windows_isa1_vs_isa5_differ": 0,
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "pow": {
+   "windows_entry": "0x1a1e840",
+   "default": {
+    "n": 20000,
+    "differ": 27,
+    "percent": 0.135,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 29,
+    "percent": 0.145,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 8
+  },
+  "sin": {
+   "windows_entry": "0x1a26f80",
+   "default": {
+    "n": 20000,
+    "differ": 679,
+    "percent": 3.395,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 680,
+    "percent": 3.4,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 15
+  },
+  "cos": {
+   "windows_entry": "0x1a260d0",
+   "default": {
+    "n": 20000,
+    "differ": 712,
+    "percent": 3.56,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 718,
+    "percent": 3.59,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 16
+  },
+  "exp": {
+   "windows_entry": "0x1a26650",
+   "default": {
+    "n": 20000,
+    "differ": 98,
+    "percent": 0.49,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 93,
+    "percent": 0.465,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 15
+  },
+  "log": {
+   "windows_entry": "0x1a26a50",
+   "default": {
+    "n": 20000,
+    "differ": 0,
+    "percent": 0.0,
+    "max_ulp": 0
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 0,
+    "percent": 0.0,
+    "max_ulp": 0
+   },
+   "glibc_fma_vs_nofma_differ": 0
+  },
+  "atan2": {
+   "windows_entry": "0x1a258fc",
+   "default": {
+    "n": 20000,
+    "differ": 26,
+    "percent": 0.13,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 23,
+    "percent": 0.115,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 3
+  },
+  "acos": {
+   "windows_entry": "0x1a251c0",
+   "default": {
+    "n": 20000,
+    "differ": 1523,
+    "percent": 7.615,
+    "max_ulp": 1
+   },
+   "nofma": {
+    "n": 20000,
+    "differ": 1521,
+    "percent": 7.605,
+    "max_ulp": 1
+   },
+   "glibc_fma_vs_nofma_differ": 4
+  },
+  "sincos": {
+   "windows_entry": "0x1b42f20",
+   "default.sin": {
+    "n": 20000,
+    "differ": 12090,
+    "percent": 60.45,
+    "max_ulp": 3
+   },
+   "default.cos": {
+    "n": 20000,
+    "differ": 14427,
+    "percent": 72.135,
+    "max_ulp": 41804
+   },
+   "nofma.sin": {
+    "n": 20000,
+    "differ": 12089,
+    "percent": 60.445,
+    "max_ulp": 3
+   },
+   "nofma.cos": {
+    "n": 20000,
+    "differ": 14430,
+    "percent": 72.15,
+    "max_ulp": 41804
+   },
+   "windows_isa1_vs_isa5_differ": 0,
+   "glibc_fma_vs_nofma_differ": 28
+  }
+ }
+}

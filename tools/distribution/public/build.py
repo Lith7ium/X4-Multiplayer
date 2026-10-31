@@ -66,7 +66,7 @@ def stage(destination, runtime_cache):
         write(extension / 'ui/config.lua', '-- Run 1-SETUP. Public downloads contain no session credentials.\n'
               'X4LAN_CONFIG = { enabled = false, test_profile = "45842" }\n')
         (root / 'x4lan').mkdir()
-        for name in ('__init__.py','host.py','bubble.py','economy.py','coop.py','quests.py','monitor.py'):
+        for name in ('__init__.py','host.py','bubble.py','economy.py','coop.py','quests.py','monitor.py','netprobe.py'):
             shutil.copy2(SOURCE / 'src/x4lan' / name, root / 'x4lan' / name)
         shutil.copy2(SOURCE / 'tools/distribution/action.py', root / 'action.py')
         (root / 'native-source').mkdir()

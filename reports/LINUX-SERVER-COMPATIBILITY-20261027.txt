@@ -1,0 +1,126 @@
+LINUX DEDICATED SERVER COMPATIBILITY AUDIT -- 27 OCTOBER 2026
+
+Scope and source versions
+
+The dedicated server owns a full Linux X4 process, supervised by the Rust
+x4lan-dedicated binary and connected through the Rust relay. It is not merely a
+relay and is not a renderer-free replacement simulation. Existing authority
+replication and experimental peer lockstep are distinct modes.
+
+The committed baseline tested here is d0293a7. The main working tree also held
+uncommitted protocol work absent from that commit: x4mp-lockstep, the Rust and
+Python lockstep coordinators, and Lua protocol integration. Those files were
+copied read-only into a separate private snapshot, never integrated wholesale.
+The 257-file snapshot manifest SHA-256 is
+f50af4ad2cbb9ab7586d4fac41431a1fb3672c0b0d2e0e36181d9e9ee5812f3c.
+A separate supplement supplies the inert extension ui.xml required by the overlay
+test, SHA-256 11928dbd73d02ca2270b6f6a5929ca7e8da93d87801e0ed85b30b6e9d3072bf5.
+Snapshot provenance and raw results remain under .local/protocol-baseline and
+.local/linux-*. No game data, credentials or deployed files are in this change.
+
+Implemented compatibility guard and regression harness
+
+The supervisor now refuses the reserved lockstep1- mode because it cannot provide
+native engine admission. This marker is the existing explicit mode switch in the
+experimental Rust/Python/Lua protocol; an incidental word "lockstep" is not enough.
+Tests preserve ordinary dedicated labels, including incidental wording. No new
+wire capability is advertised. Existing exact build and player-count checks remain.
+
+This also prevents a silent mismatch in the current protocol overlay: Rust
+session/mod.rs constructs the lockstep coordinator only when !dedicated and
+max_players==2. A dedicated label alone would otherwise still select authority
+replication. LSCAP1/2 negotiates the relay protocol; it does not prove an engine can
+stop, apply commands or produce the same state hash.
+
+tools/dev/check_lockstep_portable.py builds the actual shared native headers with
+six frozen RNG-schema-2 seed vectors and 23 wire cases. Cases cover distinct tuple
+fields, unsigned overflow, strict lowercase encoding, immutable local proposal,
+slot bounds, protocol/tick mismatch, malformed commands and unchanged outputs on
+rejection. The executable uses assertions even under optimized builds. Reports
+contain source hashes (CRLF normalized to LF) and a platform-independent contract
+digest; --compare fails if either source hashes or the resulting contract differ.
+
+Run on Linux:
+  python3 tools/dev/check_lockstep_portable.py --cc gcc
+Run on Windows with the project's Zig 0.15.2:
+  python tools/dev/check_lockstep_portable.py --zig PATH/zig.exe
+Use --compare PATH/result.json to compare another host's report. This checks the
+integer and wire contract only; it cannot establish cross-compiler physics parity.
+
+Local validation
+
+WSL Ubuntu 24.04 x86-64, Python 3.12.3, LuaJIT through pinned Lupa 2.8, Rust 1.99.1:
+- Baseline Rust workspace: 116 tests pass; release build passes.
+- Baseline tools/dev/check.py: 905 Python/LuaJIT tests pass, no skips.
+- Changed supervisor: all 11 dedicated tests pass, including unsupported-mode
+  refusal and unchanged legacy labels.
+- The private protocol snapshot: 137 Rust tests pass, including 22 lockstep tests;
+  54 Python/LuaJIT lockstep tests and 12 native-barrier protocol tests pass.
+- Python/Rust snapshot replay parity: 70 handwritten, 100 generated and 21 number
+  scenarios match, with no differing or unreplayable scenarios. These include
+  protocol-2 loss/retry/reordering/stall/halt cases, not native simulation.
+- Portable C vectors match Windows Zig 0.15.2 and Linux GCC 13.3.0. Contract SHA-256:
+  077f93debf64e2eecbee241a4527b6bfdb538bddaa0ecb8a71fdca10d7a9e7eb.
+  Cross-host comparison passes; a deliberately changed schema report is rejected.
+- Offline x4mp-sigcheck passes the exact Linux executable, build ID, all 25 agent
+  sites, fixed-step constants and scheduler preconditions. It does not launch X4.
+- Strict Clippy (-D warnings) is not clean: existing type_complexity warnings in
+  unchanged players.rs:224 and session/identity.rs:38 fail that check. No lint
+  suppression or unrelated refactor was added.
+
+The executable is Linux X4 9.00 (611726), Steam build 23660954, SHA-256
+113f73d74570084f6ce18a659b365009eccf579fb66dbabb5dad2b1718045f20.
+The corresponding Windows build has SHA-256
+19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+Build equivalence is verified; native Windows/Linux state equivalence is unproven.
+
+Protocol and serialization boundaries
+
+The current native Windows NGSTATE2/NGGO barrier is a separate protocol from the
+Rust/Python LS protocol. It reports each completed native frame, both clock bit
+patterns, state digest and one eight-hex-character command per participant. It
+releases the next frame only after both immutable submissions agree on clocks
+and digest; permits return commands in slot order and validate the local proposal.
+The expected native simulation increment is 1/60 second. Protocol version mixing,
+changed submissions, missing peers and mismatches must never release a frame.
+The inspected relay remains loopback-only; WAN testing belongs to an isolated
+endpoint/tunnel with its own provenance, not an implicit transport change.
+
+The LS coordinator instead advertises 20 Hz with input delay 3 and horizon 8.
+Protocol 2 has its own input/acknowledgement/hash barrier, while protocol 1 also
+offers state repair. Those messages cannot be substituted for NGSTATE2 permits.
+Its canonical Rust writer emits explicit little-endian integers and finite f64
+bits, uniquely sorted identities and bounded payloads. Its RNG stream uses a
+SHA-256-derived X4MP-RNG-V1 seed plus the engine-compatible rotated integer step.
+That seed scheme differs from the native fixture's separately mixed schema-2 tuple.
+Both may be deterministic, but they are not interchangeable state or RNG schemas.
+
+Required native Linux port pieces
+
+The existing x4mp-agent is build-pinned and opt-in. Its VBI slot-13 callback and
+sched_live module control dt and render cadence, check safe write conditions and
+restore on disarm/fault. They do not wait for network permits before native frames.
+The Windows lockstep_gate.c includes Win32 sockets, TLS, memory and crypto APIs
+and exact Windows addresses; those cannot be compiled into a functional Linux gate.
+
+A native Linux lockstep capability must establish all of these before admission:
+- A pinned pre-frame stop after the relevant worker join, a network wait that
+  leaves simulation clocks and required workers parked, timeout/stop semantics,
+  and verified restoration. Fixed dt alone does not supply that stop.
+- A matching command adapter, stable player/object identity and ownership rules,
+  applied once at the same admitted tick. Current native tests have two slots.
+- Linux semantic mappings and lifecycle boundaries for each required RNG domain,
+  deferred publication and physics/pathing ordering intervention. Windows offsets
+  and Microsoft ABI assumptions must not be reused.
+- The same world-ID census, coverage accounting, field semantics, canonical state
+  schemas and initial-state admission. Missing domains cannot be called equality.
+- Explicit negotiation of native admission, command schema, RNG schema, state
+  schema/coverage and build/content identity. A legacy authority or protocol-only
+  peer must fail closed, not silently participate as a lockstep simulator.
+
+Acceptance then requires actual Linux X4 and Windows X4 running together with
+controlled missing-input holds and deliberate divergence, followed by matching
+world/gameplay evidence. This audit did not start a native game or touch a deployed
+service. The separately assigned VPS test work owns its remote evidence. Passing
+the local checks above preserves tested compatibility; it does not close that
+native cross-platform acceptance gate.

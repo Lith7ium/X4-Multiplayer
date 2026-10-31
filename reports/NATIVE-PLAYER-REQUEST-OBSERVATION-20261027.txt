@@ -1,0 +1,209 @@
+NATIVE PLAYER REQUEST OBSERVATION002: IDLE IS NOT CONTROL QUIESCENCE
+27 October 2026 | read-only native test; independent validation FAIL
+
+RESULT
+
+The reviewed request observer captured native requests, solver results and Agent
+publication for twelve distinct saved fixture ships in both copies. The two
+candidate ships had empty captured Agent queues and an idle model branch together
+at ticks25..39. They nevertheless made nonzero angular-axis2 requests throughout
+that interval. Empty queues and idle mode do not establish exclusive pilot input
+authority. No pilot lease or input write was implemented or exercised.
+
+Both copies completed120 ticks and121 wire-state rows matched. Independent
+validation remains FAIL with exactly two errors: raw request/Agent diagnostics
+differ, and raw solver context differs. The runner's pass/until_matched describes
+completion and restoration only. It does not override evidence_valid=false or
+session_pass=false. No raw bytes, world hashes or failure checks were suppressed.
+
+SOURCE, ARTIFACT AND CLEANUP
+
+Native source ff45b2c includes e3d6fe3 request observation and87f98c4 admission/
+restoration fixes. c637234 adds static ownership/deferred-command evidence only.
+The parent integrated and independently reviewed those changes before authorizing
+one120-tick read-only pair, with260-second run and900-second admission budgets.
+The released lane tool admitted both disposable clients under its normal guards.
+The existing solver002 configuration gained only the request observer flag;
+the battle fixture and its native AI actions were unchanged.
+
+Frozen overlay002 manifest SHA256:
+  c6cedc2939536854c7f5bbbd02d348493ccb3e56d2fa734d3fd5c22b992d108a
+Frozen DLL SHA256:
+  8c7ca0cd6bcc74b42c6f91337073848aa59a6fb2012ba46e48dbcdc553c05359
+Pristine disposable snapshot SHA256:
+  7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8
+
+The pair completed in84.204 seconds. Both native processes exited0; both client
+results record lane_restored=true. The runner and both owned games were absent
+at the cleanup check, and released lane status then showed all lanes free.
+The staged snapshot caused the expected disposable save-file warnings. No normal
+save/settings, Workshop state or protected game was changed. The overlay remains
+frozen. No own pair is active or queued; no unchanged repeat or control experiment
+is authorized by this report.
+
+Private request-observer-002 retains the original logs, result/validation JSON,
+request-analysis.json and solver-analysis.json. Raw native data stays outside Git.
+
+OBSERVED COVERAGE AND ORIGINAL-NATIVE RESULTS
+
+Each copy captured:
+  7,704 request calls =1,284 fixture solves *6 exact native request callsites.
+  1,416 Agent scopes =12 saved fixture ships *118 ticks, starting at tick3.
+  2,832 complete before/after Agent snapshot rows.
+  2,805 solver events:1,403 solves and1,402 publication observations.
+  357 existing PlayerController/ShootController observer rows, equal across copies.
+
+All1,284 request-bearing fixture solver results match their Agent write-bank
+pose/velocity publication. The thirteen observed solver owners are the singleton
+saved player ship plus twelve fixture ships, not thirteen independent pilots.
+The two copies still load the same singleton player and controlled ship.
+Zero admitted player commands or input actions occurred. The65 equal damage calls
+per copy belong to the unchanged AI battle fixture and prove no player firing.
+
+Request capture failures/open/restore_open are0, peak open calls/scopes40,
+restored1 and active0 on both copies. No additional unknown setter callsite was
+seen inside a claimed saved Agent. The excluded-call counts differ,1,192,432
+versus1,192,513; these include unknown Agent/setter admissions and are coverage
+counts, not a normalized simulation-state comparison.
+
+Target/history bytes changed during5,316 native setter calls in each copy; dirty
+flags changed during none. Both copies have identical value/epsilon bits, gains,
+target/history before/after, dirty flags, captured controller/model modes,
+configuration, caller identities, saved-owner mapping and request ordinals.
+Agent queue counts/capacities, pending bytes and model/solver presence/sameness
+also match. These are bounded observed fields, not a full native-state proof.
+
+Resource/unmapped-reference counters are0. That does not prove complete queue
+semantics: unclassified bytes differ as described below. Early coverage,
+generation coverage, native faction coverage and pilot ownership remain false.
+Stable before/after pointers do not exclude replacement and reuse in between.
+
+RAW DIFFERENCES, LOCALIZED WITHOUT EXCLUSION
+
+1. Agent parameter capture is0x140 bytes starting at Agent+340. Six fixture
+   ships have constant differences at relative e9,ea,eb,13c, corresponding to
+   Agent+429,+42a,+42b,+47c. The values differ already at their first tick3 Agent
+   snapshot and persist through both phases. They affect1,416 scope rows and
+   3,852 request rows; the first request difference is tick14, actor7, request1.
+   The byte meanings and complete native read/write coverage are unproved.
+   Do not call them padding or a decoded thrust/configuration divergence.
+
+2. Every raw0x340 bank capture differs at b0 and250, the same b0 offset in its
+   two0x1a0 banks. The first difference is tick3, actor1, before Agent evaluation;
+   all2,832 scope rows differ there. This is a known runtime-reference location.
+   The raw capture has not translated that field through saved identities, so it
+   cannot serve as portable input equality. It remains in the strict failure.
+
+3. There are2,342 differing main-queue snapshot rows. Differences are confined
+   to record offsets08..0d and68..6d; first occurrence is tick14, actor1, after
+   Agent evaluation. Known normalized type/reference/resource fields and all
+   other recorded bytes match. The inspected eaa6f0 constructor leaves+08
+   unwritten and clears+68 before calling eaa980. That is insufficient to infer
+   the complete lifetime/read semantics of either field. Neither field is
+   excluded because its value looks like a pointer. The world-motion agent also
+   retains those raw bytes and has no authoritative cache-lifecycle interpretation.
+
+4. Solver context c0 andc1 each differ on1,070 solves across ten fixture owners.
+   Actual differing offsets are25,26,35,36,3c,3d,3e,5e,5f, within the previously
+   audited constructor-unwritten header ranges. Values are constant within each
+   owner and unchanged during the native original. All other captured context,
+   request/limit blocks, m0/m1 acceleration/local-velocity/pose/velocity blocks,
+   and published motion match. This narrows the observation; it does not prove
+   that every possible native reader ignores these bytes. Strict failure remains.
+
+All differences and exact byte offsets are reproduced by analyze_native_requests.py
+and analyze_native_solver.py. Neither diagnostic modifies the validator or offers
+an alternate acceptance rule. Existing raw evidence is preserved in full.
+
+CANDIDATE SHIPS: BOTH-COPY IDLE/EMPTY BOUNDARIES
+
+The following observations require both Agent phases to have zero main/pending
+records, the expected Steering model type, unchanged present model/solver, six
+requests and no other setter, model+68=0/+a8=1/+ac=1/+b0=1, initialized ordinary
+velocity solver modes, inactive position controllers and six unit gains. These
+are captured boundary observations, not a lease admission predicate.
+
+Saved176a13 / actor1: ticks25..39,15 observed scopes.
+  Native angular2 requests range +0.0068914261646568775..+0.012388315051794052.
+Saved176a74 / actor2: ticks25..45,21 observed scopes.
+  Native angular2 requests range -0.013009190559387207..-0.006950254552066326.
+
+The other five axes are zero. Both copies match exactly. Every listed scope has
+a nonzero angular2 request; neither candidate supplies even one all-six-neutral
+scope within these intervals. The common interval is25..39. The earlier solver
+capture's mode-only interval24..39 did not require both empty queue boundaries.
+
+The observed native input therefore remains active while the model appears idle.
+Its full behavioral origin is unproved; no zeroing, AI replacement or input
+substitution was attempted. Both candidate ships are native Argon fixture assets,
+not independently owned native player factions. The existing plan needs explicit
+disposable capability assignments even before native lifetime is considered.
+
+RANKED CONTROL-ADMISSION MEASURES; DESIGN ONLY
+
+1. For a passive handoff candidate, observe neutral native requests over an
+   agreed contiguous interval. Check all six values, caller/axis/order, epsilon,
+   gains, controller modes, target/history and publication at the actual request
+   boundary. The current observer can diagnose this passive condition, and the
+   observed candidates fail it. This is NOT a universal prerequisite for real
+   player takeover: native AI may keep making idle microcorrections forever.
+   An active native authority transfer must instead suspend or replace its
+   producer, with actual completion evidence. The follow-up in
+   NATIVE-PLAYER-TAKEOVER-TRANSACTION-20261027.txt identifies such native stages.
+   No timeout or epsilon-sized forced zero should manufacture neutrality.
+   Even matching passive neutrality is historical evidence, not future exclusion.
+
+2. Account for the detached manager list and every admitted command through
+   typed dispatch completion. A passive lease would require no pending generation;
+   a native active handoff may retain dormant orders and therefore needs proof
+   that those producers cannot regain publication authority while leased. The
+   consumer releases the producer lock before its private-list dispatch, so an
+   empty shared head and empty Agent queues do not prove drain. World-motion's
+   typed dispatch observer is the appropriate next evidence source. Abort and
+   direct Set commands alter flags without passing through pending append;
+   formation/import/copy writers also remain. Full producer exclusion during
+   the leased interval is unproved. A counter of selected AddTargetPoint calls
+   alone cannot authorize a lease, and no arbitrary engine lock should be held
+   across solver calls to simulate an exclusive phase.
+
+3. At admission and application, require the same full native ID/generation,
+   true owner, exact type/macro and component/controller/Agent/model/solver
+   relationship. These are feasible fail-closed diagnostic guards. They are
+   NOT an atomic ownership/lifetime transaction: ced70 retains no reference,
+   the16-bit generation can wrap, child allocations have no verified generation,
+   and SetOwner writes before its notifications. The missing stronger proof is
+   a reviewed native lifetime mechanism or execution interval excluding relevant
+   destruction, child replacement and owner mutation. Repeated reads cannot
+   supply it. Retaining only component memory would not automatically freeze
+   its owner or controller/model/solver children.
+
+4. After the applicable passive or active authority proof, prepare a handoff ticket
+   with agreed epoch/tick, two distinct saved assets, native generation and owner,
+   logical-slot capabilities, lifetime evidence and input revision. Both copies
+   must explicitly acknowledge the same complete ticket before a later shared
+   application tick. Decode both input slots and all tactical/management families
+   before any writer; reject conflicting asset operations. A future receipt must
+   distinguish reservation, actual native request application and publication.
+   Missing input holds the barrier; stale/duplicate/gap input is refused. A
+   preflight change denies both slots. Any failure after a partial native effect
+   poisons the tick, emits partial evidence and prevents ACK/resume/retry; no
+   invented rollback or peer-state correction is allowed.
+
+Only the passive observation in the first measure and some guards in the third
+currently have the required read-only fields. The second has a separate observer under development; genuine
+producer exclusion, lifetime exclusion and native control handoff are unresolved.
+Consequently no control writes follow this test. Scripted per-ship requests would
+still be a lower native control experiment, not physical keyboard/mouse capture,
+independent cockpit contexts, travel/fire ownership or two-player acceptance.
+
+VERIFICATION
+
+Native source/artifact is unchanged from the reviewed actual-image ABI harness
+and121 focused tests. This follow-up adds only a diagnostic and documentation.
+Four focused diagnostic tests cover nonzero native input despite idle/empty
+state, both-phase and six-request requirements, mode/gain/refusal changes,
+unclassified raw-reference/parameter differences, altered input and missing rows.
+The complete focused Python/Lua/UDP suite now passes125 tests.
+The diagnostic was run against both completed native logs, with no structural
+errors and identical boundary summaries. Existing independent validation retains
+both raw failures. No further native run is needed to reproduce these findings.

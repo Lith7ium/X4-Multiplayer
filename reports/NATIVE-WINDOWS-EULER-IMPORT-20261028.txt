@@ -1,0 +1,203 @@
+WINDOWS SAVED EULER IMPORT ADAPTER - SOURCE REVIEW - 2026-10-28
+
+Scope and activation
+
+Default-off Windows implementation of the reviewed shared navigation Euler math.
+No game was launched, no installation was changed and no prior frozen artifact
+was rebuilt. Local DLL/test builds are source-validation outputs only. Source
+starts from root 6749280 and takes the independently reviewed capability bd6e57e.
+
+The old portable_config API never enables this adapter. The new separate Lua API
+portable_rotation_config(mode, descriptor, snapshot, contract) accepts only the
+exact generated portable_import_capability.h constants, after portable fixture
+configuration and before Load. It also requires the current UI owner, active
+fresh boot phase zero, no admitted/completed ticks, exact menu/table/client
+identity, immutable RX thunks, full executable-file/build and code pins. An old
+contract, missing field, changed length, bad pin or partial install cannot enable
+the capability. portable_rotation_ready is an installation acknowledgment only;
+it is not loaded-world or frame-zero evidence.
+
+Root owns the new lane/Lua contract plumbing. New mode is
+portable-fixture12-euler-v1; descriptor 413da729cc58150f7f7d5136113537231d5fe3f231b2462263ecb12f611da589;
+contract d1e810d9180594338f64af4fe287834f618da24181e1f5b53d4924ff58717d82.
+Snapshot and schema remain as pinned by the capability. No input, AI, physics,
+shield, component-offset or later runtime-trigonometry parity is implied.
+
+Two reviewed native sites
+
+Load CALL at RVA ab1a82, target 9ee7a0, return ab1a87. Aligned 16-byte word
+ab1a80; displacement bytes 3..6. Word SHA256
+775dac6b2cc7a6183461c5669591fc1eeecb8817740665f72008c2bb791cf935.
+Call SHA256 8aa6694508c039b3dd8773ddb670b32efc5f50b2ce7528e9bdef888c655162b6.
+Root independently checked these against the exact executable before approving
+source implementation and canonical hooks.tsv reservation 3712..3743.
+
+The native ABI has RCX/RDX/R8/R9 plus a fifth stack argument. Native consumers
+use low bytes of the last two and return AL; the wrapper forwards all five
+opaque machine words and retains full opaque RAX. The pinned call supplies
+singleton address image+3d196f0 as RCX. Its AL test branches to failure completion
+at ab1a93 or the successful path ending in completion call ab1af1. No network,
+Lua readiness or holding is inserted at this native Load boundary.
+
+Rotation tail JMP at 47f828, original target 49cbb0, aligned word 47f820,
+displacement bytes 9..12, uses reviewed reservation 3744..3775. Only Agent caller
+returns e86d18 and e87101 select correction. Other callers execute the original
+once without capture/write. The tail restores RDI from the Agent caller before
+transfer. The reviewed 17-byte leaf thunk forwards RDI as R8, retaining RCX=basis
+and RDX=rotation XML, then jumps to the C wrapper. It changes no stack or
+nonvolatile register and needs no relocated-prologue unwind recipe.
+
+The wrapper checks the received Agent against the actual native address formula:
+bank = Agent + ad0 + selector*1a0; basis = bank + 10. The read role uses global
+38f4ee4, the write role uses 2f4b6f4. Both selectors must be complementary 0/1
+and stable through the call. This does not derive an Agent by subtracting an
+unchecked output pointer. Both call contexts and the tail are covered by full
+function/code pins. The XML reader's own guarded read-only call path retains
+the borrowed rotation node until it returns to the same Agent import frame;
+there is no delayed lookup or queued pointer reuse.
+
+Ownership and the initial reset
+
+Windows-specific identity is verified rather than copying Linux offsets:
+GameClient global 6cf1520, primary RTTI vtable 2c8abd0, module pointer +2a0.
+The module primary vtables are StartMenu 2bbf528 and loaded Ep1 2bbf580.
+Their +8 entries and GameClient +8 entry are verified against the pinned native
+targets. GameClient dispatch 122b360 loads +2a0 and invokes module+8. The pinned
+MoveWorker iterates seventeen VBI slots; the guard requires one and only one
+slot containing the exact current GameClient and retains that slot identity.
+It does not assume Linux's slot index or +2b0 module field.
+
+The exact one-shot Load entry records a fresh serial, its current owner TID and
+the loaded table/client/Ep1 identity. The earlier configured UI TID remains
+separate. No unproven equality between pre-load UI and Load-entry threads is
+required. Every selected call and the native Load return require the captured
+owner TID. Reentry, second Load, wrong caller or changed host/module fails.
+
+Load calls reset 9ec1d0 at 9ee81b before acquiring its pathing guard. Therefore
+entry records the manager pointer only as a diagnostic and leaves the import
+manager unset. The first selected import establishes its current manager only
+after observing the exact active Load serial/owner, manager flag +89=1, drained
+reader count +40=0 and native application loading bit4. The manager then remains
+identical through every later selected call and the native Load return.
+
+The existing normal-path native exclusion proof remains: Load acquires the
+manager guard at 9eee35, while the pathing traversal acquires the same section.
+Failure reset branches can retain the flag temporarily, so the flag is never
+treated as success. The native Load must return exactly AL=1 with the same
+host/module/manager, cleared flag and no open correction. False, unknown AL,
+abnormal return or partial counts make the entire session unpublishable.
+No global worker/render quiescence claim is added.
+
+Original, candidate and write lifecycle
+
+The shared bounded XML helper copies text and structural bytes, evaluates the
+independently authored integer C math into private words and calls the original
+XML reader once with its unchanged two arguments. A guard/capture/math/STOP
+refusal still executes the original once and performs no candidate write.
+Only a normal return with unchanged serial, owner, module, manager, selectors,
+input transcript and exact Agent/bank can reach the writer.
+
+The private plan is used synchronously by that invocation only. Under the same
+lock used to publish rotation STOP, the writer rereads the entire 416-byte bank
+twice, compares all nine before-words against the plan, checks writable pages
+and rechecks native ownership. It then stores only the nine aligned 32-bit basis
+words. A full-bank post-read must equal the prior bank with precisely those
+36 bytes substituted. All fourth lanes, position, references, flags, timers and
+unsupported fields must remain unchanged. Byte-identical ABA is not detected by
+the transcript; the pinned synchronous XML/Agent lifetime and native exclusion
+remain essential. No replay or atomic snapshot claim is made.
+
+STOP participates in the lock even before configured is published, closing a
+configuration/first-CAS race. A write admitted first may finish before STOP; a
+STOP admitted first prevents the write. No original is called with this lock
+held. Code restoration is serialized through the same lock and preserves a
+foreign word. A page/cache/protection/ownership error is retained. If a store
+faults or another participant changes the bank, the world is failed: there is
+no rollback or all-or-nothing-store claim.
+
+Compiler-generated Windows __try/__finally scopes record abnormal completion,
+close their own Load/rotation counters and propagate the exception. The gate
+build adds -fms-extensions for these scopes. Normal-return receipts and native
+after-reads are not run from an abnormal cleanup. Owned executable tests include
+valid registered unwind metadata for synthetic callers; an isolated exception
+helper alone was not considered proof of the nested wrapper path.
+
+Admission and terminal evidence
+
+At Load return and independently at joined-main frame zero, require exactly one
+successful Load, zero false/abnormal Loads, no open original/correction, no
+sticky failure and exactly 10,005 selected calls, original returns and successful
+Euler writes in each role. Additional selected imports immediately fail before
+writing beyond the expected count. The six omitted orientations never reach
+the Windows Euler tail and are not represented as observed absent calls.
+
+Frame-zero refusal is native and independent of Lua status. Old-mode behavior
+remains disabled. The new contract itself requires completed correction even
+if a caller omits portable_rotation_config; no configured-state shortcut can
+admit that contract. Terminal code/protection restoration is checked in the gate's
+finish path; root's separate receipt validator must also require completed
+correction, no open scopes and clean owned process cleanup.
+
+portable_rotation_status emits exactly 27 bounded key=value fields under the
+Windows-tail-specific schema x4-rotation-status-v1:
+schema mode descriptor contract snapshot configured phase stop failure
+load_calls load_returns load_true load_false load_abnormal load_open
+role0_calls role0_returns role0_euler role1_calls role1_returns role1_euler
+foreign open owned restore_error restored complete.
+Phase values: 0 OFF, 1 WAITING, 2 ENTERED, 3 IMPORTED, 4 RETURNED, 5 FAILED.
+owned is the two-patch bit mask. failure is the first enum rotation_error value
+from the source. Snapshot/descriptor/contract are always present. Normal STOP
+after completed correction may retain complete=1; early cancellation cannot.
+This status remains readable after STOP and does not adopt a different UI owner
+or call an engine getter. It is evidence, never authority to enable correction.
+
+Offline validation and limits
+
+The focused Windows executable test uses only private mapped memory and original
+functions authored for the test. It executes the actual emitted Load/tail bytes
+and production wrappers, including all 20,010 expected conversions, both roles,
+the fifth stack argument, full RAX, Agent forwarding, byte preservation, foreign
+callers, invalid input/identity/selectors, incomplete/false Load and nested
+exception propagation. STOP is tested on both sides of the real writer lock and
+before configuration publication. Partial CAS rollback and foreign restoration
+are checked without overwriting the foreign word. C Lua serialization tests cover
+wrong/missing/malformed configuration, readiness, post-STOP incomplete/complete
+receipts and maximum-width bounded output.
+
+The exact on-disk X4 image is read only for full SHA/function/site/rel32 and tamper
+checks. No native function from it executes. Existing immutable-thunk, gate,
+transition, portable decoder and actual-loopback synthetic transport tests pass
+with the new two reservations. These tests establish source/ABI/ownership
+behavior, not actual native import acceptance or Linux/Windows gameplay parity.
+The new agent artifacts and native launch still require independent review.
+
+Final source validation: the focused wrapper executable passed 41,465 checks.
+The complete build_native_gate.py --test --native-image run passed, including
+the focused executable, all existing gate/thunk/transition/portable decoder
+checks and production transport tests using real loopback UDP. The source-only
+build includes forty thunk recipes at this branch base; later root-owned recipe
+additions must be retained when integrating the two new reserved entries.
+
+Independent-review correction: OS cleanup obligations
+
+The original source-only revision f110fc0 could restore the original code bytes
+but lose a failed page-protection or instruction-cache cleanup obligation. Its
+first error remained sticky and blocked acceptance, but a later clean restore
+could leave an original-byte page RWX or fail to retry the cache operation. No
+native session used that revision.
+
+The follow-up separates byte ownership from protection_pending/flush_pending.
+The prepare-time RX protection remains immutable; a temporary RWX page after a
+failed repair never becomes the next target protection. Cleanup retries both
+pending operations even after the original-byte CAS clears ownership. A foreign
+word is never overwritten, including when permission/cache repair is still due.
+Preparing again cannot erase a pending obligation. Pending work prevents owned
+publication and terminal restoration, and successful cleanup never clears the
+failed-session diagnostic.
+
+The actual owned-page regression matrix covers both sites, install and restore,
+and transient/persistent protection/cache failures (sixteen cases), plus foreign
+words with and without retained byte ownership. The focused suite now passes
+41,904 checks, including proof of actual RX restoration, retried cache work and
+sticky failure after repair. These are offline tests of the production CAS and
+cleanup functions; the original failed revision remains available for review.

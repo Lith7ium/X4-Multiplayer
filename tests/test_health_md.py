@@ -30,11 +30,13 @@ TOKENS = [
     (r'@?\$arena\.\$health(\w+)\.\{(\$\w+|\d+)\}', lambda m: "S['%s'][%s]" % (m[1], m[2].lstrip('$') if m[2].startswith('$') else m[2])),
     (r'@?\$arena\.\$dead\.\{(\$\w+)\}', lambda m: "S['dead'][%s]" % m[1].lstrip('$')),
     (r'@\$ship\.isoperational', "P['operational']"),
+    (r'\$ship\.(hull|shield)percentage', lambda m: "P.get('%s', -1000)" % m[1]),  # change-only writes (8543b6e)
     (r'@?\$a\.\$(\w+)', lambda m: "A.get('%s', 0)" % m[1]),          # MD null: falsy, never greater
     (r'event\.param3\.\$(\w+)', lambda m: "A.get('%s', 0)" % m[1]),
     (r'\b(\d+(?:\.\d+)?)s\b', r'\1'),
     (r'\bgt\b', '>'), (r'\bge\b', '>='), (r'\blt\b', '<'), (r'\ble\b', '<='),
     (r'\btrue\b', 'True'), (r'\bfalse\b', 'False'),
+    (r"(S\['Value'\]\[\w+\])\.\{(\d)\}", lambda m: '%s[%d]' % (m[1], int(m[2]) - 1)),  # MD lists are 1-based
 ]
 
 

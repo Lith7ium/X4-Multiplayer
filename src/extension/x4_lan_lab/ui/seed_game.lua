@@ -12,13 +12,16 @@ local function log(text) DebugError('[X4LAN] SEED_GATE '..text) end
 local function fail(reason) G.failed=reason;G.ready=false;log('STOPPED '..reason) end
 local function valid()
  if cfg.seed_content then X4LAN_SEED_CONTENT(cfg.seed_content) end
- assert(cfg.test_profile=='45841' and cfg.bubble_actions and cfg.coop and cfg.world_sync,
+ -- Isolated profiles 45841..45848: the server/first client uses 45841, further clients
+ -- on one test PC use their own profile.
+ local profile=type(cfg.test_profile)=='string' and cfg.test_profile:match('^4584[1-8]$')
+ assert(profile and cfg.bubble_actions and cfg.coop and cfg.world_sync,
   'seed admission requires isolated cooperative world mode')
  assert(type(cfg.seed_id)=='string' and #cfg.seed_id==32 and cfg.seed_id:match('^[a-f0-9]+$'),
   'invalid seed identity')
  assert(cfg.bubble==cfg.seed_id and cfg.seed_verified==true,'unverified seed or relay session mismatch')
  local path=ffi.string(C.GetSaveFolderPath()):gsub('\\','/'):gsub('/+$','')
- assert(path:sub(-#'/45841/save')=='/45841/save','seed admission outside isolated profile')
+ assert(path:sub(-#('/'..profile..'/save'))=='/'..profile..'/save','seed admission outside isolated profile')
 end
 local ok,err=pcall(valid)
 if not ok then fail(tostring(err));return end

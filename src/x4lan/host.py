@@ -18,6 +18,60 @@ TICK_HZ = 20
 ATOM = re.compile(r"[A-Za-z0-9_.-]{1,96}\Z")
 HEX = re.compile(r"[a-f0-9]{32}\Z")
 MAX_SEQ = 2**31 - 1
+BUNDLE_VERSION = "1"
+BUNDLE_KIND = re.compile(rb"[A-Z0-9_]{1,32}\Z")
+
+
+def bundle(packets, peers):
+    """Pack one tick's snapshot packets into XB datagrams for bundle-capable peers.
+
+    ``XB|1|<lease>|<len>:<item><len>:<item>...``: an item is a packet
+    ``KIND|1|<lease>|rest`` addressed to that peer, carried as ``KIND|rest``; the client
+    restores the envelope and validates every message exactly as if sent alone.
+    Datagrams stay within MAX_PACKET, the limit of the native client transport.
+    Packets for other peers, other forms and oversize items pass through unchanged and
+    each destination's packet order is preserved. A bundle of one item is sent as the
+    original packet. Without capable peers the input is returned unchanged.
+    """
+    capable = {p.address: p.lease.encode('ascii') for p in peers.values() if p.bundle}
+    if not capable:
+        return list(packets)
+    out, open_ = [], {}
+
+    def flush(address):
+        items = open_.pop(address, None)
+        if not items:
+            return
+        if len(items) == 1:
+            out.append((address, items[0][0]))
+        else:
+            out.append((address, b'XB|1|' + capable[address] + b'|' + b''.join(i for _, i in items)))
+
+    for address, packet in packets:
+        lease = capable.get(address)
+        kind, _, rest = packet.partition(b'|')
+        envelope = b'1|' + lease + b'|' if lease else None
+        if not envelope or not BUNDLE_KIND.fullmatch(kind) or not rest.startswith(envelope):
+            flush(address)
+            out.append((address, packet))
+            continue
+        body = kind + b'|' + rest[len(envelope):]
+        item = str(len(body)).encode('ascii') + b':' + body
+        header = len(b'XB|1|') + len(lease) + 1
+        if header + len(item) > MAX_PACKET:
+            flush(address)
+            out.append((address, packet))
+            continue
+        items = open_.get(address)
+        if items and header + sum(len(i) for _, i in items) + len(item) > MAX_PACKET:
+            flush(address)
+            items = None
+        if items is None:
+            items = open_[address] = []
+        items.append((packet, item))
+    for address in list(open_):
+        flush(address)
+    return out
 
 
 def sequence(value: str) -> int:
@@ -41,6 +95,8 @@ class Peer:
     joined_at: float = 0.0
     state_messages: int = 0
     resume_from: str | None = None
+    # The client sent XBCAP|1|<lease>|1: it unpacks XB bundles (see bundle()).
+    bundle: bool = False
 
 
 class Session:
@@ -139,6 +195,14 @@ class Session:
                     self.sector = sector
                 peer.last_seen = now
                 return [f"WELCOME|1|{nonce}|{peer.lease}|{TICK_HZ}".encode("ascii")]
+            if fields[0] == "XBCAP" and len(fields) == 4:
+                # Additive capability: relays without it ignore the message, and only a
+                # client that announced it ever receives an XB bundle.
+                peer = next((p for p in self.peers.values()
+                             if p.address == address and hmac.compare_digest(p.lease, fields[2])), None)
+                if peer is not None and fields[3] == BUNDLE_VERSION:
+                    peer.bundle = True
+                return []
             if fields[0] not in ("STATE", "IDLE"):
                 return []
             if len(fields) != (10 if fields[0] == "STATE" else 4):
@@ -199,6 +263,13 @@ class Relay:
         self.next_tick = 0.0
         self.received_packets = self.received_bytes = 0
         self.sent_packets = self.sent_bytes = self.send_errors = 0
+        from .netprobe import NetProbe
+        self.netprobe = NetProbe(time.monotonic())
+        try:  # player factions (internal packages); absent from builds that omit players.py
+            from .players import PlayerRoster
+            self.players = PlayerRoster()
+        except ImportError:
+            self.players = None
 
     def step(self, now: float | None = None) -> None:
         now = time.monotonic() if now is None else now
@@ -212,10 +283,25 @@ class Relay:
                 continue  # A departed Windows UDP endpoint is not a relay failure.
             self.received_packets += 1
             self.received_bytes += len(packet)
+            peers = self.session.peers
+            self.netprobe.count_rx(peers, address, len(packet))
+            if packet.startswith(b'RTTPING|'):
+                # Measurement only: answered here, never seen by or forwarded through the session.
+                for response in self.netprobe.handle(packet, address, peers, now):
+                    self._send(response, address)
+                continue
+            if self.players and packet.startswith(b'PF'):
+                # Player factions: routed/cached here, never seen by the session classes.
+                for target, response in self.players.handle(packet, address, peers, now):
+                    self._send(response, target)
+                continue
             for response in self.session.receive(packet, address, now):
                 self._send(response, address)
         if now >= self.next_tick:
-            for address, packet in self.session.snapshots(now):
+            packets = self.session.snapshots(now)
+            if self.players:
+                packets += self.players.snapshots(self.session.peers, now)
+            for address, packet in bundle(packets, self.session.peers):
                 self._send(packet, address)
             self.next_tick = now + 1 / TICK_HZ
 
@@ -224,11 +310,24 @@ class Relay:
             count = self.socket.sendto(packet, address)
             self.sent_packets += 1
             self.sent_bytes += count
+            self.netprobe.count_tx(self.session.peers, address, count)
         except OSError:
             self.send_errors += 1  # Successful sends do not prove remote delivery.
 
     def close(self) -> None:
         self.socket.close()
+
+
+def require_two_players(config) -> None:
+    """The Python relay is deliberately limited to two players (p1/p2).
+
+    Dedicated and N-player sessions (session.json ``dedicated``/``max_players``) are served
+    only by the Rust supervisor ``x4lan-dedicated``; refuse them instead of silently
+    running a two-slot relay for a larger session.
+    """
+    if config.get('dedicated') or config.get('max_players', 2) != 2:
+        raise ValueError('The Python relay serves two-player sessions only; '
+                         'dedicated/N-player sessions use x4lan-dedicated.')
 
 
 def main() -> None:
@@ -246,6 +345,10 @@ def main() -> None:
     if args.session:
         with open(args.session, encoding="utf-8") as stream:
             config = json.load(stream)
+    try:
+        require_two_players(config)
+    except ValueError as exc:
+        parser.error(str(exc))
     token, build = args.token or config.get("token"), args.build or config.get("build")
     if not token or not build:
         parser.error("supply --session or both --token and --build")
@@ -266,6 +369,8 @@ def main() -> None:
     try:
         while True:
             relay.step()
+            for line in relay.netprobe.report(relay.session.peers, time.monotonic()):
+                print(line, flush=True)
             status = ", ".join(f"{slot}@{p.address[0]}:{p.address[1]}" for slot, p in session.peers.items()) or "waiting"
             if status != last_status:
                 print(status, flush=True)

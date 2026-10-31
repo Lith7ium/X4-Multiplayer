@@ -13,7 +13,10 @@ stay at the root: [README.md](../README.md), [AGENTS.md](../AGENTS.md),
 - [DEVELOPMENT.txt](DEVELOPMENT.txt): setup, commands, packaging and machine changes.
 - [ARCHITECTURE.md](ARCHITECTURE.md): internal architecture and protocol reference.
 - [WORLD-SYNC-REQUIREMENTS.txt](WORLD-SYNC-REQUIREMENTS.txt): shared-universe requirements and diagnosis.
+- [DEDICATED-SERVER.md](DEDICATED-SERVER.md): dedicated server and N-player sets; copied into dedicated packages.
+- [WALKING.md](WALKING.md): on-foot avatar synchronization.
 - [ENGINE-INSTRUMENTATION.txt](ENGINE-INSTRUMENTATION.txt): policy for opt-in engine instrumentation.
+- [LOCKSTEP-NSLOT-WIRE.txt](LOCKSTEP-NSLOT-WIRE.txt): native lockstep gate for N clients and input wire 3.
 - [INTERNET-HOSTING-ANALYSIS.txt](INTERNET-HOSTING-ANALYSIS.txt): internet transport and dedicated-host feasibility.
 - [VERSIONING.txt](VERSIONING.txt): version numbering; copied into release packages.
 - [RESEARCH.md](RESEARCH.md): research sources and evidence.

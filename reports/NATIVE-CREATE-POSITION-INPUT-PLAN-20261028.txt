@@ -1,0 +1,184 @@
+CreatePosition evaluated-input receipt proposal
+28 October 2026 - static design, no production edits or reservations
+
+Question and bounded objective
+------------------------------
+World012 again has equal selected Find results, then a different valid position
+Value from the selected CreatePosition Action. Its incoming RNG already differs.
+That does not establish equal evaluated radius, base, space or reference.
+The requested next evidence must distinguish those inputs before a remedy can
+be scoped. This proposal preserves every native evaluation and original call.
+It introduces no RNG seed, coordinate correction, repeated getter or new ID.
+
+Use the existing selected Action identity as correlation only: saved owner,
+descriptor name/version, observed actual node, program slot and stored PC.
+For the first remaining example these are saved pilot9d3a4,
+order.fight.patrol version10, slot215/storedPC216, boot2/tick0 at7.083.
+The observer must still capture actual inputs; matching that key proves none
+of their values. Unknown-owner records and their global reason6 failure remain
+separate. No raw unknown runtime becomes a canonical key.
+
+Native evaluated boundaries
+---------------------------
+Windows be0ba0 calls c6f7b0 with:
+  RCX=Action+0x28 descriptor, RDX=caller-owned16-byte output,
+  R8=original Action frame, R9=NULL optional reference.
+c6f7b0 ultimately returns the output pointer in RAX. be0ba0 copies the final
+16 bytes into a tag63 allocation, then the already observed cc6710 assignment.
+That existing Value receipt supplies a downstream independent join.
+
+At c6fb48, the original3db8a0 call receives already evaluated space in RCX,
+the caller's64-byte transform in RDX, TLS simulation time in XMM2, resolved
+optional reference in R9, and a fifth stack byte0. The transform's first vector
+already includes the evaluated base and optional xyz offsets. Capture exactly
+these actual arguments and transform bytes before original, and the transformed
+bytes after its one normal return. This function may refresh mutable native
+caches; calling it again for observation is forbidden.
+
+At c6fb6a, the original c59b00 call receives descriptor+0x68, the same Action
+frame and null optional RNG argument. It returns the actually evaluated radius
+as binary32 in XMM0. Capture that result, the owned outer output vector before
+and after the radius call, TLS time/RNG states, and exact phase/owner lifetime.
+The outer output must remain equal across radius evaluation for the narrow
+consumed-base interpretation. Do not replace a changed base with the earlier
+transform result. A changed read stays unsupported evidence.
+
+For a positive radius, c6f7b0 subsequently executes two uniform direction draws,
+then angle/sphere arithmetic, radius multiplication and base addition. The
+outer normal return supplies final position and final RNG. These endpoints can
+be checked against the pinned two-step RNG relation; they are not two new
+native direction-call receipts. If later actual per-draw receipts are needed,
+that is a separately reviewed extension, not silently inferred coverage.
+
+Radius sampler receipt, needed to scope a remedy
+-----------------------------------------------
+Merely logging the radius is insufficient when radius itself differs. The
+actual c58da0 range sampler call c5994c->14ddd10 consumes:
+  RCX=selected native RNG state pointer,
+  XMM1=already evaluated/converted binary32 interval span,
+  R8D=distribution code, R9D=distribution parameter.
+Capture these actual arguments, the original result bits and state before/after.
+Classify the state pointer only as exact current TLS+0x318 or unsupported other
+source. An explicit RNG pointer must not be guessed to be the shared TLS stream.
+
+The original evaluated minimum and difference Values are still alive on that
+native caller stack. There is no need to invoke325610 or any expression again.
+For sampler entry return-address-slot T, c58da0's pinned prologue establishes:
+  T+0x38:16-byte difference Value; T+0x58:16-byte minimum Value;
+  T+0x140:original c58da0 return address, required c59b2f;
+  T+0x148:original range descriptor, required outer descriptor+0x68;
+  T+0x150:original frame, required the outer Action frame.
+Derivation: seven pushes plus0x100 stack allocation make its caller RSP
+entryRSP-0x138; the sampler CALL adds8. This is a fixed pinned-frame read, not
+a general stack walk. Copy only the stated bounded fields, within the current
+thread's stack bounds, before the sampler original. Recheck them afterward.
+Only immediate numeric tags0..9 are interpretable; all other forms remain raw
+unsupported. Record floating-point control bits, avoiding observer FP arithmetic.
+
+The compiler-specific mechanism returning the actual entry return-address slot
+must first pass an exact owned-assembly caller test. _AddressOfReturnAddress
+is a candidate, not a proof merely from its name. If that test fails, do not
+substitute guessed frame addresses or activate reduced range-input coverage.
+
+Proposed patch map and ABI
+-------------------------
+Fresh image checks found that be0bcc, c5994c and c6fbac each straddle an aligned
+16-byte word. They are unsuitable for a single aligned16 rel32 replacement.
+No overlapping-word patch or inline-body jump workaround is proposed.
+
+1. c6f7b0 entry: aligned8 CAS, replay the first two complete instructions,
+   total7 bytes. Filter native returnbe0bd1 and the exact current selected
+   CreatePosition Action, node/type/frame/descriptor. A64-byte trampoline plus
+   dispatch region preserves all four arguments and full output-pointer RAX.
+2. c6fb48 call: aligned16 wordc6fb40, change only its rel32 displacement.
+   A32-byte absolute-jump stub preserves the native returnc6fb4d. The wrapper
+   forwards RCX/RDX/XMM2/R9 and fifth byte once; the native caller uses the
+   inout transform and does not consume a defined return value.
+3. c6fb6a call: aligned16 wordc6fb60, displacement only. A32-byte stub forwards
+   the three arguments once and preserves the scalar XMM0 result unchanged.
+4. 14ddd10 entry: aligned8 CAS, replay its complete5-byte first instruction.
+   A64-byte trampoline/dispatch region preserves RCX/XMM1/R8D/R9D and scalar
+   XMM0. Capture only native returnc59951 under the active radius scope and
+   verified fixed parent frame; all other calls forward unchanged.
+
+The192-byte estimate could fit currently unreserved3776..3967 of the existing
+near page, subject to root's authoritative reservation review. No hooks.tsv row
+or slot is reserved by this report. If the return-slot ABI needs a larger
+assembly bridge, revise the size and obtain a new reservation before emission.
+All stubs must be emitted before publication on the existing immutable RX page.
+
+The accompanying JSON pins both exact images,11 Windows function roots and the
+relevant call/word hashes. No native instruction bytes are redistributed.
+Preparation verifies all full pins before any modification; later reattachment
+reconstructs only exact owned words. Owned CAS, original protection/cache debt,
+rollback and restoration must use the already reviewed strict mechanisms.
+Foreign bytes remain untouched and failure sticky. The four sites install as
+one configuration or roll back, without invoking native functions.
+
+Lifetime, concurrency, exceptions and bounds
+------------------------------------------
+Default-off explicit pre-load configuration must bind the existing boot token,
+image/thunk, selected manifest and current Action/Values observer dependency.
+Same-session UI reload is readonly acknowledgement; no reset/reinstall or new
+serial. STOP, foreign words, pending cleanup or failed dependency refuse.
+
+The outer wrapper creates a private TLS scope tied to the exact Action receipt,
+descriptor/output/frame, thread and owner lifetime. Inner wrappers must prove
+that scope and their actual caller/argument correspondence. Nested selected
+invocations get distinct bounded child scopes; denied/unselected reentry cannot
+borrow a parent's scope. No lock remains held across an original or an engine
+read. Every admitted or denied path invokes its original exactly once.
+
+All receipts retain copied data only. Space/reference non-null objects require
+the existing guarded full-ID generation registry and saved-map proof; literal
+null reference is represented separately. Missing saved identity stays raw and
+unsupported. Recheck object identity, owner/frame/current, clocks and relevant
+borrowed buffers after original; never acquire native references for logging.
+Repeated reads cannot exclude byte-identical ABA or create a lifetime lease.
+
+Use original-call __try/__finally boundaries with normal-return accounting and
+AbnormalTermination cleanup, preserving propagation. Abnormal cleanup may clear
+only private TLS/open counters and mark failure; it must not read released
+borrowed stack/object data or issue a normal receipt. No original is called from
+a retry/finally path. A bounded record overflow marks coverage failure but does
+not skip the native original. STOP closes admission and restores owned sites;
+already entered originals drain through retained immutable trampolines.
+
+Proposed bounds:64 outer records, depth4, one transform and radius per supported
+record, at most4 sampler receipts retained per radius. More callbacks, missing
+expected calls, unsupported branches and incomplete/abnormal returns remain
+explicit failure. Start with a256-read/8KiB total per outer receipt and32 bounded
+rows per outer; implementation must prove actual maximum row lengths<=2048 and
+complete accounting. Guarded-reading budgets apply to repeats as well.
+
+Interpretation and next tests
+-----------------------------
+If evaluated base/space/reference/time differs, an Action-level RNG seed cannot
+fix the demonstrated input cause. If numeric minimum/span/distribution differs,
+resolve that expression input before controlling its sample. Only when these
+actual inputs and their causal order match, with RNG the remaining difference,
+can a separately reviewed deterministic sampler/direction proposal be scoped.
+The current natural global RNG progression remains untouched. Equal Action keys
+or equal final RNG step counts alone are insufficient evidence.
+
+Before production implementation: review this four-site plan, reservation and
+caller-stack ABI. Then require owned-memory exact-image tests of every register
+argument, stack fifth byte, scalar bits, full outer RAX, nonvolatile registers,
+return-slot offsets and one original on all paths. Exercise real exceptions
+through each wrapper plus outer scope, nested/foreign callers, changed phase/
+owner/stack, unreadable memory, STOP interleavings, partial install and cleanup
+debt. Independent parser tests must reject forged sampler scope, missing/extra
+callbacks, reordered receipts and typed-null claims from failed reads. No new
+native run is authorized by this plan.
+
+Linux comparison limit
+----------------------
+Linux d04a50 has the same base/space/reference/radius shape, but its ABI is
+different: descriptor RDI, Action frame RSI, optional reference RDX, and the
+position vector is returned in XMM0. It does not use Windows' output pointer.
+It calls18a0090 with evaluated space/transform/reference/time, evaluates radius
+through cf5630, and uses its sincosf/acosf/sinf path for direction arithmetic.
+This supports a future analogous receipt contract, not a direct wrapper port
+or a cross-platform arithmetic equality claim. The fresh ELF FDE extent is1140
+bytes; an older cached1296-byte disassembly included a wider range. The JSON
+uses the verified FDE range and excludes detached cold fragments.

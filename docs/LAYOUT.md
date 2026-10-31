@@ -2,14 +2,15 @@
 
 Source code lives under `src/`, development and packaging tools under `tools/`.
 Packages are not affected: a built package still contains `extension/x4_lan_lab`,
-`x4lan/` and `launcher.py` at its root.
+`x4lan/`, `launcher.py` and, for dedicated sets, `x4lan-dedicated` at its root.
 Only the source paths moved.
 
 | Folder | Contents | Former path |
 | --- | --- | --- |
 | `src/extension/` | the X4 extension `x4_lan_lab` (Lua UI, MD scripts, libraries, prebuilt `native/` modules) | `extension/` |
 | `src/x4lan/` | Python relay and server runtime, copied into every package | `x4lan/` |
-| `src/native/` | C source of the UDP module (`net.c`) and its build script | `native/` |
+| `src/rust/` | Rust workspace: `x4lan-net`, `x4lan-relay` (incl. `x4lan-dedicated`), `x4mp-agent`, `x4mp-save`, `parity/` | `rust/` |
+| `src/native/` | C sources: `net.c`, the frame-diet engine module, `vk-discard` | `native/` |
 | `tools/dev/` | `bootstrap.py`, `check.py`, validators, native probes and harnesses | `dev/` |
 | `tools/distribution/` | package builders, launchers and setup scripts, package documents | `distribution/` |
 | `tests/` | Python test suite, run by `tools/dev/check.py` | unchanged |
@@ -22,12 +23,14 @@ Archived reports keep the paths that were valid when they were written.
 ```sh
 python3 tools/dev/bootstrap.py
 .venv/bin/python tools/dev/check.py
+cd src/rust && cargo build --release && cargo test --release
 python3 tools/distribution/build_packages.py <new-folder> --runtime-cache <cache>
 ```
 
 `tools/dev/check.py` puts `src/` and `tools/` on `sys.path`, so tests keep importing
 `x4lan.*`, `dev.*` and `distribution.*`. For a bare `unittest` run, use
-`PYTHONPATH=tests:src:tools:.`.
+`PYTHONPATH=tests:src:tools:.`. Build `src/rust` in release mode before
+`check.py`: the native-transport tests need `src/rust/target/release/libx4lan_net.so`.
 
 ## Converting a patch series written for the old layout
 

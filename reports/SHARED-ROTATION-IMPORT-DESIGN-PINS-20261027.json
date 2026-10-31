@@ -1,0 +1,199 @@
+{
+  "schema": "x4-shared-rotation-import-design-pins-v1",
+  "status": "source-only proposal; no patch installed",
+  "proposed_patch_sites": [
+    {
+      "platform": "win",
+      "role": "Euler tail adapter",
+      "site": "47f828",
+      "original_target": "49cbb0",
+      "original_caller_return": null,
+      "instruction_length": 5,
+      "aligned16": "47f820",
+      "displacement_offset": 9,
+      "aligned16_sha256": "21140e50b0bd5d7131eb578e7dfb1d42396da3330a2fce603f0620418a75e7ba",
+      "instruction_sha256": "764bcc20999c87f7247924aa31eb476acfb407eb1d95365e4b43490538c942bd"
+    },
+    {
+      "platform": "lin",
+      "role": "current bank offset call",
+      "site": "13e67fb",
+      "original_target": "d4d870",
+      "original_caller_return": "13e6800",
+      "instruction_length": 5,
+      "aligned16": "13e67f0",
+      "displacement_offset": 12,
+      "aligned16_sha256": "7d83a6f33d57a4ee5a164216c1d528751055bf645099f51338479859299d3922",
+      "instruction_sha256": "3b16e89bd4e692d6913161903af52f0ffe85fbd658b2e512b3d180ee3880a871"
+    },
+    {
+      "platform": "lin",
+      "role": "other bank offset call",
+      "site": "13e69f3",
+      "original_target": "d4d870",
+      "original_caller_return": "13e69f8",
+      "instruction_length": 5,
+      "aligned16": "13e69f0",
+      "displacement_offset": 4,
+      "aligned16_sha256": "617d679204816da8bab0f415efacd2f260579ab3dfeca4945c468807818a42c3",
+      "instruction_sha256": "1681806c39996e06fc559f772c6677f5a4335a3aa1e8b1b37a889b2b97398e6c"
+    }
+  ],
+  "windows_selected_tail_return_addresses": [
+    "e86d18",
+    "e87101"
+  ],
+  "lifetime_functions": [
+    {
+      "platform": "win",
+      "address": "9ee7a0",
+      "ranges": [
+        {
+          "start": "9ee7a0",
+          "length": 9772,
+          "sha256": "38df90e5d9385e30279abbccfdb9f12f4789fe61cc2bed4632dc007cc2f54f9c"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "d20d0",
+      "ranges": [
+        {
+          "start": "d20d0",
+          "length": 75,
+          "sha256": "72707684c7bb2916893053ebe065ea55aa5ed46b40ebbfc78330a5cd282c5a99"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "9777d0",
+      "ranges": [
+        {
+          "start": "9777d0",
+          "length": 63,
+          "sha256": "f5920bd7641de040032c334b196ccca790ca070745084e1d7ead9dd9d6d33b13"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "eae3c0",
+      "ranges": [
+        {
+          "start": "eae3c0",
+          "length": 1939,
+          "sha256": "bf0257fcb5e544638c7b2ce0d85e1a6b3c5abeaf1aa6839ebbf2ee50ccddb13b"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "eac380",
+      "ranges": [
+        {
+          "start": "eac380",
+          "length": 421,
+          "sha256": "f2175c1111b65cb926d637d544d2ab5b3c20626de01588df983387c797935865"
+        }
+      ]
+    },
+    {
+      "platform": "win",
+      "address": "eac530",
+      "ranges": [
+        {
+          "start": "eac530",
+          "length": 582,
+          "sha256": "7b02058e82f6d8acf92e189f5982eae449af06dc045fcb41be1d182ea374267c"
+        }
+      ]
+    },
+    {
+      "platform": "lin",
+      "address": "1cdd4a0",
+      "ranges": [
+        {
+          "start": "1cdd4a0",
+          "length": 15684,
+          "sha256": "7347e1584b5cbe090c7d3ba186ea3affb718c558acdc0621d28ea95f501bdc18"
+        }
+      ]
+    },
+    {
+      "platform": "lin",
+      "address": "13e35e0",
+      "ranges": [
+        {
+          "start": "13e35e0",
+          "length": 3098,
+          "sha256": "3e7c758886d0aed585895142e75fffed0f03883018d125378e9b585a9531988e"
+        }
+      ]
+    },
+    {
+      "platform": "lin",
+      "address": "1a23650",
+      "ranges": [
+        {
+          "start": "1a23650",
+          "length": 67,
+          "sha256": "2791cce84f3a2ea1b2defed3155f73b056d74fd25dace8cf7d389d6dd72bb670"
+        }
+      ]
+    },
+    {
+      "platform": "lin",
+      "address": "1a236a0",
+      "ranges": [
+        {
+          "start": "1a236a0",
+          "length": 67,
+          "sha256": "bdd2a4017637a4d460ffe4ca404c52dc578debd93c21f21486ae7050afba2305"
+        }
+      ]
+    },
+    {
+      "platform": "lin",
+      "address": "1a44df0",
+      "ranges": [
+        {
+          "start": "1a44df0",
+          "length": 66,
+          "sha256": "0559542aa4a0cd724a3bf65d6048920341f3f2c87b73a4ba3ed723be25e6f785"
+        }
+      ]
+    },
+    {
+      "platform": "lin",
+      "address": "1439060",
+      "ranges": [
+        {
+          "start": "1439060",
+          "length": 1146,
+          "sha256": "b4b375449f16084625e97d11af066dc459f753df3c9cbd280b17212db35ab981"
+        }
+      ]
+    },
+    {
+      "platform": "lin",
+      "address": "1df0550",
+      "ranges": [
+        {
+          "start": "1df0550",
+          "length": 106,
+          "sha256": "ea705e40a9aad6ffe863e6bee6ead1eb2899882201a8c975d2c3585953dec554"
+        }
+      ]
+    }
+  ],
+  "numeric_audit": {
+    "samples": 2024,
+    "midpoint_cases": 2000,
+    "synthetic_f32_input_differences": 338,
+    "ordinary_sample_disagreements": 0,
+    "private_script_sha256": "2f645b8d418efabaea367f3912a3f611e013984c95296127b681b0e4d1322ab3",
+    "private_result_sha256": "2e27368f6d6f6e5be8d546f22efbc4fbe02e9311cac83fc2d268b97fecdcad01"
+  }
+}

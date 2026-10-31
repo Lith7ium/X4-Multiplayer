@@ -1,0 +1,119 @@
+GETUP RECEIPT CONSUMER AND PROPOSED DISPOSABLE FIXTURE
+28 October 2026 | Source and synthetic validation only
+
+The independent origin consumer validates the ordinary-return schema exported by
+2aaab98. It checks bounded canonical fields, widths, complete export, event address
+reuse, ordinary call/return accounting, restoration, saved/runtime/object/Agent/
+true-owner identity, and links to the existing schema2 transition records. Raw
+transition and queue failures remain failures. A claimed capture_complete value
+cannot rescue missing or inconsistent receipts. Local pointers and opaque RAX
+results are never compared between replicas. The main validator checks identical
+portable configuration and requires both configured captures.
+
+The source-only expected configuration key is native_gate_player_origin_token,
+using the native config token syntax. This commit does not add a builder, enable
+the observer, drain it in a game, or invoke an action. Unexpected origin records
+are validated even if that key is absent, so they cannot silently evade checking.
+
+An origin receipt proves neither public GetUp acceptance nor completed release.
+The native post/delivery returns are opaque. Edges are producer-scoped associations
+to transition records; origin schema1 does not serialize delivery entry/leave
+ordinals or after-capture tick. The consumer reports those omissions explicitly.
+It validates linked event thread/window but cannot independently reconstruct scope
+containment. completed_releases remains empty, and independent_player_context and
+atomic_lease remain false. Empty observation can be valid without action exercise.
+No release-mode/model predicate has been accepted; existing takeover mode0
+completion is not a release completion predicate.
+
+Proposed first fresh fixture (not staged, not authorized for execution)
+
+Use the pristine snapshot with SHA256
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+The saved player11e12 controls Small shipae79c, ownerplayer, macro
+ship_arg_s_scout_01_a_macro. The player occupies saved cockpitae79f; XML also
+records player movement and playerpilot. Use exactly this one schema2 Player-
+Controller watch. No second ship is justified. Keep existing raw watches and all
+strict full-world checks unchanged.
+
+Before load, configure the saved watch, transition observer, then origin observer
+with token 1|0000000000011e12|00000000000ae79c|1|120. Configure only after all
+installation pins and immutable stubs pass. On import, record the exact player
+runtime once; at the joined tick0 bind, validate registry generation, singleton
+player, ancestry, selected ship/Agent/true owner and initial PlayerController.
+If the first shared world/state check fails, do not apply the action or suppress
+the failure to reach it. This remains a concrete current admission blocker.
+
+After a valid agreed interval, propose one GetUp request for application at tick30
+through the existing two-slot native player command envelope. A future dedicated
+mode/opcode must be reviewed and reserved before implementing it. Only logicalp1
+may submit the singleton action; p2 must submit zero. Decode and preflight the
+whole batch before any effect. Bind saved player/ship and runtime generation at
+admission and again immediately before the supported public GetUp export. Invoke
+it exactly once, record its AL as request acceptance only, and do not retry false,
+missing delivery, partial transition or timeout. Keep explicit request epoch/tick
+and processed-command state; any stale/duplicate/gap or unsupported p2 request
+refuses before writes. The current player probe asserts an immutable controlled
+ship identity each tick, so it cannot be reused unchanged for GetUp. A future
+mode needs an explicit selected-ship transition state machine; do not relax that
+guard for existing modes or silently rebind it to another ship.
+
+Expected observations are the pinned stock postcall at1abb07, an origin ticket
+with native due time distinct from current clock, and delivery through998700 /
+152870 /706cc0. Delivery may be immediate and reentrant before the post returns,
+or deferred to a later tick. Only after the real handler accepts its own checks
+may716e20 transfer the selected Agent from PlayerController to NavigationController
+and publish that controller. Those receipt links, any input-activation callback,
+and model enqueue/dispatch are separate events. No guessed model mode or immediate
+completion is accepted. Observe through tick120, then STOP/restore, drain bounded
+origin and transition records, and retain every unknown/partial/open/restore
+failure. The first pair would use the released disposable lanes, unchanged frozen
+base, one owned pair and ordinary admission after separate approval.
+
+Re-entry is a later fixture. The live stock interaction menu supplies the actual
+component/connection and copies an available CompSlotPlayerAction result. Neither
+a saved cockpit ID nor a guessed connection/action index identifies a valid chair
+slot. The native enumeration allocates temporary action containers and updates
+global text buffers; it is not a passive observer getter. Capture the actual stock
+menu result at a reviewed ordinary boundary, revalidate it before the supported
+PerformCompSlotPlayerAction export, and expect that action possibly to ask an NPC
+to leave first. Chair discovery and the re-entry acknowledgment remain unimplemented.
+
+Exception proposal, approved separately for source-only implementation
+
+Origin post/delivery and outer admission need __try/__finally with no __except.
+On abnormal termination, clean only own TLS/admission once, record separate unwind
+counters/error, and propagate the original exception. Do not count a normal return,
+set delivered-state2, capture after-state, or read the transferred event. Equivalent
+cleanup is needed for transfer/publication/activation, including excluded-scope
+shadow restoration. Never hold a lock across original. Normal results stay unchanged.
+The schema must distinguish ordinary returns from unwinds explicitly.
+
+Queue enqueue/dispatch owns additional transition admission, TLS and pending-ticket
+lifetime. Its abnormal callback/cleanup is a separate World-owned dependency.
+Origin plus the three direct transition wrappers do not prove full transition
+exception cleanup. Tests must use valid caller unwind metadata and actual adapter
+paths: the rotation agent demonstrated that a fabricated caller without pdata can
+skip an outer finally despite a language-only RaiseException probe passing. Require
+propagation, nested selected/excluded scopes, STOP during unwind, original once,
+and no post-abnormal native reads. No exception changes are in this consumer commit.
+
+Validation: thirteen focused Python tests passed, covering the main validator,
+canonical fields and widths, truncation/duplicates/capacity, forged completeness,
+address reuse, malformed time, partial STOP, identity replacement, raw transition
+failure and differing process-local addresses. These are synthetic receipts only;
+there is no live GetUp, re-entry, native release or second-pilot evidence here.
+
+Independent review follow-up
+
+NPC review found a legitimate global activation (kind3) receipt has canonical
+zero s0/s1 and owner '-', while the origin consumer incorrectly demanded selected
+ship identity in every edge. The narrow follow-up accepts only that canonical
+global shape/context8, with explicit producer_scoped_global_activation labeling
+and selected_ship_activation_proven=false. If it has a publication parent, the
+consumer verifies that parent's selected saved/runtime/object/Agent/owner lifetime,
+controller endpoints, thread, tick order and interval containment. A parentless
+activation remains a global producer-scoped association. Neither case supplies
+ship identity, completed release or authority. Nonactivation lifetime checks and
+all raw failures remain unchanged. The reviewer's exact witness now passes with
+completed_releases empty; nested publication cases and malformed global/parent
+mutations pass16 origin tests plus26 existing transition tests. No producer change.

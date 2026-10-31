@@ -4,8 +4,12 @@ local A=X4LAN_BUBBLE_API
 if not cfg or not cfg.enabled or not cfg.bubble_actions or not A or not A.state.active then return end
 local ffi=require('ffi');local C=ffi.C;local s=A.state
 ffi.cdef[[void RemoveComponent(UniverseID);]]
-local life={mode='ship',dead=0,generation=0,sequence=0,remoteSequence=-1}
+-- remotes: one body record and spacesuit replica per remote client lease. remote,
+-- remoteSuit and remoteKilled mirror the most recently updated remote (two players: the
+-- only one). MD tracks one remote suit for kill detection (x4lan_life.xml).
+local life={mode='ship',dead=0,generation=0,sequence=0,remotes={}}
 A.life=life
+local MAX_REMOTES=7
 local function log(v) DebugError('[X4LAN] '..v) end
 local function send(value) if s.client and s.client.lease then s.transport:send(value);return true end end
 local function number(v,bound)
@@ -25,16 +29,31 @@ function life.receive(client,f,now)
   if f[6]~='ship' and f[6]~='foot' and f[6]~='suit' then return true end
   if f[6]=='suit' and gen==0 then return true end
   local pose={};for i=1,6 do pose[i]=number(f[i+8],i<=3 and (cfg.coop and 50000000 or 50000) or 2*math.pi);if not pose[i] then return true end end
-  if life.remoteOwner~=f[4] then
-   life.remoteOwner=f[4];life.remoteSequence=-1
+  local e=life.remotes[f[4]]
+  if not e then
+   local count=0;for _ in pairs(life.remotes) do count=count+1 end
+   if count>=MAX_REMOTES then return true end
+   e={sequence=-1,lease=f[4]};life.remotes[f[4]]=e
   end
-  if seq<=life.remoteSequence then return true end
-  life.remoteSequence=seq;life.remote={mode=f[6],dead=dead,generation=gen,pose=pose,at=now,sector=remoteSector}
-  if dead==1 and cfg.slot=='p1' then AddUITriggeredEvent('X4LAN_Life','ShipDeath',2) end
+  if seq<=e.sequence then return true end
+  e.sequence=seq;e.remote={mode=f[6],dead=dead,generation=gen,pose=pose,at=now,sector=remoteSector}
+  life.remote=e.remote
+  if dead==1 and cfg.slot=='p1' then
+   -- BODY.dead names the sender's original ship. Two players: always ship 2. More
+   -- players: only a fixture ship whose current pilot stream comes from this lease.
+   local R=A.roster or {players=2}
+   if R.players==2 then AddUITriggeredEvent('X4LAN_Life','ShipDeath',2)
+   else
+    for i=1,2 do
+     local r=A.coop and A.coop.remote[i]
+     if r and r.sourceLease==f[4] then AddUITriggeredEvent('X4LAN_Life','ShipDeath',i) end
+    end
+   end
+  end
   return true
  elseif f[1]=='SUITKILL' then
   local gen=#f==5 and number(f[5],2147483647) or nil
-  if cfg.slot=='p2' and gen and gen==life.generation and life.mode=='suit' then
+  if cfg.slot~='p1' and gen and gen==life.generation and life.mode=='suit' then
    AddUITriggeredEvent('X4LAN_Life','SuitDeath',gen)
   end
   return true
@@ -69,29 +88,45 @@ function life.frame(now)
   end
   for i=1,6 do packet[#packet+1]=string.format('%.9g',pose[i]) end
   send(table.concat(packet,'|'))
-  if cfg.slot=='p1' and life.remoteKilled then send('SUITKILL|1|'..s.client.lease..'|'..life.remoteKilled) end
+  if cfg.slot=='p1' then
+   for _,e in pairs(life.remotes) do if e.killed then send('SUITKILL|1|'..s.client.lease..'|'..e.killed) end end
+  end
  end
- local remote=life.remote
+ local live={}
+ for lease,e in pairs(life.remotes) do
+  if s.client and s.client.lease and e.remote and now-e.remote.at>=30 then
+   -- A departed client: remove its replica and forget the record.
+   if e.suit and C.IsComponentOperational(e.suit) and C.GetPlayerOccupiedShipID()~=e.suit then C.RemoveComponent(e.suit) end
+   life.remotes[lease]=nil
+  else live[#live+1]=e end
+ end
+ for _,e in ipairs(live) do life.frameRemote(e,now) end
+ local latest=nil
+ for _,e in ipairs(live) do if e.remote and (not latest or e.remote.at>=latest.remote.at) then latest=e end end
+ life.remoteSuit,life.remoteKilled=latest and latest.suit or nil,latest and latest.killed or nil
+end
+function life.frameRemote(e,now)
+ local remote=e.remote
  if not remote then return end
- if life.remoteSuit and (remote.mode~='suit' or life.remoteGeneration~=remote.generation) then
-  if C.IsComponentOperational(life.remoteSuit) and C.GetPlayerOccupiedShipID()~=life.remoteSuit then C.RemoveComponent(life.remoteSuit) end
-  life.remoteSuit=nil;life.remoteKilled=nil
+ if e.suit and (remote.mode~='suit' or e.generation~=remote.generation) then
+  if C.IsComponentOperational(e.suit) and C.GetPlayerOccupiedShipID()~=e.suit then C.RemoveComponent(e.suit) end
+  e.suit=nil;e.killed=nil
  end
- if remote.mode=='suit' and now-remote.at<1 and not life.remoteKilled then
+ if remote.mode=='suit' and now-remote.at<1 and not e.killed then
   local sector=cfg.coop and A.coop.sectorId(remote.sector) or s.sector
   if cfg.coop and not A.coop.sectors[remote.sector] then return end
   local origin=cfg.coop and 0 or 10000
-  if not life.remoteSuit then
+  if not e.suit then
    local p=remote.pose
-   life.remoteSuit=C.SpawnObjectAtPos2('ship_arg_xs_spacesuit_01_a_macro',sector,ffi.new('UIPosRot',{x=p[1],y=p[2]+origin,z=p[3]}),'player')
-   if life.remoteSuit==0 then life.remoteSuit=nil;return end
-   life.remoteGeneration=remote.generation
-   AddUITriggeredEvent('X4LAN_Life','RemoteSuit',{object=A.id(life.remoteSuit),generation=remote.generation})
+   e.suit=C.SpawnObjectAtPos2('ship_arg_xs_spacesuit_01_a_macro',sector,ffi.new('UIPosRot',{x=p[1],y=p[2]+origin,z=p[3]}),'player')
+   if e.suit==0 then e.suit=nil;return end
+   e.generation=remote.generation
+   AddUITriggeredEvent('X4LAN_Life','RemoteSuit',{object=A.id(e.suit),generation=remote.generation})
    log('remote spacesuit created; generation='..remote.generation)
   end
-  if C.IsComponentOperational(life.remoteSuit) then
+  if C.IsComponentOperational(e.suit) then
    local p=remote.pose;local deg=180/math.pi
-   C.SetObjectSectorPos(life.remoteSuit,sector,ffi.new('UIPosRot',{x=p[1],y=p[2]+origin,z=p[3],yaw=p[4]*deg,pitch=p[5]*deg,roll=p[6]*deg}))
+   C.SetObjectSectorPos(e.suit,sector,ffi.new('UIPosRot',{x=p[1],y=p[2]+origin,z=p[3],yaw=p[4]*deg,pitch=p[5]*deg,roll=p[6]*deg}))
   end
  end
 end
@@ -103,5 +138,8 @@ RegisterEvent('X4LAN_Life.State',function(_,payload)
  life.suit=nil -- The engine can finish changing control after this MD event.
 end)
 RegisterEvent('X4LAN_Life.RemoteSuitKilled',function(_,generation)
- life.remoteKilled=tonumber(generation)
+ -- MD names the suit by generation; it belongs to the remote whose replica has it.
+ local gen=tonumber(generation)
+ for _,e in pairs(life.remotes) do if e.suit and e.generation==gen then e.killed=gen end end
+ life.remoteKilled=gen
 end)

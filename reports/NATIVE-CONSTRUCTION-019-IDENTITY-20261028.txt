@@ -1,0 +1,111 @@
+CONSTRUCTION019: LOAD REATTACHMENT AND PROVISIONAL IDENTITY
+28 October 2026 | one disposable two-instance attempt | strict result FAIL
+
+Construction019 passed the actual saved-UI reload that stopped018, then reached
+the selected builder creation and deferred callback. Both clients stopped at
+the unchanged late-update enrollment guard: reason75, completed tick5, restored1.
+The sealed full reader produced44 errors, evidence_valid=false/session_pass=false.
+No retry, acceptance change, READY or actor publication occurred.
+
+INPUTS AND CLEANUP
+
+Exact reviewed source5de7954, DLL
+6cf7c16d30d3e7f057c9fe2766ae0bd806062121036a77c14c064f24bb3b5ed9;
+overlay manifest
+15ed483f7c4293055870e004b38267d1af28aac706d482455b6136bcb5484680.
+The single attempt retained the018/017 fixture, MD/actions, epoch1, snapshot,
+mask0x84fffffffffff and A/B keys. Only the explicit ACK mode changed in config.
+Limits were120 ticks,260 seconds runtime and900 seconds admission on b1/b2,
+without a RAM admission threshold. Full frozen source/build/release/cache/
+executable/base/snapshot closure and idle lanes were rechecked before execution.
+
+The run started23:02:56 UTC and the released runner finished after74.281 seconds
+with fail_pattern. Both owned games closed gracefully through WM_CLOSE, exit0.
+The relay was terminated by the runner. All owned game/relay/runner/launcher
+identities were verified absent. Both lane installations and snapshot slots were
+restored; archived snapshot bytes match the input and no owned save009 remains.
+The sealed reader ran once after cleanup. A barrier report exists in this run;
+the separate018 missing-barrier reader failure remains untouched.
+
+ACK2 IN REAL LOAD LIFECYCLE
+
+Both clients emitted ordinal1 at phase0/registry_phase0, then LOAD_REQUEST, then
+ordinal2 at phase1/registry_phase1 with reattach1, registry_acks2 and zero activity.
+Each preserved its own local boot nonce. The common702-byte bootstrap digest was
+12674fe96e5dd2db165934cb30fc50d88ee5047c5036cbba38738ef127e29586.
+Both re-armed and later emitted matching completed acknowledgement footers.
+This is a live setup/reload result, not construction completion or load quiescence.
+
+CONSTRUCTOR AND RNG OBSERVATIONS
+
+Both constructor traces retained59 records, A/B closed, no trace errors or open
+scopes. Each RNG trace retained two admitted/restored scopes with zero failure
+or restoration debt. The independent per-client RNG evidence is valid, but the
+strict peer canonical comparison is false because raw physical banks differ.
+
+All21 observed FloatState results match across clients:19 TLS-backed draws and
+two other observed draws. The Agent timer is8.153086067914963 on both; the posted
+due time is16.868417413711548 on both. This retains the bounded constructor RNG
+result from017; whole RNG coverage is still unsupported.
+
+This run has matching physical selectors and sampled c0/c8/d0/timer/time fields:
+initializer read0/write1/c8=2, callback read1/write0/c8=0. Unlike017, opposite
+selectors are not present here. Raw bank differences still remain:
+  Navigation return:2 /2 /23 /2 bytes across the four captured banks.
+  Agent return:     2 /2 /24 /23 bytes.
+  Callback entry:   3 /3 /2 /2 bytes.
+The differing raw offsets are retained exactly. No padding classification,
+selector normalization or comparison waiver is applied.
+
+PROVISIONAL IDENTITY: NEW OBSERVED BOUNDARY
+
+Both Pilot ENTRY identity receipts have error0, stable repeated presence,
+two fresh registry lookups returning the exact selected full native lifetime,
+the expected XL type and player owner, and provisional admitted1. The controller
+and Agent are absent there. Pilot return repeats the same identity successfully.
+These are separate provisional records; the selected dynamic ship is not
+published to operational arrays or caches.
+The selected setter return later has error0, fresh lookup2 and relationship1,
+but open_scopes1. It is a relationship candidate, not a quiescent READY boundary.
+Pending-kind/order fields are actively sampled only at the Pilot entry guard;
+zeros in later identity rows must not be interpreted as no earlier native update.
+
+The legacy first covered update remains kind6/order103, before Builder dispatch
+117/118. The retained first ordinary AI annotation is order129. The deferred
+callback at145 still refuses late_update. No preparation or late reset was added.
+
+OPERATION LEDGER: DIFFERENCE AND STRICT LIMITS
+
+Both ledgers contain four complete identity receipts, zero dropped rows, zero
+worker observations and no open scope at STOP. Their totals differ:
+  client1:19 operations,10 unpaired observations,16 failure increments;
+  client2:66 operations,57 unpaired observations,63 failure increments.
+The complete count difference is MASS kind14:4 observations versus51. Counts of
+every other kind/source/paired/error group match. The first different entry is
+local sequence10 at MD anchor128: client1 records SHIP, while client2 records
+two MASS entries before SHIP. These MASS rows are explicitly unsupported and
+unpaired, with no native return or caller evidence. Different observed entries
+do not establish different native writes, physical mass values or gameplay.
+
+The first orders.base startup range is classified and paired on both clients.
+The following capital-attack and engineer startup ranges are paired but remain
+explicitly unsupported. This clears provisional admission before Generate return.
+The existing sealed registry reader rejects an additional exact range join:
+client1 operation7/client2 operation10 is a paired order.wait startup range,
+caller1066dc6, range0..14/mode1, normal result0, error0x100, creation index0.
+The three initial constructor startup ranges have their exact trace joins;
+the order.wait row has no constructor record to join. This failure is retained;
+the raw decoded ledger is not relabeled valid. Source-only follow-up can examine
+this unsupported scope and MASS observation coverage before any enrollment work.
+
+EVIDENCE BOUNDS
+
+Validation SHA256:
+2eeb9b2c8cfe8dd8b5ee930996f16c35e0e7533002d44452a3995c2b1f24e3b9.
+Private causal summary SHA256:
+a75810ae2b2e32698bbd597ce5cbaf8bf8a80fdce6c76df0aac40331512e1f0e.
+Cleanup proof SHA256:
+905e148c503c9bb254abe4db2048f8d0f53667437354c52838963c831227dae6.
+Raw logs, native IDs/pointers, process identities and full error lists remain
+private. This test proves neither station completion nor cancellation, orders,
+independent two-player authority or general PvP/co-op feature coverage.

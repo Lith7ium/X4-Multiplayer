@@ -1,0 +1,85 @@
+LINUX EULER V2 PROBE AND LAUNCH PLUMBING
+28 October 2026 | source/nongame validation, no staging or game
+
+This branch extends independently accepted attribution687e88e, including the
+strict single-record envelope, process-generation joins and consumed-byte terminal
+log cutoff. The shared capability prerequisite2dfe92f is local0acf6ea. Matching
+Linux runtime source is99e6c96 in the separate linux-rotation-v2 worktree.
+
+New Linux launches require explicit portable-fixture12-euler-v2, reviewed contract
+77b19d6f210426c86c73bafdf3a3f2531747968819a5ef61e93344f902da2790 and descriptor
+27c9bd768900673531c698e59b410fc38940b036ef9563e5e9483e9f3303537b. Snapshot/common
+fixture bytes are unchanged. Plain portable mode remains unchanged. Historical
+Euler-v1 contracts remain parseable, but this new launcher/Lua adapter refuse to
+activate them. Existing owned preparation, stock verification, native identity,
+endpoint, original-byte/slot/padding and cleanup requirements are unchanged.
+
+The closed ROTATION schema now requires56 fields: all33 prior fields plus20
+per-role/per-class counters, lifetimes, paired and inputs. Class counters cannot
+decrease. Their exact terminal values and both lifetime counts are required in
+addition to unchanged total-role/native-Load/ownership/restoration joins:
+navigation10008 calls/returns,10005 Euler,3 absent,90045 words for each role;
+player1 call/return,1 Euler,0 absent,9 words for each role;
+lifetimes=paired=10009. Total role values are10009/10009/10006/3/90054.
+The inputs field must equal the configured offline class-qualified digest
+8b8ab6d4697192f708c192c5e2c236e9e9eaf7a2faf35246456e592ea318fa70. This is not
+a native saved-ID census or independent runtime recomputation of that digest.
+
+All class fields are mandatory; a v1 total-only receipt, missing math receipt,
+swapped class distribution, unpaired lifetime or changed configured digest cannot
+pass. The normal portable terminal alone never supplies missing math proof.
+Both selected16-byte original regions are still independently read before the
+owned request and after terminal, with retained table and repeated manager joins.
+Failure drainage remains diagnostic only. The parser itself also checks the
+accepted exact agent envelope before reading a ROTATION row.
+
+The shared capability dispatcher imports portable_import_capability_v1.py.
+Every new Euler bundle and coordinator source join therefore pins BOTH modules,
+for five transport source files. Missing/mutated dependencies refuse before
+readiness. Plain transport remains exactly three files. Historical four-file v1
+transport evidence is allowed only for the archived standalone capability hash
+86d8c39f2ea119b04ceebc8767ed4d2f099127bf92f328ac38a04314ba5683d8 and v1 contract;
+all other expected source pins and endpoint/transport checks remain. Today's
+dispatcher, even parsing v1, requires the complete five-file source closure.
+
+The Linux Lua adapter still only obtains the verified native ready() accessor.
+Reloading it creates another read-only binding and neither resets rotation state
+nor issues LoadGame. Native readiness remains authoritative before/after reload.
+No general FFI, permission, input or engine-memory action is added.
+
+Validation:
+-101 focused WSL tests pass across attribution, observer, portable probe, actual
+  main, launcher, same-supervisor preparation, real owned SSH/UDP transport,
+  independent transport validator and versioned capability/preflight.
+-Five actual LuaJIT adapter tests pass on Windows with a synthetic read-only
+  bridge; these include reload, lost readiness, v1 refusal and exact v2 pins.
+-Production-main tests use real bounded FreshLog files and modeled native joins.
+  A complete v2 case passes; missing math and class swaps fail despite complete
+  portable counters. Existing real-log partial/backlog refusal cases still fail.
+-Real nongame coordinator tests require both source modules before readiness,
+  retain PIDFD/socket generation checks, and close on owned EOF. All peers here
+  are synthetic; no native game acceptance is inferred.
+
+No reviewed old bundle was edited, no agent/bridge release was built or frozen,
+and no VPS command/game launch was performed. Mixed004 and its separate failures
+remain immutable. Runtime/source/artifact review and a newly approved complete
+bundle are still required before another mixed-native attempt.
+
+INDEPENDENT REVIEW FOLLOW-UP: EXACT SINGLE-LOAD SERIAL
+
+Review of frozeneb79d1b reproduced that serial2 could pass the terminal join:
+the prior nonzero/stable ownership anchor did not enforce the runtime's fixed
+single-Load serial1. A separate follow-up now requires serial=1 in the exact
+terminal predicate. The schema still accepts bounded serial values for diagnostic
+failure evidence; it never converts serial2 to1 or relaxes the other joins.
+
+The receipt mutation matrix includes serial+1. An unmodified production-main
+case emits serial2 alongside otherwise successful native portable/Load/math
+receipts and must return exit1,verdict fail,rotation_import_verified false.
+All16 focused probe cases pass on WSL (Windows12 pass+4 platform skips); both
+Windows production-main test methods pass, including the new negative alongside
+existing positive/class/missing/log-cutoff cases. The same exact serial2 main
+case also passes its negative assertion under WSL, reporting
+native_rotation_evidence_incomplete with no tail or unread log bytes. The101-test
+suite above is the frozeneb79 baseline; this correction uses these focused checks.
+No runtime, artifact, remote state or prior evidence changed.

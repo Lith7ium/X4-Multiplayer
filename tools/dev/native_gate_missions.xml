@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Disposable native gate stress fixture for lockstep census runs: mission activity.
+     native_gate_probe.lua raises every cue at a fixed gated tick on every client
+     (native_gate_missions = true); no player UI is involved.
+     MissionSetup   spawns four weaponless Xenon targets, two player-owned Argon hunters
+                    and an Argon client ship 2.5-6 km from the battle fixture (y=100 km).
+     MissionOffer   asks the stock generic mission manager to evaluate the player sector
+                    (md.GenericMissions.EvaluateSectorMissions: random stations, random
+                    0.05-4 s delays, weighted random mission types and variants) and creates
+                    one fixed-parameter offer through the stock library
+                    md.GM_Destroy_Objects.Start (targets, reward, client and text fixed).
+     MissionAccept  accepts that offer and up to two stock generic offers, in list order,
+                    through the stock accept path (signal 'accept' on the offer's client).
+     MissionVisit   creates a fly-to mission on the stock library md.RML_FlyTo.FlyTo
+                    (client ship within 1 km of the player); the client ship gets a
+                    MoveWait order to the player, so the visit completes without input.
+     MissionHunt    orders the hunters to attack the targets; player-owned kills count
+                    as player kills (RML_Destroy_Components), so the mission progresses.
+     MissionSample  logs offers, missions, money and target counts.
+     MissionCleanup destroys remaining targets (non-player kills) so the mission ends.
+     Every log line is "[X4LAN] NATIVE_GATE MISSION ..." and prints no runtime IDs. -->
+<mdscript name="X4LAN_NativeMissions" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="Missions" namespace="this">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeGate'" control="'MissionSetup'"/></conditions>
+   <actions>
+    <set_value name="$ready" exact="false"/>
+    <do_if value="player.ship and player.sector">
+     <set_value name="$sector" exact="player.sector"/>
+     <create_group groupname="$targets"/>
+     <create_group groupname="$hunters"/>
+     <set_value name="$targetlist" exact="[]"/>
+     <set_value name="$hunterlist" exact="[]"/>
+     <set_value name="$accepted" exact="0"/>
+     <set_value name="$kills" exact="0"/>
+     <do_all exact="4" counter="$i">
+      <create_ship name="$ship" macro="macro.ship_xen_s_fighter_01_a_macro" sector="$sector" seed="9500 + $i">
+       <owner exact="faction.xenon" overridenpc="true"/>
+       <loadout><level exact="0.0"/><variation exact="0"/></loadout>
+       <pilot><select faction="faction.xenon" tags="tag.pilot"/></pilot>
+       <position x="-1500m + ($i - 1) * 1000m" y="101km" z="-6km"/>
+       <rotation yaw="180deg"/>
+      </create_ship>
+      <do_if value="$ship.exists">
+       <add_to_group groupname="$targets" object="$ship"/>
+       <append_to_list name="$targetlist" exact="$ship"/>
+       <create_order object="$ship" id="'Wait'" default="true"/>
+      </do_if>
+     </do_all>
+     <do_all exact="2" counter="$i">
+      <create_ship name="$ship" macro="macro.ship_arg_s_fighter_01_a_macro" sector="$sector" seed="9600 + $i">
+       <owner exact="faction.player" overridenpc="true"/>
+       <loadout><level exact="1.0"/><variation exact="0"/></loadout>
+       <pilot><select faction="faction.argon" tags="tag.aipilot"/></pilot>
+       <position x="if $i == 1 then -300m else 300m" y="101km" z="-4500m"/>
+       <rotation yaw="180deg"/>
+      </create_ship>
+      <do_if value="$ship.exists">
+       <add_to_group groupname="$hunters" object="$ship"/>
+       <append_to_list name="$hunterlist" exact="$ship"/>
+       <create_order object="$ship" id="'Wait'" default="true"/>
+      </do_if>
+     </do_all>
+     <create_ship name="$client" macro="macro.ship_arg_s_scout_01_a_macro" sector="$sector" seed="9700">
+      <owner exact="faction.argon" overridenpc="true"/>
+      <loadout><level exact="1.0"/><variation exact="0"/></loadout>
+      <pilot><select faction="faction.argon" tags="tag.aipilot"/></pilot>
+      <position x="1500m" y="99700m" z="-2500m"/>
+      <rotation yaw="0deg"/>
+     </create_ship>
+     <do_if value="@$client.exists">
+      <create_order object="$client" id="'Wait'" default="true"/>
+     </do_if>
+     <set_value name="$ready" exact="$targetlist.count == 4 and $hunterlist.count == 2 and @$client.exists"/>
+     <debug_text text="'[X4LAN] NATIVE_GATE MISSION setup tick=%s ready=%s targets=%s hunters=%s client=%s sector=%s money=%s'.[event.param3.$tick, $ready, $targetlist.count, $hunterlist.count, @$client.exists, $sector.macro.id, (player.money / 1ct)i]"/>
+    </do_if>
+    <do_else>
+     <debug_text text="'[X4LAN] NATIVE_GATE MISSION setup tick=%s refused=noplayership'.[event.param3.$tick]"/>
+    </do_else>
+   </actions>
+   <cues>
+    <cue name="MissionOffer">
+     <conditions>
+      <event_ui_triggered screen="'X4LAN_NativeGate'" control="'MissionOffer'"/>
+      <check_value value="Missions.$ready"/>
+     </conditions>
+     <actions>
+      <set_value name="Missions.$genericbefore" exact="@md.GenericMissions.Manager.$MissionCues.count"/>
+      <!-- The stock manager's own generation path; it draws its randomness from script RNG. -->
+      <signal_cue cue="md.GenericMissions.EvaluateSectorMissions"/>
+      <debug_text text="'[X4LAN] NATIVE_GATE MISSION offer tick=%s generic_before=%s active=%s accepted_stat=%s'.[event.param3.$tick, Missions.$genericbefore, player.hasactivemission, stat.missions_accepted]"/>
+     </actions>
+     <cues>
+      <!-- Fixed-parameter offer through the stock generic mission library. -->
+      <cue name="FixtureMission" ref="md.GM_Destroy_Objects.Start">
+       <param name="OfferObject" value="Missions.$client"/>
+       <param name="ClientOwner" value="faction.argon"/>
+       <param name="MissionLevel" value="1"/>
+       <param name="Difficulty" value="level.easy"/>
+       <param name="RewardCr" value="25000Cr"/>
+       <param name="RemoveOnSectorChange" value="false"/>
+       <param name="Page" value="30137"/>
+       <param name="TextOffset" value="1000"/>
+       <param name="TargetSector" value="Missions.$sector"/>
+       <param name="Targets" value="Missions.$targets"/>
+       <param name="OpposingFaction" value="faction.xenon"/>
+       <param name="ReportSignalCue" value="MissionReport"/>
+      </cue>
+     </cues>
+    </cue>
+    <!-- Feedback from the stock GM: generated, accepted and the end result. -->
+    <cue name="MissionReport" instantiate="true">
+     <conditions><event_cue_signalled/></conditions>
+     <actions>
+      <set_value name="$end" exact="@static.$EndFeedbackValue"/>
+      <set_value name="$feedback" exact="if $end then $end else @static.$FeedbackValue"/>
+      <debug_text text="'[X4LAN] NATIVE_GATE MISSION report kind=%s id=%s type=%s offer=%s mission=%s money=%s'.[if $end then 'end' else 'event', @$feedback.$ID, @$feedback.$type, FixtureMission.hasmissionoffer, FixtureMission.hasmission, (player.money / 1ct)i]"/>
+     </actions>
+    </cue>
+    <cue name="MissionAccept">
+     <conditions>
+      <event_ui_triggered screen="'X4LAN_NativeGate'" control="'MissionAccept'"/>
+      <check_value value="Missions.$ready"/>
+     </conditions>
+     <actions>
+      <!-- Cue actors are not in the game graph until placed: .exists is false, so test the class (as the GM cleanup does). -->
+      <set_value name="$fixture" exact="FixtureMission.hasmissionoffer and @FixtureMission.$Client.isclass.npc"/>
+      <do_if value="$fixture">
+       <signal_objects object="FixtureMission.$Client" param="'accept'" param2="FixtureMission"/>
+      </do_if>
+      <debug_text text="'[X4LAN] NATIVE_GATE MISSION accept tick=%s target=fixture sent=%s offer=%s'.[event.param3.$tick, $fixture, FixtureMission.hasmissionoffer]"/>
+      <set_value name="$cues" exact="@md.GenericMissions.Manager.$MissionCues"/>
+      <set_value name="$offers" exact="0"/>
+      <do_if value="$cues">
+       <do_all exact="$cues.count" counter="$i">
+        <set_value name="$cue" exact="$cues.{$i}"/>
+        <do_if value="$cue.exists and $cue.hasmissionoffer and @$cue.$Client.isclass.npc">
+         <set_value name="$offers" operation="add"/>
+         <do_if value="Missions.$accepted lt 2">
+          <set_value name="Missions.$accepted" operation="add"/>
+          <signal_objects object="$cue.$Client" param="'accept'" param2="$cue"/>
+          <debug_text text="'[X4LAN] NATIVE_GATE MISSION accept tick=%s target=generic index=%s order=%s name=%s client=%s'.[event.param3.$tick, $i, Missions.$accepted, @$cue.$TextTable.$missionname, @$cue.$Client.knownname]"/>
+         </do_if>
+        </do_if>
+       </do_all>
+      </do_if>
+      <debug_text text="'[X4LAN] NATIVE_GATE MISSION generic tick=%s cues=%s offers=%s accepted=%s'.[event.param3.$tick, @$cues.count, $offers, Missions.$accepted]"/>
+     </actions>
+    </cue>
+    <cue name="MissionVisit">
+     <conditions>
+      <event_ui_triggered screen="'X4LAN_NativeGate'" control="'MissionVisit'"/>
+      <check_value value="Missions.$ready"/>
+     </conditions>
+     <actions>
+      <create_mission cue="MissionVisit" name="'X4LAN fixture visit'" description="'Fixture: meet the client ship.'" type="missiontype.other" faction="faction.argon" difficulty="level.trivial" reward="5000Cr"/>
+      <create_position name="$meet" space="Missions.$sector" object="player.ship" x="300m"/>
+      <create_order object="Missions.$client" id="'MoveWait'" immediate="true">
+       <param name="destination" value="[Missions.$sector, $meet]"/>
+       <param name="precise" value="true"/>
+       <param name="noattackresponse" value="true"/>
+      </create_order>
+      <debug_text text="'[X4LAN] NATIVE_GATE MISSION visit tick=%s mission=%s distance=%s'.[event.param3.$tick, MissionVisit.hasmission, (Missions.$client.distanceto.{player.ship} / 1m)i]"/>
+     </actions>
+     <cues>
+      <cue name="VisitFlyTo" ref="md.RML_FlyTo.FlyTo">
+       <param name="EndSignalCue" value="VisitDone"/>
+       <param name="MissionCue" value="MissionVisit"/>
+       <param name="Target" value="Missions.$client"/>
+       <param name="Distance" value="1km"/>
+      </cue>
+      <cue name="VisitDone">
+       <conditions><event_cue_signalled/></conditions>
+       <actions>
+        <set_value name="$result" exact="@VisitDone.$EndFeedbackValue"/>
+        <do_if value="$result == 1">
+         <remove_mission cue="MissionVisit" type="completed"/>
+         <reward_player money="5000Cr"/>
+        </do_if>
+        <do_else>
+         <remove_mission cue="MissionVisit" type="failed"/>
+        </do_else>
+        <debug_text text="'[X4LAN] NATIVE_GATE MISSION visit_end result=%s distance=%s money=%s'.[$result, (Missions.$client.distanceto.{player.ship} / 1m)i, (player.money / 1ct)i]"/>
+       </actions>
+      </cue>
+     </cues>
+    </cue>
+    <cue name="MissionHunt">
+     <conditions>
+      <event_ui_triggered screen="'X4LAN_NativeGate'" control="'MissionHunt'"/>
+      <check_value value="Missions.$ready"/>
+     </conditions>
+     <actions>
+      <set_value name="$orders" exact="0"/>
+      <do_all exact="2" counter="$h">
+       <set_value name="$hunter" exact="Missions.$hunterlist.{$h}"/>
+       <do_all exact="2" counter="$k">
+        <set_value name="$target" exact="Missions.$targetlist.{($h - 1) * 2 + $k}"/>
+        <do_if value="$hunter.isoperational and $target.isoperational">
+         <create_order object="$hunter" id="'Attack'" immediate="$k == 1">
+          <param name="primarytarget" value="$target"/>
+          <param name="pursuetargets" value="true"/>
+          <param name="allowothertargets" value="false"/>
+         </create_order>
+         <set_value name="$orders" operation="add"/>
+        </do_if>
+       </do_all>
+      </do_all>
+      <debug_text text="'[X4LAN] NATIVE_GATE MISSION hunt tick=%s orders=%s targets=%s'.[event.param3.$tick, $orders, Missions.$targets.count]"/>
+     </actions>
+    </cue>
+    <cue name="TargetDestroyed" instantiate="true">
+     <conditions><event_object_destroyed group="Missions.$targets"/></conditions>
+     <actions>
+      <set_value name="Missions.$kills" operation="add"/>
+      <debug_text text="'[X4LAN] NATIVE_GATE MISSION kill index=%s count=%s byplayer=%s method=%s'.[Missions.$targetlist.indexof.{event.object}, Missions.$kills, @event.param.isplayerowned, event.param2]"/>
+     </actions>
+    </cue>
+    <!-- Speech completion follows audio playback (wall clock); accepting offers plays
+         client voice lines. Log every finished speech line with its game time. -->
+    <cue name="MissionSpeech" instantiate="true">
+     <conditions><event_speak_finished/></conditions>
+     <actions>
+      <debug_text text="'[X4LAN] NATIVE_GATE MISSION speech ms=%s actor=%s page=%s line=%s interrupted=%s'.[(player.age / 1ms)i, @event.object.knownname, event.param, event.param2, event.param3]"/>
+     </actions>
+    </cue>
+    <cue name="MissionSample" instantiate="true">
+     <conditions>
+      <event_ui_triggered screen="'X4LAN_NativeGate'" control="'MissionSample'"/>
+      <check_value value="Missions.$ready"/>
+     </conditions>
+     <actions>
+      <set_value name="$hunt" exact="''"/>
+      <do_all exact="Missions.$hunterlist.count" counter="$h">
+       <set_value name="$hunter" exact="Missions.$hunterlist.{$h}"/>
+       <set_value name="$target" exact="Missions.$targetlist.{($h - 1) * 2 + 1}"/>
+       <set_value name="$hunt" exact="$hunt + ' h%s=%s:%s:%s'.[$h, if $hunter.isoperational then @$hunter.order.id else 'dead', if $hunter.isoperational and $target.isoperational then ($hunter.distanceto.{$target} / 1m)i else -1, if $target.isoperational then ($target.hullpercentage)i else -1]"/>
+      </do_all>
+      <debug_text text="'[X4LAN] NATIVE_GATE MISSION sample tick=%s money=%s generic=%s offer=%s mission=%s visit=%s targets=%s kills=%s accepted_stat=%s completed_stat=%s active=%s%s'.[event.param3.$tick, (player.money / 1ct)i, @md.GenericMissions.Manager.$MissionCues.count, FixtureMission.hasmissionoffer, FixtureMission.hasmission, MissionVisit.hasmission, Missions.$targets.count, Missions.$kills, stat.missions_accepted, stat.missions_completed, player.hasactivemission, $hunt]"/>
+     </actions>
+    </cue>
+    <cue name="MissionCleanup">
+     <conditions>
+      <event_ui_triggered screen="'X4LAN_NativeGate'" control="'MissionCleanup'"/>
+      <check_value value="Missions.$ready"/>
+     </conditions>
+     <actions>
+      <set_value name="$removed" exact="0"/>
+      <do_all exact="Missions.$targetlist.count" counter="$i">
+       <do_if value="Missions.$targetlist.{$i}.isoperational">
+        <destroy_object object="Missions.$targetlist.{$i}" explosion="false"/>
+        <set_value name="$removed" operation="add"/>
+       </do_if>
+      </do_all>
+      <debug_text text="'[X4LAN] NATIVE_GATE MISSION cleanup tick=%s removed=%s kills=%s money=%s offer=%s mission=%s'.[event.param3.$tick, $removed, Missions.$kills, (player.money / 1ct)i, FixtureMission.hasmissionoffer, FixtureMission.hasmission]"/>
+     </actions>
+    </cue>
+   </cues>
+  </cue>
+ </cues>
+</mdscript>

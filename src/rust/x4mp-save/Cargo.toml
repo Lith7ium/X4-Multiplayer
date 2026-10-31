@@ -1,0 +1,19 @@
+[package]
+name = "x4mp-save"
+description = "Offline X4 savegame analysis, per-client trimming by reference closure, and verification (hot join)"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "x4mp_save"
+
+[[bin]]
+name = "x4mp-save"
+path = "src/main.rs"
+
+# Offline tool only: it is never loaded into X4 and does not touch the hooks crates.
+[dependencies]
+quick-xml = "0.37"
+flate2 = "1"

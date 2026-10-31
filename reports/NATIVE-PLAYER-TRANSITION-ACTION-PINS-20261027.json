@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "scope": "static request-route evidence only; no new action implemented",
+  "image_sha256": "19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891",
+  "functions": [
+    {
+      "rva": "001aba30",
+      "length": 246,
+      "sha256": "ec38c42516226029599055391ce481f2aea48f21ad0d4e305a712b60d08b207c",
+      "role": "GetUp request export"
+    },
+    {
+      "rva": "00716d80",
+      "length": 160,
+      "sha256": "799f73503d1970523fe2e4f5e9d49765d5f064ee1075a5165a386c928d13d1db",
+      "role": "Can get up native guard"
+    },
+    {
+      "rva": "00152870",
+      "length": 19,
+      "sha256": "b89c9991cf33644216ce830713b3291b1e3923e58aa08fccffee4f3a6d87d657",
+      "role": "GetUpEvent dispatch"
+    },
+    {
+      "rva": "00706cc0",
+      "length": 57,
+      "sha256": "4348afd1cc87ae418a286394a41325b058e4cb045d8a1110274e125998802718",
+      "role": "Player GetUpEvent receiver"
+    },
+    {
+      "rva": "001b5450",
+      "length": 685,
+      "sha256": "b376a99d502c950f04c797ed9fb236843c0fe8ad16db3db16ddf02a00e7e69b9",
+      "role": "PerformCompSlotPlayerAction export"
+    },
+    {
+      "rva": "003508e0",
+      "length": 93,
+      "sha256": "3a48fd72ded5585551dcaa1396bc9c0400b3e5083bb99ce7b370a70b75c104fc",
+      "role": "SingleActionContainer execute"
+    },
+    {
+      "rva": "000ced70",
+      "length": 184,
+      "sha256": "3209f7be0616de6d0ecc20ce3cfd82fd16d0524c09635d86995210598b0a5f36",
+      "role": "Component registry identity lookup"
+    },
+    {
+      "rva": "006a1a60",
+      "length": 8,
+      "sha256": "785f88f0575511d53e4c60b6a077b7167c083c7dbe962ef4b2970aa0ad1e50b1",
+      "role": "ControlPosition action type object"
+    }
+  ],
+  "slots": [
+    {
+      "rva": "02b33a70",
+      "target": "00706cc0"
+    },
+    {
+      "rva": "02abd728",
+      "target": "003508e0"
+    },
+    {
+      "rva": "02b45558",
+      "target": "0035b8a0"
+    }
+  ],
+  "get_up_event_delay": 0.01
+}

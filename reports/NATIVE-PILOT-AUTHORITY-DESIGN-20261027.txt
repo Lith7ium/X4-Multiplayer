@@ -1,0 +1,535 @@
+NATIVE PER-SHIP PILOT AUTHORITY: REQUEST BOUNDARY AND REMAINING PROOF
+27 October 2026 | read-only observer implemented and tested; no control intervention
+
+CURRENT NATIVE CHECKPOINT
+
+Reviewed request-observer-002 completed120 ticks and was fully retired. It retains
+two strict raw failures. Both candidate saved ships have empty captured queues
+and idle model state at ticks25..39, but nonzero native angular2 requests on both
+copies. Therefore the proposed idle/empty preconditions below are insufficient
+for exclusive control and do not authorize a lease. Exact differences, limits
+and ranked admission measures are in NATIVE-PLAYER-REQUEST-OBSERVATION-20261027.txt.
+Natural neutrality is only a passive admission option. The follow-up
+NATIVE-PLAYER-TAKEOVER-TRANSACTION-20261027.txt identifies an active native transfer:
+it synchronizes an Agent ownership flag, replaces the component controller, and
+later removes the AI flight model through deferred dispatch. It preserves queued
+orders and still relies on singleton player input state. Neither that static
+finding nor repeated lifetime reads authorizes two independent pilot writes.
+
+FINDING
+
+A narrow native target-velocity input route exists below PlayerController:
+SteeringFlightControlModel makes six calls to e5d380 immediately before its
+1197fe0 solver invocation. The same setter is used by actual player control
+handlers. Substituting the value argument at those existing calls could give
+two saved ships independent linear/angular requests, retaining each ship's own
+native solver, limits, integration and publication. No extra solver/setter call,
+second PlayerController, global-pointer swap or transform correction is needed.
+
+This is a candidate control intervention, not an implemented pilot adapter. The
+read-only observer implementation is described at the end of this report. Six request
+substitutions alone would not establish exclusive authority: native pending/main
+orders can replace the model or choose another motion branch, and order-completion
+logic runs after the solver. The initial passive proposal targeted two already-idle
+saved ships with empty native queues and the ordinary velocity solver branch;
+request002 showed that those checks still permit nonzero AI microcorrections.
+That proposal remains unapproved and is not a universal takeover requirement.
+Native active takeover removes this Steering route, so it cannot simply be
+combined with the six-call substitution. The passive candidate refuses active
+orders or a model/queue change. It does not
+suppress arbitrary AI by replacing transforms or silently dropping native orders.
+
+Existing solver-observer-002 still fails strict raw comparison as documented in
+NATIVE-INDEPENDENT-PLAYER-CONTEXT-20261027.txt. This analysis neither changes that
+failure nor authorizes a native test. It reuses its existing read-only capture.
+
+WHAT THE EXISTING CAPTURE NOW PROVES
+
+The two log formats differ: FLIGHT prints each uint32 as eight hex digits;
+PLAYER_SOLVER_EVENT prints raw bytes. analyze_native_pilot_authority.py explicitly
+converts FLIGHT words to little-endian bytes before comparing. Both copies have:
+
+  1,284 fixture solves with one observed steering invocation per actor/tick.
+  1,284 input poses equal to the pose at steering-update entry.
+  1,284 input velocities equal to velocity at steering-update entry.
+  1,284 output pose/velocity blocks equal to steering-update exit publication.
+  Angular/linear mode fields +48/+50 equal1 throughout; +22/+23/+24/+31 equal0.
+  Twelve initial +1c=1 solves and 1,272 subsequent +1c=0 solves.
+
+The capture therefore contains no additional pre-solver AI pose/velocity result
+or post-solver steering pose/velocity replacement for these observed calls.
+It does not establish that every possible native branch has that property.
+The player's singleton is excluded from these fixture-only counts.
+
+There are observed idle periods, not an assumed idle fixture: model+68 is0 with
+behavior table2c4edc0 on six ships for respectively16,22,9,15,13,26 recorded calls.
+Other observed behavior tables are2c4dc30,2c4db70,2c4e840,2c4dab0. All five tables
+use ecce50/eccf10 for the completion predicates at slots+30/+38. Those inspected
+predicates read motion/target data and return a condition; they do not write the
+published motion. A true condition can subsequently call e88160, which consumes
+and advances native commands and can request another flight model. Do not infer
+empty queues from model+68 alone: the earlier run did not capture those queues.
+
+These counts and model summaries match between copies. The new diagnostic keeps
+pilot_ownership_proved=false and ai_order_suppression_proved=false. Tests cover
+the byte-order distinction, altered publication, missing/duplicate execution and
+empty evidence. It does not feed an acceptance result into the strict validator.
+
+EXACT REQUEST ROUTE AND ABI
+
+e5d380,214 bytes:
+  void request(controllerSubobject, double value, int axis, double epsilon)
+  Windows x64 RCX=subobject, XMM1=value, R8D=axis, XMM3=epsilon.
+  Axis must be0..2; the native body does not safely validate arbitrary indices.
+  It multiplies value by subobject+3858+axis*8, then uses epsilon against current
+  target+36d8 and previous unrounded request+36f0. When needed it rounds through
+  1a051ac, stores target/history and updates dirty state+3840 using+3848.
+  It contains no player singleton lookup. Scalar constants and rounding helper
+  are dependencies; the larger controller evaluator remains native.
+
+Within the pinned ec7200 steering function:
+  ec91c7 / ec91e9 / ec920b call e5d380 on solver+12cd0, axes0/1/2 (angular).
+  ec922b / ec924d / ec926f call e5d380 on solver+6a00, axes0/1/2 (linear).
+  All use native epsilon0.0001 from2cbe470. Linear calls are skipped if solver+31
+  is nonzero. Return addresses are each callsite+5; caller identity is necessary
+  because e5d380 also has player and nested solver-internal callers.
+  ec92c0 calls1197fe0 once. Original stores ec92cc..ec9325 publish acceleration,
+  velocity and pose into the existing native slot. The adapter must retain them.
+
+The prior control registry audit establishes linear target-velocity IDs75..77
+and angular IDs83..85; these are actual pilot control channels, not navigation
+destinations. A replay through this lower boundary would exercise admitted
+per-ship target velocities. It would not prove physical keyboard/mouse capture,
+the cockpit throttle UI, flight-assist mode switching or the entire player path.
+
+Candidate hook for review: one default-off entry wrapper at e5d380, filtering the
+six exact native return sites and a balanced, owned steering TLS bracket. Its
+first instruction is the complete five-byte store of RBX into caller shadow
+space; a trampoline copies exactly5 bytes and continues at+5. An aligned8 CAS
+preserves the adjacent3 bytes. Following review, this read-only entry is reserved
+and implemented as described below. The actual image prefix is verified in the
+executable ABI harness as for the corrected solver.
+An observation-only wrapper would preserve all four arguments and original once.
+An eventual admitted wrapper would replace only XMM1's value, once per existing
+native call; unknown owners and all other callsites remain untouched.
+
+AI AUTHORITY AND FINAL PUBLICATION ARE SEPARATE GATES
+
+The world-motion agent's read-only Agent/queue audit is reused without another
+decompile. Agent e8f250/10613 consumes pending records at6c0/6c8/6d0 through
+e8dfc0/4180, then main records at6a8/6b0/6b8 through e8d850/1892. Each native
+record is0x90 bytes; reference/resource/transform fields can select the next
+model and requests. Root world-motion-003 already demonstrates a real differing
+pending command becoming a differing main command before model/bank divergence.
+A shared pilot input packet cannot compensate for that native queue authority.
+
+Agent selects model+70 at e90189..e901d5. The solver publication captured above
+is inside that model call. Agent then performs further native work, including
+acceleration-bank clamping/interpolation at e90281..e904f2 using configuration
++5094, ship limits and the two pathing banks. Thus steering publication must be
+linked to Agent completion and the finally visible native ship state, not called
+the final whole-ship result. These post-model native operations should remain
+enabled; no extra application or copied peer state is proposed.
+
+Proposed bounded lease preconditions, to be proved read-only first:
+  - Two distinct saved component IDs, runtime generations, Agent backreferences,
+    model instances and solver allocations. Neither is the singleton player.
+  - Both main and pending command queues empty at the joined admission boundary
+    and again before request application. No native queue consumption/model
+    replacement during the leased interval; no tactical/management order command
+    accepted for either leased ship. This is exclusive input authority by refusal,
+    not a general mechanism for suspending an arbitrary AI task.
+  - Ordinary initialized velocity branch: model+a8=1, +ac/+b0=1, +68=0;
+    solver+1c=0, +1d enabled, +22/+23/+24/+31=0, modes+48/+50=1. Position/orientation
+    request controllers must be inactive (+55b0/+118a8=0), velocity controllers
+    active (+a0d0/+163a0=1). Check at the actual request boundary, not solely at
+    prior UI/steering entry. Reject all unsupported branches rather than changing
+    those flags to make the test fit.
+  - Six finite unit gains at linear+a258 and angular+16528; epsilon unchanged.
+    All relevant native prepared parameters, solver modes and shared configuration
+    have captured provenance. Current source96 does not cover all e95fb0 reads:
+    it reads Agent340..47b, model type, pathing-bank flags and3d19b24. The existing
+    full FLIGHT params block contains that parameter range, but a fresh boundary
+    capture is needed to distinguish earlier from prepared values.
+
+Checking a condition after request mutation cannot undo the current tick. Such a
+failure poisons the tick, emits partial application receipts, admits no following
+tick and gives no publication ACK. It must never claim safe rollback, retry the
+command, or silently hand control back to AI while reporting player ownership.
+Unknown unleased actors still execute normally, with the original called once.
+Failure before a lease is acquired produces a refusal without control mutation.
+
+SMALLEST TWO-SHIP REQUEST TEST, AFTER OBSERVER/INTERVENTION REVIEW
+
+Use two of the saved ships only when both copies agree that all lease predicates
+hold, after at least two consecutive observed native updates. Assign distinct
+logical authorities P1/P2 in the common command ledger. Initial candidates are
+two friendly saved fixtures, not the same singleton or a teleported proxy.
+If two ships never become eligible, the setup is refused and its missing native
+queue/initialization condition is diagnosed; there is no forced clear/reset.
+
+The first candidate sequence is neutral requests, then opposite bounded local
+linear-axis2 target velocities for P1/P2, then opposite bounded angular-axis1
+requests, then neutral release. Specify exact finite binary-representable values
+in the agreed schema, with all other axes explicitly zero. Do not label axis1
+as native cockpit yaw or claim physical units from naming alone without the
+remaining angular frame/unit check. Test one owner alone before simultaneous
+opposites; the other ship's requests must remain neutral and its native response
+must be consistent with that neutral request and its own prior motion/limits.
+
+The lease and every six-axis command need shared tick, session epoch, saved ship
+generation, owner, authority revision and monotonic sequence. Prevalidate both
+players and all command families before any native effect. Publish an immutable
+input batch; workers read only their ship's admitted record. Duplicate/stale/
+wrong-owner/same-ship claims are explicit denials. Neutral is an explicit admitted
+command. A missing slot holds the shared tick; a local timeout cannot invent a
+neutral command or a hold-last command. Timeout/disconnect terminates the test.
+Six request calls must occur exactly once in canonical axis order, followed by
+one native solve, one model publication and a matching Agent-completion receipt.
+Acceptance/reservation, request application and final publication are different
+receipts. The faction agent's pending order operations need the same ledger and
+must conflict with a pilot lease. No opcode is allocated by this proposal.
+Logical pilot authority is an external admitted capability; it does not itself
+change native faction, crew, cockpit occupancy or ownership. Record and require
+the expected native saved-owner/faction binding as well as the logical lease.
+
+The first test excludes aim/fire, boost/travel, docking, highways, collisions with
+other fixtures, ownership transfer and separate-faction semantics. Those require
+their own authority proof. Shared player-faction membership is compatible with a
+bounded co-op flight experiment, but cannot establish two native player factions
+or PvP. All original strict hashes and the raw solver failure remain visible.
+
+NEXT READ-ONLY DISCRIMINATOR; NO UNCHANGED NATIVE REPEAT
+
+Before control writes, observe the six actual request invocations and their
+native target/history/dirty effects, the missing mode/gain/parameter fields,
+queue emptiness and model/solver lifetime from Agent entry through completion.
+Reuse the existing owned Agent and steering scopes plus world queue schema2;
+do not install a competing Agent hook. Proposed request entry needs independent
+ABI/prefix/original-once/nested-scope tests and parent review before any launch.
+The first such run would answer new authority/initialization questions, unlike
+another unchanged120-tick solver trace. No native pair is active or queued here.
+
+Exact full-function and callsite audit pins are in
+NATIVE-PILOT-AUTHORITY-PINS-20261027.json. They describe inspected code, not an
+approved write manifest or a complete transitive dependency proof. No runtime
+options, game hooks, solver state, native orders or player context were changed
+for that static checkpoint. The later observer implementation follows below.
+All112 focused Python/Lua/UDP tests pass after adding the two diagnostic tests;
+the actual002 summaries match across copies. No native C behavior changed.
+
+READ-ONLY REQUEST/QUEUE OBSERVER IMPLEMENTED FOR PRE-NATIVE REVIEW
+
+Parent review authorized observer code, not control writes or another native run.
+--player-request-observer is default off, requires --player-solver-observer and
+an Agent observer, and uses bit52. The e5d380 entry and thunk2496..2559 are recorded
+in the shared hook registry. Trampoline2496 and dispatch2528 do not overlap the
+contact observer's bit51/thunk2432..2495 or the world queue range2560..2687.
+The local supported mask admits0..46,50,52 and explicitly rejects unimplemented
+gaps47..49/51; integration must union the parent's implemented bits instead of
+copying this narrower local mask. Bit53 is refused. Actual lua_boot tests cover
+the full supported integer's exact double round trip, unsupported gaps, NaN,
+fractional options, oversized options and missing request/solver prerequisites.
+
+Installation occurs at tick1 after the existing solver/player observer and
+serial-pathing admission. The complete functions, six native callsites and
+immutable epsilon are checked before the one entry patch. The hook changes only
+its five-byte jump, preserving adjacent bytes, and restores only its own patch.
+Its wrapper forwards RCX/XMM1/R8D/XMM3 unchanged exactly once on every path,
+including unknown callers, unsupported ownership, read failure and exhaustion.
+There is no added setter call, input substitution, native getter or queue write.
+
+Existing registered agent_execute now has additive request_agent_begin/end
+callbacks around its original call. These use their own balanced thread-local
+stack, alongside the existing steering solver_scope. Excluded/refused nested
+Agents shadow the parent so a request cannot inherit another ship's identity.
+The observed request must match the saved component, unique Agent/solver binding,
+active steering model, same tick/thread and exact native caller/subcontroller/
+axis relationship. Unknown native setter callers remain excluded; calls outside
+the six sites inside a claimed Agent additionally record count and first module
+caller, so nested native writes cannot be mistaken for complete input coverage.
+
+Each request captures the unchanged value/epsilon bits, all six gains, target
+and prior unrounded request before/after, dirty flags, controller/steering modes,
+Agent340..47f parameter bytes and configuration5054/5058/5094 plus mode flags.
+The Agent entry/exit records both complete native pathing banks, parameters,
+model/solver presence, native model RVA, and whether their private pointers
+changed. Those model/solver pointers never enter exported identity or equality.
+The complete raw banks DO retain runtime references (including bank offsets b0
+and b8) and padding. Their strict byte comparison is a private raw diagnostic;
+it is not portable decoded-input equality. A bank mismatch alone must not be
+reported as an interpreted causal input difference. No raw bytes are excluded.
+Constructor events before admission and same-address lifetime reuse are not
+proved: generation_coverage remains0. Native faction ownership is not observed
+by this hook and native_faction_coverage remains0. No pilot lease is exposed.
+
+Main and pending queues use the world-motion audit's0x90 stride and bounded
+double-copy/header-recheck rules. Up to16 records per queue are captured; malformed
+bounds, unreadable data, races and overflow fail the diagnostic. Known address
+slots become native vtable RVA, imported saved reference and resource-presence
+flag. Nonempty resource contents and unmapped references remain explicitly
+unobserved, with per-snapshot counters; their presence is not proof of complete
+queue semantics or safe pilot authority. Other recorded bytes remain strict.
+Empty queue evidence is exact; nonempty incomplete queues cannot establish a
+lease. Agent-boundary snapshots do not bound when the manager decided a deferred
+command: commands queued earlier can reach the Agent later. The world queue
+producer observer supplies a separate missing boundary; this observer does not
+suppress or establish authority over that deferred publication.
+This interpretation is separate from the retained raw solver failure and
+does not replace, normalize or suppress any existing world/state hash.
+
+Capacity is16,384 request events and2,048 Agent scopes. Immutable records are
+published only when complete. Schema2 closes admission under the same SRW lock
+that admits and counts all setter calls and Agent scopes, including unknown
+callers before selection or record reservation. Restoration retains peak/open/
+restore_open evidence, never waits while an original native call is running, and
+leaves trampoline storage resident. Any overlap is a sticky failure even when
+the call later completes and open returns to zero; late capture is refused but
+the native original still runs once. Concurrent restoration is serialized.
+
+Lua drains every request and both phases of each Agent scope. Full scope exports
+remain bounded by16KB, but each logger call contains only768 payload characters
+plus metadata (under1KB total). Ordered chunks declare index/phase/part/count/
+total length. The parser requires complete contiguous reconstruction and refuses
+loss, duplicate, reordering, length changes and old unchunked scope records.
+No unproved12KB DebugError capacity or silent truncation is relied on. Observer
+failures stop the test; acceptance requires balanced scopes, no restore overlap
+and owned restoration. The independent parser validates saved ownership, ordinals, native
+caller/axis/epsilon, trace completeness, bounded queues and resource counters.
+It links the observed requests to existing solver results and the Agent's write
+bank; every linked publication must match, with at least two distinct saved
+fixtures covered. Captured
+request/result/queue bytes are compared across copies without local allocation
+indices. Incomplete queue-content counts remain explicit. This is an end-of-run
+diagnostic, not a new online authority gate or proof of independent players.
+
+The C build and executable harness pass with the actual pinned image. The harness
+checks the full214-byte function digest, actual first two complete instructions,
+five-byte relocation and continuation, and executes the generated entry/dispatch/
+trampoline with mixed integer/double arguments, untouched epsilon, correct stack
+alignment, preserved wide return and one original call. Active and disabled paths
+are exercised. Additional checks cover nested/unknown scopes, thread isolation,
+saved-owner aliases, invalid axis, failed reads, request/scope capacity, queue
+bounds and pointer normalization, actual lua_boot option masks, wrong-image
+refusal and foreign/owned restoration. The independent Python/Lua/UDP suite
+passes121 tests, including nine new request/queue/Lua lifecycle tests. Concurrent
+C tests pause an unknown original and a pre-reservation admitted entrant, restore
+with open=1, reject late admission, then prove original-once and sticky failure
+after completion. Worst-case two16-record queue exports fit the C buffer, and a
+12,500-character Lua scope produces complete sub1KB logger calls.
+
+Independent review found that the initial nested-scope test directly constructed
+an excluded marker while the production unregistered Agent fallback had none.
+The actual Agent fallback now brackets its original with excluded actor0, and
+the unregistered flight fallback creates a nonpublishing solver-kind0 marker.
+Both shadow an outer saved scope and restore it after the native original runs
+once; no known-owner publication can be inherited by an unknown nested model.
+An executable test now enters the actual agent_update and flight_update fallback
+paths, substituting originals only in the allocated test image. The independent
+parser also enforces total capacities2048 scopes/16384 events, including footers.
+The original87f98c4 overlay remains frozen and must not be used as the corrected
+production-scope artifact; a reviewed successor is required before a native run.
+
+The implementation section above records its pre-native review. The subsequently
+reviewed request-observer-002 is documented in the current native checkpoint and
+separate observation report. Earlier solver002 and its strict failure remain
+unchanged. A nonzero command or ownership lease remains a separate later decision
+after the missing evidence is obtained; none is authorized by this report.
+
+CONCRETE TWO-SHIP PREFLIGHT PLAN; NOT IMPLEMENTED OR AUTHORIZED FOR WRITES
+
+The pristine snapshot SHA256 is
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+Saved fixture1 is0000000000176a13 and fixture2 is0000000000176a74. Both are
+ship_s / ship_arg_s_fighter_01_a_macro, native owner argon, navigation movement.
+The existing native singleton controls00000000000ae79c and is excluded. The
+candidate logical capability table is P1->176a13 and P2->176a74, exactly these
+disposable fixture assets. This does not make them native player-owned property,
+change their faction, crew or cockpit occupancy, or establish separate factions.
+Any future control of these Argon fixtures requires that explicit bounded test
+capability; production player-property ownership needs its own admission policy.
+
+The existing002 trace has model+68=0 simultaneously for these two ships at ticks
+24..39. This is only a useful observation window: it proves neither empty native
+queues nor a valid lease, and a new run must not assume the same transition tick.
+Require at least two consecutive native updates with every eligibility condition
+observed on both copies before proposing any lease. If the window is absent or
+too short, report that condition; do not clear orders or force a model change.
+
+Reuse the reviewed registry's read-only identity decoding, adapted for imported
+saved ships rather than its dynamic-created-ship admission. Exact Small primary
+vtable is2b7feb8. Macro object+60 must have vtable2ba5430, slot+90->efb10, and
+the exact bounded macro name at+20. True-owner slot+1620->352b10 returns object
++348; require its bounded faction name at+10 to be argon. Do not use apparent
+owner slot+1610->352af0, which can read+350 and fallback+348. Runtime object+8
+must match the full uint64 imported lookup and the saved ID, with unique object,
+controller+28 owner, controller+40 Agent, Agent+ef0 component, Agent+f10 model,
+model+10 Agent and Agent+f80 solver relationships. Check both ships and the
+singleton for aliasing. Do not pass identity through Lua double conversion.
+
+Read-only audit pins independently match the exact image:
+  ced70 /184 SHA2563209f7be0616de6d0ecc20ce3cfd82fd16d0524c09635d86995210598b0a5f36
+  352b10 /8 SHA2567900022f876803a52ef0ebfca5f0f9ae79603c127b6ad4a32bc834758e27be53
+  efb10 /5 SHA256a8adead0a89e8bcc0f6079669194e35b31c483df478a1515e46c55a9cf74fb51
+These helpers use sequential guarded reads. They are NOT an atomic owner/lifetime
+transaction, and no separate native allocation-generation field is verified.
+Re-reading pointers and runtime IDs detects observed replacement but cannot
+prove absence of same-address reuse between reads. Before writes, either prove
+the existing joined interval excludes all relevant destruction/owner changes,
+or add reviewed lifecycle/owner guards covering every relevant transition.
+An invented generation counter based only on equal pointers is insufficient.
+
+Admission is a read-only two-asset transaction at an agreed joined tick. Both
+copies must agree on saved IDs, capabilities, native owner/macro, mode/gain/config
+preconditions, initialized targets, native lifetime evidence and lease revision.
+Main and pending Agent queues must be empty at admission, again at each Agent
+entry, and again immediately before every one of the six request applications.
+The manager's deferred queue must also contain no command targeting either ship,
+with no unresolved producer/lifetime reservation. An earlier decision may be
+enqueued/applied later. The current request observer does not cover that manager
+boundary, all command types, or concurrent owner changes; these are blockers.
+Unknown queue records or incomplete resource payloads cannot count as empty.
+Any cross-family pending order/build/management operation touching the two ships
+or their control/ownership relationships must prevent lease admission.
+
+Input envelopes need a negotiated full schema, not a silent reinterpretation of
+the existing four-byte tactical command. Required fields are session epoch,
+shared application tick, authenticated origin slot, ship saved ID and lifetime
+ticket, lease revision, monotonic per-slot sequence, six explicitly quantized
+finite values and the input-mode/schema identifier. Target ownership comes from
+the admitted capability table; clients cannot select another ship by changing
+the target ID. No aim/fire target is accepted in the first flight-only schema.
+First decode and structurally validate both slots and all command families, then
+check permissions, sequences, expected revisions and native preconditions for
+both assets before publishing any worker-visible immutable batch. A failure in
+either slot denies the complete batch with no request substitutions. Duplicate
+receipts may be returned from the ledger without replaying native effects.
+
+A stale epoch/tick/revision or repeated sequence is denied. A future tick or
+sequence gap is not buffered into an unspecified later application. Missing
+input holds the shared tick; explicit neutral is still a complete two-slot batch.
+No timeout-dependent local substitute, silent retry or hold-last is permitted.
+After structural acceptance, workers may consume only their ship's immutable
+record. Canonical logical order is slot1 then slot2 and angular0/1/2 then linear
+0/1/2. Record the actual native invocation order as well: sorting receipts must
+not conceal differing cross-ship execution order or assume effects commute.
+
+At each existing setter, require the exact saved owner, lifetime, Agent/model/
+solver bracket, six-call ordinal, caller and native epsilon. Recheck both-asset
+lease validity and empty queues before the first substitution and local validity
+before every subsequent one. Preserve native original once, all arguments except
+the reviewed value, native gain/rounding, solve and publication. No added setter
+or solver call, AI order, timer write, transform reconciliation or global-player
+pointer change is part of this proposal. Changed ownership/queue/model before
+the first effect denies application. A change after any effect poisons the tick:
+retain exact partial receipts, do not ACK publication, admit no following tick,
+and terminate both copies. Do not claim rollback or resume after partial effects.
+
+The smallest future application experiment is one-axis linear requests after
+two eligible neutral updates: P1 only, P2 only, simultaneous opposite requests,
+then explicit neutral release. Candidate signed values+1/-1 are exactly binary
+representable; the physical frame/unit and gain evidence must be confirmed before
+selecting them. Angular-axis1 requests of+1/256 and-1/256 are a separate follow-on
+after angular frame/unit proof. Every stage requires native request/history,
+solver output, model publication, whole-Agent completion and unchanged authority
+receipts on both copies. A release is itself an acknowledged neutral application;
+silently reverting to AI on the first unhandled frame is not a successful release.
+
+This first application experiment would use independently admitted scripted slot
+inputs. It would prove only the lower per-ship control path. Complete native
+keyboard/mouse capture remains separate: the existing physical channels6c..71,
+PlayerController mode/target state and input-origin binding must be captured and
+routed once without also driving the original singleton. No such interception
+is implemented here. Independent aim/fire, boost/travel, docking and player
+faction management still need their own ownership/context measures.
+
+Prepared observer overlay uses87f98c4, adds only request-observer enablement to
+the prior solver002 configuration, and retains its battle fixture and snapshot.
+Its manifest is frozen; no native run is queued or authorized by this report.
+
+OWNERSHIP/LIFETIME AND DEFERRED-COMMAND STATIC FOLLOW-UP
+
+The exact image resolves part of the lifetime question. Native registry lookup
+ced70 derives slot=(ID &01ffffff)-1, selects a block and one of three pointers per
+32-byte bucket, requires the occupied flag, and compares the stored16-bit
+generation with(ID>>25)&ffff. InsertAtSlot cc500 returns(gen16<<25)|slotID.
+Remove cbe70 holds the registry's critical section at map+10, clears the occupied
+flags, increments that generation modulo65536, replaces the pointer with a free
+list link and appends the slot to the FIFO. ID-base deletion cb5c0 clears object+8
+before removal. AssignNewID cc220 writes the full returned ID to object+8.
+Thus full native runtime ID already carries a bounded generation discriminator;
+there is no need to invent one from a pointer. The earlier absence of a verified
+separate allocation-generation field does not mean native IDs lack generations.
+
+That discriminator is not an ownership/lifetime transaction. Find's complete
+184-byte body takes no registry lock and retains no reference; its pointer read
+precedes flag/generation checks. Removal or ownership change after those checks
+is not excluded. The16-bit generation wraps and does not cover independent Agent,
+Steering-model or solver allocations that have no component ID. Current request
+identity reads the stored component ID/backreferences and imported identity map;
+it does not prove current registry membership or pin every allocation lifetime.
+Its generation_coverage=0 remains correct. Repeated matching reads improve a
+diagnostic but do not authorize an atomic pilot lease.
+
+A native reference-retention pattern is visible in e8afd0 after ced70: it checks
+component+44 state, atomically increments+40, and declines/undoes an invalid count;
+release can trigger the reference destructor through component+38. This supplies
+a concrete next audit path, not permission to reproduce reference-count writes.
+No reviewed retained-handle API/ABI or complete destruction interval is established
+for our adapter. Do not hold the registry critical section across native solver
+calls, copy the inline reference pattern speculatively, or assume retained object
+memory also freezes faction ownership and its controller/model/solver children.
+
+SetOwner6d38c0 is612 bytes, with seven contiguous chained unwind fragments. The
+first35-byte unwind fragment alone is NOT the complete function. The full body
+writes true owner+348 at6d3964 and clears apparent owner+350 at6d396b, before
+ChangedOwner/ChangedTrueOwner event enqueue calls at6d3a37/6d3ae5. Event delivery
+is therefore too late to authorize the earlier write boundary. This body does
+not take the registry/manager locks. It invokes child/hierarchy and virtual
+callbacks; their complete synchronization and alternative owner writers remain
+unproved. A hook only on a later notification would miss the immediate transition.
+
+Manager enqueue eacd40 serializes list insertion with EnterCriticalSection on
+manager+90. Nodes are0x20 bytes with recipient runtime ID at+10 and command at+18;
+the list head/count are manager+b8/+c0. Consumer eace40 holds its consumer lock
+at manager+48, briefly takes+90, and swaps the shared list into a private local
+list at eacee5..eacefb. It releases+90 at eacf07 BEFORE recipient resolution and
+dispatch. At eacf20..eacf63 it resolves recipient ID through the manager+130 tree
+(node key+20, Agent+28) and invokes command-vtable+8. It deletes the command at
+eacf77, then later releases+48. A new producer can enqueue while that detached
+list is processing. Reading manager+b8 empty cannot prove no pending/in-flight
+command, and the command's old pointer cannot be read after ownership transfer.
+An actual detach/dispatch/completion lifetime or proven consumer-quiescent phase
+is necessary; no such lock is acquired by the current request observer.
+
+AddTargetPoint's e98000 dispatcher conditionally checks its related runtime ID
+against the recipient's formation-chain owner before tail-calling e89e40. It is
+only one command class. The already observed Abort dispatcher e98040 instead
+calls e89f10, which can alter main-record deadlines, clear pending records, set
+Agent+f33, invoke the model's+28 callback, clear model+6e, and enqueue further
+Abort commands for related Agents. The three Set dispatchers e980b0/e980c0/
+e980d0 write Agent+f76/+f77/+f78 directly. They do not pass through e89e40.
+These fields influence future processing even when both Agent queues are empty.
+
+The world-motion bounded writer audit also identifies pending append in import
+e86bb0 and in e8afd0 (called from e9abb0). Direct inspection confirms e8afd0
+copies/transforms source main records into a destination Agent's pending vector
+at e8b234..e8b27d using eaa6f0/f23060, bypassing e89e40. A complete lease must
+exclude or observe those formation/import/propagation paths, not merely the
+manager's AddTargetPoint command. This list is a bounded inspected set, not proof
+that every polymorphic producer and all external writers have been enumerated.
+
+Observer limitation: its captured parameter range and queue contents omit typed
+Agent command-control flags+f33 and+f70..f7b. The raw banks are a different region
+and do not fill that gap. Identical request/queue traces cannot establish identical
+deferred command authority. The world-motion agent owns the reviewed typed
+command/virtual-dispatch observer and its before/after evidence; no duplicate
+dispatch hook is added here. Early producers, detached commands, native faction
+changes and full child-allocation lifetime remain explicit lease blockers.
+
+Seventeen additional exact-image function ranges and SHA256s are recorded under
+ownership_and_deferred_audit in NATIVE-PILOT-AUTHORITY-PINS-20261027.json. Chained
+unwind fragments were assembled for the complete owner/insert routines; native
+bytes and decompilation stay private. These are static read-only evidence pins,
+not a write manifest or transitive completeness claim. No new native invocation,
+hook, object retention, owner change or control action was performed.

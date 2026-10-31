@@ -1,0 +1,470 @@
+LOCKSTEP LOCAL PREDICTION AND HIT CLAIMS
+29 October 2026 | static analysis + offline implementation; no X4 launched, no live result yet
+
+SUMMARY
+
+Goal (user): the local player's own ship responds instantly on their screen,
+like a client-side-predicted shooter, while the deterministic lockstep
+simulation applies their pilot record d ticks later on every client (pilot by
+wire, reports/NATIVE-LOCKSTEP-PILOTING-20261029.txt). Agreed model (user,
+via the coordinator): the owning client runs "a little ahead"; it decides hits
+that involve its own predicted ship, incoming and outgoing, and those
+decisions enter the shared simulation deterministically as inputs; the AI and
+every other simulation system keep reacting to the authoritative, delayed
+lockstep state.
+
+Delivered on contrib/ferrite-lockstep-prediction, rebased onto the coordinator
+head ec0c35e5 (default off, nothing changes without the new options):
+- lockstep_pilot_predict.h: the prediction model (pure, unit tested), an
+  OBSERVE mode that predicts the local slot ship d ticks ahead every tick and
+  measures the error against the simulated pose when it arrives (plus two
+  baselines), read-only checks of the render precondition, and a PRESENT mode
+  that draws the local slot ship and everything relative to its cockpit at the
+  predicted pose, scoped to VBI slot 10 inside the existing render RNG split
+  wrapper, strict restore, stop reason 101. No thunk (recipe count stays 55),
+  no new code patch, one call pair added to the render RNG split wrapper.
+- lockstep_hit_claims.h: hit-claim prototype (codec, input blob multiplexing
+  for pilot/hits/orders, staging, deterministic integer validation, conflict
+  policies, receipt). Pure; compiled into the test build only; no engine hook.
+- Probe wiring (native_gate_pilot_predict*), sandbox builder options
+  (--predict1/--predict2/--predict-raw), check_gate_options rule, tests.
+Not implemented: the camera-table rewrite (stage 2 of present), presentation
+of the player's own projectiles, and every native hook of the hit claims.
+They are designed below with the sites the static passes found.
+
+1. WHAT "ZERO LATENCY" MEANS UNDER LOCKSTEP
+
+Let S(t) be the simulated pose of the local slot ship at tick t. The record
+captured at tick t applies at t+d on every client, so the simulated ship is
+the latency-free native trajectory shifted by d: if N(t) is the pose a native
+(unshared) game would show at t, then S(t) = N(t-d), i.e. N(T) = S(T+d).
+Showing the predicted S(T+d) in frame T is therefore exactly the native,
+latency-free ship motion, only that the rest of the world (simulated at T) is
+d ticks behind it. That is the "client instance a little ahead": the player
+sees their own ship and camera at T+d against a world at T. With d = 3
+(50 ms) the lead is v*50 ms: 15 m at 300 m/s, 0 when stationary. The part
+that depends on the pending inputs is small (about 0.2 m and 0.4 degrees over
+50 ms for a fighter at full acceleration); most of the presented offset is
+the velocity lead, which the model gets right by construction.
+
+2. PREDICTION MODEL (implemented, lockstep_pilot_predict.h)
+
+State per tick T (UI thread = MoveWorker, slot 6, after this tick's capture):
+- S(T): the ship's pathing read bank (controller+0x30 slots, index 0x38f4ee4,
+  0x1a0 stride; +0x00 position, +0x10/+0x20/+0x30 local x/y/z axes in parent
+  (zone) coordinates, as the portable state encodes it), guarded reads only.
+- v(T): body rates from the finite difference S(T-1) -> S(T) in S(T-1)'s
+  local frame: linear m/s along local x/y/z, angular rad/s about local x/y/z
+  (log map of R(T) R(T-1)^T). The bank's own velocity fields (+0x40..+0x5f)
+  are logged raw but not used: their frame is not established.
+- The h records that apply at T+1..T+h: wire source = this client's pending
+  ring through gate.pilot_pending's text (h = wire delay; a missing record
+  holds the previous one, counted); script source = pilot_script (h set by
+  native_gate_pilot_predict_horizon, every slot predicted: a no-human test).
+- Targets: each record maps onto the ship's own Agent limits exactly as the
+  substitution does (pilot_target: linear x/y/z, angular pitch/yaw/roll).
+Model, per axis i (6 axes), one step per tick:
+    dv = clamp(gain_i * (sign_i * target_i - v_i), -down_i, +up_i)
+then p += (v_lin . R) dt, R = Exp(v_ang dt) R. P(T) = S(T) advanced h steps
+estimates S(T+h). Each tick restarts from the latest simulated state, so a
+model error never accumulates beyond h steps.
+Online fit (driven ticks only: the frame table says driving and both applied
+counters grew by exactly 3 this tick): the sign from the correlation of
+target and velocity change (an axis whose sign flips is refitted); a sample
+whose change reaches 90 % of the current limit estimate updates up/down (rise
+0.5 towards larger, settle 0.05 towards smaller changes), any other sample
+updates gain (exponential mean, alpha 0.05, unbiased under the float32
+position noise of zone coordinates); samples with an error below 4x noise
+(0.5 m/s linear, 1e-3 rad/s angular), moving away from the target or
+overshooting it by more than 25 % (impulses, collisions, another flight model)
+are not fitted. An axis with fewer than 20 samples keeps constant velocity.
+Display smoothing: displayed = P(T) plus a correction. The correction takes
+the jump between the continuation of the previous display path (its end
+state advanced one step with the newest target) and the new P(T), and decays
+with tau (native_gate_pilot_predict_tau, default 100 ms); above 50 m or
+0.5 rad it snaps (counted). A new input does not create a jump (the
+continuation uses the same newest record), so input response is not smoothed
+away. With an unfitted axis the correction partly cancels acceleration lead
+(seen in the unit test); keep tau around 50-100 ms.
+Resets: an unreadable sample or a zone change (object+0x70) restarts the
+history; predictions across a zone change are never compared.
+Measured per slot when the target tick arrives: position and angle error of
+the model, of constant velocity from S(T) ("dead") and of no prediction
+("none" = S(T) itself, i.e. what the delayed picture costs), and of the
+smoothed display pose; mean/rms/max and a position histogram (edges 0.01,
+0.03, 0.1, 0.3, 1, 3, 10 m), the fitted model per axis
+(aN=sign/gain/up m/s^2/down m/s^2/samples/refused).
+
+Expected (unit test on a synthetic ship of the model's form, float32 bank,
+script maneuvers): model max error < 3 cm and < 1e-3 rad over 3 ticks after
+one 600-tick cycle; constant velocity max > 0.2 m in transitions; "none" max
+> 10 m at speed. The real solver is not of the model's form (drag, assist,
+coupling); the live observe run decides whether the model is good enough.
+
+3. WHERE THE OFFSET IS APPLIED
+
+Render path (RE pass on a private read-only Ghidra copy plus capstone;
+static; the layouts the code relies on are re-checked at run time):
+- Slot 10 (X4::GameRender::Move 0x121c1f0) renders every camera; Camera::
+  vfunc3 0x983160 -> Scene::vfunc915 0x779a00 builds a per-scene context:
+  ctx[1] = the camera's zone, ctx[3] = (camera+0x770)->vfunc837, normally the
+  player ship's cockpit, ctx[4..0xb] = inverse camera pose relative to ctx[3].
+- Every component's model-view is 0x3de630(component, ctx[3]) x ctx[4..0xb].
+  0x3de630 is a cached relative transform: it walks parents through view
+  cache [A] (A = *0x38f4ee0 on the MoveWorker, verified in the disassembly at
+  0x3de677), cached parent at object+0xe0+A*0x80 (vc+0) and a pose block at
+  vc+0x28 (PosRot, row 0 = translation; +0x40 scale; +0x50 velocity), and
+  composes up to the common ancestor and down into ctx[3]'s frame.
+- The ship's own parts (cockpit, turrets, engines, lights) share the ship as
+  common ancestor with the cockpit, so they never use the ship's pose block;
+  every other object reaches the cockpit through the ship's block.
+- The pose blocks are filled in slot 3 (BuildCache 0x3d4a80 -> controller
+  GetTransform), and the MoveWorker publish 0xef41e0 swaps 0x38f4ee0 with
+  0x2f4b71c afterwards (verified); the main thread later copies them to
+  0x38f4eb4/0x2f4b718, the index other threads use. During slot 10 the
+  MoveWorker reads [A] = *0x38f4ee0, other threads read the other buffer.
+Present mode (implemented, stage 1):
+- Slot 6: the observe step also checks, read only, that the ship's block [A]
+  equals S(T) (<= 1 cm, rotation <= 1e-4), its cached parent is the ship's
+  zone and the blocks of [A] and [1-A] are distinct memory (view_ok,
+  view_mismatch, view_parent, view_shared, view_missing, view_deviation).
+  These counters are reported in observe mode too: the first observe run
+  answers whether present can work at all.
+- Slot 10: render_rng_execute (lockstep_render_rng.h) calls
+  predict_present_enter() before and predict_present_leave() inside its
+  __finally after the original GameRender::Move, MoveWorker only. Enter
+  re-checks the block (same pointer rules, still S(T) of this admitted tick),
+  saves it and writes the displayed pose (xyz of the four vectors; w kept)
+  with a guarded write (WriteProcessMemory on the own process). Leave puts
+  S(T) back if the block still holds what was written, also when an exception
+  unwinds; a block the engine rewrote meanwhile is left alone (counted
+  foreign). A nested enter, an unreadable block or a failed restore is a
+  failure: the next gate tick stops with reason 101.
+- Effect: all geometry is drawn as seen from the predicted ship and camera in
+  cockpit (and, if camera+0x770 is under the ship, external) views; the ship
+  itself keeps its cockpit-relative layout. Only this client's slot ship,
+  only during slot 10, only while |display - S(T)| <= 200 m and 0.5 rad (travel
+  drive is shown simulated, counted present_bounds).
+- Requirements: native_gate_render_rng_split = true (the wrapper), pins of
+  0x3de630 (0x7e5), 0x979ef0 (0x264), 0xef41e0 (0x117) at arm (verified
+  against X4.exe 9.00 in the native-image test together with the three index
+  loads), the piloting prototype armed, the client's slot in the manifest.
+Not covered by stage 1 (visible artefacts, not desync sources by design):
+- Frustum culling (queue+0x300) and LOD (queue+0x290) use the camera table
+  (zone space), which stays simulated: objects near screen edges may pop by
+  up to the lead; LOD switches shift by the lead distance.
+- World-space effects (particles, trails, explosions) and anything drawn from
+  the view block's view matrix stay at the simulated camera: up to the lead
+  offset against their objects while flying fast.
+- TAA/DLSS motion vectors: 0x75169e stores model-views into vc[A]+0x40 as
+  history; prediction changes them consistently, but jumps (snaps) ghost.
+Stage 2 (designed): rewrite the player camera's table [A] for the zone and
+every entry above it during slot 10. Writer 0x979ce0/0x9799f0 (slot 3, index
+*0x2f4b71c before the swap, so the same buffer as [A] in slot 10): table at
+camera+0x30+A*0x2b0, +0x00 attached component (refcounted), +0x10 entries of
+0x50 bytes {component*, pad, PosRot mat4 at +0x10 = camera pose in that
+component's frame}, 8 inline (capacity at +0x290, otherwise +0x10 holds a heap
+pointer), count +0x2a0; the first entry has component 0 (root). Rewrite
+M_X' = M_ship o P o M_zone^-1 o M_X for the zone, its ancestors and the root
+entry (o = PosRot composition, applied left first), keep the ship's subtree,
+check M_zone ~ M_ship o S first, compare-and-restore after. Open: the view
+block cache camera+0x8e0 (filled by Camera::vfunc4 0x983e40 -> 0x983a00,
+cleared only by 0x97a160 at the top of each iteration): if slot 6 fills it,
+slot 10 reuses blocks built from the simulated table; clearing it ourselves
+means a native call that frees allocator chunks. Measure first (observe:
+camera+0x8e0+8 at slot-10 entry).
+
+Slot-10 consumers of the ship or camera pose that are not pure rendering
+(RE pass): the LOD flag or [comp+0x11c+A*0x80],0x100000 at 0x75049a (drives
+BuildCache attachment refresh), the model-view history at vc[A]+0x40, the
+render-animator visibility flag, Zone::vfunc693 0x8429a0 welding traffic ->
+SpawnEffect 0xd73e00 (IDs, camera distance, RNG), the RNG draw in 0x77b890,
+finished camera controllers deleted in Camera::vfunc3, camera+0x890..0x8d0.
+All of them already depend on each client's own camera (the existing render
+RNG split, bullet and nav cadence and view-point fixes were built for that);
+present mode changes their inputs on one client but adds no new kind of
+coupling. Whether one of them still reaches the simulation is exactly what the
+census run with present on one client measures.
+
+4. IMPACTS, EFFECTS, HUD
+
+Consistent automatically (component geometry through the cockpit chain):
+other ships, stations, bullets (U::Bullet components), impact decals and
+effects attached to components, shields drawn on the ship.
+Not consistent in stage 1 and their mitigations:
+- HUD: target brackets, lead indicators, crosshair guidance and distances
+  come from simulated state through FFI/UI (slot 6). Brackets of other objects
+  follow the drawn world only up to the lead. Mitigation (designed): an FFI-free
+  gate.pilot_predict_offset() returning the displayed-minus-simulated
+  transform so the HUD Lua can shift its own projections; or stage 2 (most UI
+  projection goes through the camera table/view blocks).
+- World-space effects and positional audio: simulated camera (stage 2 fixes
+  effects; audio keeps the simulated listener, 50 ms is inaudible).
+- Own shots: the simulated gun fires at T+d from S(T+d); without more work the
+  player sees their shots appear d ticks late and from the simulated muzzle,
+  which (with the lead) is where the predicted ship is d ticks later: shots
+  look consistent relative to the ship but start late. Designed: present the
+  player's own projectiles d ticks ahead (the same scoped pose substitution on
+  their pose blocks: their simulated position at T+d), which is also the
+  geometry the outgoing hit claims use (section 7); muzzle flashes at fire
+  time need presentation-only effects (later).
+- Impacts on the own ship: with hit claims, applied at admission (one tick
+  after the owner saw them), drawn on the predicted ship: consistent.
+- Other players see this client's ship at S(T) (d ticks behind its owner's
+  view) and their own ship ahead: normal for predicted netcode.
+
+5. WHAT BREAKS WHILE THE OFFSET IS NON-ZERO, AND MITIGATIONS
+
+  issue                                   mitigation
+  collisions, docking prompts, proximity  simulated; bounds (200 m / 0.5 rad);
+    triggers at the simulated pose          later: blend prediction to 0 when
+                                            docking or near large objects
+  travel drive / boost (km/s)             lead > 200 m -> shown simulated
+  zone change / teleport                  history reset, snap, counted
+  AI switches the ship's flight model     undriven ticks are not fitted; the
+    (docking, spline, travel)               model keeps constant velocity
+  HUD leads/brackets off by the lead      offset export or stage 2 (above)
+  culling/LOD pops at screen edges        stage 2
+  world-space particles offset            stage 2
+  TAA ghosting on snaps                   tau, snap bounds
+  map / external free cameras             only geometry under the cockpit
+                                            chain moves; free cameras see the
+                                            ship at its predicted pose
+  mispredicted impulses (hits, rams)      not fitted; correction decays
+  flight assist off                       the record has no assisted-off
+                                            mapping yet (pilot prototype)
+
+6. INTERACTION WITH INPUT CAPTURE
+
+The predictor reads only interfaces of the piloting prototype: gate.pilot_
+pending's text (capture:apply:hex), the frame table (record, driving,
+applied counters, resolved object/agent), pilot_frame_tick, pilot_delay,
+pilot_script and the pure helpers pilot_decode/pilot_unhex/pilot_target/
+pilot_limits_valid. No capture code was edited; the capture rework can change
+its internals freely as long as gate.pilot_pending keeps its text format.
+Ordering: the probe calls gate.pilot_predict_frame right after this tick's
+capture in slot 6, so the record of tick T is already pending and moves the
+predicted ship in frame T (slot 10 of the same frame).
+Channels: the record carries processed, ship-relative channels (stick/keys
+as rates, mouse steering as cursor offset from the window centre), never a
+camera transform. The predicted camera rotates with the predicted ship, so
+the player's visual feedback loop (aim with the mouse until the target is
+centred) closes on the predicted view, which is the point; the captured
+values mean the same with or without prediction. The device sampler reads OS
+state only and is unaffected. External/free-look cameras do not steer.
+
+7. HITS: CONSTRAINT, OPTIONS, AGREED DESIGN
+
+(Update: the native side - hooks, keys, suppression, owner evaluation,
+injection - and pilot firing are implemented, default off; see
+reports/LOCKSTEP-HIT-CLAIMS-NATIVE-20261029.txt.)
+
+Constraint. In lockstep every client simulates the same hits from the same
+state. The local ship is presented at S(T+d) but simulated at S(T): a
+projectile that visibly hits the presented ship may pass the simulated one and
+vice versa. Options:
+(a) Presentation-only prediction, hits stay native. Deterministic for free;
+    the owner sees shots "go through" or hit "empty space" by up to the lead;
+    impact effects appear on the simulated hull d ticks later. Cheap, honest,
+    unsatisfying at speed.
+(b) Re-time/re-place effects only (draw native impacts on the predicted
+    ship, hide misses near it). Cosmetic; the outcome is still native.
+(c) AGREED: the owner's ahead instance decides every hit that involves its
+    predicted ship and sends the decision as an input; every client applies it
+    identically at a fixed apply tick and native detection is suppressed for
+    those pairs on every client. What the owner sees is what happens. Cost:
+    client authority over those hits (trust), wire bytes, native hooks;
+    validation bounds stop impossible claims, they cannot stop a lying client
+    within the bounds.
+
+Agreed design (c):
+Who decides. Pairs (projectile, target) where the target is a predicted slot
+ship (incoming) or the projectile's shooter is a predicted slot ship
+(outgoing). The set is the agreed slot manifest, identical everywhere. Every
+client's native hit test drops such pairs (a projectile flies on unless a
+valid claim consumes it). Everything else stays native.
+What the owner evaluates (designed):
+- Incoming, frame T: simulated projectiles at T (the world is not shifted)
+  against the own ship presented at P(T+d). Equivalent and cheaper: move the
+  projectile's segment (last test -> now) by S(T) P(T+d)^-1 into the frame where
+  the ship is at S(T) and ray-cast it against that ship's body only, read
+  only (Scene_CastRayClosest 0xbc4d0 / System_CastRay 0xbb5d0 on the zone's
+  physics system, layer-3 filter as the native test; no physics step runs in
+  slot 6). Not yet verified that this query is safe to issue outside
+  UpdateFlight.
+- Outgoing, frame T: the player's own projectiles presented d ticks ahead
+  (their simulated position at T+d) against targets at T.
+Claim v1 (implemented codec, 26 bytes): version/kind (incoming, outgoing),
+flags 0, low 16 bits of the observe tick, projectile key (portable), target
+portable identity (saved or created ID), impact point in the target's local
+frame (3 x int16, 1/8 m). Up to 8 per payload, no duplicate projectile.
+Input blob multiplexing (implemented): the protocol-3 blob per slot and tick
+(<= 240 bytes) keeps the legacy single forms (28-byte pilot record starting
+0x01; player orders starting 0x50 'P') and adds a container 'M' (0x4d),
+version 1, sections kind/length/payload in ascending kind order: 0x01 pilot,
+0x48 'H' hit claims, 0x50 'P' orders. A container holding only a channel that
+has a legacy form is refused, so every content has one encoding. The probe's
+pilot adapter and the orders adapter still own X4LAN_NATIVE_INPUTS
+exclusively; combining them needs one adapter that splits the container
+(next step, coordinate with the orders owner).
+Timing (implemented). A blob sealed with report r-1 is admitted at r. The
+observe tick o (from its low 16 bits) must lie in [r-1-8, r-1]. Incoming
+claims apply at r (the earliest tick every client can; the projectile has
+moved one tick). Outgoing claims apply at o+d: the projectile, simulated d
+ticks behind its presentation, is then where the owner saw it hit; o+d < r
+is late. Claims are staged per apply tick (64-tick ring).
+Resolution at apply tick t (implemented, every client): claims of t ordered
+by (policy rank, observe tick, slot, index), validated against the simulated
+state at t, all integer arithmetic (mm, Q30 rotation rows) so the result is
+identical across compilers and the Linux build:
+  owner      incoming: target = claimant's slot ship; outgoing: projectile
+             shooter = claimant's slot ship; never shooter = target
+  existence  projectile alive and not consumed; target exists, operational
+  point      |local point| <= target radius + 5 m
+  distance   |projectile - claimed world point| <= (|v_p|1 + |v_t|1)(d+2)
+             + 10 m (L1 speeds bound the Euclidean ones)
+  policy     player vs player (shooter and target both slot ships): 'shooter'
+             (outgoing decides, incoming refused), 'victim' (the reverse) or
+             'first' (both allowed, earlier observe tick first); open decision
+             for the owner/lead; default proposal: shooter
+The first valid claim applies the native hit and consumes the projectile;
+later claims for it are refused as consumed; an apply that fails is refused
+and consumes nothing. Every outcome (applied or refused with its reason)
+folds into an order-independent receipt (lockstep_seed sum) that belongs in
+the declared state, so a validation difference stops the barrier at once.
+Stale claims (projectile gone because of range expiry, a native hit on a
+non-player object first, or death) are refused on every client; the owner
+then shows the hit it predicted and the world disagrees: undo cosmetically
+(hit marker cancelled) when the refusal comes back.
+Native hooks (RE pass; pins = start + .pdata size, SHA-256 prefixes as
+reported, to be re-hashed when implemented):
+  observe   ApplyHit 0xd528f0 (0x106b) entry: (bullet, target, hit pose,
+            normal, time, first); shooter at bullet+0x2a0. Needs a trampoline
+            (thunk recipe count would grow).
+  suppress  result filter after the nearest cast at 0xd4fc61 (UpdateFlight
+            0xd4f240, 0x12a2) and the all-hits cast at 0xd4f766: blank the
+            0x38 result block (fraction -1, component 0) when the pair
+            involves a predicted ship. Code redirect. (Alternative: the native
+            two-body ignore of XBodyFilter 0xbbad0; UpdateFlight fills one.)
+  inject    call ApplyHit 0xd528f0(live bullet, target, hit pose, normal,
+            time, first=1) on the MoveWorker at a deterministic point of tick
+            t (a walk barrier in component order, as the parallel combat line
+            does), reusing native damage (ApplyDamage 0x51f7f0, shield
+            0x791760), events (PostAttackedEvents 0x51ff10) and effects.
+  identity  a portable projectile key at creation (Zone::vfunc930 0x83b500 /
+            BulletSetup 0xd50f30, MoveWorker, walk order): proposed
+            lockstep_seed(domain, creation tick, shooter portable ID, weapon
+            index, per-(shooter, tick) ordinal) (hit_projectile_key); the
+            bullet registry of lockstep_bullet.h does this for fixture guns.
+  cadence   native_gate_bullet_cadence='every' required (the native test
+            interval depends on the camera otherwise).
+The RE pass reports that observe/suppress/inject variants already run natively
+in the Rust combat line (x4mp-combat hitbar.rs/bulletray.rs, other worktrees);
+not verified here and not part of this branch.
+Out of scope v1: beams (same Bullet, 0.1 s damage-over-time loop), missiles
+(Missile::Shoot 0x606f20, own detonation), mines (0x64e3c0), area damage
+(0x87c380), ship-ship rams (Jolt contacts in Scene::Step). They stay native.
+Prerequisite: firing for pilot slots is not applied yet (the record carries
+trigger bit 0 only); outgoing claims need it first.
+Feasible in this task: codec, multiplexing, staging, validation, policies,
+receipt (done, tested on a fake world). Later: the four hooks, the projectile
+registry for all slot-ship shots and shots near slot ships, the owner's
+evaluation queries, presentation of own projectiles, the combined input
+adapter.
+
+8. CONFIGURATION (per client; a table is indexed by client slot)
+
+  X4LAN_CONFIG.native_gate_pilot_predict = {'observe',false}   -- or true, 'present'
+  X4LAN_CONFIG.native_gate_pilot_predict_tau = 100             -- display smoothing, ms (0..2000)
+  X4LAN_CONFIG.native_gate_pilot_predict_horizon = 3           -- script source only (1..30)
+  X4LAN_CONFIG.native_gate_pilot_predict_raw = true            -- PILOT_PREDICT_RAW rows
+'present' needs native_gate_render_rng_split = true. Sandbox builder:
+  python tools/dev/native_gate_sandbox.py overlay ... --predict1 observe
+  (--predict1/--predict2 off|observe|present, --predict-raw)
+Logs (never hashed): PILOT_PREDICT_ARMED; per tick PILOT_PREDICT tick=T
+horizon=h sK=last_pos/last_angle/mean_model/mean_dead/mean_none/
+mean_display/checked; PILOT_PREDICT_RAW slot= tick= driven= rates= pose=
+(12 float bits) rates= native= (bank velocity bits) record=; every 600 ticks
+and at stop PILOT_PREDICT_STATUS / PILOT_PREDICT_STOP with present_* counters,
+per slot samples/checked/predictions/bad_reads/frame_changes/resets/undriven/
+missing/snaps/flips, view_* precondition counters, error statistics
+(model/dead/none/display = pos mean/rms/max, angle mean/rms/max), hist= and
+the fitted axes a0..a5. Stop reason 101: present failure (nested enter,
+unreadable block, failed restore).
+
+9. TESTS (offline)
+
+test_lockstep_gate.exe with and without the pinned X4.exe exits 0:
+- pilot predict: exp/log round trips, rates(advance) = v, bank parsing
+  refusals, handedness; model fit on a synthetic ship (sign flip, gains exact,
+  limits within a few percent), refusal of impulses/overshoot, bounded 3-step
+  error, smoothing decay and snaps, pending parser, observe layer end to end on
+  fake engine memory (1240 ticks: model max < 3 cm vs constant velocity > 0.2
+  m vs none > 10 m; zone change; failed read; wire pending), present mode
+  through the real render_rng_execute: substitution visible to the original,
+  S(T) restored, w kept, stale second render, engine rewrite kept, exception
+  unwind restores, shared/mismatching/foreign-parent blocks refused, block
+  changed between slot 6 and 10 refused, failures -> stop 101, nothing after
+  stop; native image: three pins, tamper refusal, the three index loads.
+- hit claims: multiplexing (every combination, canonical forms, refusals),
+  claim codec, staging (window, late, 16-bit wrap), integer geometry,
+  validation refusals, policies, arrival-order independence of the receipt.
+Python: test_native_gate*.py 700 tests OK (1 skip: MD schema needs
+X4LAN_MD_SCHEMA), test_census*.py 22 OK (rebased tree); new LuaJIT probe tests (per-client
+arming, rows, raw, status, stop, never hashed, refusals before loading),
+check_gate_options PilotPredictOptionTests, sandbox --predict lines.
+
+10. LIVE RUNS WANTED (coordinator; not run here)
+
+P1 observe, scripted, no humans. Base: pilot test A (fixtures 3/4 driven by
+'script', window {30,600}) plus on BOTH clients
+  X4LAN_CONFIG.native_gate_pilot_predict = true
+  X4LAN_CONFIG.native_gate_pilot_predict_horizon = 3
+  X4LAN_CONFIG.native_gate_pilot_predict_raw = true
+Pass: census and relay digests unchanged (observe is read only), identical
+PILOT_PREDICT rows on both clients (same simulation, same model), checked
+grows every tick, bad_reads/frame_changes small, view_ok = samples and
+view_mismatch = view_shared = view_parent = 0 (else present cannot work:
+report view_deviation), fitted signs/gains plausible, model error well below
+dead and none during the segment changes. Keep the RAW rows (offline fit of
+the real solver). Note camera_on_ship (0 here: the cameras sit in the player
+ship, not in the fixtures) and camera_cached (> 0 means the view-block cache
+is filled before slot 10, so stage 2 would need it cleared).
+P2 observe, sandbox, human: --predict1 observe (and --predict2 observe).
+Pass: census 0; slot 1 (the parked player ship) has view_ok = samples (its
+PlayerController transform equals the pathing bank) and undriven small;
+camera_on_ship = camera_samples on client 1 (cockpit camera under the slot
+ship, so stage 1 moves camera and world together); error statistics while a
+human flies.
+P3 present on ONE client, scripted: as P1 with
+  X4LAN_CONFIG.native_gate_render_rng_split = true
+  X4LAN_CONFIG.native_gate_pilot_predict = {'present',false}
+Pass: census 0 divergence and equal digests at every tick (the main
+question), present_applied ~ ticks, present_restored = present_applied,
+present_failures 0, present_foreign 0 (else report it), visually the client-1
+slot ship ahead of where client 2 shows it, no crash, STOP reason=1.
+P4 present on one client, sandbox, human: --predict1 present. Fly and
+judge: instant response, cockpit steady, no world jitter; note culling pops,
+effect offsets, TAA ghosting, HUD bracket offsets; census 0.
+If P3 diverges: rerun with a substitution of D = identity (not available as
+an option yet: comment out the write in predict_present_enter) to separate a
+write-path effect from a pose effect, then bisect the slot-10 consumers listed
+in section 3. The coordinator's camera offset harness (native_gate_camera_
+offset, stop 98) answers the neighbouring question, whether a moved camera
+alone still reaches the simulation; P3 adds the slot-10 pose-block
+substitution on top, with the camera itself left in place.
+
+11. RISKS / OPEN
+
+- Everything about the render path is static; the precondition counters of
+  P1/P2 and the census of P3 are the evidence. If the pose block of the
+  parked player ship is not S(T) (PlayerController::GetTransform may not defer
+  to the Agent banks while parked), present refuses and counts it.
+- The real solver may not fit the clamp model (assist, drag, coupled axes);
+  the RAW rows allow an offline fit before any model change.
+- Stage 1 artefacts (culling, LOD, world-space effects, HUD) until stage 2.
+- Hit claims trust the owner within the validation bounds; PvP policy is an
+  open decision; the four native hooks and the projectile identity are
+  unimplemented; firing for pilot slots is a prerequisite.
+- The input container needs one combined adapter in the probe before pilot,
+  orders and claims can share a blob.

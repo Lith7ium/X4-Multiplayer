@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Disposable native gate stress fixture: teleport the player ship through a fixed
+     list of sectors at gated ticks (raised by native_gate_probe.lua), so attention
+     moves between sectors on every client at the same tick. The target is a fixed
+     point 30 km above each sector centre; no safe-position search (which draws
+     randomness) is used. -->
+<mdscript name="X4LAN_NativeTour" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="Tour" namespace="this">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeGate'" control="'TourStart'"/></conditions>
+   <actions>
+    <set_value name="$sectors" exact="[macro.cluster_14_sector001_macro, macro.cluster_01_sector001_macro, macro.cluster_31_sector001_macro, macro.cluster_02_sector001_macro, macro.cluster_29_sector001_macro, macro.cluster_13_sector001_macro]"/>
+    <!-- Return to the start sector last, so an ongoing battle there goes out of and back into attention. -->
+    <append_to_list name="$sectors" exact="player.sector.macro"/>
+    <set_value name="$step" exact="0"/>
+    <debug_text text="'[X4LAN] NATIVE_GATE TOUR start sectors=%s'.[$sectors.count]"/>
+   </actions>
+   <cues>
+    <cue name="TourStep" instantiate="true">
+     <conditions><event_ui_triggered screen="'X4LAN_NativeGate'" control="'TourStep'"/></conditions>
+     <actions>
+      <set_value name="Tour.$step" exact="Tour.$step + 1"/>
+      <do_if value="Tour.$step gt Tour.$sectors.count">
+       <set_value name="Tour.$step" exact="1"/>
+      </do_if>
+      <find_sector name="$sector" macro="Tour.$sectors.{Tour.$step}"/>
+      <do_if value="$sector and player.ship">
+       <warp object="player.ship" sector="$sector">
+        <position x="0m" y="30km" z="0m"/>
+        <rotation yaw="0deg" pitch="0deg" roll="0deg"/>
+       </warp>
+       <debug_text text="'[X4LAN] NATIVE_GATE TOUR step=%s sector=%s'.[Tour.$step, $sector.macro.id]"/>
+      </do_if>
+      <do_else>
+       <debug_text text="'[X4LAN] NATIVE_GATE TOUR step=%s missing'.[Tour.$step]"/>
+      </do_else>
+     </actions>
+    </cue>
+   </cues>
+  </cue>
+ </cues>
+</mdscript>

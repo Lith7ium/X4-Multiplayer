@@ -1,0 +1,1740 @@
+{
+ "schema": "x4-crossplatform-fp-inventory-v1",
+ "build": {
+  "windows": {
+   "size": 55412768,
+   "sha256": "19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891"
+  },
+  "linux": {
+   "size": 60459280,
+   "sha256": "113f73d74570084f6ce18a659b365009eccf579fb66dbabb5dad2b1718045f20",
+   "build_id": "77cf7ac0ff32d88ffd3db7eb6ea2e025aecb711d"
+  }
+ },
+ "functions": {
+  "w": 82224,
+  "l": 101049
+ },
+ "domains": {
+  "windows": {
+   "sim": 25355,
+   "nonsim": 15557
+  },
+  "linux": {
+   "thirdparty": 24223,
+   "sim": 21901,
+   "std": 1099,
+   "nonsim": 5090
+  }
+ },
+ "census": {
+  "w": {
+   "instructions": {
+    "approx": 1337,
+    "arith": 119353,
+    "cpuid": 22,
+    "cvt": 11615,
+    "fma": 173,
+    "fpenv": 146,
+    "sse41": 118,
+    "vex": 16309,
+    "x87": 2691,
+    "x87_fprem": 4,
+    "xgetbv": 3,
+    "ymm": 6880
+   },
+   "functions": {
+    "approx": 428,
+    "arith": 5269,
+    "cpuid": 9,
+    "cvt": 2237,
+    "fma": 17,
+    "fpenv": 91,
+    "sse41": 22,
+    "vex": 108,
+    "x87": 404,
+    "x87_fprem": 4,
+    "xgetbv": 3,
+    "ymm": 35
+   },
+   "in_sim_domains": {
+    "approx": 1181,
+    "arith": 70658,
+    "cvt": 5716,
+    "fma": 22,
+    "fpenv": 12,
+    "sse41": 39,
+    "vex": 138,
+    "x87": 361
+   },
+   "x87_functions_with_undecodable_bytes": 375,
+   "fp_arithmetic_functions": {
+    "sim": 3025,
+    "unknown": 1486,
+    "nonsim": 780
+   },
+   "fp_arithmetic_ops": {
+    "sim": 71839,
+    "unknown": 38277,
+    "nonsim": 10574
+   }
+  },
+  "l": {
+   "instructions": {
+    "approx": 1188,
+    "arith": 119964,
+    "cpuid": 14,
+    "cvt": 10560,
+    "fpenv": 95,
+    "sse41": 10716,
+    "vex": 15206,
+    "x87": 2552,
+    "x87_fprem": 104,
+    "xgetbv": 1,
+    "ymm": 6804
+   },
+   "functions": {
+    "approx": 384,
+    "arith": 5252,
+    "cpuid": 6,
+    "cvt": 2141,
+    "fpenv": 90,
+    "sse41": 4252,
+    "vex": 83,
+    "x87": 881,
+    "x87_fprem": 58,
+    "xgetbv": 1,
+    "ymm": 34
+   },
+   "in_sim_domains": {
+    "approx": 947,
+    "arith": 83586,
+    "cvt": 4784,
+    "sse41": 5300,
+    "x87": 467,
+    "x87_fprem": 78
+   },
+   "x87_functions_with_undecodable_bytes": 781,
+   "fp_arithmetic_functions": {
+    "nonsim": 408,
+    "sim": 2912,
+    "thirdparty": 522,
+    "unknown": 1411,
+    "std": 7
+   },
+   "fp_arithmetic_ops": {
+    "nonsim": 8645,
+    "sim": 84533,
+    "thirdparty": 9049,
+    "unknown": 18898,
+    "std": 27
+   }
+  }
+ },
+ "math": {
+  "windows_entries": [
+   {
+    "rva": "0x1750210",
+    "name": "sincosf",
+    "kind": "packed: xmm0=x -> xmm0=[sin x, cos x]; cos = sin(|x|+pi/2) unless |x| tiny",
+    "fma3_flag_read": false,
+    "call_sites": 181,
+    "callers": 139,
+    "sites_by_domain": {
+     "sim": 151,
+     "nonsim": 6,
+     "unknown": 24
+    }
+   },
+   {
+    "rva": "0x1750253",
+    "name": "sincosf",
+    "kind": "packed: xmm0=a, xmm1=b -> xmm0=[sin a, cos a, sin b, cos b]; cos = sin(x+pi/2)",
+    "fma3_flag_read": false,
+    "call_sites": 101,
+    "callers": 81,
+    "sites_by_domain": {
+     "sim": 82,
+     "unknown": 16,
+     "nonsim": 3
+    }
+   },
+   {
+    "rva": "0x1a051ac",
+    "name": "round",
+    "kind": "exact",
+    "fma3_flag_read": false,
+    "call_sites": 24,
+    "callers": 8,
+    "sites_by_domain": {
+     "sim": 17,
+     "nonsim": 5,
+     "unknown": 2
+    }
+   },
+   {
+    "rva": "0x1a10798",
+    "name": "log2f",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 0,
+    "callers": 0,
+    "sites_by_domain": {}
+   },
+   {
+    "rva": "0x1a10928",
+    "name": "log2f",
+    "kind": "thunk",
+    "fma3_flag_read": false,
+    "call_sites": 6,
+    "callers": 6,
+    "sites_by_domain": {
+     "sim": 2,
+     "unknown": 3,
+     "nonsim": 1
+    }
+   },
+   {
+    "rva": "0x1a11848",
+    "name": "exp2f",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 17,
+    "callers": 4,
+    "sites_by_domain": {
+     "sim": 1,
+     "unknown": 6,
+     "nonsim": 10
+    }
+   },
+   {
+    "rva": "0x1a19250",
+    "name": "acosf",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 30,
+    "callers": 23,
+    "sites_by_domain": {
+     "sim": 25,
+     "unknown": 5
+    }
+   },
+   {
+    "rva": "0x1a19480",
+    "name": "sinf",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 108,
+    "callers": 54,
+    "sites_by_domain": {
+     "sim": 78,
+     "unknown": 28,
+     "nonsim": 2
+    }
+   },
+   {
+    "rva": "0x1a19b80",
+    "name": "cosf",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 98,
+    "callers": 51,
+    "sites_by_domain": {
+     "sim": 71,
+     "unknown": 26,
+     "nonsim": 1
+    }
+   },
+   {
+    "rva": "0x1a1a080",
+    "name": "fmodf",
+    "kind": "exact",
+    "fma3_flag_read": false,
+    "call_sites": 63,
+    "callers": 35,
+    "sites_by_domain": {
+     "sim": 47,
+     "unknown": 13,
+     "nonsim": 3
+    }
+   },
+   {
+    "rva": "0x1a1a2cc",
+    "name": "sqrt",
+    "kind": "exact",
+    "fma3_flag_read": false,
+    "call_sites": 35,
+    "callers": 21,
+    "sites_by_domain": {
+     "sim": 5,
+     "nonsim": 6,
+     "unknown": 24
+    }
+   },
+   {
+    "rva": "0x1a1a398",
+    "name": "atan2f",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 477,
+    "callers": 191,
+    "sites_by_domain": {
+     "sim": 368,
+     "unknown": 81,
+     "nonsim": 28
+    }
+   },
+   {
+    "rva": "0x1a1a790",
+    "name": "powf",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 189,
+    "callers": 51,
+    "sites_by_domain": {
+     "sim": 114,
+     "unknown": 22,
+     "nonsim": 53
+    }
+   },
+   {
+    "rva": "0x1a1c794",
+    "name": "roundf",
+    "kind": "exact",
+    "fma3_flag_read": false,
+    "call_sites": 12,
+    "callers": 6,
+    "sites_by_domain": {
+     "sim": 5,
+     "unknown": 2,
+     "nonsim": 5
+    }
+   },
+   {
+    "rva": "0x1a1e840",
+    "name": "pow",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 49,
+    "callers": 32,
+    "sites_by_domain": {
+     "sim": 14,
+     "nonsim": 30,
+     "unknown": 5
+    }
+   },
+   {
+    "rva": "0x1a23e64",
+    "name": "atanf",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 12,
+    "callers": 8,
+    "sites_by_domain": {
+     "sim": 6,
+     "unknown": 2,
+     "nonsim": 4
+    }
+   },
+   {
+    "rva": "0x1a240d0",
+    "name": "tanf",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 34,
+    "callers": 24,
+    "sites_by_domain": {
+     "sim": 19,
+     "unknown": 7,
+     "nonsim": 8
+    }
+   },
+   {
+    "rva": "0x1a24744",
+    "name": "log2",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 2,
+    "callers": 2,
+    "sites_by_domain": {
+     "nonsim": 1,
+     "unknown": 1
+    }
+   },
+   {
+    "rva": "0x1a250cc",
+    "name": "exp2",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 1,
+    "callers": 1,
+    "sites_by_domain": {
+     "nonsim": 1
+    }
+   },
+   {
+    "rva": "0x1a251c0",
+    "name": "acos",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 11,
+    "callers": 11,
+    "sites_by_domain": {
+     "sim": 4,
+     "nonsim": 7
+    }
+   },
+   {
+    "rva": "0x1a25460",
+    "name": "asin",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 5,
+    "callers": 3,
+    "sites_by_domain": {
+     "nonsim": 4,
+     "sim": 1
+    }
+   },
+   {
+    "rva": "0x1a256e4",
+    "name": "atan",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 2,
+    "callers": 2,
+    "sites_by_domain": {
+     "nonsim": 2
+    }
+   },
+   {
+    "rva": "0x1a258fc",
+    "name": "atan2",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 4,
+    "callers": 2,
+    "sites_by_domain": {
+     "nonsim": 1,
+     "sim": 3
+    }
+   },
+   {
+    "rva": "0x1a260d0",
+    "name": "cos",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 42,
+    "callers": 20,
+    "sites_by_domain": {
+     "nonsim": 5,
+     "unknown": 37
+    }
+   },
+   {
+    "rva": "0x1a26650",
+    "name": "exp",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 8,
+    "callers": 5,
+    "sites_by_domain": {
+     "nonsim": 6,
+     "sim": 2
+    }
+   },
+   {
+    "rva": "0x1a26a50",
+    "name": "log",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 6,
+    "callers": 5,
+    "sites_by_domain": {
+     "nonsim": 2,
+     "sim": 4
+    }
+   },
+   {
+    "rva": "0x1a26f80",
+    "name": "sin",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 50,
+    "callers": 24,
+    "sites_by_domain": {
+     "nonsim": 10,
+     "unknown": 37,
+     "sim": 3
+    }
+   },
+   {
+    "rva": "0x1a274f0",
+    "name": "tan",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 1,
+    "callers": 1,
+    "sites_by_domain": {
+     "nonsim": 1
+    }
+   },
+   {
+    "rva": "0x1a38060",
+    "name": "log10",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 7,
+    "callers": 5,
+    "sites_by_domain": {
+     "nonsim": 2,
+     "unknown": 3,
+     "sim": 2
+    }
+   },
+   {
+    "rva": "0x1b42f20",
+    "name": "sincos",
+    "kind": "packed: xmm0=x -> xmm0=[sin x, cos x] (binary64 lanes)",
+    "fma3_flag_read": false,
+    "call_sites": 2,
+    "callers": 2,
+    "sites_by_domain": {
+     "sim": 1,
+     "unknown": 1
+    }
+   },
+   {
+    "rva": "0x1b43ce0",
+    "name": "asinf",
+    "kind": "plain",
+    "fma3_flag_read": false,
+    "call_sites": 174,
+    "callers": 112,
+    "sites_by_domain": {
+     "sim": 135,
+     "unknown": 27,
+     "nonsim": 12
+    }
+   },
+   {
+    "rva": "0x1b43ed0",
+    "name": "expf",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 9,
+    "callers": 5,
+    "sites_by_domain": {
+     "sim": 2,
+     "unknown": 3,
+     "nonsim": 4
+    }
+   },
+   {
+    "rva": "0x1b44180",
+    "name": "fmod",
+    "kind": "exact",
+    "fma3_flag_read": false,
+    "call_sites": 21,
+    "callers": 18,
+    "sites_by_domain": {
+     "sim": 16,
+     "nonsim": 2,
+     "unknown": 3
+    }
+   },
+   {
+    "rva": "0x1b44460",
+    "name": "log10f",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 25,
+    "callers": 6,
+    "sites_by_domain": {
+     "nonsim": 4,
+     "unknown": 21
+    }
+   },
+   {
+    "rva": "0x1b44940",
+    "name": "logf",
+    "kind": "fma3",
+    "fma3_flag_read": true,
+    "call_sites": 87,
+    "callers": 14,
+    "sites_by_domain": {
+     "sim": 86,
+     "nonsim": 1
+    }
+   },
+   {
+    "rva": "0x1b44d38",
+    "name": "sqrtf",
+    "kind": "exact",
+    "fma3_flag_read": false,
+    "call_sites": 9,
+    "callers": 7,
+    "sites_by_domain": {
+     "unknown": 4,
+     "nonsim": 5
+    }
+   }
+  ],
+  "windows_fma3_flag_users": [
+   "0x1a19480",
+   "0x1a19b80",
+   "0x1a1a790",
+   "0x1a1e840",
+   "0x1a240d0",
+   "0x1a260d0",
+   "0x1a26650",
+   "0x1a26a50",
+   "0x1a26f80",
+   "0x1a274f0",
+   "0x1a310b0",
+   "0x1a38060",
+   "0x1b43ed0",
+   "0x1b44460",
+   "0x1b44940"
+  ],
+  "windows_dispatch": {
+   "use_fma3_lib": "0x38edec0",
+   "crt_init_fma3": "0x1a310b0",
+   "isa_available": "0x2f3f220",
+   "isa_available_init": "0x17502c0",
+   "packed_sinf_kernel_dispatch": "0x17501f0",
+   "packed_sin_kernel_dispatch": "0x1b42f00"
+  },
+  "linux_imports": [
+   {
+    "name": "acos",
+    "plt": "0x6592d8",
+    "got": "0x3d8b4f0",
+    "call_sites": 14,
+    "callers": 8,
+    "sites_by_domain": {
+     "nonsim": 6,
+     "thirdparty": 1,
+     "sim": 7
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "acosf",
+    "plt": "0x656570",
+    "got": "0x3d8c2b8",
+    "call_sites": 43,
+    "callers": 26,
+    "sites_by_domain": {
+     "sim": 23,
+     "unknown": 19,
+     "thirdparty": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "asin",
+    "plt": "0x6592e0",
+    "got": "0x3d8b5b8",
+    "call_sites": 3,
+    "callers": 3,
+    "sites_by_domain": {
+     "nonsim": 1,
+     "thirdparty": 1,
+     "sim": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "asinf",
+    "plt": "0x6579c0",
+    "got": "0x3d8cce0",
+    "call_sites": 173,
+    "callers": 104,
+    "sites_by_domain": {
+     "sim": 132,
+     "thirdparty": 20,
+     "nonsim": 9,
+     "unknown": 12
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "atan",
+    "plt": "0x6592c0",
+    "got": "0x3d8b2e0",
+    "call_sites": 2,
+    "callers": 2,
+    "sites_by_domain": {
+     "thirdparty": 1,
+     "nonsim": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "atan2",
+    "plt": "0x6592f0",
+    "got": "0x3d8b888",
+    "call_sites": 14,
+    "callers": 3,
+    "sites_by_domain": {
+     "thirdparty": 1,
+     "sim": 3,
+     "unknown": 10
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "atan2f",
+    "plt": "0x656fc0",
+    "got": "0x3d8c7e0",
+    "call_sites": 490,
+    "callers": 170,
+    "sites_by_domain": {
+     "sim": 373,
+     "thirdparty": 45,
+     "unknown": 52,
+     "nonsim": 20
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "atanf",
+    "plt": "0x659130",
+    "got": "0x3d8d898",
+    "call_sites": 12,
+    "callers": 8,
+    "sites_by_domain": {
+     "sim": 6,
+     "nonsim": 4,
+     "unknown": 1,
+     "std": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "cos",
+    "plt": "0x659310",
+    "got": "0x3d8bad8",
+    "call_sites": 2,
+    "callers": 2,
+    "sites_by_domain": {
+     "thirdparty": 1,
+     "nonsim": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "cosf",
+    "plt": "0x658ba0",
+    "got": "0x3d8d5d0",
+    "call_sites": 57,
+    "callers": 41,
+    "sites_by_domain": {
+     "sim": 35,
+     "unknown": 16,
+     "thirdparty": 6
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "exp",
+    "plt": "0x6592a0",
+    "got": "0x3d8af10",
+    "call_sites": 10,
+    "callers": 6,
+    "sites_by_domain": {
+     "thirdparty": 1,
+     "sim": 7,
+     "nonsim": 2
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "exp2",
+    "plt": "0x6592c8",
+    "got": "0x3d8b440",
+    "call_sites": 1,
+    "callers": 1,
+    "sites_by_domain": {
+     "thirdparty": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "exp2f",
+    "plt": "0x658c30",
+    "got": "0x3d8d618",
+    "call_sites": 2,
+    "callers": 2,
+    "sites_by_domain": {
+     "sim": 1,
+     "std": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "expf",
+    "plt": "0x6588a0",
+    "got": "0x3d8d450",
+    "call_sites": 10,
+    "callers": 6,
+    "sites_by_domain": {
+     "sim": 3,
+     "nonsim": 4,
+     "unknown": 3
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "floor",
+    "plt": "0x656e50",
+    "got": "0x3d8c728",
+    "call_sites": 9,
+    "callers": 3,
+    "sites_by_domain": {
+     "thirdparty": 1,
+     "nonsim": 6,
+     "sim": 2
+    },
+    "kind": "exact"
+   },
+   {
+    "name": "floorf",
+    "plt": "0x658030",
+    "got": "0x3d8d018",
+    "call_sites": 6,
+    "callers": 6,
+    "sites_by_domain": {
+     "sim": 4,
+     "unknown": 1,
+     "thirdparty": 1
+    },
+    "kind": "exact"
+   },
+   {
+    "name": "fmod",
+    "plt": "0x657630",
+    "got": "0x3d8cb18",
+    "call_sites": 22,
+    "callers": 17,
+    "sites_by_domain": {
+     "sim": 14,
+     "thirdparty": 4,
+     "unknown": 2,
+     "nonsim": 2
+    },
+    "kind": "exact"
+   },
+   {
+    "name": "fmodf",
+    "plt": "0x659220",
+    "got": "0x3d8d910",
+    "call_sites": 73,
+    "callers": 39,
+    "sites_by_domain": {
+     "sim": 58,
+     "nonsim": 4,
+     "thirdparty": 2,
+     "unknown": 9
+    },
+    "kind": "exact"
+   },
+   {
+    "name": "frexpf",
+    "plt": "0x656a90",
+    "got": "0x3d8c548",
+    "call_sites": 2,
+    "callers": 1,
+    "sites_by_domain": {
+     "unknown": 2
+    },
+    "kind": "exact"
+   },
+   {
+    "name": "log",
+    "plt": "0x6592a8",
+    "got": "0x3d8af40",
+    "call_sites": 7,
+    "callers": 6,
+    "sites_by_domain": {
+     "thirdparty": 1,
+     "sim": 4,
+     "unknown": 1,
+     "nonsim": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "log10",
+    "plt": "0x658990",
+    "got": "0x3d8d4c8",
+    "call_sites": 7,
+    "callers": 5,
+    "sites_by_domain": {
+     "thirdparty": 2,
+     "nonsim": 1,
+     "unknown": 4
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "log10f",
+    "plt": "0x6591f0",
+    "got": "0x3d8d8f8",
+    "call_sites": 37,
+    "callers": 7,
+    "sites_by_domain": {
+     "unknown": 1,
+     "nonsim": 36
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "log2",
+    "plt": "0x659338",
+    "got": "0x3d8be78",
+    "call_sites": 2,
+    "callers": 2,
+    "sites_by_domain": {
+     "thirdparty": 1,
+     "std": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "log2f",
+    "plt": "0x657300",
+    "got": "0x3d8c980",
+    "call_sites": 4,
+    "callers": 4,
+    "sites_by_domain": {
+     "sim": 2,
+     "nonsim": 1,
+     "std": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "logf",
+    "plt": "0x6576e0",
+    "got": "0x3d8cb70",
+    "call_sites": 91,
+    "callers": 16,
+    "sites_by_domain": {
+     "sim": 90,
+     "nonsim": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "pow",
+    "plt": "0x659318",
+    "got": "0x3d8bd08",
+    "call_sites": 167,
+    "callers": 84,
+    "sites_by_domain": {
+     "thirdparty": 4,
+     "unknown": 75,
+     "sim": 10,
+     "nonsim": 78
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "powf",
+    "plt": "0x656910",
+    "got": "0x3d8c488",
+    "call_sites": 249,
+    "callers": 69,
+    "sites_by_domain": {
+     "nonsim": 99,
+     "unknown": 24,
+     "sim": 121,
+     "thirdparty": 4,
+     "std": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "round",
+    "plt": "0x6569b0",
+    "got": "0x3d8c4d8",
+    "call_sites": 28,
+    "callers": 19,
+    "sites_by_domain": {
+     "nonsim": 18,
+     "unknown": 2,
+     "sim": 8
+    },
+    "kind": "exact"
+   },
+   {
+    "name": "roundf",
+    "plt": "0x657cf0",
+    "got": "0x3d8ce78",
+    "call_sites": 18,
+    "callers": 9,
+    "sites_by_domain": {
+     "sim": 1,
+     "thirdparty": 5,
+     "unknown": 2,
+     "nonsim": 10
+    },
+    "kind": "exact"
+   },
+   {
+    "name": "sin",
+    "plt": "0x6592f8",
+    "got": "0x3d8b8c8",
+    "call_sites": 19,
+    "callers": 5,
+    "sites_by_domain": {
+     "nonsim": 12,
+     "thirdparty": 1,
+     "sim": 6
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "sincos",
+    "plt": "0x656900",
+    "got": "0x3d8c480",
+    "call_sites": 44,
+    "callers": 21,
+    "sites_by_domain": {
+     "thirdparty": 36,
+     "sim": 2,
+     "nonsim": 3,
+     "unknown": 3
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "sincosf",
+    "plt": "0x656f30",
+    "got": "0x3d8c798",
+    "call_sites": 274,
+    "callers": 134,
+    "sites_by_domain": {
+     "nonsim": 12,
+     "sim": 167,
+     "unknown": 69,
+     "thirdparty": 26
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "sinf",
+    "plt": "0x658520",
+    "got": "0x3d8d290",
+    "call_sites": 81,
+    "callers": 43,
+    "sites_by_domain": {
+     "sim": 47,
+     "unknown": 26,
+     "nonsim": 1,
+     "thirdparty": 7
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "sqrt",
+    "plt": "0x6592b0",
+    "got": "0x3d8b028",
+    "call_sites": 60,
+    "callers": 28,
+    "sites_by_domain": {
+     "thirdparty": 5,
+     "sim": 12,
+     "nonsim": 35,
+     "unknown": 8
+    },
+    "kind": "exact"
+   },
+   {
+    "name": "sqrtf",
+    "plt": "0x658f50",
+    "got": "0x3d8d7a8",
+    "call_sites": 227,
+    "callers": 106,
+    "sites_by_domain": {
+     "sim": 170,
+     "unknown": 45,
+     "nonsim": 6,
+     "thirdparty": 3,
+     "std": 3
+    },
+    "kind": "exact"
+   },
+   {
+    "name": "tan",
+    "plt": "0x659320",
+    "got": "0x3d8bd80",
+    "call_sites": 1,
+    "callers": 1,
+    "sites_by_domain": {
+     "thirdparty": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "tanf",
+    "plt": "0x658ce0",
+    "got": "0x3d8d670",
+    "call_sites": 34,
+    "callers": 28,
+    "sites_by_domain": {
+     "thirdparty": 4,
+     "sim": 19,
+     "nonsim": 6,
+     "unknown": 4,
+     "std": 1
+    },
+    "kind": "transcendental"
+   },
+   {
+    "name": "strtod",
+    "plt": "0x659260",
+    "got": "0x3d8d930",
+    "call_sites": 27,
+    "callers": 9,
+    "sites_by_domain": {
+     "thirdparty": 2,
+     "unknown": 20,
+     "nonsim": 5
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "__isoc99_sscanf",
+    "plt": "0x657a20",
+    "got": "0x3d8cd10",
+    "call_sites": 9,
+    "callers": 8,
+    "sites_by_domain": {
+     "unknown": 5,
+     "nonsim": 2,
+     "thirdparty": 2
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "ecvt",
+    "plt": "0x657d80",
+    "got": "0x3d8cec0",
+    "call_sites": 2,
+    "callers": 2,
+    "sites_by_domain": {
+     "thirdparty": 2
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "qsort",
+    "plt": "0x658c00",
+    "got": "0x3d8d600",
+    "call_sites": 32,
+    "callers": 22,
+    "sites_by_domain": {
+     "thirdparty": 23,
+     "unknown": 4,
+     "nonsim": 4,
+     "sim": 1
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "rand",
+    "plt": "0x658f60",
+    "got": "0x3d8d7b0",
+    "call_sites": 5,
+    "callers": 4,
+    "sites_by_domain": {
+     "nonsim": 2,
+     "unknown": 3
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "srand",
+    "plt": "0x6578d0",
+    "got": "0x3d8cc68",
+    "call_sites": 2,
+    "callers": 2,
+    "sites_by_domain": {
+     "unknown": 2
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "snprintf",
+    "plt": "0x657190",
+    "got": "0x3d8c8c8",
+    "call_sites": 353,
+    "callers": 88,
+    "sites_by_domain": {
+     "thirdparty": 260,
+     "nonsim": 60,
+     "unknown": 32,
+     "sim": 1
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "sprintf",
+    "plt": "0x656b00",
+    "got": "0x3d8c580",
+    "call_sites": 128,
+    "callers": 9,
+    "sites_by_domain": {
+     "unknown": 1,
+     "sim": 1,
+     "thirdparty": 126
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "vsnprintf",
+    "plt": "0x659300",
+    "got": "0x3d8b9c0",
+    "call_sites": 21,
+    "callers": 17,
+    "sites_by_domain": {
+     "thirdparty": 14,
+     "nonsim": 6,
+     "sim": 1
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "newlocale",
+    "plt": "0x658cd0",
+    "got": "0x3d8d668",
+    "call_sites": 2,
+    "callers": 2,
+    "sites_by_domain": {
+     "thirdparty": 2
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "uselocale",
+    "plt": "0x6573d0",
+    "got": "0x3d8c9e8",
+    "call_sites": 8,
+    "callers": 2,
+    "sites_by_domain": {
+     "thirdparty": 8
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "freelocale",
+    "plt": "0x658670",
+    "got": "0x3d8d338",
+    "call_sites": 6,
+    "callers": 2,
+    "sites_by_domain": {
+     "thirdparty": 6
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "_ZNSt6thread20hardware_concurrencyEv",
+    "plt": "0x658550",
+    "got": "0x3d8d2a8",
+    "call_sites": 1,
+    "callers": 1,
+    "sites_by_domain": {
+     "sim": 1
+    },
+    "kind": "libc"
+   },
+   {
+    "name": "sysconf",
+    "plt": "0x658a20",
+    "got": "0x3d8d510",
+    "call_sites": 3,
+    "callers": 3,
+    "sites_by_domain": {
+     "unknown": 1,
+     "thirdparty": 2
+    },
+    "kind": "libc"
+   }
+  ],
+  "totals": {
+   "windows_transcendental": {
+    "entries": 30,
+    "sites": 1738,
+    "sim_sites": 1174,
+    "callers": 884
+   },
+   "windows_exact": {
+    "entries": 6,
+    "sites": 164,
+    "sim_sites": 90,
+    "callers": 95
+   },
+   "linux_transcendental": {
+    "entries": 28,
+    "sites": 1850,
+    "sim_sites": 1059,
+    "callers": 807
+   },
+   "linux_exact": {
+    "entries": 9,
+    "sites": 445,
+    "sim_sites": 269,
+    "callers": 228
+   }
+  }
+ },
+ "mxcsr_writers": {
+  "w": [
+   {
+    "function": "0x14dd0e0",
+    "count": 1,
+    "role": "engine: sets MXCSR.FTZ (bit 15) on the main thread; called from X4::GameClient::Init 0x1225ee7"
+   },
+   {
+    "function": "0x1a1a080",
+    "count": 1,
+    "role": "CRT fmodf: saves/restores MXCSR"
+   },
+   {
+    "function": "0x1a1a790",
+    "count": 12,
+    "role": "CRT powf: saves/restores MXCSR"
+   },
+   {
+    "function": "0x1a31b20",
+    "count": 2,
+    "role": "CRT FP status/control helper"
+   },
+   {
+    "function": "0x1a37bb0",
+    "count": 1,
+    "role": "CRT FP control helper"
+   },
+   {
+    "function": "0x1a37ce8",
+    "count": 1,
+    "role": "CRT FP control helper"
+   }
+  ],
+  "l": []
+ },
+ "approx": {
+  "w": {
+   "instructions_by_domain": {
+    "sim": 1181,
+    "unknown": 121,
+    "nonsim": 35
+   },
+   "functions_by_domain": {
+    "sim": 372,
+    "unknown": 42,
+    "nonsim": 14
+   },
+   "by_mnemonic": {
+    "rsqrtss": 753,
+    "rcpss": 582,
+    "rsqrtps": 2
+   }
+  },
+  "l": {
+   "instructions_by_domain": {
+    "sim": 947,
+    "nonsim": 14,
+    "thirdparty": 33,
+    "unknown": 194
+   },
+   "functions_by_domain": {
+    "sim": 288,
+    "nonsim": 6,
+    "thirdparty": 12,
+    "unknown": 78
+   },
+   "by_mnemonic": {
+    "rsqrtss": 690,
+    "rcpss": 495,
+    "rsqrtps": 2,
+    "rcpps": 1
+   }
+  }
+ },
+ "compares": {
+  "w": {
+   "compares": 17707,
+   "parity": 1541,
+   "sim_compares": 11417,
+   "sim_parity": 114,
+   "parity_per_compare": 0.087,
+   "sim_parity_per_compare": 0.01
+  },
+  "l": {
+   "compares": 18677,
+   "parity": 2061,
+   "sim_compares": 11842,
+   "sim_parity": 982,
+   "parity_per_compare": 0.1103,
+   "sim_parity_per_compare": 0.0829
+  }
+ },
+ "pairs": {
+  "profiles": {
+   "high:all": {
+    "pairs": 2008,
+    "arith_count_diff": 1220,
+    "more_div_windows": 120,
+    "vectorization_diff": 481,
+    "precision_diff": 420,
+    "sqrt_diff": 94,
+    "libm_call": 306,
+    "fewer_div_windows": 422,
+    "rounding_diff": 277,
+    "proven_different": 528,
+    "same_profile": 546,
+    "minmax_diff": 491,
+    "approx_diff": 96,
+    "proven_codegen_different": 280,
+    "reciprocal_substitution": 198
+   },
+   "high:nonsim": {
+    "pairs": 288,
+    "precision_diff": 92,
+    "arith_count_diff": 185,
+    "sqrt_diff": 9,
+    "vectorization_diff": 35,
+    "libm_call": 62,
+    "fewer_div_windows": 114,
+    "rounding_diff": 69,
+    "proven_different": 103,
+    "more_div_windows": 11,
+    "same_profile": 63,
+    "minmax_diff": 46,
+    "reciprocal_substitution": 46,
+    "proven_codegen_different": 49,
+    "approx_diff": 3
+   },
+   "high:sim": {
+    "pairs": 1377,
+    "arith_count_diff": 825,
+    "more_div_windows": 94,
+    "vectorization_diff": 394,
+    "same_profile": 389,
+    "minmax_diff": 395,
+    "precision_diff": 267,
+    "fewer_div_windows": 256,
+    "approx_diff": 90,
+    "proven_different": 353,
+    "proven_codegen_different": 197,
+    "libm_call": 203,
+    "reciprocal_substitution": 121,
+    "rounding_diff": 134,
+    "sqrt_diff": 78
+   },
+   "high:thirdparty": {
+    "pairs": 220,
+    "libm_call": 26,
+    "arith_count_diff": 131,
+    "vectorization_diff": 26,
+    "proven_different": 47,
+    "same_profile": 68,
+    "precision_diff": 30,
+    "minmax_diff": 26,
+    "fewer_div_windows": 29,
+    "reciprocal_substitution": 22,
+    "proven_codegen_different": 22,
+    "rounding_diff": 47,
+    "more_div_windows": 7,
+    "sqrt_diff": 2
+   },
+   "high:unknown": {
+    "pairs": 123,
+    "arith_count_diff": 79,
+    "rounding_diff": 27,
+    "precision_diff": 31,
+    "libm_call": 15,
+    "fewer_div_windows": 23,
+    "minmax_diff": 24,
+    "proven_different": 25,
+    "vectorization_diff": 26,
+    "more_div_windows": 8,
+    "same_profile": 26,
+    "reciprocal_substitution": 9,
+    "proven_codegen_different": 12,
+    "approx_diff": 3,
+    "sqrt_diff": 5
+   },
+   "medium:all": {
+    "pairs": 648,
+    "arith_count_diff": 394,
+    "precision_diff": 131,
+    "sqrt_diff": 42,
+    "fewer_div_windows": 86,
+    "vectorization_diff": 174,
+    "same_profile": 194,
+    "libm_call": 64,
+    "rounding_diff": 52,
+    "proven_different": 104,
+    "minmax_diff": 123,
+    "approx_diff": 31,
+    "more_div_windows": 34,
+    "proven_codegen_different": 48,
+    "reciprocal_substitution": 22
+   },
+   "medium:nonsim": {
+    "pairs": 84,
+    "arith_count_diff": 54,
+    "precision_diff": 32,
+    "sqrt_diff": 11,
+    "fewer_div_windows": 19,
+    "vectorization_diff": 15,
+    "same_profile": 23,
+    "libm_call": 18,
+    "rounding_diff": 17,
+    "proven_different": 21,
+    "minmax_diff": 12,
+    "reciprocal_substitution": 3,
+    "proven_codegen_different": 3,
+    "more_div_windows": 7
+   },
+   "medium:sim": {
+    "pairs": 513,
+    "arith_count_diff": 307,
+    "vectorization_diff": 147,
+    "same_profile": 156,
+    "libm_call": 41,
+    "proven_different": 78,
+    "precision_diff": 86,
+    "fewer_div_windows": 59,
+    "approx_diff": 31,
+    "more_div_windows": 25,
+    "proven_codegen_different": 45,
+    "minmax_diff": 107,
+    "reciprocal_substitution": 19,
+    "rounding_diff": 31,
+    "sqrt_diff": 28
+   },
+   "medium:thirdparty": {
+    "pairs": 16,
+    "arith_count_diff": 12,
+    "precision_diff": 7,
+    "fewer_div_windows": 6,
+    "minmax_diff": 2,
+    "rounding_diff": 1,
+    "vectorization_diff": 6,
+    "same_profile": 3,
+    "libm_call": 3,
+    "proven_different": 3,
+    "sqrt_diff": 1
+   },
+   "medium:unknown": {
+    "pairs": 35,
+    "precision_diff": 6,
+    "arith_count_diff": 21,
+    "rounding_diff": 3,
+    "same_profile": 12,
+    "vectorization_diff": 6,
+    "minmax_diff": 2,
+    "fewer_div_windows": 2,
+    "more_div_windows": 2,
+    "sqrt_diff": 2,
+    "libm_call": 2,
+    "proven_different": 2
+   }
+  },
+  "reciprocal": {
+   "sites": {
+    "substituted": 438,
+    "unmatched": 284,
+    "exact_pow2": 11,
+    "windows_divides": 60
+   },
+   "functions": 220,
+   "sim_functions": 140
+  }
+ },
+ "decimal": {
+  "parsers": [
+   {
+    "windows": "0x14c3090",
+    "linux": "0x1a3b1a0",
+    "note": "binary64 decimal parser (Windows scale *= 0.1, Linux scale /= 10.0)",
+    "windows_call_sites": 89,
+    "windows_callers": 60,
+    "linux_call_sites": 274,
+    "linux_callers": 139
+   },
+   {
+    "windows": "0x14c2bd0",
+    "linux": "0x1a3ac40",
+    "note": "binary32-result decimal parser (same difference, then cvtsd2ss)",
+    "windows_call_sites": 230,
+    "windows_callers": 117,
+    "linux_call_sites": 806,
+    "linux_callers": 260
+   }
+  ],
+  "functions_with_digit_accumulation": {
+   "w": [
+    "0x14c2bd0",
+    "0x14c3090"
+   ],
+   "l": [
+    "0x1a3ac40",
+    "0x1a3b1a0"
+   ]
+  }
+ },
+ "ordering": {
+  "libstdcxx_helpers": {
+   "unordered_* insert (prime bucket policy)": {
+    "address": "0x2c547a0",
+    "sites": 186,
+    "callers": 182,
+    "by_domain": {
+     "nonsim": 4,
+     "thirdparty": 80,
+     "unknown": 14,
+     "std": 88
+    }
+   },
+   "std::map/set insert": {
+    "address": "0x2c53010",
+    "sites": 205,
+    "callers": 146,
+    "by_domain": {
+     "nonsim": 31,
+     "thirdparty": 94,
+     "unknown": 34,
+     "sim": 5,
+     "std": 41
+    }
+   },
+   "std::map/set iteration (const)": {
+    "address": "0x2c52e40",
+    "sites": 314,
+    "callers": 191,
+    "by_domain": {
+     "nonsim": 75,
+     "thirdparty": 181,
+     "unknown": 42,
+     "sim": 14,
+     "std": 2
+    }
+   },
+   "std::map/set iteration": {
+    "address": "0x2c52df0",
+    "sites": 93,
+    "callers": 70,
+    "by_domain": {
+     "thirdparty": 65,
+     "nonsim": 6,
+     "std": 21,
+     "unknown": 1
+    }
+   },
+   "std::list insert": {
+    "address": "0x2c52dc0",
+    "sites": 171,
+    "callers": 117,
+    "by_domain": {
+     "sim": 84,
+     "nonsim": 27,
+     "thirdparty": 47,
+     "unknown": 12,
+     "std": 1
+    }
+   },
+   "unordered_* rehash/reserve": {
+    "address": "0x2c54570",
+    "sites": 12,
+    "callers": 12,
+    "by_domain": {
+     "unknown": 1,
+     "thirdparty": 9,
+     "std": 2
+    }
+   },
+   "std::_Hash_bytes (std::hash of strings/bytes, Murmur-based)": {
+    "address": "0x2c52080",
+    "sites": 45,
+    "callers": 33,
+    "by_domain": {
+     "nonsim": 2,
+     "thirdparty": 28,
+     "std": 13,
+     "unknown": 2
+    }
+   }
+  },
+  "hash_constant_functions": {
+   "w": {
+    "fnv1a_offset_basis": 53,
+    "murmur64_multiplier": 0
+   },
+   "l": {
+    "fnv1a_offset_basis": 51,
+    "murmur64_multiplier": 1
+   }
+  },
+  "linux_introsort_like_functions": {
+   "count": 99,
+   "by_domain": {
+    "sim": 64,
+    "nonsim": 8,
+    "thirdparty": 18,
+    "unknown": 8,
+    "std": 1
+   }
+  },
+  "linux_qsort_sites": {
+   "sites": 32,
+   "callers": [
+    "0x1de9f90",
+    "0x2282e90",
+    "0x229f7a0",
+    "0x2322590",
+    "0x2322680",
+    "0x23368d0",
+    "0x2337520",
+    "0x2347e00",
+    "0x2352dd0",
+    "0x2353340",
+    "0x246ef40",
+    "0x2476330",
+    "0x2488a20",
+    "0x249d5f0",
+    "0x249d6c0",
+    "0x249d790",
+    "0x249df90",
+    "0x251d450",
+    "0x26fa490",
+    "0x26fab10",
+    "0x2704e40",
+    "0x271b410"
+   ]
+  },
+  "linux_rand_sites": 5
+ },
+ "jolt": {
+  "version_id": "0x400050500",
+  "version": "5.5.0",
+  "features": "0x400 (ObjectStream only)",
+  "linux_functions_with_version_constant": [
+   "0x1b0aab0",
+   "0x1b25060",
+   "0xefd5d0"
+  ],
+  "windows_functions_with_version_constant": [],
+  "linux_named_functions": 2513,
+  "linux_named_traits": {
+   "libm_sqrtf": 94,
+   "libm_fmodf": 6
+  }
+ }
+}

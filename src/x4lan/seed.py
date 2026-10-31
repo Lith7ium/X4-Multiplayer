@@ -21,6 +21,8 @@ CHUNK = 1024 * 1024
 HEX32 = re.compile(r"[a-f0-9]{32}\Z")
 HEX64 = re.compile(r"[a-f0-9]{64}\Z")
 ATOM = re.compile(r"[A-Za-z0-9_.-]{1,128}\Z")
+# Match the launcher's reserved profiles, including dedicated clients p3-p8.
+TEST_PROFILES = frozenset(str(number) for number in range(45841, 45849))
 
 
 class SeedError(ValueError):
@@ -252,8 +254,8 @@ def stage_test_save(folder, profile):
     existing saves and the immutable bundle cannot be overwritten.
     """
     profile = Path(profile)
-    if profile.name != "45841" or profile.is_symlink() or not profile.is_dir():
-        raise SeedError("requires existing isolated profile 45841")
+    if profile.name not in TEST_PROFILES or profile.is_symlink() or not profile.is_dir():
+        raise SeedError("requires existing isolated test profile 45841..45848")
     saves = profile / "save"
     if saves.is_symlink():
         raise SeedError("linked save directory")

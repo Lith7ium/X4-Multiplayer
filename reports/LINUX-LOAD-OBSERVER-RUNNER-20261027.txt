@@ -1,0 +1,218 @@
+Owned Linux snapshot load observer — runner ready for review
+
+No successful native observer run is claimed in this revision. The reviewed Linux agent
+implements a separate read-only load observer; this harness and launcher prepare
+one owned snapshot load using the common portable fixture contract. No simulation
+permits, fixed-step scheduler, gameplay commands or cross-platform equality are
+enabled by this mode.
+
+The launcher preserves the earlier clock/no-op scenarios and their original
+artifact pins. The new explicit snapshot-observer scenario selects a separate
+agent filename and harness. Both are pinned by full SHA256. The observer agent is
+cad7038, artifact SHA256
+3d52898885b3f1ef5af616ef9d86ab230d8912540249a66a5a87f2063ddea5f4.
+The exact portable contract is
+f66b841dbef811d245eb584a0586401ef80361847ad17d941dfeb3cd5dc0592b.
+Before launch, the runner verifies all127 stock files by complete bytes and records
+their identity/size/mtime for a post-load change check. It copies the exact owned
+save into a new disposable profile45841. Only the seven DLC extensions and the
+minimal common saved-MD fixture/ACK-gated loader are visible. It does not include
+the previous custom_creative autostart adapter, actor spawning or order triggers.
+
+The existing read-only mount namespace, canonical game path, private lock,
+private HOME/XDG directories, same-user existing Steam identity, owned native
+PIDFD and separately owned Xvfb PIDFD remain in force. The deployed service and
+normal game/profile/Steam files are not written. The observer environment removes
+all scheduler and admission variables and explicitly selects only
+snapshot-import-observer-v1. No token appears in source configuration or reports.
+
+The independent harness opens only the launcher's exact PID/start/UID claim. It
+verifies the full game hash, exact loaded agent path/hash, PIDFD and read-only
+process-memory handle. Fresh logs and claim/request/output paths are mandatory.
+It requires the exact common loader MENU marker before atomically publishing a
+native-UID mode0400 request bound to mode/token/PID/start. Before publication, it
+independently verifies all three observer code regions, four scheduler/main-gate
+regions, and both normal/loading VBI slot13 entries are original/empty.
+
+The loader waits on the native ready accessor. The harness independently observes
+the flushed INSTALLED line before accepting LOAD_REQUEST, then requires the exact
+snapshot LOADED marker. Once the provisional Completed state has all original
+calls/returns, zero active wrappers, output written and six ordered owner-thread
+marks, the harness atomically publishes the launcher's exact fresh private disarm
+file once. The native agent owns restoration. The harness continues waiting for
+the final status and independent byte/slot checks before exiting; it does not wait
+for launcher cleanup to initiate this successful restoration.
+Final publishable output alone is insufficient: Completed,
+active0, failure none, restored1, restore_error none, all three original call and
+return counts equal one, and six ordered marks on the installation-owner thread
+are mandatory. All seven code regions and both slot13 entries must independently
+match their original state on the same VBI table. The saved/runtime map must have
+the exact binary length, sorted unique saved IDs and matching unresolved count.
+All twelve fixture IDs must resolve without aliases; an independent pure registry
+decoder checks generation, flags, full component ID and pinned ShipSmall class.
+
+The six clock/thread/load markers are retained as diagnostic boundary evidence.
+They are not converted to portable main-gate tick zero or treated as simulation
+admission. This step exists to establish the actual Linux loading/import boundary
+before a later simultaneous Linux-X4/Windows-X4 test.
+
+Validation: nine observer-harness tests pass under WSL, including real native-UID
+atomic no-replace publication. Eight portable checks also pass on Windows, where
+the POSIX publication check is explicitly skipped. Three launcher checks pass
+under WSL: observer environment isolation, exact private fixture staging, and
+real PIDFD termination of an owned orphan that ignores SIGTERM. Windows passes
+the two portable launcher checks and skips the Linux PIDFD case. Python compilation
+passes. These are offline/owned-process tests, not native X4 load evidence.
+
+The first approved native attempt was stopped before MENU, ready publication or
+observer installation. Two helper executables inherited LD_PRELOAD and wrote
+generic executable-size refusals to the shared agent log. The original harness
+misattributed those refusals to the owned game. The actual X4 process then logged
+its exact VERIFIED pid, WAIT owned_preload_request, and NOT_ARMED after cleanup.
+Both owned native/display PIDFD exits and unchanged existing Steam were verified;
+there were no cleanup errors. No imported-map, boundary or restoration acceptance
+is claimed for that pre-install negative.
+
+The corrected harness retains those early small-executable refusals as explicit
+unattributed diagnostics. A VERIFIED line with the exact claimed native PID is
+mandatory before ready publication or lifecycle acceptance; another PID does not
+qualify. Generic refusals after that verification remain fatal because their
+source is ambiguous, and observer-specific refusals are always fatal. Independent
+PIDFD/start/full-file/loaded-agent checks remain mandatory, with executable inode
+and size checked during subsequent process reads. The new attribution regression
+reproduces the helper/native log sequence and rejects the ambiguous cases.
+
+A second approved attempt passed exact native verification and the fresh MENU
+marker, and published its owned preload request. It then stopped before observer
+installation because X4 disallows calling the custom accessor through ffi.C.
+The common loader emitted a precise restricted-FFI error; the agent stayed in
+settling/NOT_ARMED. Both PIDFD cleanup checks and unchanged existing Steam passed.
+This is another pre-install negative, not snapshot-load or restoration acceptance.
+
+The Linux adapter now follows the existing project's supported package.loadlib
+convention and expects a separate native Lua module exposing ready() as a boolean.
+It does not enable general FFI or alter Protected UI settings. Missing module,
+protected UI, failed native binding or a non-boolean ready value refuses loading.
+Two additional actual-LuaJIT adapter checks pass with synthetic module bindings.
+The shared loader and contract bytes remain unchanged; the Linux module/adapter
+are separately pinned participant artifacts. The separately built native module
+is334616bytes, SHA256
+647641a772ccf9dd6586b8709457f59b3802f0519e73847b0b69e93b19b01dd7,
+source3162eca in the Linux compatibility lane. It pins the existing observer
+artifact and resolves only its ready accessor; no additional agent or engine hook
+is installed. The launcher verifies and copies its exact bytes into the fresh
+private extension. The module and complete review004 bundle require review
+before a further live attempt. Initialization errors in either portable Lua module
+also fail the harness immediately instead of waiting for the MENU deadline.
+
+Review004 nongame VPS preflight passed with the exact private fixture/config and
+29.5GB available memory. The machine had no LuaJIT command-line executable; the
+initial missing-tool result is retained. No package was installed. The bounded
+tools/dev/linux_luajit_driver.py instead loads an explicitly full-hash-pinned
+existing LuaJIT library into its own process, using the Lua5.1 C API. The actual
+X4 bundled library is536168bytes, SHA256
+98ab8eac99f2a87c647eb1f48063d0c4b9a62216d462401bf5c377fbb35d38cb.
+All five bridge binding/refusal cases passed through it, including the renamed
+approved agent and the foreign trapping accessor that must never be called.
+They also passed under the same driver with the WSL LuaJIT library. The agent's
+opt-in environment remained absent, no X4 process or hook was started, the library
+metadata remained unchanged, and the existing Steam identity was preserved.
+The private preflight config and module manifests are retained with review004.
+
+The third approved native attempt reached the supported Lua module initializer,
+which refused agent_maps_size before MENU/request/installation. X4's live process
+mapping metadata exceeded the bridge's whole-file1MiB cap. The loader and harness
+failed closed; native/display PIDFD cleanup and unchanged Steam passed. This is
+another pre-install negative; no native Load or import-map capture was accepted.
+
+The compatibility lane's corrected bridge36eeafe preserves the file hash,
+accessor offset/live bytes, device/inode and read-only executable-span checks,
+while streaming bounded lines to the exact mapping. The frozen replacement is
+338480bytes, SHA256
+636377e7c5354a6bed8d618ad29ad6667e782720e6b9e135d19bc4de44648b2c.
+The observer agent, shared contract, harness and Linux adapter are unchanged.
+
+The private nongame driver can now deliberately retain at most32768 separate4KB
+shared anonymous mappings (128MiB virtual) within a5s setup deadline. It records
+the actual metadata prefix before the accessor, not merely total map size. In
+WSL,11264 mappings reserved about46MB virtual and produced a1.055MB prefix. The
+old bridge reproduced its exact size refusal. The corrected bridge passed all
+five real LuaJIT binding/refusal cases with measured prefixes above1MiB, including
+both approved-agent paths and the foreign accessor refusal. No X4 process or hook
+was used. A new source/artifact review and equivalent VPS preflight remain
+required before the next single native attempt.
+
+Review005's equivalent nongame VPS preflight passed all five binding/refusal
+cases, with measured prefixes of1,055,327..1,055,959bytes before the accessor.
+The existing LuaJIT library and Steam identity remained unchanged, no X4 was
+running, and29.49GB was available. The reviewed fourth observer-only attempt
+then reached exact native verification, the fresh MENU marker, and its owned
+preload request. The corrected bridge initialized successfully.
+
+That attempt stopped on observer_not_preload_menu_boundary before installing
+the three observer patches: owner0, all calls/returns zero, no imported output,
+and no LOAD_REQUEST or LOADED marker. The cadence slot was armed briefly and
+then disarmed. Independent final reads found all seven observed code regions
+original and both slot13 entries clear. Native/display PIDFD exits, unchanged
+stock-file metadata and unchanged existing Steam all passed. This is a retained
+pre-load guard refusal, not imported-map or successful-load acceptance. The
+Linux observer owner is investigating the predicate before any further attempt.
+
+Review006 retained the frozen shared001 bytes and used the reviewed matched
+observer481d05ff/bridge6ac6c133. The nongame VPS binding preflight passed all five
+cases with more than1MiB of mapping metadata before the accessor and29.55GB
+available. The fifth observer-only attempt then installed successfully:1265
+samples over875,687,051ns recorded unchanged owned menu operands while the main
+in-flight byte changed from0 to1. One native snapshot load followed the flushed
+installation acknowledgment, and all six lifecycle marks were captured.
+
+The run remains FAILED. Provisional Completed status had all three calls and
+returns exactly1, no active callback/fault,521929 identities, no unresolved
+entries and1,272,757,684ns capture time. The exact LOADED marker reported game
+time7.083. After the harness published its owned disarm request, a concurrent
+cadence callback recorded observer_terminal; final publishable became0. Source
+inspection identified STOP being set before slot13 withdrawal, with the callback
+mistaking that normal stop for a new fault. This requires a separately reviewed
+native fix; neither the harness nor the recorded result was relaxed.
+
+Independent final reads found all seven observed code regions original and both
+slot13 entries clear. Both owned native/display PIDFD exits, stock-file metadata
+and existing Steam identity checks passed. The8,350,880byte import file is retained
+privately:521929 strictly sorted saved IDs and all12 fixture saved IDs mapping to
+unique nonzero runtime IDs. This offline file check does not replace the missed
+live-registry/final-acceptance checks. The six marks and import map are diagnostic
+evidence from a failed run, not portable frame0 or cross-platform gameplay proof.
+
+The launcher now preserves the harness's specific terminal error instead of
+replacing it with a generic missing-world message. It records a validated LOADED
+marker separately from full loaded-snapshot acceptance; the acceptance gate is
+unchanged. A regression covers this distinction.
+
+Review007 completed the bounded native observer scope successfully. Its frozen
+observer SHA256 is
+dba2adf1025e0247c0bdffd8802b5d0a3ab85f3c237b778a30b860f14494aebf;
+the matched readiness bridge is
+ee841df1e9a9291ec47a584c4d31d97c2a0319f31faa4a92b17bf77cd6ecb87c.
+The unchanged frozen001 common fixture/snapshot was loaded by one owned Linux
+X4 process after fresh MENU, owned request and flushed installation acknowledgment.
+
+Final Completed status retained calls/returns/raw calls/raw returns[1,1,1],
+active0, failure none, restored1, restore_error none, output_written1 and
+publishable1 after the harness's owned disarm request. The capture contained
+521929 sorted saved/runtime identities, zero unresolved entries, and completed
+in1,186,516,798ns. Its private output SHA256 is
+383fe15a7f2a61437d718c1e06b15a3019db6bf656047e08674f032fb0938302.
+The independent harness resolved all12 fixture identities through the live
+registry's generation/flags/full-ID checks and exact ShipSmall class pin.
+
+All seven observed code regions independently matched original bytes, both
+slot13 entries were clear, and the VBI table identity was unchanged. The exact
+owned native/display PIDFD identities exited; existing Steam and stock-file
+metadata remained unchanged. The launcher and probe both exited0. Previous
+failed cases remain unchanged. The mark field at GameClient+0x1fc is treated as
+raw data, not as a proven completion acknowledgment.
+
+This accepts one read-only snapshot-load/import/identity/restoration probe.
+No scheduler, network admission, commands or clock writes were enabled. It does
+not establish a portable main-frame-zero capture, Linux/Windows equality or any
+gameplay feature. Those require the next separately reviewed mixed-native build.

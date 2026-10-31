@@ -1,0 +1,75 @@
+Windows Euler capability: same-session UI reload acknowledgement
+===============================================================
+
+Problem and change
+------------------
+The Windows adapter configures its native capabilities again when X4 replaces
+the Lua state during loading. The boot and portable configuration APIs already
+accept an identical request for their existing session. The Euler configuration
+API instead rejected any configured state and set a sticky failure. Thus the
+ordinary UI reload could cancel an otherwise correctly configured native Load.
+The failed mixed003 attempt remains a failed attempt; this change does not
+reinterpret it as accepted evidence.
+
+The first Euler configuration still requires the exact mode, descriptor,
+snapshot and contract, pre-load UI ownership, pinned image/code, and fresh owned
+installation. On success it now retains the immutable process-owned boot
+binding: image/thunk addresses, boot start/options, participant/port/token,
+initial digest, portable actor manifest and limit. No token is exported or logged.
+
+A repeated request with the exact same capability arguments only acknowledges
+that existing configuration. It requires the unchanged active boot binding,
+portable contract, table/client/unique client slot, healthy native phase, both
+exact owned code words and RX permissions, valid thunk bytes, and no STOP,
+sticky failure, restoration error or pending protection/cache repair.
+
+Successful acknowledgement performs no CAS, VirtualProtect, cache flush,
+installation, counter/phase/serial reset or Load-owner adoption. It does not
+require the reloaded Lua thread to equal the original UI thread. It also does
+not require the old menu module to survive the legitimate loaded-module change.
+Actual Load/tail callbacks retain all existing module, manager, serial, caller,
+owner-thread and per-invocation guards.
+
+This acknowledgement does not grant another Load or certify imported math.
+The separate pre-load ready API still becomes false after load_requested.
+The Load wrapper remains one-shot. Frame-zero admission still requires the
+complete successful Load and both exact Euler conversion counts. STOP and any
+earlier sticky failure cannot be cleared by repeating configuration. Invalid
+reattachment retains a configuration failure without reinstalling either site.
+
+Validation and scope
+--------------------
+Source base630e905. Full build_native_gate.py --test with the exact read-only
+Windows PE passed, including all gate, transition, origin, portable codec,
+native decoder and production loopback transport tests. The focused production
+rotation fixture passed82,772 checks. No game executable instruction was run.
+
+Added owned-memory cases exercise acknowledgement before Load, while the actual
+production Load wrapper is open around synthetic originals, and after normal
+completion of20,010 selected tail calls. The wrapper keeps exactly one Load,
+one serial and unchanged per-role call/return/write counts. Every acknowledgement
+checks that the production path called neither VirtualProtect nor
+FlushInstructionCache and left patch metadata and lifecycle counters untouched.
+
+Negative cases cover changed capability strings; participant, port, token,
+initial digest, options, boot start, portable manifest and limit; inactive or
+different boot/configuration state; STOP; existing failure; restoration debt;
+changed client/slot; foreign bytes at either patch; and foreign page protection.
+Foreign bytes remain untouched, and existing failures remain sticky. Identical
+configuration without completed math still refuses frame-zero readiness.
+
+A separate exact-image fixture reads and verifies the real PE, maps a private
+copy, and exercises the real first-configuration file/hash/CAS path. Its only
+file-path test substitution makes GetModuleFileNameW name the immutable verified
+PE. No file is written and no code from that image is executed. This validates
+successful first installation and subsequent readonly acknowledgements; the
+original-once Load execution test separately uses owned synthetic code/data.
+
+The shared mode, descriptor, snapshot, contract, fixture, math implementation,
+Lua method signatures and status schema are unchanged. No Linux change, native
+launch, staging or retry is included. Real Lua-state reload tests are a separate
+integrator-owned contribution; this report claims the production C tests above.
+
+Private full output is retained as .local/reattach-full-build.txt. The local
+candidate DLL was built only for verification; source review and a newly frozen
+combined bundle remain prerequisites to any subsequent native attempt.

@@ -1,0 +1,116 @@
+Linux native clock/no-op admission probe — 27 October 2026
+
+Scope
+One actual Linux X4 process with an explicitly synthetic coordinator. This tests
+the simulation boundary, waiting clocks, no-op permits and restoration. It does
+not establish Linux/Windows gameplay parity, world identity, RNG equivalence,
+player input ownership, combat, economy or faction management.
+
+Isolation
+The launcher runs a fresh disposable profile with autosave disabled, private
+HOME/XDG paths, a private display and a private game lock. Host files are read-only.
+The existing same-user Steam process is checked by PID/start/UID throughout and
+is never launched or stopped. Production services and normal saves are untouched.
+
+Both the staged game path and the canonical real game path see only seven stock
+DLCs plus the unchanged released test autostart extension. Separate read-only DLC
+source mounts avoid recursive symlinks when the canonical extensions directory
+is shadowed. A real VPS nongame preflight verified both views, all seven DLC
+manifest hashes, effective UID, read-only host root, writable private directory,
+private game lock, unchanged host lock/extensions and unchanged Steam identity.
+
+The exact native child and private Xvfb are held by PIDFD and start identity.
+Cleanup remains bounded if a launcher parent exits. A real Linux regression
+terminates an owned orphan that ignores SIGTERM and confirms PIDFD exit; repeating
+cleanup on that exited identity cannot signal a reused PID.
+
+Preserved negative evidence
+Two initial attempts reached the clock boundary before a loaded world was proved.
+Both failed world_ready_not_observed_before_first_report, admitted zero permits,
+and cleaned their owned game/display processes. Agent restoration diagnostics
+were present, but those attempts did not complete independent restoration checks
+or establish exact-once continuation. They are not passing hold tests.
+
+The corrected agent waits for an owned ready request before installing any
+slot, scheduler, timestep, render or admission hook. The independent coordinator
+publishes that request only after fresh exact INGAME and READY markers, loaded
+FrameState baseline capture and PIDFD identity verification. Kernel UDP arrival
+timestamps still reject reports that arrived before readiness was observed.
+Final acceptance requires matching original call/return counts, terminal
+acknowledgment and independent code/padding restoration.
+
+Reviewed artifacts
+Agent source: c34c981 (linux-server-compat contribution).
+Agent SHA256: 39372938fcac09c3061262c8b50682f655fe9eb1025416238e2319673c9ed25b
+Harness SHA256: 2fe32df09e35454d70e97a7ecdfa787a2f5293dc99029e36d5121e24581ddef7
+Exact Linux executable SHA256:
+113f73d74570084f6ce18a659b365009eccf579fb66dbabb5dad2b1718045f20
+
+Native results with the reviewed readiness fix
+Hold/no-op: PASS. Fresh matching custom_creative INGAME and READY markers preceded
+the first kernel-timestamped report by 13.069 seconds. All 13 unique reports for
+ticks 0..12 matched independent reads of the three native clocks. Thirty samples
+spanning 3.077 seconds held an identical clock tuple. Twelve no-op permits yielded
+13 original calls and 13 original returns, including the final exit continuation,
+with terminal_ack=1 and zero wait-clock changes. Independent reads confirmed all
+four code regions and the loaded world's FrameState padding restored. Owned
+native/display PIDFD exits were verified and Steam identity stayed unchanged.
+
+Unsupported nonzero command: PASS. Two permits, followed by the exact
+unsupported_non_noop_command refusal, three calls/returns and terminal_ack=1.
+Missing replies: PASS. The expected permit_timeout followed 5.004 seconds of
+waiting with zero clock changes; two permits and three calls/returns.
+Closed coordinator socket: PASS. The expected permit_receive failure followed
+104.65 milliseconds of waiting; two permits and three calls/returns.
+
+All three failure scenarios used fresh loaded worlds and the same reviewed
+artifacts. Each verified zero wait-clock changes, terminal acknowledgment,
+independent original code/padding restoration, owned native/display PIDFD exits
+and unchanged Steam identity. The implementation owner independently checked all
+four downloaded results. Final remote inventory found no native X4 or owned test
+process; the pre-existing production service remained stopped/failed.
+
+These probes deliberately restore the original native engine on termination and
+the owning launcher then closes the disposable process. They do not implement a
+production multiplayer session's failure policy or authorize a dedicated fallback.
+
+Raw logs, process identities, local paths and private test artifacts remain under
+.local/linux-admission and the owned VPS test directory; they are excluded from
+source control.
+
+Candidate simultaneous Linux/Windows native baseline
+Read-only full hashing of both actual installations matched all 127 stock files:
+60 catalogs, 60 complete data payloads and seven DLC content manifests. Payloads
+total 28,335,269,200 bytes. The normalized manifest digest on both systems is
+f589af25b4170053314d1271e18d6499b5c7a313ccad0bdaacb1aabdaea4a5ac.
+This is stock data equality; platform executables and experimental overlays are
+separate artifacts and are not covered by that matching digest.
+
+The existing owned Windows fixture snapshot is a candidate shared starting save:
+25,320,681 bytes, SHA256
+7816351056e6040d92ae9a4619ae2e15a577fa26a19134f11e20746317e61aa8.
+Its header identifies version 900/build 611726 and the same seven DLCs at version
+900. The capture pauses before saving. The snapshot was independently rehashed;
+it has not been loaded or staged on the VPS by this work.
+
+The smallest useful next test is both actual games loading that exact save and
+its matched fixture scripts, then comparing portable semantic identity/state
+leaves before the first permitted simulation frame and over a short no-op run.
+Each side must record the same command receipt at the same admitted tick, and a
+deliberate hold must freeze both clocks. A mismatch is diagnostic evidence, not a
+reason to replace a native participant with a synthetic peer.
+
+Implementation gaps remain before such a test is reviewable:
+- Linux has no reviewed snapshot loader/pre-first-simulation admission lifecycle.
+  The current fresh-world readiness contract intentionally advances at least two
+  game seconds; it cannot prove a shared initial snapshot state.
+- Linux lacks the saved-to-runtime component identity mapping and semantic state
+  exporter. Existing Windows world roots include platform-specific class and
+  controller RVAs, so those roots cannot directly compare across executables.
+- Linux explicitly refuses nonzero commands. A matched command receipt and
+  bounded native command adapter are required before testing player actions.
+- Both peers need an explicit matching state schema/capability contract and
+  matched shared fixture scripts; matching the NGSTATE2 envelope alone is not
+  enough. The Linux dedicated supervisor's unsupported-lockstep refusal remains.
+
+No simultaneous Linux-X4/Windows-X4 gameplay run was performed in this work.

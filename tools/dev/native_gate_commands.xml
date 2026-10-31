@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Test-only native order application. Both instances run each admitted batch. -->
+<mdscript name="X4LAN_NativeCommands" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="md.xsd">
+ <cues>
+  <cue name="State"><actions><set_value name="$last" exact="[0,0]"/></actions></cue>
+  <cue name="Apply" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeCommands'" control="'Apply'"/></conditions>
+   <actions>
+    <set_value name="$a" exact="event.param3"/>
+    <set_value name="$ships" exact="md.X4LAN_NativeGate.Spawn.$ships"/>
+    <set_value name="$owner" exact="if $a.$mode == 'pvp' then (if $a.$actor le 6 then 1 else 2) else (if $a.$actor le 6 then (if $a.$actor == 1 or $a.$actor == 3 or $a.$actor == 5 then 1 else 2) else 0)"/>
+    <set_value name="$valid" exact="(($a.$op == 2 or $a.$op == 7 or $a.$op == 8) and $a.$target == 0) or ($a.$op == 9 and $a.$target == $a.$slot and @DockSetup.$anchors.{$a.$target}.isoperational) or (($a.$op == 3 or $a.$op == 5) and ($a.$target == 1 or $a.$target == 2)) or (($a.$op == 1 or $a.$op == 4 or $a.$op == 6) and $a.$target ge 1 and $a.$target le 12 and $a.$actor != $a.$target and $ships.{$a.$target}.isoperational and (if $a.$op == 1 then (($a.$actor le 6) != ($a.$target le 6)) else (($a.$actor le 6) == ($a.$target le 6))))"/>
+    <do_if value="($a.$mode == 'pvp' or $a.$mode == 'coop') and ($a.$slot == 1 or $a.$slot == 2) and $a.$actor ge 1 and $a.$actor le 12 and $owner == $a.$slot and $a.$tick gt State.$last.{$a.$slot} and $ships.{$a.$actor}.isoperational and $valid">
+     <set_value name="State.$last.{$a.$slot}" exact="$a.$tick"/>
+     <do_if value="$a.$op == 1">
+      <create_order object="$ships.{$a.$actor}" id="'Attack'" immediate="true" name="$order">
+       <param name="primarytarget" value="$ships.{$a.$target}"/>
+       <param name="pursuetargets" value="true"/>
+       <param name="allowothertargets" value="false"/>
+      </create_order>
+     </do_if>
+     <do_elseif value="$a.$op == 2"><create_order object="$ships.{$a.$actor}" id="'Wait'" immediate="true" name="$order"/></do_elseif>
+     <do_elseif value="$a.$op == 9">
+      <!-- Replace the old queue: an infinite order's sync point otherwise
+           releases DockAndWait as soon as the queued Attack becomes ready. -->
+      <cancel_all_orders object="$ships.{$a.$actor}"/>
+      <create_order object="$ships.{$a.$actor}" id="'DockAndWait'" immediate="true" name="$order">
+       <param name="destination" value="DockSetup.$anchors.{$a.$target}"/>
+       <param name="dockfollowers" value="false"/>
+       <param name="noattackresponse" value="true"/>
+      </create_order>
+     </do_elseif>
+     <do_elseif value="$a.$op == 8">
+      <create_order object="$ships.{$a.$actor}" id="'MoveWait'" immediate="true" name="$order">
+       <param name="destination" value="null"/>
+       <param name="withdraw" value="true"/>
+       <param name="noattackresponse" value="true"/>
+      </create_order>
+     </do_elseif>
+     <do_elseif value="$a.$op == 6 or $a.$op == 7">
+      <create_order object="$ships.{$a.$actor}" id="'AssignCommander'" immediate="true" name="$order">
+       <param name="commander" value="if $a.$op == 6 then $ships.{$a.$target} else null"/>
+       <param name="assignment" value="if $a.$op == 6 then assignment.defence else null"/>
+       <param name="cancelorders" value="true"/>
+      </create_order>
+     </do_elseif>
+     <do_elseif value="$a.$op == 3 or $a.$op == 5">
+      <do_if value="$a.$dockexit == 'above' and $a.$op == 3">
+       <create_position name="$position" x="if $a.$target == 1 then -5km else 5km" y="101km" z="2500m"/>
+      </do_if>
+      <do_else>
+       <create_position name="$position" x="(if $a.$target == 1 then -1 else 1) * (if $a.$op == 5 then 20km else 1600m)" y="if $a.$target == 1 then 100200m else 99800m" z="if $a.$op == 5 then 30km else 1200m"/>
+      </do_else>
+      <create_order object="$ships.{$a.$actor}" id="'MoveWait'" immediate="true" name="$order">
+       <param name="destination" value="[$ships.{$a.$actor}.sector,$position]"/>
+       <param name="precise" value="true"/>
+       <param name="noboost" value="$a.$op == 3"/>
+       <param name="noattackresponse" value="true"/>
+      </create_order>
+     </do_elseif>
+     <do_else>
+      <create_order object="$ships.{$a.$actor}" id="'ProtectShip'" immediate="true" name="$order">
+       <param name="target" value="$ships.{$a.$target}"/>
+      </create_order>
+     </do_else>
+     <do_if value="@$order.exists and $order.id == (if $a.$op == 1 then 'Attack' else if $a.$op == 9 then 'DockAndWait' else if $a.$op == 2 then 'Wait' else if $a.$op == 3 or $a.$op == 5 or $a.$op == 8 then 'MoveWait' else if $a.$op == 6 or $a.$op == 7 then 'AssignCommander' else 'ProtectShip')">
+      <debug_text text="'[X4LAN] NATIVE_GATE COMMAND_APPLIED tick=%s slot=%s op=%s actor=%s target=%s time=%s'.[$a.$tick,$a.$slot,$a.$op,$a.$actor,$a.$target,player.age]"/>
+     </do_if>
+     <do_else>
+      <debug_text text="'[X4LAN] NATIVE_GATE COMMAND_REFUSED tick=%s slot=%s reason=order_creation'.[$a.$tick,$a.$slot]"/>
+      <raise_lua_event name="'X4LAN_NativeGate.CommandRefused'"/>
+     </do_else>
+    </do_if>
+    <do_else>
+     <debug_text text="'[X4LAN] NATIVE_GATE COMMAND_REFUSED tick=%s slot=%s'.[$a.$tick,$a.$slot]"/>
+     <raise_lua_event name="'X4LAN_NativeGate.CommandRefused'"/>
+    </do_else>
+   </actions>
+  </cue>
+  <cue name="DockSetup" namespace="this">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeCommands'" control="'DockSetup'"/></conditions>
+   <actions>
+    <set_value name="$anchors" exact="[]"/>
+    <do_all exact="2" counter="$i">
+     <create_station name="$station" macro="macro.station_gen_factory_base_01_macro" constructionplan="'x4lan_native_gate_dock'" owner="if $i == 1 or event.param3.$mode == 'coop' then faction.argon else faction.xenon" sector="player.sector" state="componentstate.operational">
+      <position x="if $i == 1 then -5km else 5km" y="100km" z="2500m"/>
+      <rotation yaw="0deg"/>
+     </create_station>
+     <append_to_list name="$anchors" exact="$station"/>
+     <raise_lua_event name="'X4LAN_NativeGate.DockAnchor%s'.[$i]" param="$station"/>
+     <find_object_component name="$dockareas" object="$station" class="class.dockarea" multiple="true"/>
+     <do_if value="$dockareas.count == 1">
+      <raise_lua_event name="'X4LAN_NativeGate.DockCollider%s'.[$i]" param="$dockareas.{1}"/>
+     </do_if>
+     <do_else><raise_lua_event name="'X4LAN_NativeGate.CommandRefused'"/></do_else>
+    </do_all>
+    <debug_text text="'[X4LAN] NATIVE_GATE DOCK_FIXTURE anchors=%s'.[$anchors.count]"/>
+   </actions>
+  </cue>
+  <cue name="BoostSample" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeCommands'" control="'BoostSample'"/></conditions>
+   <actions>
+    <set_value name="$tick" exact="event.param3.$tick"/>
+    <do_all exact="12" counter="$i">
+     <set_value name="$ship" exact="md.X4LAN_NativeGate.Spawn.$ships.{$i}"/>
+     <do_if value="$ship.isoperational">
+      <debug_text text="'[X4LAN] NATIVE_GATE BOOST tick=%s id=%s alive=1 active=%s available=%s remaining=%s speed=%s maxspeed=%s time=%s'.[$tick,$i,if $ship.boost.active then 1 else 0,if $ship.boost.available then 1 else 0,$ship.boost.remainingfraction,$ship.speed,$ship.maxspeed,player.age]"/>
+     </do_if>
+     <do_else><debug_text text="'[X4LAN] NATIVE_GATE BOOST tick=%s id=%s alive=0'.[$tick,$i]"/></do_else>
+    </do_all>
+   </actions>
+  </cue>
+  <cue name="TravelSample" instantiate="true">
+   <conditions><event_ui_triggered screen="'X4LAN_NativeCommands'" control="'TravelSample'"/></conditions>
+   <actions>
+    <set_value name="$tick" exact="event.param3.$tick"/>
+    <do_all exact="12" counter="$i">
+     <set_value name="$ship" exact="md.X4LAN_NativeGate.Spawn.$ships.{$i}"/>
+     <do_if value="$ship.isoperational">
+      <debug_text text="'[X4LAN] NATIVE_GATE TRAVEL tick=%s id=%s alive=1 charging=%s active=%s speed=%s maxspeed=%s charge=%s attention=%s time=%s'.[$tick,$i,if $ship.travel.charging then 1 else 0,if $ship.travel.active then 1 else 0,$ship.speed,$ship.maxspeed,$ship.boost.remainingfraction,$ship.attention,player.age]"/>
+     </do_if>
+     <do_else><debug_text text="'[X4LAN] NATIVE_GATE TRAVEL tick=%s id=%s alive=0'.[$tick,$i]"/></do_else>
+    </do_all>
+   </actions>
+  </cue>
+ </cues>
+</mdscript>

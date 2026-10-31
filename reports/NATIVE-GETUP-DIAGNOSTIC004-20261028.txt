@@ -1,0 +1,113 @@
+GETUP004 - COPIED PREBIND MODEL PRODUCER OBSERVED; STRICT FAILURE RETAINED
+28 October 2026
+
+One authorized disposable b4 invocation used frozen source
+ab5f08986de24db175b56757f4956ca857c43668. No retry or setting change occurred.
+It retained003's exact snapshot, selected ship ae79c/player11e12, five raw
+world watches, passive mask70377334178981, one physical p1, action30 after
+report29, last120 and900-second runtime/admission limits. The explicit copied
+queue-evidence option was the sole configuration addition. Position, registry,
+construction ACK, rotation and RNG experiments were unconfigured.
+
+Artifact review SHA256:
+7f9538c28b933d5306caae4cad1ea6190c534e6717ef85a5a02f7439e5798350
+Proposed invocation SHA256:
+2e3148591f6124489396b226de040ef6ef38872901c2e4795c6f7e3a8eb2ba2b
+DLL811520 bytes, SHA256:
+f0415d95e10581c9e997b2199db81aac757eeec693a7d6e77cba59fdce06afa3
+
+Outcome
+
+Actual native Load completed sufficiently to bind the selected saved watch,
+exchange state0 and grant1, then fail at tick1 with the same transition
+errors48. Report29/action30 were not reached. Public GetUp claimed/accepted/
+calls/returns/unwinds were all zero. There was no origin request or delivery.
+
+The exact frozen strict-reader invocation returned failure and matched the
+runner's result. Its ordered32 errors are identical to003, including the
+initial transition failure, missing native terminal/restoration evidence,
+incomplete world census/baselines, five raw queue provenance failures and
+runner closure failure. No earlier failure was skipped. The new copied stream
+is locally valid14 rows/errors[]; that does not validate the whole contract.
+session_pass, parity_checked, independent_native_players, completed_release,
+ticket_authority and atomic_lease remain false.
+
+New native evidence
+
+Global activation event1 is boot2/tick0, context8/arg1, active0->1, caller
+1252026, enter1/leave2, with zero per-ship states as defined for this global
+event. It is not itself a selected-ship activation or completed release.
+
+Copied row1 is an enqueue during that event: boot2/tick0/bound0, one imported
+selected saved/runtime/object association, canonical manager and decode1.
+Both successful16-byte copies agree on SetFlightControlModelOrder type
+2c51c38 and uint32 mode0. Its actual return caller is RVA d8dd26. The pinned
+d8dd00 path calls eac900, whose tail jump to AddOrder/eacd40 preserves that
+caller; the synthetic harness's eac95a caller is not the actual004 witness.
+
+Copied row8 is the tick1/bound1 dispatch at eacf66. It resolves the selected
+bound object/Agent and has one earlier observer candidate (row1), the same
+command address/runtime and identical16-byte copies. These are copied raw
+observations, including uninterpreted bytes; address/byte equality is not an
+allocation generation, retained reference or uninterrupted lifetime proof.
+The other12 selected rows are six non-model enqueues and their dispatches;
+only their type read is captured, so zero full-copy fields mean not read.
+
+The source refusal is now concrete: transition_saved_runtime rejects the
+selected imported recipient while transition_saved_bound is zero. The enqueue
+wrapper returns as prebind/unknown before its model decoder or ticket creation.
+At dispatch there are still zero accepted tickets. The short-circuit sets32
+before the selected state read, then completion adds16. The zero event states
+therefore do not establish an identity-read failure. This run rules out a
+missed enqueue hook or invalid model decode for this observed association.
+It does not establish that a prospective full prebind ship-state guard would
+pass, or justify issuing a ticket retrospectively from the diagnostic rows.
+
+Copied STOP: count/rows14, completed capture outcomes393, unknown379,
+unreadable/ambiguous/dropped/open/restore_open all0. Original schema2 STOP:
+queue calls/returns393, other7, unknown385, prebind7, queue_failures0,
+tickets0, transition failures1. Its direct calls/returns6139 agree, unwinds0,
+sites/enabled/open/restore_open all0. Raw world trace21 records and raw queue11
+records remain available, with their original strict limitations.
+
+Owned cleanup and preserved artifacts
+
+Runner creation was recorded live at22:13:07.962556Z with native process-time
+identity. The wrapper/game parent chain, command lines and CIM creation times
+were captured while alive; their serialized CIM timestamps retain millisecond
+resolution. The released run lasted65.313 seconds and returned fail_pattern5.
+The outer runner and sealed independent reader returned1. The owned X4 exited0
+after graceful WM_CLOSE (4.39 seconds). No arbitrary process was terminated.
+
+Released receipts report lane_restored and snapshot.restored true. Subsequent
+canonical status confirmed b4 idle/unlocked, no X4 or queued lane and no instance
+mutex. All three owned process IDs and both loopback endpoints were absent.
+Both owned profile save009 files were absent after restoration. All603 sealed
+artifact files,558 source files and524 complete release files were unchanged;
+the source export remained cache-free. These cleanup facts do not replace the
+missing full native terminal/passive observer receipts in the strict result.
+
+Private retained evidence hashes
+
+Raw engine output502727 bytes:
+60f4a6bad659af5dc8c01599f53fbb0292ff745d1dba852b84a30c18cbbc7a10
+Actual runtime manifest22039 bytes:
+77f638a4c23cfc980002849588ad84ca66c83b912d4707ed0a169be770cef0ff
+Independent strict result28824 bytes:
+97b0a6b6b7b8918c2b1399ef161b7e382bb13c8241b5648852a760b0840dcf8c
+
+Raw logs, tokens, pointers, complete process receipts, installed configuration,
+transport transcript and cleanup proof stay private under the task checkout's
+ignored getup-artifact-004 and getup-live-004 directories. Old003 is unchanged.
+
+Next boundary
+
+Any correction needs a prospective, separately guarded producer receipt from
+the native enqueue borrow and a completed native enqueue return, then explicit
+continuity checks at the existing phase3 bind and dispatch. It must not promote
+these diagnostic rows, remove the general bound-watch guard, rebind raw world
+watches or attribute initialization to a user GetUp request. Fresh complete
+prebind controller/Agent/owner/registry readability and command-lifetime guards
+still need proof. Design/review is separate; no further native run is authorized
+by this report. Genuine independent pilot contexts and GetUp release/re-entry
+remain unfinished.

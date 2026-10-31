@@ -1,0 +1,120 @@
+NATIVE CONSTRUCTION: IDENTITY BEFORE READINESS
+28 October 2026 | source-only design; no enrollment change
+
+DECISION
+
+The existing Pilot helper entry c7d4c0, with exact caller return c8224f,
+is the earliest supported identity boundary for the reserved XL builder in
+construction diagnostic 015. It is not a Nav/Agent readiness boundary.
+The proposal does not relax the existing late-binding refusal, change commands
+or barriers, write native state, or authorize another native experiment.
+
+EVIDENCE AND EXACT SCOPE
+
+Diagnostic 015 remains invalid: the creation observer reported 51 complete
+records and 72 failures, and both participants stopped at completed tick 5 with
+reason 75. These observations narrow a design; they do not establish enrollment
+or construction success. Raw logs, native addresses and participant identifiers
+remain private.
+
+Both participants showed the same selected-object call forest:
+Generate record 1 (orders 10..110), Initialize record 20 (47..109), Pilot record
+21 (48..59), then three startup ranges 48..50 (102..108), all under Initialize.
+The final selected setter was record 51 (111..112), before phase 2 at 113.
+The startup caller was 1066dc6; scripts were orders.base,
+fight.attack.object.capital and engineer.ai. The first covered builder update
+was recorded within the first range. These are covered observations, not a
+claim to observe every native operation.
+
+Initialize entry had the exact XL object and runtime identity but no true owner.
+Pilot entry and return had the same object/runtime identity and true owner;
+the controller was absent and Agent was unobserved. The final setter installed
+StaticMovementController, not NavigationController. A later passive callback
+observed NavigationController; its creation boundary was outside this capture.
+
+The pinned Initialize path invokes SetOwner through vtable+1688 at c821cb,
+returning c821d1, before calling Pilot at c8224a. Pilot receives the ship-reference
+address in R8 and the selected owner in R9. Generate retains its local ship
+reference at [rbp-80] throughout Initialize, then transfers it to the outer
+out-reference at c84531..c8453b. This supports a borrowed lifetime during that
+native call interval; it does not create a retained DLL ownership lease.
+
+Pilot can itself invoke SetOwner at c7d584. SetOwner writes true/apparent owner
+fields and invokes callbacks/events. No lock or transaction excluding concurrent
+ownership mutation has been proved. Fresh lookup and repeated identity reads
+detect changes but do not make native owner/generation capture atomic.
+
+The three later 44e760 attachment calls in Initialize pass start=false through
+44d790. They must not be described as the demonstrated startup cause. Initialize
+later explicitly calls vtable+2188 at c82bcf/c82bf0/c82c11/c82c35; the exact XL
+target is 7cefb0. This is the precise static startup candidate consistent with
+the observed ranges, after Pilot return. The native ranges remain the direct
+runtime evidence.
+
+TWO-PHASE REGISTRY PROPOSAL
+
+1. RESERVED -> IDENTITY at the selected Pilot entry, before its original call.
+   Join the sole canonical reservation to the exact Generate/Initialize scope,
+   expected caller, execution tick, UI thread, full runtime/object identity,
+   exact supported class, macro and true owner. Require the borrowed reference,
+   object+8 and fresh native lookup to agree. Preserve first covered update
+   provenance and reject a selected update that precedes identity capture.
+   Store an immutable separate identity record; do not publish actor_components,
+   actor_ids, Agent samples, bound_tick or prepared_tick as if fully ready.
+
+2. IDENTITY can supply the existing full creation-handle RNG identity only to
+   separately reviewed AI/IRQ or constructor scopes. No runtime ID or slot may
+   enter portable RNG identity. This capability needs explicit per-operation
+   admission; it is not a blanket exception for all kind-6 observations.
+   Recheck identity/owner at use and on Pilot return. Pilot entry precedes its
+   RNG work, but identity registration alone does not equalize constructor RNG.
+
+3. IDENTITY -> READY only after the same selected lifetime has completed the
+   actual Nav/Agent construction and controller publication, before an operation
+   requiring that readiness. Initialization must happen at its reviewed native
+   boundary, not by resetting state at a deferred Lua callback. A later Lua bind
+   may confirm READY and the same identity; it must not silently prepare late.
+
+4. FAILED and STOP are sticky. No slot reuse, identity replacement, pending-ledger
+   erasure or conversion of an unsupported early operation into success. Keep
+   imported fixture behavior and the existing single-phase registry_bind guard.
+
+PUBLICATION AND REMAINING PROOF
+
+Current registry_bind publishes actor arrays before its preparation sequence.
+Several consumers read those arrays without registry_lock. Reusing that operation
+at Pilot entry would activate hooks against a partially constructed object.
+A future staged implementation must give consumers an explicit readiness check
+with coherent publication, and must never hold its registry lock across a native
+original call or wait for workers while holding native locks.
+
+The path early join completes one path pass; it does not prove global worker
+quiescence. eac530 publishes a newly constructed Agent into PathingManager before
+the outer Nav initializer returns. Safe READY publication therefore still needs
+the bounded same-lifetime A/B trace: native Nav and Agent construction/return,
+old Static pointer, selected controller publication, first covered update order
+and actual thread, joined to the same runtime identity. Do not infer readiness
+from a class-default layout or from reaching phase 8.
+
+The existing Pilot entry/return, Generate out-reference and first-origin records
+already locate Phase A. Add fresh lookup/macro/reservation guards when implementing
+that state transition. The A/B observer repair is the remaining focused evidence
+for Phase B; it is not a reason to weaken the current refusal.
+
+STATIC BUILD PINS
+
+All RVAs refer to the exact Windows executable SHA256
+19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+Full inspected spans (RVA / bytes / SHA256):
+c841b0 / 1090 / ed86616b763698739cd1635d6de0e430f804971eb10f63e9c1ae78e856b7cb5e
+c82060 / 3073 / fbfd2881e3e95f5225c74c2646046cf2ca3b7f27f9c9f3f77fb3e37becdf78ba
+c7d4c0 / 674 / 2db9de7694668281ec0229ff0ba597508b6dc6852a07297103b0ebe3589a7966
+6d38c0 / 612 / d7aece976b890688acd6b6ba606d3bc959dee1ea4db664a58e943b01c94c7005
+7cefb0 / 1985 / 84d907362fa18c23c320bc987feed2b8a4b14aae44533b41a5664a403d65ee47
+6e0160 / 420 / 9b441ecf2bc85e16441f507cb8fed2de86b36a7a7fe3e9132c81ad224f281471
+6cd8b0 / 39 / 9317be9e33cdf30695ab01f4dfb062d85b836a872a3019c103cf9279c4ff2a32
+745700 / 533 / c9f9f2b472bd1073b8aba6d14ae9bc5d3c47b30192ba35a2ceaefff9343788e8
+
+The SetOwner span includes all contiguous unwind fragments, not merely the
+35-byte first fragment. Pins establish the inspected build, not authority to
+patch it. No runtime source, tests or game installation changed for this report.

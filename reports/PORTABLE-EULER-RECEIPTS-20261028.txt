@@ -1,0 +1,42 @@
+PORTABLE EULER IMPORT RECEIPTS - 28 OCTOBER 2026
+
+Scope
+This is opt-in fixture import and validation plumbing. It is not evidence of a
+native corrected run, general deterministic AI, commands, PvP or co-op.
+
+The reviewed Euler mode binds its exact descriptor, snapshot and contract. The
+Windows launcher requests the correction explicitly after fixture configuration
+and before transport. The Lua adapter requires native readiness before Load and
+completed import plus restored patches before it emits terminal success. The
+legacy mode does not call the new native exports.
+
+The Windows native receipt has a closed 27-field schema. Independent validation
+requires one terminal receipt bound to the run and leased DLL hash, a normal
+true Load return, exactly 10,005 Euler calls/returns per role, no open scopes or
+owned patches, and successful restoration. Absent rotations are outside the
+Windows tail hook; these counts do not claim to observe them.
+
+The combined validator previously ignored the separate math receipt. Independent
+review reproduced acceptance with missing, incorrectly counted, incorrectly
+bound, failed and duplicate math receipts. The production Windows terminal
+validator now calls the independent parser and rejects each witness. A matching
+ordinary portable terminal cannot replace missing import evidence.
+
+Linux success additionally requires the explicit launch/probe capability, its
+closed native receipt, 10,008 calls/returns per role with 10,005 Euler and three
+absent records, 90,045 written words per role, and Load owner/table/client/module
+joins. The probe records independently read final table and manager pointers;
+the combined validator checks them and the exact hashes of both restored call
+windows. It does not accept verification booleans without the raw receipt.
+
+Both sides retain all prior process generation, mapped artifact, transport,
+frame, clock hold and owned cleanup checks. The new contract requires the fourth
+remote executable source, portable_import_capability.py, in the SSH provenance
+closure. Legacy source closure and frame serialization remain unchanged.
+
+Validation
+50 focused Python and actual LuaJIT tests pass, including modeled complete
+Windows/Linux evidence and independent rejection witnesses. Linux raw-field
+removal/type/value mutations, ownership, capability, restored bytes and source
+closure mutations are covered. These modeled checks exercise validators only;
+they are not two native players. Runtime adapters require separate native tests.

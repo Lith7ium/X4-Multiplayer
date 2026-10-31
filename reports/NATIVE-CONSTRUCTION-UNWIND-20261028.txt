@@ -1,0 +1,113 @@
+CONSTRUCTION OBSERVER UNWIND PREREQUISITE
+28 October 2026 | Source-only; no game or RNG intervention
+
+This change closes observer scopes when a native exception crosses the existing
+construction wrappers. It preserves incomplete evidence and propagates the native
+exception. It does not recover the game's partially executed construction, seed
+RNG, prepare an actor, enroll a builder or relax the late-update refusal.
+
+The isolated branch starts from integrated root630e905. The prior construction
+branch, frozen bundles and native captures remain unchanged. The implementation
+uses the already enabled Windows SEH compiler support and existing immutable
+thunks; it adds no hook, patch word, option bit or native memory writer.
+
+Entered scopes and abnormal closure
+-----------------------------------
+All nine production forwarding wrappers retain their original argument widths,
+outrefs and opaque GP/XMM results. Their original and normal completion are inside
+__try; __finally invokes resident-only abort on abnormal termination. Index zero
+remains a no-op for abort, without TLS/native reads. LastError is preserved around
+creation diagnostics. No native original is skipped, retried or replayed.
+
+creation_abort uses only the retained record's parent and accounting fields. It
+marks UNWIND, restores creation_current, decrements open exactly once, and closes
+further capture admission. A private unwound discriminator prevents duplicate
+decrements. An aborted record keeps complete=0, no fabricated result/leave ordinal
+and no after-snapshot. Existing completed children remain complete. A native parent
+may catch an inner exception and return normally: its own record can complete,
+but the failed child and global failure stay retained. A sibling then executes
+outside the closed capture window instead of inheriting the aborted child.
+
+registry_origin_abort runs only from the owning wrapper's live finally scope.
+It restores the prior scope pointer even when the scope was unadmitted. For an
+admitted scope it decrements open once and marks its resident pending notes with
+ORIGIN_UNWIND. It never samples context, ExecState, event, output reference or RNG
+after abnormal termination. Pending records remain incomplete. A private closed
+discriminator prevents repeat cleanup. Immutable first-entry identity/order fields
+are not replaced by a later attempt.
+
+The four registry-origin callers have protected closure: interrupt range, context
+event, Director AI and radar delivery. Range cleanup also restores its previous
+interrupt_current. The minimal call-path audit found three observers installed
+even with optional NPC bits disabled: instruction step, nested native action and
+NPC action. They now restore their previous interrupt_step_active, nested_current,
+npc_current and npc_speech_owner in finally. Their normal post-native reads remain
+only on the normal path; abnormal execution increments failure without inventing
+post-state or results. Their prior pointers may be non-null and are restored as
+such, rather than indiscriminately cleared.
+
+STOP and unsupported compositions
+---------------------------------
+An admitted original still owns its closure after STOP has restored hooks. Existing
+open-at-STOP evidence remains sticky. A normal return after STOP and an exception
+after STOP remain distinct: the former retains its normal result as before; the
+latter remains incomplete and unwound. The helper never waits for a native original
+under an observer lock. Pages and scope records remain resident.
+
+Creation configuration explicitly refuses NPC execution/pilot/deadline bits 47,
+48 and 49 before installation, including repeat configuration. These options are
+off in the accepted construction016 fixture. Their optional provenance, pilot,
+trigger and deadline stacks do not acquire an exception-safety claim here.
+
+The existing actor-local RNG flags used by natural016 remain unchanged. Many of
+those independent writers still restore their caller RNG only on normal return.
+This prerequisite therefore claims observer-stack closure, not exception-safe
+composition with every seeded actor callback. No constructor RNG enable API is
+implemented. A future RNG mode must refuse unreviewed writer combinations at
+admission or first obtain separately reviewed complete restoration support; a
+runtime overlap failure discovered after seeding would not prove safe admission.
+
+Validation and limits
+---------------------
+The full native exact-image/ABI/unwind/restoration suite passes, including existing
+transport, rotation and constructor tests. New cases exercise:
+
+  - All nine production forwarding wrappers, with admitted/disabled capture and
+    deactivation during the original: 36 actual Windows exception-unwind cases.
+    Code, parameters and OS-produced flags match a direct native throw; normal
+    GP/stack/XMM/outref/result/LastError and original-once checks also pass.
+  - All four production registry-origin wrappers, with and without STOP: eight
+    exception cases restore a live unadmitted parent and retain incomplete notes.
+  - Nested construction abort after STOP, duplicate abort, deliberately poisoned
+    borrowed after-read addresses, and zero extra TLS reads on cleanup/index zero.
+  - A native range parent catching an inner exception, running a sibling and
+    returning normally with its own scope still valid; a matching constructor
+    accounting case retains the failed child while the parent completes.
+  - Step/nested/NPC action unwind with non-null previous pointers and STOP,
+    asserting one original call and absent post-native samples.
+  - Unsupported NPC composition refusal before any creation hook ownership.
+
+These tests execute production wrappers over owned synthetic originals and memory,
+with real Windows exception dispatch. Pinned-image prefix/unwind tests remain a
+separate check. They are not a live X4 engine exception test.
+
+Two independently compiled private omission mutants fail the intended assertions:
+removing a forwarding abort, and removing the prior registry-origin pointer pop.
+Broad native Python/Lua checks pass 591 tests; five unrelated Linux-only subprocess
+tests are skipped on Windows. There are no missing LuaJIT skips. Read-only replay
+preserves the exact natural build012/014/015/016 error arrays: 41/43/43/41. In
+particular, accepted016 creation/MD/origin subtraces remain accepted and its full
+construction test remains false with STOP75. Successful schema-2 row formatting is
+unchanged, and no historical captured bytes were modified.
+
+Private build/test logs, mutant copies and natural-history comparisons are in
+.local/construction-unwind. No game, profile, lane, relay, snapshot staging or
+new frozen native test artifact was used by this source task.
+
+Independent-review correction: the first prerequisite revision reused the earlier
+origin TLS snapshot for AI RNG selection, after Clang's SEH outlining caused an
+unresolved NtCurrentTeb inline reference. That reuse was unnecessary. A separate
+noinline helper now contains the exact original TEB/TLS expression and is called
+at the original point immediately before ai_execute, preserving fresh normal-path
+selection while keeping the header inline outside the SEH funclet. No RNG state
+write or source scope expansion is introduced by this correction.

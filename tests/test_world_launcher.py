@@ -109,6 +109,26 @@ class WorldLauncher(unittest.TestCase):
         with patch.object(w,'launch') as launch,self.assertRaisesRegex(RuntimeError,'DLC/mod'):
             w.start(self.root,self.package,self.session,lambda:None)
         launch.assert_not_called();self.assertFalse((self.profile/'save').exists())
+
+    def test_player4_stages_verified_world_in_assigned_profile_before_launch(self):
+        old_profile = self.profile
+        self.profile = old_profile.with_name('45843')
+        self.profile.mkdir()
+        shutil.copy2(old_profile/'config.xml', self.profile/'config.xml')
+        self.state['profile'] = str(self.profile)
+        w.write(self.root/'installation.json', self.state)
+        self.package.update(slot='p4', dedicated=True, test_profile='45843')
+        with patch.object(w, 'launch') as launch:
+            w.start(self.root, self.package, self.session, lambda: None)
+        launch.assert_called_once_with(self.state)
+        slot = self.profile/'save/save_010.xml'
+        self.assertEqual(slot.read_bytes(), self.source.read_bytes())
+        self.assertFalse((old_profile/'save').exists())
+        w.validate_slot(self.root, self.profile, self.manifest)
+        self.assertIn('seed_verified = true,', (self.target/'ui/config.lua').read_text())
+        w.remove_slot(self.root, self.state)
+        self.assertFalse(slot.exists())
+        self.assertEqual((self.world/'bundle/seed.bin').read_bytes(), self.source.read_bytes())
     def test_failed_native_capture_is_reported_and_retry_retains_evidence(self):
         shutil.rmtree(self.world)
         key=self.session['bubble'];log=self.profile/'x4lan-debug.txt'

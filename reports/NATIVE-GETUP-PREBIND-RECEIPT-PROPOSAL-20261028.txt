@@ -1,0 +1,215 @@
+PROSPECTIVE PREBIND MODEL RECEIPT - SOURCE PROPOSAL ONLY
+28 October 2026
+
+Status and evidence
+
+No implementation, native retry, action or artifact is authorized by this plan.
+GetUp004 remains failed with the same32 strict errors as003 and zero GetUp
+calls. Its committed result is NATIVE-GETUP-DIAGNOSTIC004-20261028.txt.
+
+004 identifies the refused native producer: one selected model0 enqueue at
+boot2/tick0 occurs before the selected saved watch binds. Its callback return
+caller is d8dd26 under global activation8(arg1). The current selected-runtime
+guard returns prebind/unknown before decode or ticket creation. The later
+eacf66 dispatch therefore has no source ticket. This is not a missed hook or
+an invalid model decode in004. It does not prove that full ship state was
+readable at enqueue, nor establish uninterrupted command allocation lifetime.
+
+Fresh read-only PE checks match the exact19750a65... image, eight existing
+full-function pins, PlayerController slot51 and model dispatch slot. Private
+pinned-chain.json SHA256:
+bf9b559d0c8906046a7a626ac1bb58176f121eabee7b76da7a12adb64cffc99a
+The relevant native chain is:
+
+  d88710 activation -> d9c590 -> PlayerController slot51/d8dd00
+  d8dd21 CALL eac900; return d8dd26
+  eac900 allocates16 bytes, writes type2c51c38 and uint32 mode
+  eac959 tail-JMP eacd40 preserves d8dd26 as the observed return caller
+
+The existing pins cover d88710/759, d9c590/902, d8dd00/75, eac900/94,
+eacd40/245, eace40/785, e979d0/14 and registry lookup ced70/184.
+No new hook, thunk or double-valued option bit is proposed. Add an explicit
+PlayerController slot51 data-pin check to this option's prerequisite checks.
+
+Native ownership boundary
+
+AddOrder/eacd40 stores runtime and command in a fresh0x20-byte list node at
+eacdcf/eacdd3 while holding manager+0x90. Ordinary return is eace0b; allocation
+failures take throwing paths. The consumer/eace40 swaps the list under the
+same lock, resolves the full runtime to an Agent, invokes the command at
+eacf63, deletes it at eacf77 and clears its node pointer at eacf79. Existing
+dispatch callbacks finish before that deletion. Enqueue return must never
+dereference the transferred command.
+
+The unlock at eacdf0 precedes normal enqueue return. A consumer can dispatch
+before the return callback. The proposed early path deliberately refuses that
+ordering, and also dispatch before bind finalization. It never fabricates an
+acknowledgement or waits while holding a lock. Existing bound immediate-dispatch
+handling is unchanged. These audited ordinary-call boundaries do not establish
+a native allocation generation, an atomic owner/lifetime lease, or coverage of
+all destruction paths. Missing dispatch leaves outstanding receipt debt.
+
+Separate opt-in contract
+
+Proposed flag: native_gate_player_transition_prebind_receipt=true.
+Proposed manifest extension: prebind_receipt=1, exact int (not bool).
+Proposed bootstrap suffix: |PLAYER_TRANSITION_PREBIND_1, after the existing
+copied queue suffix, exactly once in actual Lua/Python/C reconstruction.
+
+Allow it only in the closed single-copy diagnostic-getup-1 contract with the
+existing exact snapshot, one physical p1, selected ae79c/player11e12, saved
+PlayerController watch, passive mask, action30/last120 and queue_evidence=1.
+This requires a separately reviewed source and later frozen artifact. Absence
+preserves all previous config/manifest/bootstrap encodings. Marker-only, wrong
+mode/watch/run/window, false/numeric flags, mixed adapters, late activation and
+STOP refuse. Initial activation is before Load and before observer start;
+healthy same-session UI reattachment acknowledges without clearing records,
+claim state, cursors or debt. No runner or lane-policy widening is needed.
+
+The copied diagnostic stream remains schema1, ticket_authority=0 and
+allocation_generation_known=0. It is not read as input by the prospective
+ledger. A new closed PREBIND_1 phase stream/footer extension distinguishes the
+prospective receipt from ordinary schema2 tickets. A boot2 ticket without its
+configured complete phase proof must refuse, including if extension rows are
+stripped. The general bound-watch selection guard stays in place.
+
+Prospective state machine
+
+1. Producer borrow, before original: reserve at most one early source for the
+   selected watch. Require boot2/tick0/unbound, exact d8dd26 caller, canonical
+   manager, mode0 and stable complete model copies. Require a unique imported
+   saved/full-runtime/object association. The current TLS parent must be the
+   error-free, still-open same-thread activation8(arg1) with active-before0.
+   Excluded/nested parents must not lend an unrelated outer activation token.
+
+   Use a dedicated early guard, not transition_saved_copy or the general
+   transition_read wrapper. Capture two complete transition_read_native states
+   and apply the saved registry/macro/true-owner guard to both. Require exact
+   equality, initial PlayerController type, owns_agent1/player1 and matching
+   controller->object, Agent->object and slot relationships. Derive Agent from
+   the checked state; unbound watch.agent is zero and cannot supply this proof.
+   Retain the actual registry index/lane/status/generation and full runtime.
+   Recheck the copied import/session state under the observer lock before
+   publication. Read failures, changed state, ambiguous import or overflow fail.
+
+   Publish an immutable producer receipt and the ordinary kind4 source event,
+   preserving its actual boot2/tick0, caller, parent and before-state. Its queue
+   validity describes checked borrowed input; in the extended contract it is
+   insufficient to admit dispatch. The associated internal ticket is explicitly
+   provisional, not state1/dispatch-eligible. Complete rows are never rewritten
+   later. All native inputs are borrowed only here, before the original call.
+
+2. Normal-return acknowledgement: the existing enqueue-end seam receives the
+   private scope token, then appends one ACK phase and updates only local ledger
+   state. It records the original's ordinary return, same-thread/session/phase
+   and observer ordering. It reads neither command nor ship/controller memory.
+   No return, duplicate return, STOP or an earlier premature dispatch can become
+   a successful ACK. The original is still called exactly once on every path.
+
+3. Phase3 bind finalization: at the existing main-thread joined bind, issued0,
+   cross-join the provisional source and ACK with the completed error-free
+   same-thread activation, including its active0->1 outcome and containment.
+   Read the selected ship again with the existing two full guarded snapshots.
+   Require exact producer-to-initial-state continuity, including model,
+   PlayerController, Agent, slots, faction/owner and full runtime/generation.
+   Do not exclude a changing field to make this compare pass. Require exactly
+   one completed ordinary-return ACK, no producer or dispatch open, no duplicate
+   import/address reuse, no failure/closing state and all existing hook guards.
+
+   Publish an immutable BIND phase referencing the source, ACK, activation and
+   initial watch. Only this successful local transaction makes the ticket
+   dispatch-eligible. General raw world watches are not rebound. A failed join
+   is sticky and leaves explicit failed/outstanding receipt debt.
+
+4. Native dispatch and retirement: retain the existing bound selected identity,
+   full-runtime/Agent/controller/owner, exact typed bytes, caller eacf66,
+   source-completion and once-only ticket checks. Additionally require the
+   finalized early phase proof for this one ticket. Claim it under the same
+   observer lock before the original. Validate the existing ordinary-return
+   after-state and command bytes while the native input is still live, then
+   retire exactly once. This proves an observed initialized-model dispatch;
+   it does not prove a user request, selected activation, release or pilot lease.
+
+Each admitted enqueue/dispatch checks for reuse of this early command address
+before ordinary recipient selection. Any observed second enqueue at that
+address, even another recipient or after retirement, poisons this one early
+path for the session. Duplicate early producers also refuse. This conservative
+observer rule does not assert that all unobserved native allocation reuse or
+destruction has been excluded. Ordinary bound ticket reuse policy is unchanged.
+
+Append-only evidence and stop accounting
+
+Use bounded immutable SOURCE/ACK/BIND rows linked by one local producer ordinal
+and the actual core event IDs. The ordinal is not an allocation generation.
+Export the captured states, registry proof fields, mode/command bytes, caller,
+thread/phase/tick/order, initial watch and activation joins needed for independent
+derivation. ACK contains no fresh native pointers or reads. BIND uses fresh
+guarded state, not a command reread. Full-width pointers/IDs and exact field
+grammar follow existing native receipt bounds; raw pointers stay local.
+Phase rows have their own bounded sequence and sample the existing core clock;
+they do not increment the core clock or break its contiguous event enter/leave
+contract. Source leave <= ACK sample < activation leave <= BIND sample <
+dispatch enter, together with same-thread containment, is independently checked.
+
+Publish complete row/outcome counters together under the observer lock, with
+pending/open represented independently. An active UI drain must tolerate a
+healthy admitted read before outcome publication. STOP records retained open,
+pending, failed and outstanding debt and refuses incomplete proof, even if the
+call later returns. It cannot reopen admission or retroactively finalize. No
+lock is held across native originals or guarded bulk reads. Late callbacks may
+record ordinary closure but never resurrect a receipt after STOP.
+
+The shared queue wrappers still have queue_exception_cleanup=0. This proposal
+does not claim to clear all queue TLS/open state on native exception. No ACK is
+issued on an exception; existing open/return mismatch plus direct activation
+unwind evidence remains failure. A later abnormal-return seam is a separate
+reviewed dependency. No exception is swallowed and no transferred memory is
+read during abnormal cleanup.
+
+Independent validation must derive every producer->ACK->completed-activation
+->BIND->dispatch join from exported rows, enforce configured scope and uniqueness,
+and join queue call/return/outcome accounting. It must not trust a native boolean
+or final ticket state alone. A missing phase, altered order/thread/identity,
+unclosed producer, premature dispatch, duplicate/reused address or extra early
+ticket refuses. Initialization receipts cannot be used as an origin edge for
+the later GetUp action. All raw queue/world failures remain strict. Passing this
+narrow chain does not guarantee reaching action30 or passing the local contract.
+
+Proposed source ownership and verification
+
+Add a small lockstep_transition_prebind{,_lua}.h and focused owned-memory tests.
+Touch only existing transition enqueue-end/dispatch seams, saved-bind publication,
+transition Lua export/config and exact-image pin checks. Add a dedicated Python
+receipt parser and its integration in native_transition_evidence.py. Wire the
+closed option through build_native_gate_overlay.py, native_gate_transition.lua,
+native_gate_probe.lua, native_player_getup.py, diagnostic contract/validator and
+the C bootstrap checks. No new engine hooks, lane wrapper, native action adapter,
+shared bytecode policy or transport namespace changes are proposed.
+
+Required source tests before further native review:
+
+- Exact-image producer caller/tailcall/slot pins; actual existing wrapper ABI and
+  original-once on all denied/read-failure paths. No post-enqueue command reads.
+- Stable full prebind owned memory succeeds; every guarded read failure and
+  controller/Agent/model/owner/full-runtime/generation/object replacement refuses.
+  Test changes before bind and before/after dispatch, including identical low-ID
+  with a different generation and identical pointer with changed registry state.
+- Controlled threads schedule dispatch before ACK and before bind; both refuse
+  permanently. Normal bound immediate dispatch retains its existing behavior.
+  Duplicate producer/ACK/BIND/dispatch, missing return and address reuse refuse.
+- STOP during borrowed reads, original, ACK and bind; no counter publication
+  race, no revival, exact ordinary return counts, retained open/restore debt.
+  Native exception witness must preserve the explicit unsupported queue cleanup.
+- Actual C formatter -> production Lua -> independent Python, including active
+  pending capture and raw STOP footer before refusal. Mutate/delete each causal
+  join independently against a fully valid modeled baseline.
+- Actual builder/config/runtime-manifest and Lua/Python/C bootstrap preimages,
+  suffix once, default/off byte preservation, mixed/marker-only/late refusal,
+  phase1/2 fresh-Lua reattachment with retained counters and action claim.
+- Reparse retained003/004 unchanged: same failures and zero GetUp actions. No
+  tests may convert copied diagnostics into tickets or advertise two players.
+
+These tests establish source behavior in owned memory, not native prebind
+readability. A later explicitly reviewed disposable observation is still needed
+to see whether the complete guard passes in X4. Until then this is a bounded
+proposal, not a repaired run or a working independent player-control context.

@@ -1,0 +1,79 @@
+MIXED005 LINUX STARTUP AND SSH EVIDENCE DIAGNOSIS
+28 October 2026 | read-only evidence and source-only transport correction
+
+Mixed005 remains failed, with no portable HELLO, frame or permit. This work does
+not change its evidence or acceptance. The separate Windows input6 diagnosis is
+owned by the Windows adapter reviewer. No new native game or remote installation
+was run for this investigation.
+
+Linux startup and the owned request
+Relative to the retained native START timestamp: exact native VERIFIED appeared
+at +0.314 seconds; WAIT owned_preload_request at +1.654 seconds; NOT_ARMED
+disarm_file_present at +68.699 seconds after controller cancellation. The native
+PID/start/UID claim and probe READY receipt are present. Its marker map is empty.
+The UI log reaches Entering startmenu, with no PORTABLE_BOOT MENU, LOAD_REQUEST,
+LOADED or Lua-error receipt. The ready-request file remains absent.
+
+The production probe writes the request only after independently claimed/VERIFIED
+native identity and the exact fresh MENU marker. Before publication it checks the
+mapped readiness bridge, live coordinator identity/socket, and native connected
+UDP endpoint. The request binds mode/token/PID/start. Native ReadyGate waits for
+this request before installing load/import hooks. There is no readiness cycle:
+the common loader logs MENU on IsStartmenu() before checking backend.ready().
+With no MENU in005, the request predicate was never satisfied.
+
+A bounded read-only check of the closed owned case confirms enabled=true and the
+exact v2 contract/descriptor/snapshot, private profile/run/save path; lab enabled;
+and ui.xml ordering settings, Linux backend, common loader. Loader/backend bytes
+match the frozen005 tar. The common loader retains original CRLF fixture bytes
+(bb105a63); the LF source export is normalized-equivalent, not byte-identical.
+No wiring mismatch was found.
+
+Prior native evidence supplies context, not acceptance: mixed002 reached request
+at +51.781 seconds; accepted observer d837c80b at +90.500 seconds. Both loaded and
+contain the same llvmpipe FSR3 queue warning as005. That warning alone is not a
+fatal-startup diagnosis. Cancellation at +68.699 seconds is compatible with normal
+variable UI startup. Without MENU, actual005 Lua execution remains unproved and
+a latent startup issue cannot be excluded. No Linux guard change is justified.
+
+Disk persistence and SSH output
+The frozen callback calls atomic_report, then emits an SSH checkpoint. The barrier
+catches OSError/RuntimeError as disk failure. BrokenPipeError from the later output
+is an OSError, so it overwrites an existing ssh_input_eof cause in memory; final
+persist writes evidence_persistence_failed over the earlier durable reason.
+An original synthetic reproduction confirms first disk=ssh_input_eof, memory and
+final disk=evidence_persistence_failed. The005 report lacks the underlying syscall
+exception, so it cannot retrospectively distinguish an actual disk error from this
+reproducible output-error path. Missing local bridge evidence still means failure.
+
+Correction in tools/dev/native_portable_ssh.py
+CheckpointOutputError is distinct from disk-error types. After output failure,
+the coordinator stops immediately and retains its first failure, or selects
+ssh_checkpoint_output_failed if this is first. A separate true diagnostic field
+of that name is persisted locally without another output attempt. Repeated abort
+and final persist preserve both. Real disk errors, including that diagnostic write,
+still follow the strict evidence_persistence_failed path; failed writes are never
+claimed durable. The remote loop catches the distinct exception and stops Linux.
+
+Atomic-write-before-checkpoint and Windows-output-before-Linux-output ordering
+remain. No wire packet, native guard, receipt or validator is relaxed. Successful
+reports retain their format; the additive field appears only on output failure.
+The internal released counter can be set before persistence, so tests check actual
+emitted packets and no GO rather than treating the counter as proof of delivery.
+
+Validation
+Windows39 focused tests:32 pass,7 Linux-process cases skipped. WSL Ubuntu24.04 /
+Python3.12:all39 pass. Command (Windows PYTHONPATH uses semicolon):
+  PYTHONPATH=tools/dev:tests python3 -B -m unittest test_native_portable_ssh
+    test_native_portable test_native_portable_udp test_validate_native_portable
+New tests cover repeated final persist; no grant after checkpoint failure even
+after output recovery; real disk errors; secondary diagnostic-write failure; an
+actual owned Linux subprocess with closed stdout plus stdin EOF; and a real closed
+stdout at the first paired synthetic checkpoint, yielding UDP STOP and no GO.
+Existing12-tick bridge/UDP, hold, terminal and validator tests pass. All peers are
+synthetic, not games. One earlier command named two nonexistent test modules and
+failed import after30 passing tests; it is not counted as successful validation.
+
+Raw diagnostics stay private under .local/diagnosis in this worktree. Original005,
+prior native runs and all frozen artifacts are untouched. No new bundle was built,
+staged or launched. Future use needs a newly reviewed source closure.

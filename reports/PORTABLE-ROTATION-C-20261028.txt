@@ -1,0 +1,132 @@
+STANDALONE PORTABLE ROTATION C PORT - 28 OCTOBER 2026 UTC
+
+Original arithmetic module and nongame verification only. No engine hook,
+game-memory write, adapter linkage, staging, native X4 run or frozen-bundle change.
+The previous mixed-native initial-state failure remains a failure. This port
+implements the proposed common arithmetic, not either platform's native parser
+or arbitrary native instruction grouping.
+
+Interface and bounded ownership
+
+src/native/engine/portable_rotation.{h,c} has no float/double operations, libm,
+heap allocation, recursion, mutable global state or generated engine bytes.
+All data-dependent arithmetic uses unsigned32/64 integer operations with checked
+capacity; all scratch storage is automatic fixed-size storage.
+
+x4rot_offset(orientation, attributes[3], output[9]) receives PITCH,YAW,ROLL.
+Each attribute contains caller-owned const char*text, size_t length, unsigned
+present. Missing is exactly{NULL,0,0}; present-empty remains distinguishable and
+also defaults to+0. Nonempty text must designate length readable bytes. The
+module scans exactly that length, with no implicit NUL scan. The strict grammar
+and256-character bound match the reviewed Python reference.
+
+ABSENT orientation returns KEEP_NATIVE=1 without touching output; it does not
+invent identity orientation for the six saved offsets lacking rotation. EULER
+orientation returns OK=0 only after all nine stored basis-vector words are ready.
+All other results leave the entire caller output unchanged: UNSUPPORTED=-1,
+OVERFLOW=-2, CAPACITY=-3. There is no native fallback after unsupported input.
+The output contains v0.xyz,v1.xyz,v2.xyz only; no position, fourth lane, flag,
+reference, XML pointer, engine object or world state is accepted or modified.
+Caller validation of real XML memory/lifetime remains a separate integration.
+
+Integer capacity argument
+
+Each big integer has40 unsigned32 limbs (1280 bits), plus a bounded used count.
+A256-character decimal coefficient has at most851 bits; the largest additional
+binary32 rounding scale is149 bits, so parser temporaries need at most1000 bits.
+Denominator construction and comparison shifts also fit that conservative bound.
+A finite binary32 radian scaled by2^384 needs at most512 bits. Nearest-quadrant
+division and its exact product fit well below1280 bits; the residual is checked
+against half the pi/2 divisor. Its magnitude is below2^384. The series's largest
+term magnitude is2^384, so term*residual^2 is below2^1152:36 limbs suffice, with
+four extra limbs retained as checked capacity headroom.
+
+The series quotient is exact: first divide the full integer product by the
+small factorial step, retaining its remainder, then apply the768-bit nearest-even
+shift. A nonzero division remainder contributes a sticky bit at an exact shift
+tie. This preserves the Python recurrence rather than introducing an earlier
+rounding. The pi/2 limb array is generated from the original Machin-series oracle
+and compared back to it in every test build. It is not a copied engine table.
+The128-term convergence guard returns CAPACITY if unexpectedly reached.
+
+GCC13.3 -O2 stack-usage output reports the largest individual frame1824 bytes
+(x4rot_sincos). The deepest listed public offset->basis->sincos->rounded_divide
+->shift_right path totals3296 bytes of reported static frames. This is a measured
+compiler configuration, not a universal ABI stack guarantee. No path recurses.
+
+Exact arithmetic and environment evidence
+
+check_portable_rotation_c.py builds three independent variants on each host:
+-Windows x86_64 using the established Zig0.15.2 Clang toolchain;
+-Linux x86_64 under WSL using GCC13.3;
+-for each: -O0, -O2 and -O3 -ffast-math, with warnings treated as errors.
+The environment adapter is a separate nongame test translation unit. It verifies
+all four IEEE rounding modes with FTZ/DAZ both disabled and enabled, then restores
+the exact prior rounding/MXCSR state. Eight synchronized worker threads also run
+64 independent environment batches without shared mutable arithmetic state.
+
+Every host/build variant passes the following exact raw-bit comparisons:
+-104,343 finite sine/cosine inputs across all exponents, including subnormal,
+ maximum finite, quadrant neighbors and100,000 seeded random samples;
+-100,007 additions and100,007 multiplications, including refusal/unchanged-output
+ overflow cases, signed zeros, underflow and nearest-even ties;
+-642 decimal/grammar/limit cases plus7,674 independently known midpoint cases;
+-343 combined rotations, with all3,087 coefficients checked both against the
+ frozen Python reference and the separate Decimal/Fraction operation oracle;
+-the actual saved navigation workload:20,010 Euler bank conversions, all nine
+ output words exact, plus six absent orientations retaining all output sentinels.
+The full saved workload is replayed under all eight environment combinations.
+Nonfinite, malformed/unknown, missing-metadata inconsistency and late-angle
+failure paths also preserve the complete output buffer.
+
+All six builds have the same output SHA256:
+186bb0bdd18277e847ead6eccdd95b09c5951f8f5469f53486f7624ea7165798.
+The code's normalized SHA256 is
+85431a70d4a2bf949b92c39b84da3bb6c65f39d818c9c3ac069380afb453c73f;
+header SHA25657fcb3a1bdc13cb36b33b649bd6650dfa23e6e35a843faad57a89292e2a6b33c.
+The independent grouping oracle still rejects the demonstrated reassociation
+mutant; the port does not weaken or replace that test.
+
+AddressSanitizer+UndefinedBehaviorSanitizer, with no recovery, separately replay
+the complete20,016-record saved-text fixture through test_portable_rotation.c:
+PASS converted20010/kept6, exact expected words, no sanitizer finding. The private
+fixture is generated by make_portable_rotation_fixture.py and contains no engine
+bytes. Its SHA256 isf8bc0e9e01cb91cda925611cb592c6e22bdf3dd7cd7445759dfa2d0b2de4247c.
+
+Measured standalone replay cost
+
+The actual private navigation census is bound to the unchanged common snapshot;
+census SHA256feb2172bf5d904282b2d81d1e99d98f238265237f4ca92bcf49f1efc16acaf5f.
+It contains10,008 components with two banks,20,010 Euler records and six absent
+orientations. Inputs are the real raw angle strings/defaults, not repeated
+twelve-ship data. One native C batch call times all20,010 conversions plus skips;
+array setup and Python expected-value calculation are outside the timed region.
+
+Observed eight-batch ranges for the final runs:
+                 Windows Zig                Linux WSL GCC
+ -O0             3.3869..3.4804 seconds      0.9321..0.9580 seconds
+ -O2             0.4881..0.5025 seconds      0.5053..0.5638 seconds
+ -O3 fast-math   0.4814..0.4944 seconds      0.5681..0.5920 seconds
+The eight-case near-extreme/default batch took0.0705..0.0861ms on Windows -O2
+and0.0806..0.0982ms on Linux -O2, with exact outputs under every environment.
+These are local standalone measurements with concurrent test activity, not an
+isolated performance study or game load cost. XML reads, callbacks, patching,
+engine continuation, other transforms and whole-universe behavior are excluded.
+
+Reproduction and remaining gate
+
+Run tools/dev/check_portable_rotation_c.py with --cc gcc on Linux or --zig pointing
+to the existing0.15.2 compiler on Windows, --samples 100000,
+--census pointing to the private saved-navigation census, and --report under.local.
+Use --compare with the other host report to enforce source/count/output equality.
+Private final evidence: .local/portable-rotation/c-{windows,linux}-final.json.
+Generate the sanitizer fixture with tools/dev/make_portable_rotation_fixture.py;
+compile portable_rotation.c plus test_portable_rotation.c using
+-fsanitize=address,undefined -fno-sanitize-recover=all and pass the fixture path.
+
+The sampled tests do not establish correctly rounded trigonometry for every
+possible finite input. No native import ABI/lifetime/publication integration or
+gameplay acceptance follows from them. The next distinct review is the bounded
+XML/candidate-output helper and exact owned engine call/return integration,
+preserving all non-basis bank bytes. Only a future reviewed two-native run can
+establish corrected frame0 equality and subsequent lockstep behavior.

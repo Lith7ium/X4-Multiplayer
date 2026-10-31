@@ -1,0 +1,534 @@
+Actual construction diagnostic, 27 October 2026
+
+Scope: one explicit stock structural-base module, a real station build task,
+and a real builder DeployToStation order in two disposable native games.
+This is separate from already-operational account fixtures. No instant completion,
+build-speed override or replay of a host's module state is used.
+
+The admitted input family uses 0x49 for a shared station plan and 0x4a for the
+second logical player's builder. Both input encodings are checked before effects.
+The station plan is locked while pending. Requests have deterministic fixture
+tickets and expected revisions. Enqueueing returns PENDING; an acknowledgement
+is emitted only after MD observes the actual expansion task, its single expected
+module macro, or the actual native builder order. Unexpected/duplicate ACKs and
+timeouts fail closed. A builder request requires acknowledged plan creation.
+This small protocol is not the future shared command dispatcher or a PvP faction
+permission implementation.
+
+The canonical plan digest covers the selected module, zero position/rotation,
+absence of equipment/connections, default construction method and unpaid plot
+dimensions. The one-module fixture uses struct_arg_base_02_macro; its inspected
+stock default production time is 53 seconds. This bounds the first actual-build
+test without claiming the module represents a complete usable station.
+
+The build storage is supplied with exactly the resources reported by the native
+build task. Seeding is explicitly logged, separately from construction consumption.
+It is not a trade/purchase or proof of credit deduction. Each resource's seeded and
+remaining counts are hashed; resource creation beyond that baseline is refused.
+The test retains the native task creation/processing, builder assignment/deployment,
+module total and operational counts, station operational state and native progress.
+Builder order queues and exact round-trip numeric progress are captured each frame.
+The new builder's exported position/rotation is hashed every frame too; it is
+outside the inherited battle fixture and could otherwise diverge during travel
+before its deployment/progress counters expose a difference.
+MD measurements are sampled every 30 ticks, with source and observation ticks;
+missing/stale samples are failures. Hashes use logical fixture handles, never
+runtime component, task or order IDs.
+
+Acceptance requires two acknowledged requests, a previously empty station,
+observed intermediate native progress, an actual DeployToStation order, the builder
+assigned and deployed, a completed module, and full resource consumption. Matching
+pending requests alone cannot pass. Independent evidence tests reject wrong plan
+ACKs, missing progress/completion and impossible resource balances.
+
+Native attempts so far have not passed actual construction acceptance:
+- build-001 stopped before the first admitted tick because the overlay checked
+  SHA availability before the base SHA module loaded. The check now runs at the
+  first admitted frame, before effects.
+- build-002 stopped at tick 20 when the game's FFI rejected a float-array string
+  conversion. A later pointer cast still produced empty progress bytes in game.
+  CONSTRUCTION_2 therefore records finite numeric progress with an exact double
+  round-trip check. The independent validator rejects missing/malformed progress.
+- build-003 acknowledged the real expansion task at tick 32 and the real builder
+  order at tick 92. Its MD resource lookup treated a pseudo ware-amount list as
+  a first-class table, so seeding was invalid. Construction states matched until
+  the battle subset differed at tick 3464 (first differing actor 4 position).
+  The builder was assigned but not yet deployed. This run proves neither valid
+  resource handling nor completion. No causal link to the battle mismatch is
+  established. All three owned pairs were cleaned up.
+- build-004 added the builder pose to CONSTRUCTION_2 and stopped at tick 20,
+  before either plan/deploy command. The native default Wait queue, all other
+  constructor fields, and all 228 captured battle actor rows matched. The builder
+  z position differed: 5000.505859375 versus 5000.6123046875 metres (difference
+  0.1064453125 metres). No construction MD/Lua error occurred. Both gates restored
+  and the pair was cleaned up. The full independent validator remains invalid
+  because the existing velocity-observer coverage had not run by this early stop;
+  its requirement was not relaxed. Constructor parsing/hash consistency passed.
+
+The resource path now explicitly converts the native build-resource list to a
+table, sorts wares by stable ID before seeding, rejects an empty requirement set,
+and verifies every seeded amount before
+acknowledging the plan. The runner also stops on Management/Construction MD errors
+and every native_gate Lua module error; previously the independent validator caught
+these errors but the early-stop pattern omitted them. Focused tests: 98 passed.
+The corrected resource/progress implementation still needs native acceptance.
+
+New-asset enrollment is a concrete prerequisite to investigate: the current engine
+registry and AI/flight/parameter/radar observer arrays cover only the twelve battle
+actors. The extra builder is not enrolled, so its AI takes the ordinary unseeded
+path and the fixture initialization hooks do not handle it. This is a coverage gap
+and a plausible cause of its early movement difference, not yet a demonstrated
+single root cause. Actor IDs 13/14 already identify dock anchors for shape handling;
+extending the actor array alone would collide with that namespace. A shared dynamic
+asset identity/enrollment change must coordinate every affected observer. The
+builder pose hash must remain enabled while that dependency is fixed.
+CONSTRUCTION_3 now captures that pose from the first frame where the creation
+callback supplies the builder, rather than waiting until tick 20. Its validator
+rejects disappearance or invalid numbers and records the first observed tick.
+This earlier census is covered by 99 focused tests; it has not had a native run.
+CONSTRUCTION_1/2 evidence remains readable and build-004's result is unchanged.
+
+The next adapter, CONSTRUCTION_4, requires the coordinated native ship registry.
+It reserves handle 0000000500000003 before emitting Setup at tick 5; the handle
+encodes creation tick, system authority and fixed fixture ordinal, not a runtime
+or imported saved ID. The MD builder event now runs immediately after create_ship,
+before adding test build units and the default order. The callback binds the exact
+decimal native ID and checks that enrollment did not change the exported pose.
+Each frame hashes canonical reservation/binding/preparation/first-update status.
+Slots 15..30 are admitted; dock-anchor slots 13/14 are refused. Late native updates,
+missing identity, registration outside ticks 5/6, and no observed native update by
+tick 20 are failures. Setup also preflights both command slots and refuses duplicate
+ticks before any reservation or creation. Runtime IDs stay outside portable hashes.
+
+The engine's Lua event sink has both a queued and a direct-sink path. Static
+inspection connects its mode flag to UI readiness, but has not proved the full
+callback timing relative to a newly created ship's first update. The native registry
+owner supplies that evidence and refuses an already-updated object. Merely moving
+raise_lua_event earlier in the MD action list is not considered a timing proof.
+The new composer requires imported-ID/contact coverage and the probe's bind_gate
+integration. Adapter/evidence tests: 103 passed; updated MD schema passed. This
+registry integration is prepared, not native-accepted; no unchanged pair was rerun.
+
+The upcoming builder is explicitly unarmed at creation: its loadout applies only
+engines, shields, shield groups, thrusters and software. No equipment is stripped
+after spawning. Its native physical weapon/turret slots are enumerated and required
+to have zero installed components before binding and in every subsequent frame;
+the UNARMED_1 census is included in CONSTRUCTION_4. Empty available turret slots
+are permitted; occupied turrets remain unsupported. The shared probe's weapon
+enrollment helper is mandatory and runs before the binding completion receipt.
+Armed XL surface turrets are a separate untested capability. This scoped fixture
+still requires actual travel, deployment, resource consumption and module completion.
+
+build-005 used the reviewed registry/prebind implementation and explicit unarmed
+fixture. Both games matched constructor states through tick 4, then refused the
+reservation at tick 5 before emitting Setup. No station/builder creation or binding
+occurred. The runner cleaned both clients after the failure. The adapter initially
+discarded the native API's secondary refusal reason; it now logs and preserves that
+reason for reserve, bind, status and weapon-enrollment failures and poisons the
+adapter. The reservation refusal was traced to an eight-byte native getter pin
+with a sixteen-byte expected digest. The exact eight-byte digest was corrected;
+the remaining literal pins were independently checked. This run did not test a
+late native update or successful enrollment. Combined focused tests: 127 passed.
+
+build-006 used that corrected immutable DLL. Both clients reserved slot 15 at
+tick 5 and created the builder. The first callback was tick 6, with exactly equal
+exported poses (20000, 100000, 5000, 0, 0, -0). Both refused ship_bind with
+registry=bind stage=identity before publishing successful native enrollment.
+The final registry record remained reserved but unbound/unprepared. Both native
+STOP records reported completed=5, reason=75 and restored=1, and the runner
+cleaned both clients. Independent validation correctly rejects this run: neither
+registry enrollment nor the required update/hold coverage was completed.
+
+MD's event-return receipt preceded the Lua callback receipt on both clients,
+proving that this callback was deferred. The identity failure is checked before
+the late-update guard, so this result does not establish whether earlier native
+updates occurred. Pending observers also use the native type/macro predicate;
+a zero pending count cannot prove coverage for an unsupported type/layout.
+The pre-bind armament census completed without finding installed guns/turrets.
+The next adapter additionally logs its exact empty-slot census and a best-effort
+UI macro/owner readback before binding; a failed UI read cannot hide the native
+refusal. A focused regression exercises both available and failed UI reads and
+preserves the original identity reason. Construction adapter/evidence: 15 tests
+passed. Granular native identity diagnostics are coordinated with the registry
+owner before another changed pair; no unchanged rerun is warranted.
+
+CONSTRUCTION_5 adds separate exact station and build-storage pose hashes. Each
+target stays explicitly pending until its own native callback supplies its ID;
+the state then includes all six exported position/rotation numbers every frame.
+Only fixed fixture labels enter these portable hashes, never local runtime IDs.
+This distinguishes target geometry divergence from builder travel divergence.
+It does not claim observation before the native creation callback. The independent
+validator requires corresponding creation receipts, finite poses, timely first
+samples, no disappearance and a stable schema. Historical schemas remain readable.
+There are 130 passing focused tests, including available/missing target callbacks,
+malformed poses, schema downgrade and duplicate receipts.
+
+build-007 used the reviewed exact Small/ExtraLarge registry layout and Move/Kill
+hook coverage, while unsupported Large/base/unknown classes remained refused.
+Both clients reached identity validation, then stopped at ship_bind late_update.
+The pending native lifetime had first update tick 6, kind 6 (REGISTRY_AI), with one
+observed update before binding. No bound/prepared state was published, and no
+late reset was applied. Both STOP records were completed=5/reason=75/restored=1;
+the runner cleaned both clients after 65.063 seconds. Independent validation
+rejects the failed enrollment and incomplete update/hold coverage, as required.
+
+The callback readbacks matched exactly: station (20000,100000,0), build storage
+(20000,100000,-5683.94482421875), builder (20000,100000,5000), all with rotations
+(0,0,-0). Native armament was zero weapon slots, eight empty turret slots. The UI
+reported the expected builder macro and player owner. Because binding failed,
+tick 6 did not publish a constructor state containing these available poses; this
+is matching callback evidence, not successful hashed construction acceptance.
+The successful-bind class diagnostic was not reached. Identity checks completing
+before the late guard establish progress past build-006's identity refusal; the
+registry owner is retaining granular class evidence across subsequent refusals.
+
+This establishes a genuine ordering gap: native AI is observed before the deferred
+Lua callback. It does not yet distinguish ship/pilot creation from the later
+default-Wait creation as the earlier AI trigger. Setup currently adds build units
+and creates that default order after raising the deferred event, so those boundaries
+must be examined before choosing an earlier enrollment point. Repeating the same
+pair, accepting late updates, or resetting the builder after its first update would
+not resolve this gap. Construction drones created later remain a separate uncovered
+lifecycle; the run never reached actual deployment or construction.
+
+build-008 kept the same MD/adapter bytes and added a read-only diagnostic at the
+existing AI wrapper. Both games retained identical first-entry evidence: orders.base
+at PC 0, caller RVA 106e3fb, tick 6, UI-thread and game-view flags set. Its actor
+parent depth was 2, native class was the expected ExtraLarge vtable 2b99a88, and
+the exact macro/player-owner/controller/agent relationship checks all succeeded.
+Both identity and AI read masks were complete (1fff and 1f). The observed game-time
+bits matched. The last registry operation was status with stage unbound; this is
+not an MD action position or call stack and must not be interpreted as one.
+
+This identifies initial order-dispatch execution before the deferred Lua binding,
+rather than a failed type or owner check. It does not prove which creation/default
+order action scheduled that dispatcher. Both games again refused late binding,
+stopped at completed=5/reason=75/restored=1, and exited gracefully with code 0 and
+restored lanes after 73.875 seconds. Independent validation remains false for the
+failed enrollment and incomplete coverage. No build acceptance, late-state reset,
+or unchanged follow-up run is inferred from this diagnostic.
+
+The next marked fixture adds Boundary numeric events 1..8 around builder creation,
+the existing Builder event, build-unit addition and default-Wait creation, in that
+order. Removing only these markers yields the exact previous action/parameter tree.
+Pilot setup is nested inside create_ship and is bracketed only by phases 1 and 2.
+The composer requires native_gate_registry_md_trace and compatible probe capability;
+Setup also checks registry_md_installed=1 before reservation or any fixture effect.
+Deferred Lua Boundary receipts are corroboration only: the new native observer's
+shared dispatch/first-AI ordinals must establish causal ordering. This marked fixture
+must not be composed against an older observer-free DLL.
+
+build-009 used the marked fixture and reviewed read-only native dispatch observer.
+Both clients again refused late binding at tick 6, with no bound/prepared state,
+and stopped at completed=5/reason=75/restored=1. Both games exited gracefully with
+code 0, both lanes were restored, and the runner closed the session after 87.688
+seconds. Independent validation is false, including a diagnostic coverage defect:
+the observer treated the preceding exact Station and Storage setup events as four
+unknown enter/leave rows, producing count=22/failures=4 instead of the required
+18 error-free rows. This run is invalid; the expected subset is not a passing trace.
+
+In that subset, both clients observed the native Builder dispatch at ordinals 11/12,
+the final after-Wait boundary leave at 22, and the first AI entry at 23. Those
+observations used the same local thread within each client, and the exact Builder
+payload matched the later private uint64 bind ID. All expected rows had complete
+read masks and no row error. Both footers reported restored=1/open=0/restore_open=0.
+This suggests an earlier native dispatch boundary, but does not establish that
+it precedes every native update: navigation or another observed family may run
+before the first AI entry. The next diagnostic must explicitly represent Station
+and Storage, retain unexpected event names, and correlate the first update of any
+family with the exact builder lifetime. There is no unchanged rerun or late reset.
+The construction lifecycle, cancellation and physical child-drone coverage remain
+unproven.
+
+A subsequent static audit found an observer-side caveat. The current exported
+GetObjectPositionInSector path is not generally read-only for ships: export RVA
+1a2600 calls the relative-transform routine 3db8a0, which dispatches vtable slot
+1440. The pinned Small and ExtraLarge classes both use 7461c0 there; the observed
+builder controller dispatches through ea5a70/ea5a90 to the mutable navigation
+refresh path ea2a20. That path can advance cached pathing state and consume arrival
+notifications. The existing pre-bind builder_pose call can therefore invoke native
+navigation work, depending on state. This is a static reachable path, not proof
+that the call caused the earliest update in build-009. The first-any-update trace
+must retain that distinction. Existing frozen artifacts remain unchanged; new
+module pose sampling must not assume this export is a passive memory read. The
+pending-registry trace covers its instrumented families, not every mutable getter
+or native access; its first observation is not automatically the first state write.
+
+CONSTRUCTION_6 is the replacement diagnostic schema, not construction acceptance.
+Its constructor no longer calls any transform getter for builder, station or build
+storage. Station/storage callbacks retain exact private runtime IDs and timing,
+while portable state records callback availability and sector_pose_supported=0.
+The builder uses the separately reviewed native ship_raw_motion reader. It exposes
+two passive, selector-checked navigation banks with normalized reference IDs,
+unknown-reference flags, and motion/timing fields. The position/basis subset remains
+bank-local; neither Lua nor the independent verifier derives or labels it as sector
+position/Euler rotation. Before/after binding comparison covers that documented
+subset and exact local frame identities, while permitting preparation to change
+separately exposed velocity/mode/layer/timing data. Private native IDs never enter
+portable state hashes. The raw reader refuses unstable pointers, selectors, bytes
+or identity according to its native implementation; Lua validates the returned
+schema, identities, selectors, lengths and subset relationship before use.
+
+Raw binding evidence and per-frame state use bounded 700-byte payload chunks with
+terminal count/length records. Reassembly rejects truncation, gaps, reordering and
+duplicates before state-hash comparison. The composer refuses an older probe
+without passive-reader capability, and adapter binding checks the actual method.
+Historical construction schemas remain readable. Even a complete-looking module
+and resource lifecycle under schema 6 cannot pass strict construction acceptance:
+sector pose coverage is explicitly unsupported. Source review included mocked-native
+and independent-verifier tests before the bounded native diagnostic below.
+No dormant cancellation, logical-unit or module
+census helper is installed by this change.
+
+build-010 ran the reviewed passive schema for a bounded ordering diagnostic. Both
+games again stopped at completed=5/reason=75/restored=1 before binding/preparation.
+The runner closed after 70.515 seconds; both games exited gracefully with code 0
+and both lanes were restored. Overall independent validation remains false with
+38 early-refusal/coverage errors. The MD boundary diagnostic itself validates on
+both clients: all 22 explicit rows, complete shared ordinals, exact ancillary and
+builder callback identities, no observer failure, and closed/restored call scopes.
+
+The first covered builder observation lies inside create_ship on the same native
+thread as the surrounding MD calls. Client 1 has phase-1 leave at ordinal 11,
+builder kind-6 observation at 12, and phase-2 entry at 13; its later Builder event
+is 17/18 and annotated ai_run is 29. Client 2 has corresponding ordinals 10, 11,
+12, then Builder 16/17 and ai_run 28. Unrelated earlier observed lifetimes explain
+the absolute ordinal difference. This rules out the Builder event as an early
+enough boundary under the current strict guard. It does not yet prove early AI
+execution: kind 6 is also recorded by the shared ai_actor helper used in interrupt
+and radar paths. Its exact caller must be retained before interpreting the state
+effect or choosing a different native creation boundary. No guard was relaxed.
+
+Both 997-byte passive pre-bind records reconstruct, validate and match exactly.
+They have stable read/write selectors, zero unresolved reference IDs, and matching
+normalized parent/frame identities. Their bank-local translation is
+(20000,36000,5000), which is deliberately not labeled the former sector-space
+position. The read did not prepare or enroll the builder. Because late binding
+was refused, there is no post-bind comparison, full construction state publication,
+completed build, cancellation acceptance or sector-pose acceptance from this run.
+
+The next logical-unit observer is implemented separately and remains inactive:
+native_construction_units.lua reads the existing exported aggregate UnitData API,
+stored build-unit count and unavailable build-unit count. The UnitData calls use
+onlydrones=true; the receipt explicitly excludes non-drone inventory. That boolean
+does not establish the accounting of unavailable units. Its verified 64-bit
+UnitData layout is size 24, with macro/category/amount at offsets 0/8/16. Reads
+require an exact uint64 builder identity, bounded counts/text, no duplicate rows,
+and two matching canonical censuses. Same-count replacement or amount/accounting
+changes between reads fail closed and poison the sampler; stale ticks are refused.
+This is a stability check, not an atomic engine snapshot. Inventory row order has
+no unit identity significance and is sorted, unlike a native ship order queue.
+
+The receipt retains expected stock, per-macro/category amounts, build totals,
+stored and unavailable counts, explicit relationship flags and unknown-accounting
+flags. It never assumes stored plus unavailable is conserved. The independent
+Python verifier recomputes row sums/flags, rejects missing or duplicate required
+ticks, and reports stock differences and logical use separately from completion.
+Twelve LuaJIT/mocked-export tests pass, including null/unterminated strings,
+same-count mutations, destroyed builders, incorrect FFI layouts and fabricated
+evidence. No native sampler acceptance or construction completion is inferred.
+
+The stock construction-unit macro is class ship_xs, while the construction fixture
+builder is ship_xl with 30 logical build units. The exact ExtraSmall native class
+is distinct from the currently admitted Small/ExtraLarge classes. Aggregate rows
+do not provide physical child IDs or prove how many native child ships exist.
+Both sampler and verifier explicitly report physical identity coverage as absent;
+they do not widen registry capacity or initialize unsupported child classes.
+
+An additional single-module census is implemented but remains inactive. Its exact
+read paths were inspected against Windows image SHA-256
+19750a6563889a970f434b5566eb396c6b2dc29ff814bd3e336f838176ad6891.
+GetNumStationModules (1e7960) and GetStationModules (1ead80), with BOTH construction
+and wreck inclusion flags true, use the registry lookup ced70 and station child
+iterator 5b4290/126570; the count helper is 4d4480. The iterator's fixed real-class
+predicate 991da0 and its class-getter dispatches do not change native state. All
+344 distinct Component-family class getter targets were checked over their
+reachable branches: no calls or memory writes. Other count/list flag combinations
+were not admitted by this audit. The registry lookup checks its lifetime counter
+before returning a component, but does not provide a retained lifetime lease.
+
+The exact GetComponentData('macro') key reaches component macro-name getter
+34e8d0 and string view 97180. All 14 Module-family classes share that macro getter.
+The common Lua wrapper preamble also reads the singleton player's apparent owner:
+9f7ef0 dispatches through +1610. Its five stock Component-family targets were
+checked; they read owner/parent fields, sometimes recursively, without writes.
+This incidental singleton dependency is retained as a scope limitation, not a
+second-player context. Operational (1b2320) and construction (277a70) observations
+use registry lookup and the existing state/availability fields. Exact-ID Lua
+conversion and the macro-only dispatch were inspected separately; UI string and
+Lua allocation are not claimed absent. Private audit artifacts retain the 29
+root/helper byte-range pins and all 344 class-function pins. There is no new hook,
+runtime patch, build widening or native acceptance from this offline audit.
+
+The planned-module UI APIs are expressly excluded. GetNumPlannedStationModules
+(1d67f0) materializes shared UI scratch state and calls 4c88d0 -> 4c7cf0; that path
+can dispatch an immediate event and call the mutable relative-transform getter
+3db8a0. Merely ignoring its returned position would not make it passive. No
+planned-module API, target transform getter or implicit native plan linkage is
+used by native_construction_modules.lua.
+
+The inactive census requires an observed empty station baseline and at most the
+one expected fixture macro. Each sample brackets two metadata reads with three
+count/list identity reads, checking counts and station metadata throughout.
+Capacity remains one even after an empty count, so a concurrent birth cannot be
+silently truncated into an apparently empty result. Observed first-seen IDs are
+retained exactly and excluded from the portable state; disappearance, replacement,
+generation change or macro change poisons the sampler. The independent verifier
+requires private identity evidence and requested tick coverage. It records unknown
+module states separately from operational/construction flags. Completion, native
+plan linkage, sector pose, atomic snapshots and lifetime leases remain unsupported.
+A native transition that replaces a construction component with a different
+operational identity would deliberately refuse until that lifecycle is mapped.
+Fourteen LuaJIT/mocked-export tests cover races, same-count replacement, metadata
+changes, station loss, large exact IDs, missing evidence and forged scope/flags;
+all 76 construction-focused tests pass. No composer or live fixture loads this
+helper, and these tests do not establish a native completed build.
+
+Cancellation preparation is separate and inactive. The stock MD cancellation
+contract permits a critical order to remain while its script receives a deferred
+request; therefore sending cancel_order is insufficient evidence of completion.
+The station UI instead queries immediate-only RemoveOrder2 before firing a
+builder. native_construction_cancel.lua uses that exported capability check,
+retains the exact uint64 order lifetime and requires the logical owner/revision.
+It checks the identity again at the write boundary, verifies that other orders
+survive in their relative order, and remains pending until a fresh MD sample shows
+both unassignment and undeployment. Builder destruction, stale samples, a late
+timeout or a partial native failure cannot turn into success or replay the effect.
+Local native IDs never enter its portable receipt. Retained deployment capture now
+compares native queues before creation and after ACK, requires exactly one new
+DeployToStation identity, and preserves the prior IDs and definitions. Its separate
+cancellation-only batch decoder validates both slots before any native read/write,
+commits in slot order, emits a fresh disengagement ACK once, and preserves partial
+receipts before poisoning a failed batch. It is not a cross-family dispatcher.
+The capture also requires bounded repeated native ID and serialized-order reads to
+agree, refusing same-count replacement, reordering or definition changes. This is
+an observed stability check, not a claim of an atomic engine snapshot.
+Eighteen mocked-native tests pass;
+this helper is not loaded/composed by the live fixture and has no native gameplay
+acceptance. Activation still needs the common cross-family full-batch preflight,
+adapter wiring of retained deployment capture and command/receipt hashing, plus live completion
+evidence after the initial build lifecycle passes. Build-task cancellation and
+construction-plan edits remain separate: remove_build has no success result, so
+they require later native task/resource readbacks rather than an immediate ACK.
+The inactive independent cancellation verifier checks the captured lifetime and
+exact before/after queue conservation using private per-client uint64 receipts,
+then requires a fresh native MD disengagement sample and a live builder/order-absence
+census for ACK. It returns only portable states, excluding raw runtime IDs. A preceding
+actual-build verification is mandatory for acceptance. This evidence path is tested
+against replaced identities, missing reads, fabricated ACKs and duplicate records;
+it has not yet been wired into or exercised by a native scenario.
+The first scenario intentionally excludes simultaneous plan edits/cancellation,
+plot payment, builder hire fees, managers, production and independent player faction
+wallets. Those need subsequent native scenarios after this basic lifecycle works.
+
+First covered builder operation identified (build-011)
+-----------------------------------------------------
+The reviewed origin observer e15895a was composed with the unchanged passive
+constructor and MD in immutable overlay-013. The overlay manifest SHA-256 is
+429e125022390f93cbe8c169071e0b72dfa323bca27828644c49543a218d84f3;
+the DLL SHA-256 is
+f216be856b4d457fbb51ad6be00c2b55b95fe281271b2a8ae75a046f97ae383f.
+All 14 overlay files and absence of extras were verified. No dormant cancellation,
+unit or module helper was installed. Six origin tests, 76 construction tests and
+the independent actual-image native ABI/restoration harness passed before launch.
+
+The released runner executed one 120-tick-capped pair, with a 260-second runtime
+and 900-second admission limit. It stopped after 73.391 seconds on the unchanged
+late-enrollment guard: both clients completed tick 5, reason 75, restored=1.
+Both owned games closed through WM_CLOSE with exit code zero; both lanes restored
+and the runner terminated its relay. The run, exact private IDs, process records
+and logs remain under .local/construction/build-011. Overall evidence_valid and
+session_pass remain false, with 36 strict errors after the early stop. The separate
+MD boundary and mandatory first-origin checks have zero errors.
+
+Both clients now identify the first covered builder entry as the native ExecState
+range runner called from the fully verified return site 1066dc6. Its source is 2,
+script orders.base, range begin=0/end=4, mode=1, entry PC=0/context PC=0, scope
+depth=2, actual native class ShipExtraLarge (2b99a88), UI=1 and view=1. Each receipt
+has reads=3ff, error=0, complete=1 and an original result of zero. This resolves the
+previous ambiguity between a shared context lookup and the startup range call.
+It does not prove the effects of every individual script instruction or full
+coverage of all possible earlier native operations.
+
+The common native ordering in each client is phase 1 leave at ordinal 9, the
+builder's first covered range entry at ordinal 10, and phase 2 enter at ordinal 11.
+Builder event dispatch is later at 15/16; the separately annotated normal AI call
+is at 27. These builder and MD observations share the same local native thread.
+Thus the startup range begins inside create_ship, before the Builder event and
+before the deferred Lua callback. Moving registration within that Lua callback
+cannot get ahead of this observed operation. The observer did not skip or repeat
+the original, seed the pending builder, prepare its state, or exempt its late bind.
+
+Both MD traces have all 22 rows, exact ancillary/Builder callback identity joins,
+four pending update records, failures=0, restored=1, open=0 and restore_open=0.
+Both origin footers have count=4, enabled=1, closed=1, failures=0, open=0,
+restore_open=0 and peak=3. The three non-builder first records remain explicitly
+unattributed; none was replaced by a later better sample. The sampled thread RNG
+is unchanged across each builder startup call, but its preexisting value differs
+between clients. No RNG equivalence or absence of all other script effects follows.
+
+Both 997-byte passive pre-bind records independently reconstruct and validate.
+Their raw position/basis/reference subset, logical-bank motion and normalized
+references agree, with no unknown references. The COMPLETE records do not agree:
+client 1 observes read/write selectors 1/0, client 2 observes 0/1, and one timing
+byte differs. Each selector pair is stable within its own double read. These
+differences are retained; selectors are not normalized away. Sector pose remains
+unsupported. There is no completed bind, post-preparation sample, native build
+task, deployment, resource-consumption proof, completed station or cancellation
+acceptance. A genuinely earlier, specifically audited enrollment boundary remains
+necessary before the construction lifecycle can proceed.
+
+Controller absent at the first startup range (build-012)
+------------------------------------------------------
+The additive passive identity observer c8d7662 was run once using overlay-014,
+manifest SHA-256
+d7e0bfa50ed8ab48229d3fc22243827c934fc4325dc657a5801ee960e7d201d8,
+DLL SHA-256
+a4d1e44b9ac752b22557ce1764a9ea899b362024264d6bbf9c004409771654d8.
+All 14 files and absence of extras were verified. Relative to build-011 only the
+DLL, probe capability/receipt additions and required identity-schema marker changed.
+The constructor, MD, raw reader adapter, plan and runtime bounds were unchanged;
+no inactive helper was installed. Fourteen origin/identity and 76 construction
+tests passed before the released-runner pair.
+
+The new first-origin rows match the exact original runtime/order/thread joins.
+Both clients observe the builder's actual ShipExtraLarge identity and a nonzero
+true-owner pointer through the verified getter slot, but the native controller
+pointer is NULL. Both passive reads return object_state=5, owner_state=5,
+controller_state=1 (absent), agent_state=0 (unobserved), reads=rereads=1f and
+stable=1. The Agent is not reported absent: its path was never reached because
+there was no controller to inspect. A nonzero owner pointer is presence evidence,
+not a new owner-name proof, lifetime lease or completed initialization assertion.
+The existing full enrollment preparation requires a controller/Agent relationship,
+so it cannot simply be moved to this observed startup entry unchanged.
+
+The original startup provenance repeats: verified caller 1066dc6, orders.base,
+range 0..4, mode 1, PC/context PC zero, full origin reads=3ff, error=0,
+complete=1, result zero. In client 1, phase 1 leave is ordinal 7, the first builder
+entry is 8, phase 2 enter is 9, Builder dispatch is 13/14 and normal AI entry is 25.
+Client 2 has the same relative order at 11,12,13,17/18,29. Each builder sequence
+is on the same local native thread. One versus five unrelated first records
+explain the different shared ordinals; they remain explicitly unclassified.
+Each MD trace has 22 complete rows, exact callback joins, failures=0, restored=1,
+open=0 and restore_open=0. Origin/identity counts cover all two/six pending records,
+with origin failures=0, open=0, restore_open=0 and peak=3. Independent mandatory
+MD, origin and identity parsers report no errors. The sampled RNG remains unchanged
+within each original startup call and differs between clients beforehand.
+
+The passive pre-bind samples are again 997 bytes each and validate independently.
+Their raw pose subset, logical-bank motion and normalized reference values agree,
+with zero unknown references. Complete state still differs: read/write selectors
+are 1/0 versus 0/1 and the same single timing byte differs as in build-011. Both
+selector observations are stable within their own sample. No normalization,
+sector-coordinate equivalence, binding exception or late preparation was applied.
+
+The strict guard stopped both clients at completed tick 5, reason 75, restored=1.
+The run ended after 77.375 seconds. The full validator remains false with 41 errors,
+including incomplete early construction/shape traces and missing client-2 state at
+tick zero; only one wire state was observed. The successful forensic joins do not
+make this a gameplay pass. Both owned games exited gracefully through WM_CLOSE
+with exit code zero, both lane and snapshot restoration flags are true, and the
+runner terminated its relay. Staged and archived snapshots have the same expected
+SHA-256 on both clients. Exact private process IDs, raw pointers and forensic
+summaries remain under .local/construction/build-012. There was no automatic retry
+and still no actual build/deployment/completion or cancellation acceptance.
